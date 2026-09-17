@@ -332,7 +332,7 @@ async function serveStatic(req, res, url) {
     // no-cache (not no-store): browsers may keep a copy but must revalidate with the server first.
     // A long max-age here would let an already-open tab silently run stale app.js/styles.css for up
     // to that long after every deploy, since this app has no content-hashed filenames to bust on.
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'" });
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; img-src 'self' data:; connect-src 'self'" });
     createReadStream(resolved).pipe(res);
   } catch {
     if (!path.extname(requested)) return serveStatic(req, res, new URL('/index.html', url));
