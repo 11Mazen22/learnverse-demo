@@ -41,8 +41,14 @@ Evidence labels: **AUTOMATED TEST VERIFIED**, **MANUAL WORKFLOW VERIFIED**, **IM
 - Idempotent offline submission queue with pending/synced/failed states: **MANUAL WORKFLOW VERIFIED**. Lesson-question attempts made while offline are queued client-side (localStorage-backed) with a visible "waiting for connection" state that makes no correctness claim; on reconnect they replay through the same idempotent `/api/attempts` endpoint and the real outcome (correct/incorrect, explanation, retry variant) is then shown. Unit Boss and Shop purchases are intentionally **not** queued — both are blocked outright while offline, since silently queuing an assessment result or a currency-affecting purchase would misrepresent an unvalidated action as complete.
 - Basic rate limiting: **AUTOMATED TEST VERIFIED**. Per-IP fixed-window limits on `/api/auth/login` (20/5min) and all `/api/*` traffic (600/min) as a first line of defense; this is not a substitute for a production WAF/rate-limiting layer.
 - Arabic mistake → explanation → retry and English direction switch: **MANUAL WORKFLOW VERIFIED** in the browser with no console errors
+- Keyboard/focus accessibility: **MANUAL WORKFLOW VERIFIED**. Modals (purchase confirmation, celebration) and the study-helper panel now close on Escape with focus restored to the trigger, trap Tab within themselves while open, and dismiss on backdrop click. Fixed a real dead-control bug along the way: the Settings page's "reduce motion" toggle rendered but had no click handler at all — now it genuinely forces `animation:none`/`transition:none` (persisted per-browser), on top of the existing automatic `prefers-reduced-motion` support. Full screen-reader and physical-keyboard-only walkthroughs remain open.
 - Production authentication, PostgreSQL migrations, backup restore drill, deployment: **DEFERRED**
 - Physical mobile device, screen reader, and formal performance/security review: **DEFERRED**
+
+## Phase 6 — AI assistance (brought forward from "later release" at the user's request)
+
+- Self-hosted AI study helper (Ollama): **MANUAL WORKFLOW VERIFIED** end to end on the live deployment, in both Arabic and English. Grounded to the current lesson/question only (system prompt built server-side from the same published-content data the lesson uses); per-user rate limit (15/10min) plus a 30s timeout with a deterministic, clearly-labelled fallback when unavailable; every reply carries `aiGenerated`/`unavailable` flags the UI renders as an explicit "AI draft, verify with your teacher" notice; unavailable during the Unit Boss (`state.view === 'boss'` hides the widget) so it can never assist a formal assessment; structurally unable to touch scores/wallet/mastery since `/api/tutor/ask` never calls `store.transact`. Covered by an automated test for auth/validation/no-side-effects (`test/api.test.mjs`); the actual AI-quality behavior can only be verified live against the real Ollama service, not in the automated suite.
+- **Known quality limitation, not yet resolved**: the model actually running (`qwen2.5:3b`) produces unreliable Arabic — observed nonsense word substitutions and, once, raw Chinese-character leakage mid-reply. A stronger prompt instruction did not fix it. Larger/better-Arabic models (`qwen2.5:7b`, `qwen3:8b`) were evaluated and rejected only because the current 5GB Ollama volume is too small for their pull to succeed (Ollama needs roughly 2x a model's size in scratch space while downloading) — this is a resource-sizing gap, not a code gap. See the `ollama_model_quality` memory for exact next steps once the volume is resized.
 
 ## Fixes made during this pass (not features, but load-bearing corrections)
 
@@ -52,8 +58,9 @@ Evidence labels: **AUTOMATED TEST VERIFIED**, **MANUAL WORKFLOW VERIFIED**, **IM
 
 ## Prioritized next steps
 
-1. Move persistence to PostgreSQL with migrations, row ownership constraints, password hashing, and expiring server sessions.
-2. Author a second (and third) reviewed variant per question so the parallel pool doesn't exhaust after one retry.
-3. Run physical-device, keyboard, screen-reader, slow-network throttling, and account-switch QA.
-4. Complete threat modeling, a production-grade rate-limit/WAF layer, a recovery drill, and authorized pilot content review.
-5. Build the "revise" step of content lifecycle (new version of a published question) — currently only draft→review→approve→publish→retire exists; revision requires deliberate versioning so past attempts keep meaning.
+1. Resize the Ollama service's Railway volume (dashboard-only action, ~30 seconds) and switch `OLLAMA_MODEL` to `qwen3:8b`, then re-verify Arabic quality — the study helper works today but its Arabic output quality is the weakest link in the product right now.
+2. Move persistence to PostgreSQL with migrations, row ownership constraints, password hashing, and expiring server sessions.
+3. Author a second (and third) reviewed variant per question so the parallel pool doesn't exhaust after one retry.
+4. Run physical-device, screen-reader, slow-network throttling, and account-switch QA (keyboard/focus itself is now handled; device-level assistive tech is not).
+5. Complete threat modeling, a production-grade rate-limit/WAF layer, a recovery drill, and authorized pilot content review.
+6. Build the "revise" step of content lifecycle (new version of a published question) — currently only draft→review→approve→publish→retire exists; revision requires deliberate versioning so past attempts keep meaning.

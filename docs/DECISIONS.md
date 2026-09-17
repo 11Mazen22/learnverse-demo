@@ -7,6 +7,8 @@
 - XP is kept separate conceptually; Coins are the only spendable MVP currency. Gems and competitive features are deferred.
 - Mastery evidence is independent from cosmetic rewards.
 - Demo content is never labeled as official or syllabus-aligned.
+- **AI assistance brought forward at the user's explicit request.** The brief frames AI as later-release/optional (section 13); the user asked for a working self-hosted study helper now. Implemented as Ollama running as its own private Railway service (never publicly exposed), with the same guardrails the brief specifies for AI in general: grounded to approved content only, rate-limited, timed out with a deterministic fallback, always labelled as a draft, and structurally unable to touch scores/wallet/mastery/permissions. The model actually running is smaller and lower-quality-in-Arabic than intended, purely due to a Railway volume size constraint — this is tracked as an open follow-up, not silently accepted as "done."
+- **Deploy path is Railway CLI local upload, not GitHub auto-deploy**, despite the repo existing on GitHub. Railway's GitHub App access under the account in use didn't reliably grant webhook/build access to the repo; rather than keep fighting that, deploys go via `railway up` from the local working tree, with GitHub kept as a synced backup/history only.
 
 ## Reversible implementation choices
 
