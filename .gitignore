@@ -4,3 +4,4 @@ data/*.tmp
 .env
 coverage/
 *.log
+scratch_test*.json
