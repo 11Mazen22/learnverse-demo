@@ -246,6 +246,8 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
+html.force-reduce-motion *, html.force-reduce-motion *::before, html.force-reduce-motion *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+html.force-reduce-motion .confetti { display: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
   .confetti { display: none; }

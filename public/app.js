@@ -16,7 +16,15 @@ const state = {
   offlineQueue: loadQueue(),
   celebrate: null,
   tutor: { open: false, messages: [], busy: false },
+  reduceMotion: loadReduceMotion(),
 };
+
+function loadReduceMotion() {
+  try { return localStorage.getItem('lp-reduce-motion') === '1'; } catch { return false; }
+}
+function applyReduceMotion() {
+  document.documentElement.classList.toggle('force-reduce-motion', state.reduceMotion);
+}
 
 function loadQueue() {
   try { return JSON.parse(localStorage.getItem('lp-offline-queue') || '[]'); } catch { return []; }
@@ -354,7 +362,7 @@ function renderProfile() {
     </section>
     <div class="settings-grid">
       <section class="card settings-card"><h2>${t('language')}</h2><div class="setting-row"><div><strong>العربية</strong><span>واجهة كاملة من اليمين لليسار</span></div><button class="btn ${lang() === 'ar' ? 'btn-primary' : 'btn-ghost'}" data-language="ar">${lang() === 'ar' ? '✓' : 'اختيار'}</button></div><div class="setting-row"><div><strong>English</strong><span>Complete left-to-right interface</span></div><button class="btn ${lang() === 'en' ? 'btn-primary' : 'btn-ghost'}" data-language="en">${lang() === 'en' ? '✓' : 'Choose'}</button></div></section>
-      <section class="card settings-card"><h2>${t('accessibility')}</h2><div class="setting-row"><div><strong>${t('reduced')}</strong><span>${lang() === 'en' ? 'Respects your device preference automatically' : 'نحترم إعداد جهازك تلقائيًا'}</span></div><button class="toggle" data-toggle="motion" aria-label="${t('reduced')}"></button></div><div class="setting-row"><div><strong>${t('privacy')}</strong><span>${t('demoPrivacy')}</span></div><span aria-hidden="true">🔒</span></div></section>
+      <section class="card settings-card"><h2>${t('accessibility')}</h2><div class="setting-row"><div><strong>${t('reduced')}</strong><span>${lang() === 'en' ? 'Also respects your device preference automatically' : 'ونحترم كمان إعداد جهازك تلقائيًا'}</span></div><button class="toggle ${state.reduceMotion ? 'on' : ''}" data-toggle="motion" aria-label="${t('reduced')}" aria-pressed="${state.reduceMotion}"></button></div><div class="setting-row"><div><strong>${t('privacy')}</strong><span>${t('demoPrivacy')}</span></div><span aria-hidden="true">🔒</span></div></section>
       <section class="card settings-card"><h2>${lang() === 'en' ? 'Account controls' : 'التحكم في الحساب'}</h2><div class="setting-row"><div><strong>${t('logout')}</strong><span>${lang() === 'en' ? 'Clears this account session on this device.' : 'يمسح جلسة الحساب من الجهاز.'}</span></div><button class="btn btn-danger" data-action="logout">${t('logout')}</button></div></section>
     </div>`;
 }
@@ -472,12 +480,49 @@ function showPurchaseConfirmation(itemId) {
   const item = state.data.shopItems.find((candidate) => candidate.id === itemId);
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
+  modal._returnFocus = document.activeElement;
   modal.innerHTML = `<section class="modal" role="dialog" aria-modal="true" aria-labelledby="purchase-title"><h2 id="purchase-title">${lang() === 'en' ? 'Confirm purchase' : 'تأكيد الشراء'}</h2><p>${lang() === 'en' ? `Buy ${local(item, 'name')} for ${item.price} coins? This item is cosmetic only.` : `تشتري ${local(item, 'name')} مقابل ${item.price} عملة؟ العنصر تجميلي فقط.`}</p><div class="modal-actions"><button class="btn btn-ghost" data-close-modal>${lang() === 'en' ? 'Cancel' : 'إلغاء'}</button><button class="btn btn-primary" data-confirm-buy="${item.id}">${t('buy')}</button></div></section>`;
   document.body.append(modal);
   modal.querySelector('[data-close-modal]').focus();
 }
 
+function closeTopModal() {
+  const modal = document.querySelector('.modal-backdrop');
+  if (!modal) return false;
+  modal._returnFocus?.focus();
+  modal.remove();
+  return true;
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    if (state.celebrate) { state.celebrate = null; render(); return; }
+    if (closeTopModal()) return;
+    if (state.tutor.open) { state.tutor.open = false; render(); document.querySelector('[data-action="tutor-toggle"]')?.focus(); return; }
+    return;
+  }
+  if (event.key === 'Tab') {
+    const modal = document.querySelector('.modal-backdrop .modal, .modal-backdrop .celebration-modal');
+    if (!modal) return;
+    const focusable = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter((el) => !el.disabled);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
+});
+
 document.addEventListener('click', async (event) => {
+  if (event.target.classList.contains('modal-backdrop')) { if (state.celebrate) { state.celebrate = null; render(); } else closeTopModal(); return; }
+  const motionToggle = event.target.closest('[data-toggle="motion"]');
+  if (motionToggle) {
+    state.reduceMotion = !state.reduceMotion;
+    try { localStorage.setItem('lp-reduce-motion', state.reduceMotion ? '1' : '0'); } catch { /* private mode: preference won't persist across reloads */ }
+    applyReduceMotion();
+    render();
+    return;
+  }
   const demo = event.target.closest('[data-demo]');
   if (demo) return login(demo.dataset.demo);
   const view = event.target.closest('[data-view]');
@@ -499,7 +544,7 @@ document.addEventListener('click', async (event) => {
     return showPurchaseConfirmation(buy.dataset.buy);
   }
   const close = event.target.closest('[data-close-modal]');
-  if (close) return close.closest('.modal-backdrop').remove();
+  if (close) return closeTopModal();
   const confirmBuy = event.target.closest('[data-confirm-buy]');
   if (confirmBuy) {
     confirmBuy.disabled = true;
@@ -600,4 +645,5 @@ window.addEventListener('offline', () => { const bar = document.createElement('d
 window.addEventListener('online', () => { document.querySelector('#offline-bar')?.remove(); toast(lang() === 'en' ? 'Connection restored.' : 'رجع الاتصال.'); syncOfflineQueue(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
+applyReduceMotion();
 bootstrap().then(() => { if (navigator.onLine) syncOfflineQueue(); });
