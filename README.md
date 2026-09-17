@@ -28,7 +28,7 @@ The server creates `data/app.json` on first start. Delete that file only when yo
 npm run check
 ```
 
-The test suite covers scoring, evidence transitions, assisted work, idempotent ledger entries, atomic purchases, complete lesson reward flow, one-time Boss rewards, and role boundaries.
+The test suite covers scoring, evidence transitions, assisted work, idempotent ledger entries, atomic purchases, complete lesson reward flow, one-time Boss rewards, role boundaries, XP/levels, parallel-pool retry rotation, the content review/publish lifecycle, cosmetic equip validation, and login rate limiting.
 
 ## Architecture
 

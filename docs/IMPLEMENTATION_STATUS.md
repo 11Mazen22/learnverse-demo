@@ -1,6 +1,6 @@
 # Implementation status
 
-Evidence labels: **AUTOMATED TEST VERIFIED**, **IMPLEMENTED, NOT VERIFIED**, and **DEFERRED**.
+Evidence labels: **AUTOMATED TEST VERIFIED**, **MANUAL WORKFLOW VERIFIED**, **IMPLEMENTED, NOT VERIFIED**, and **DEFERRED**.
 
 ## Phase 0 — establish
 
@@ -10,40 +10,50 @@ Evidence labels: **AUTOMATED TEST VERIFIED**, **IMPLEMENTED, NOT VERIFIED**, and
 
 ## Phase 1 — learning vertical slice
 
-- Login → curriculum → lesson → three questions → explanations → saved attempts → progress: **AUTOMATED TEST VERIFIED**
+- Login → curriculum → lesson → three questions → explanations → saved attempts → progress: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** end to end in the browser (Arabic and English)
 - Multiple choice and tolerant numeric scoring: **AUTOMATED TEST VERIFIED**
 - Retry state and question-version capture: **AUTOMATED TEST VERIFIED**
-- RTL/LTR responsive interface: **MANUAL WORKFLOW VERIFIED** in a desktop browser and 390×844 emulation; physical-device and assistive-technology verification remains open
+- RTL/LTR responsive interface: **MANUAL WORKFLOW VERIFIED** in desktop and 375×812 mobile emulation, both directions, including true `dir`/`lang` attribute switching; physical-device and assistive-technology verification remains open
 
 ## Phase 2 — adaptive learning
 
 - Explainable skill evidence states, distinct-question minimum, assistance discount, 1/3/7-day review: **AUTOMATED TEST VERIFIED**
-- Three-question escalating Unit Boss with recovery outcomes: **AUTOMATED TEST VERIFIED**
-- Parallel-question retry pool: **DEFERRED**; the current demo explains the need but reuses the fixed set
+- Three-question escalating Unit Boss with recovery outcomes: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** (3/3 completion, one-time reward)
+- Reviewed parallel-pool retry: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED**. A wrong lesson-question answer now offers a distinct reviewed variant on retry instead of literally repeating the same question (`lib/domain.mjs:pickVariant`); a Unit Boss retried after an imperfect score rotates to its reviewed variant set and returns to the primary set once mastered (`lib/domain.mjs:activeBossQuestionIds`). Currently one variant per question/Boss slot; a deeper pool is a future content-authoring task, not an architecture gap.
 
 ## Phase 3 — rewards
 
 - Append-only ledger, one-time lesson/Boss grants, idempotency, no-negative-balance rule: **AUTOMATED TEST VERIFIED**
 - Atomic purchase and inventory grant, duplicate concurrent request handling: **AUTOMATED TEST VERIFIED**
-- Cosmetic collection and balance-aware Shop: **AUTOMATED TEST VERIFIED** at API level; browser purchase confirmation UI is implemented but not purchase-click verified manually
+- Cosmetic collection and balance-aware Shop: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** (purchase confirmation dialog, balance-gated disabled state, atomic deduction)
+- XP and Levels: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED**. XP is a separate, non-spendable ledger currency (`currency: 'XP'`) awarded once per question on first-ever correct attempt, plus one-time lesson/Boss completion bonuses; level is `floor(xp / 100) + 1` (rule `xp-mvp-1`, thresholds are a configurable hypothesis, not validated).
+- Character equip/collection: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED**. Students equip owned cosmetics per slot (avatar/outfit/companion/background) from a "My collection" panel; the server validates ownership and item-type match before equipping.
 
 ## Phase 4 — staff workflows
 
 - Teacher-scoped class roster, evidence summary, assignment creation: **AUTOMATED TEST VERIFIED**
-- Admin content/provenance and audit view: **IMPLEMENTED, NOT VERIFIED** manually
-- Full draft → review → approve → publish mutation workflow and reward corrections: **DEFERRED**
+- Admin content/provenance and audit view: **MANUAL WORKFLOW VERIFIED**
+- Draft → review → approve → publish → retire content workflow: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** end to end in the Content Studio, including role enforcement (only `admin` may transition state), invalid-transition rejection, and audit logging of every step (`PATCH /api/admin/questions/:id/status`).
 
 ## Phase 5 — pilot readiness
 
-- Static-asset-only service worker and offline warning: **IMPLEMENTED, NOT VERIFIED** under network throttling
-- Arabic mistake → explanation → retry and English direction switch: **MANUAL WORKFLOW VERIFIED** in the browser with no console warnings/errors
-- Production authentication, PostgreSQL migrations, rate limiting, backup restore drill, deployment: **DEFERRED**
-- Physical mobile, keyboard, screen reader, Arabic copy, performance and security review: **DEFERRED**
+- Static-asset-only service worker and offline warning: **IMPLEMENTED, NOT VERIFIED** under real network throttling (only simulated via `navigator.onLine` override)
+- Idempotent offline submission queue with pending/synced/failed states: **MANUAL WORKFLOW VERIFIED**. Lesson-question attempts made while offline are queued client-side (localStorage-backed) with a visible "waiting for connection" state that makes no correctness claim; on reconnect they replay through the same idempotent `/api/attempts` endpoint and the real outcome (correct/incorrect, explanation, retry variant) is then shown. Unit Boss and Shop purchases are intentionally **not** queued — both are blocked outright while offline, since silently queuing an assessment result or a currency-affecting purchase would misrepresent an unvalidated action as complete.
+- Basic rate limiting: **AUTOMATED TEST VERIFIED**. Per-IP fixed-window limits on `/api/auth/login` (20/5min) and all `/api/*` traffic (600/min) as a first line of defense; this is not a substitute for a production WAF/rate-limiting layer.
+- Arabic mistake → explanation → retry and English direction switch: **MANUAL WORKFLOW VERIFIED** in the browser with no console errors
+- Production authentication, PostgreSQL migrations, backup restore drill, deployment: **DEFERRED**
+- Physical mobile device, screen reader, and formal performance/security review: **DEFERRED**
+
+## Fixes made during this pass (not features, but load-bearing corrections)
+
+- **Critical**: `lib/store.mjs`'s transaction queue permanently wedged the entire server's write path after any single failed transaction (e.g., a student clicking "buy" without enough coins) — every subsequent request from every user would silently inherit that one stale rejection until restart. Root-caused and fixed; regression-covered by the full test suite (any failing test after a business-rule error would now surface this).
+- Static assets (`app.js`, `styles.css`) were served with `Cache-Control: public, max-age=3600`, meaning an already-open browser tab would keep running old client code for up to an hour after any deploy. Changed to `no-cache` plus a version query string on the asset references in `index.html`; bump that version string on every deploy until a real build/content-hash pipeline exists.
+- Boss sub-questions were not awarding the same per-question XP that lesson questions award on first correct attempt (only the milestone completion bonus fired) — now consistent between the two entry points.
 
 ## Prioritized next steps
 
 1. Move persistence to PostgreSQL with migrations, row ownership constraints, password hashing, and expiring server sessions.
-2. Add reviewed parallel question pools and content-review state transition endpoints.
-3. Add an idempotent offline submission queue with visible pending/synced/failed states.
-4. Run physical-device, keyboard, screen-reader, RTL/LTR, slow-network, and account-switch QA.
-5. Complete threat modeling, rate limits, recovery drill, and authorized pilot content review.
+2. Author a second (and third) reviewed variant per question so the parallel pool doesn't exhaust after one retry.
+3. Run physical-device, keyboard, screen-reader, slow-network throttling, and account-switch QA.
+4. Complete threat modeling, a production-grade rate-limit/WAF layer, a recovery drill, and authorized pilot content review.
+5. Build the "revise" step of content lifecycle (new version of a published question) — currently only draft→review→approve→publish→retire exists; revision requires deliberate versioning so past attempts keep meaning.
