@@ -22,6 +22,48 @@ function rateLimited(key, limit, windowMs) {
   return bucket.count > limit;
 }
 
+// AI study helper: self-hosted (Ollama), optional — the app works fully without it.
+// Guardrails per the brief's AI-assistance section: grounded to the current lesson/question only,
+// rate-limited, timed out with a deterministic fallback, always labelled, and structurally unable
+// to touch scores/wallet/mastery since this handler never calls store.transact.
+const OLLAMA_URL = process.env.OLLAMA_URL || '';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:3b';
+const TUTOR_TIMEOUT_MS = 30_000;
+
+function tutorSystemPrompt(lesson, question, language) {
+  const lines = [
+    'You are a friendly, patient study helper inside a demonstration Arabic-first learning app for a secondary-level physics unit on motion.',
+    'Only help the student reason about the specific lesson/question content given below. If asked about anything else, gently steer back to this lesson.',
+    'Never state the final answer to the current checkpoint question outright — guide their reasoning with a hint or a leading question instead, unless they say they already answered it and just want the idea explained.',
+    'Keep it short: two to five sentences. Be encouraging, age-appropriate, and never claim to be a teacher or to have graded anything.',
+    language === 'en' ? 'Respond in English.' : 'أجب باللغة العربية الفصحى المبسطة.',
+  ];
+  if (lesson) lines.push(`Lesson: ${lesson.titleAr} / ${lesson.titleEn}. Summary: ${lesson.summaryAr} ${lesson.summaryEn}`);
+  if (question) lines.push(`Current checkpoint question: ${question.promptAr || ''} / ${question.promptEn || ''}`);
+  return lines.join('\n');
+}
+
+async function askTutor(system, message) {
+  if (!OLLAMA_URL) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TUTOR_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json' };
 const json = (res, status, body) => {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
@@ -315,6 +357,24 @@ async function handleApi(req, res, url) {
       id: result.id, version: result.version, skillId: result.skillId, difficulty: result.difficulty, promptAr: result.promptAr, variantOf: result.variantOf || null,
       reviewStatus: result.reviewStatus, publicationStatus: result.publicationStatus, provenance: result.provenance,
       reviewedBy: result.reviewedBy || null, reviewedAt: result.reviewedAt || null, publishedBy: result.publishedBy || null, publishedAt: result.publishedAt || null,
+    });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/tutor/ask') {
+    const user = requireRole(req, res, data, ['student', 'teacher', 'admin']);
+    if (!user) return;
+    if (rateLimited(`tutor:${user.id}`, 15, 10 * 60_000)) return fail(res, 429, 'You have asked a lot of questions — take a short break and try again soon.', 'RATE_LIMITED');
+    const body = await readBody(req);
+    const message = String(body.message || '').trim().slice(0, 500);
+    if (!message) return fail(res, 400, 'Write a question first.', 'VALIDATION');
+    if (!OLLAMA_URL) return json(res, 200, { reply: user.language === 'en' ? 'The study helper is not set up on this deployment yet.' : 'المساعد الدراسي غير مفعّل على هذه النسخة بعد.', aiGenerated: false, unavailable: true });
+    const lesson = body.lessonId ? data.curriculum.units.flatMap((unit) => unit.lessons).find((item) => item.id === body.lessonId) : null;
+    const question = body.questionId ? findQuestion(data, body.questionId) : null;
+    const reply = await askTutor(tutorSystemPrompt(lesson, question, user.language), message);
+    if (reply) return json(res, 200, { reply, aiGenerated: true });
+    return json(res, 200, {
+      reply: user.language === 'en' ? 'The study helper is warming up or busy right now — try again in a moment, or ask your teacher.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات، أو اسأل معلمك.',
+      aiGenerated: false, unavailable: true,
     });
   }
 

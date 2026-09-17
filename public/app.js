@@ -15,6 +15,7 @@ const state = {
   busy: false,
   offlineQueue: loadQueue(),
   celebrate: null,
+  tutor: { open: false, messages: [], busy: false },
 };
 
 function loadQueue() {
@@ -37,6 +38,7 @@ const copy = {
     reviewDraft: 'مسودة', reviewInReview: 'قيد المراجعة', reviewApproved: 'معتمد', pubDraft: 'غير منشور', pubPublished: 'منشور', pubRetired: 'متقاعد',
     submitReview: 'أرسل للمراجعة', approve: 'اعتماد', returnToDraft: 'إعادة للمسودة', publish: 'نشر', retire: 'سحب من النشر', reviewedBy: 'راجعه', publishedOn: 'نُشر في',
     assessmentOffline: 'التحدي غير متاح بدون اتصال لضمان نتيجة موثوقة.', purchaseOffline: 'الشراء غير متاح بدون اتصال.',
+    studyHelper: 'مساعد الدراسة', aiDraftNotice: 'ردود المساعد مسودة من الذكاء الاصطناعي، تحقق دائمًا مع معلّمك.', askPlaceholder: 'اسأل عن الدرس الحالي…', send: 'إرسال', tutorIntro: 'أهلًا! اسألني عن الدرس الحالي وهساعدك تفهمه، من غير ما أديك الإجابة مباشرة.', tutorUnavailableBoss: 'المساعد غير متاح أثناء تحدي الوحدة للحفاظ على نتيجة موثوقة.',
   },
   en: {
     brand: 'Learning Platform', demo: 'Demo environment • content is not approved', home: 'Home Base', map: 'World Map', progress: 'Progress Lab', shop: 'Reward Room', profile: 'Settings', teacher: 'Teacher Studio', admin: 'Content Studio',
@@ -50,6 +52,7 @@ const copy = {
     reviewDraft: 'Draft', reviewInReview: 'In review', reviewApproved: 'Approved', pubDraft: 'Unpublished', pubPublished: 'Published', pubRetired: 'Retired',
     submitReview: 'Submit for review', approve: 'Approve', returnToDraft: 'Return to draft', publish: 'Publish', retire: 'Retire', reviewedBy: 'Reviewed by', publishedOn: 'Published on',
     assessmentOffline: 'The challenge is unavailable offline, to keep the result trustworthy.', purchaseOffline: 'Purchases are unavailable offline.',
+    studyHelper: 'Study Helper', aiDraftNotice: 'Replies are an AI-generated draft — always check with your teacher.', askPlaceholder: 'Ask about the current lesson…', send: 'Send', tutorIntro: 'Hi! Ask me about the current lesson and I’ll help you reason it out, without just giving you the answer.', tutorUnavailableBoss: 'The study helper is unavailable during the Unit Boss, to keep the result trustworthy.',
   },
 };
 
@@ -189,6 +192,22 @@ function navButton([view, icon, key]) {
   return `<button class="nav-button ${state.view === view ? 'active' : ''}" data-view="${view}"><span class="nav-icon" aria-hidden="true">${icon}</span><span>${t(key)}</span></button>`;
 }
 
+function renderTutorWidget() {
+  if (state.data.user.role !== 'student') return '';
+  if (state.view === 'boss') {
+    return state.tutor.open ? `<div class="tutor-panel"><div class="tutor-head"><strong>🤖 ${t('studyHelper')}</strong><button class="icon-button" data-action="tutor-toggle" aria-label="close">✕</button></div><p class="tutor-empty">${t('tutorUnavailableBoss')}</p></div>` : `<button class="tutor-fab" data-action="tutor-toggle" aria-label="${t('studyHelper')}">🤖</button>`;
+  }
+  if (!state.tutor.open) return `<button class="tutor-fab" data-action="tutor-toggle" aria-label="${t('studyHelper')}">🤖</button>`;
+  const messages = state.tutor.messages;
+  return `
+    <div class="tutor-panel" role="dialog" aria-label="${t('studyHelper')}">
+      <div class="tutor-head"><strong>🤖 ${t('studyHelper')}</strong><button class="icon-button" data-action="tutor-toggle" aria-label="close">✕</button></div>
+      <p class="tutor-disclosure">${t('aiDraftNotice')}</p>
+      <div class="tutor-messages" id="tutor-messages">${messages.length ? messages.map((item) => `<div class="tutor-msg ${item.role}">${item.role === 'assistant' && item.unavailable ? '<span class="tutor-flag">⚠</span> ' : ''}${esc(item.text)}</div>`).join('') : `<div class="tutor-msg assistant">${t('tutorIntro')}</div>`}${state.tutor.busy ? `<div class="tutor-msg assistant tutor-typing"><span></span><span></span><span></span></div>` : ''}</div>
+      <form class="tutor-input-row" id="tutor-form"><input id="tutor-input" type="text" maxlength="500" placeholder="${t('askPlaceholder')}" autocomplete="off" ${state.tutor.busy ? 'disabled' : ''}><button class="btn btn-primary btn-sm" type="submit" ${state.tutor.busy ? 'disabled' : ''}>${t('send')}</button></form>
+    </div>`;
+}
+
 function renderCelebration() {
   if (!state.celebrate) return '';
   const isBoss = state.celebrate === 'boss';
@@ -206,6 +225,9 @@ function render() {
   }
   app.insertAdjacentHTML('beforeend', renderCelebration());
   if (state.celebrate && !document.activeElement?.closest('.celebration-modal')) app.querySelector('.celebration-modal [data-action="dismiss-celebration"]')?.focus();
+  app.insertAdjacentHTML('beforeend', renderTutorWidget());
+  const tutorMessages = document.querySelector('#tutor-messages');
+  if (tutorMessages) tutorMessages.scrollTop = tutorMessages.scrollHeight;
 }
 
 function firstAvailableLesson() {
@@ -528,6 +550,7 @@ document.addEventListener('click', async (event) => {
     return;
   }
   if (action === 'dismiss-celebration') { state.celebrate = null; render(); return; }
+  if (action === 'tutor-toggle') { state.tutor.open = !state.tutor.open; render(); if (state.tutor.open) document.querySelector('#tutor-input')?.focus(); return; }
   if (action === 'logout') {
     await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
     sessionStorage.removeItem('lp-token'); state.token = null; state.data = null;
@@ -549,6 +572,27 @@ document.addEventListener('submit', async (event) => {
     event.preventDefault(); const form = new FormData(event.target);
     try { await api('/api/assignments', { method: 'POST', body: JSON.stringify(Object.fromEntries(form)) }); await refresh(); toast(lang() === 'en' ? 'Assignment created.' : 'تم إنشاء التكليف.'); }
     catch (error) { toast(error.message, 'error'); }
+  }
+  if (event.target.id === 'tutor-form') {
+    event.preventDefault();
+    const input = document.querySelector('#tutor-input');
+    const text = input?.value.trim();
+    if (!text || state.tutor.busy) return;
+    const lesson = state.view === 'lesson' ? currentLesson() : null;
+    const question = lesson ? activeQuestion(lesson) : null;
+    state.tutor.messages.push({ role: 'user', text });
+    state.tutor.busy = true;
+    render();
+    try {
+      const result = await api('/api/tutor/ask', { method: 'POST', body: JSON.stringify({ message: text, lessonId: lesson?.id, questionId: question?.id }) });
+      state.tutor.messages.push({ role: 'assistant', text: result.reply, unavailable: !result.aiGenerated });
+    } catch (error) {
+      state.tutor.messages.push({ role: 'assistant', text: error.message, unavailable: true });
+    } finally {
+      state.tutor.busy = false;
+      render();
+      document.querySelector('#tutor-input')?.focus();
+    }
   }
 });
 

@@ -172,6 +172,25 @@ test('equipping a cosmetic requires real ownership and a matching item type', as
   assert.equal(equipped.body.user.avatarItemId, 'avatar-explorer');
 });
 
+test('the AI study helper requires auth, never affects scoring, and degrades to a clear labelled fallback when unavailable', async () => {
+  const anonymous = await request('/api/tutor/ask', { body: { message: 'help' } });
+  assert.equal(anonymous.status, 401);
+
+  const token = await login('student@demo.local');
+  const before = await request('/api/bootstrap', { token });
+  const asked = await request('/api/tutor/ask', { token, body: { message: 'ما معنى السرعة؟', lessonId: 'lesson-motion-basics', questionId: 'q-speed-1' } });
+  assert.equal(asked.status, 200);
+  assert.equal(asked.body.aiGenerated, false);
+  assert.equal(asked.body.unavailable, true);
+  assert.ok(asked.body.reply.length > 0);
+  const after = await request('/api/bootstrap', { token });
+  assert.equal(after.body.wallet.coins, before.body.wallet.coins);
+  assert.equal(after.body.wallet.xp, before.body.wallet.xp);
+
+  const empty = await request('/api/tutor/ask', { token, body: { message: '' } });
+  assert.equal(empty.status, 400);
+});
+
 test('login is rate limited after repeated failed attempts from the same client', async () => {
   let lastStatus = 0;
   for (let i = 0; i < 25; i += 1) {
