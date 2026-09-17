@@ -36,11 +36,25 @@ function tutorSystemPrompt(lesson, question, language) {
     'Only help the student reason about the specific lesson/question content given below. If asked about anything else, gently steer back to this lesson.',
     'Never state the final answer to the current checkpoint question outright — guide their reasoning with a hint or a leading question instead, unless they say they already answered it and just want the idea explained.',
     'Keep it short: two to five sentences. Be encouraging, age-appropriate, and never claim to be a teacher or to have graded anything.',
-    language === 'en' ? 'Respond in English.' : 'أجب باللغة العربية الفصحى المبسطة.',
+    language === 'en' ? 'Respond only in English. Do not mix in Arabic or any other script.' : 'أجب فقط باللغة العربية الفصحى المبسطة. لا تخلط أي حروف صينية أو إنجليزية أو أي لغة أخرى في ردك، واستخدم كلمات عربية صحيحة ومفهومة فقط.',
   ];
   if (lesson) lines.push(`Lesson: ${lesson.titleAr} / ${lesson.titleEn}. Summary: ${lesson.summaryAr} ${lesson.summaryEn}`);
   if (question) lines.push(`Current checkpoint question: ${question.promptAr || ''} / ${question.promptEn || ''}`);
   return lines.join('\n');
+}
+
+// Ollama images don't reliably honor a custom start command on Railway, so instead of trying to
+// make the container pull its model at boot, we ask the already-running server to pull it over
+// its own HTTP API. Fire-and-forget: the first real chats will just hit the graceful fallback
+// (see askTutor) until this finishes, which is fine for a background study helper.
+async function ensureTutorModelPulled() {
+  if (!OLLAMA_URL) return;
+  try {
+    const response = await fetch(`${OLLAMA_URL}/api/pull`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: OLLAMA_MODEL, stream: false }) });
+    if (process.env.NODE_ENV !== 'test') console.log(response.ok ? `Study helper model ready: ${OLLAMA_MODEL}` : `Study helper model pull failed: HTTP ${response.status}`);
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') console.error(`Study helper model pull failed: ${error.message}`);
+  }
 }
 
 async function askTutor(system, message) {
@@ -402,6 +416,7 @@ async function serveStatic(req, res, url) {
 
 export async function createServer(options = {}) {
   await store.init({ reset: options.reset });
+  ensureTutorModelPulled();
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     try {
