@@ -81,7 +81,7 @@ async function askTutor(system, message) {
       // think:false skips Qwen3's internal reasoning pass — on slow CPU inference that pass alone
       // could eat the whole timeout before any visible reply is produced. num_predict caps a reply
       // that ignores the "keep it short" instruction from running long enough to time out anyway.
-      body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, think: false, options: { num_predict: 140 }, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
+      body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, think: false, options: { num_predict: 200 }, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
       signal: controller.signal,
     });
     if (!response.ok) return null;
