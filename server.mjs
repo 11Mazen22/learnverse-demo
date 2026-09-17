@@ -28,7 +28,7 @@ function rateLimited(key, limit, windowMs) {
 // to touch scores/wallet/mastery since this handler never calls store.transact.
 const OLLAMA_URL = process.env.OLLAMA_URL || '';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:3b';
-const TUTOR_TIMEOUT_MS = 30_000;
+const TUTOR_TIMEOUT_MS = 45_000;
 
 function tutorSystemPrompt(lesson, question, language) {
   const lines = [
@@ -78,7 +78,10 @@ async function askTutor(system, message) {
     const response = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
+      // think:false skips Qwen3's internal reasoning pass — on slow CPU inference that pass alone
+      // could eat the whole timeout before any visible reply is produced. num_predict caps a reply
+      // that ignores the "keep it short" instruction from running long enough to time out anyway.
+      body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, think: false, options: { num_predict: 220 }, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
       signal: controller.signal,
     });
     if (!response.ok) return null;
