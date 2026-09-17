@@ -40,6 +40,10 @@ function tutorSystemPrompt(lesson, question, language) {
   ];
   if (lesson) lines.push(`Lesson: ${lesson.titleAr} / ${lesson.titleEn}. Summary: ${lesson.summaryAr} ${lesson.summaryEn}`);
   if (question) lines.push(`Current checkpoint question: ${question.promptAr || ''} / ${question.promptEn || ''}`);
+  // Belt-and-suspenders for Qwen3: the API-level think:false flag alone was observed not being
+  // honored (raw reasoning text still came back) — the model family's own inline convention for
+  // suppressing it is appending /no_think, so both are applied together.
+  lines.push('/no_think');
   return lines.join('\n');
 }
 
