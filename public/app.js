@@ -225,7 +225,7 @@ function renderHome() {
   const completed = state.data.progress.completedLessons.some((item) => item.lessonId === lesson.id);
   const wallet = state.data.wallet;
   return `
-    <div class="welcome-row"><div><p class="eyebrow">${t('greeting')}، ${esc(name())} 👋</p><h1>${t('ready')}</h1><p>${t('meaningful')}</p></div><div class="demo-banner">⚠ ${t('demo')}</div></div>
+    <div class="welcome-row"><div><p class="eyebrow">${t('greeting')}${lang() === 'en' ? ',' : '،'} ${esc(name())} 👋</p><h1>${t('ready')}</h1><p>${t('meaningful')}</p></div><div class="demo-banner">⚠ ${t('demo')}</div></div>
     <section class="card xp-card"><div class="xp-card-head"><span class="level-badge">${t('level')} ${wallet.level}</span><span class="xp-count">★ ${wallet.xp} ${t('xp')}</span></div><div class="bar xp-bar"><i style="width:${wallet.levelPercent}%"></i></div><p class="xp-hint">${lang() === 'en' ? `${wallet.levelCeilingXp - wallet.xp} XP to level ${wallet.level + 1}` : `${wallet.levelCeilingXp - wallet.xp} نقطة للمستوى ${wallet.level + 1}`}</p></section>
     <div class="dashboard-grid">
       <section class="card quest-card">
@@ -311,7 +311,7 @@ function renderShop() {
 }
 
 function typeLabel(type) {
-  const values = { ar: { outfit: 'زي للشخصية', companion: 'رفيق تجميلي', background: 'خلفية للمساحة' }, en: { outfit: 'Avatar outfit', companion: 'Cosmetic companion', background: 'Space background' } };
+  const values = { ar: { avatar: 'الشخصية', outfit: 'زي للشخصية', companion: 'رفيق تجميلي', background: 'خلفية للمساحة' }, en: { avatar: 'Avatar', outfit: 'Avatar outfit', companion: 'Cosmetic companion', background: 'Space background' } };
   return values[lang()][type] || type;
 }
 
@@ -350,7 +350,7 @@ function renderBoss() {
 function renderTeacher() {
   const classroom = state.data.classes[0];
   return `
-    <div class="page-header"><div><p class="eyebrow">${t('greeting')}، ${esc(name())}</p><h1>${t('teacher')}</h1><p>${lang() === 'en' ? 'Separate no activity, limited evidence, assisted work, and independent success.' : 'فرّق بين عدم النشاط، وقلة الأدلة، والنجاح بمساعدة، والنجاح المستقل.'}</p></div><div class="demo-banner">⚠ ${t('demo')}</div></div>
+    <div class="page-header"><div><p class="eyebrow">${t('greeting')}${lang() === 'en' ? ',' : '،'} ${esc(name())}</p><h1>${t('teacher')}</h1><p>${lang() === 'en' ? 'Separate no activity, limited evidence, assisted work, and independent success.' : 'فرّق بين عدم النشاط، وقلة الأدلة، والنجاح بمساعدة، والنجاح المستقل.'}</p></div><div class="demo-banner">⚠ ${t('demo')}</div></div>
     <div class="stat-grid"><article class="card metric-card"><span>${lang() === 'en' ? 'Assigned classes' : 'الفصول المسندة'}</span><strong>${state.data.classes.length}</strong></article><article class="card metric-card"><span>${lang() === 'en' ? 'Students in scope' : 'الطلاب ضمن صلاحيتك'}</span><strong>${classroom?.students.length || 0}</strong></article><article class="card metric-card"><span>${lang() === 'en' ? 'Active assignments' : 'التكليفات النشطة'}</span><strong>${state.data.assignments.length}</strong></article></div>
     <div class="staff-grid"><section class="card table-card"><table class="data-table"><thead><tr><th>${lang() === 'en' ? 'Student' : 'الطالب'}</th><th>${lang() === 'en' ? 'Activity' : 'النشاط'}</th><th>${lang() === 'en' ? 'Skill evidence' : 'أدلة المهارات'}</th><th>${lang() === 'en' ? 'Support signal' : 'إشارة الدعم'}</th></tr></thead><tbody>${(classroom?.students || []).map((student) => `<tr><td><strong>${esc(local(student, 'name'))}</strong></td><td>${student.attempts ? `${student.attempts} ${lang() === 'en' ? 'attempts' : 'محاولات'}` : (lang() === 'en' ? 'No activity' : 'لا نشاط')}</td><td>${student.mastery.length ? student.mastery.map((item) => item.score === null ? '—' : `${item.score}%`).join(' · ') : t('insufficient')}</td><td><span class="tag ${student.attempts ? 'warning' : ''}">${student.attempts ? (lang() === 'en' ? 'Gather more evidence' : 'اجمع أدلة أكثر') : (lang() === 'en' ? 'Check access' : 'تحقّق من الوصول')}</span></td></tr>`).join('')}</tbody></table></section>
       <form class="card form-card" id="assignment-form"><h2>${lang() === 'en' ? 'Create an assignment' : 'إنشاء تكليف'}</h2><div class="field"><label for="assign-class">${lang() === 'en' ? 'Class' : 'الفصل'}</label><select id="assign-class" name="classId">${state.data.classes.map((item) => `<option value="${item.id}">${esc(local(item, 'name'))}</option>`).join('')}</select></div><div class="field"><label for="assign-lesson">${t('lesson')}</label><select id="assign-lesson" name="lessonId">${state.data.curriculum.units.flatMap((unit) => unit.lessons).map((lesson) => `<option value="${lesson.id}">${esc(local(lesson, 'title'))}</option>`).join('')}</select></div><button class="btn btn-primary btn-block" type="submit">${lang() === 'en' ? 'Assign lesson' : 'إسناد الدرس'}</button></form></div>`;
@@ -412,12 +412,16 @@ async function submitCurrentAnswer() {
 async function syncOfflineQueue() {
   if (!state.offlineQueue.length || !navigator.onLine) return;
   const remaining = [];
+  const viewingLesson = state.view === 'lesson' && currentLesson();
   for (const item of state.offlineQueue) {
     try {
       const result = await api(item.route, { method: 'POST', body: JSON.stringify(item.body) });
       if (item.lessonId != null && result.retryQuestion && !result.correct) {
         state.retryOverrides[`${item.lessonId}:${item.questionIndex}`] = result.retryQuestion;
       }
+      const isCurrentQuestion = viewingLesson && viewingLesson.id === item.lessonId && state.questionIndex === item.questionIndex;
+      if (isCurrentQuestion) state.feedback = result;
+      else toast(`${result.correct ? '✓' : '•'} ${lang() === 'en' ? 'A saved answer synced.' : 'اتزامنت إجابة محفوظة.'}`);
     } catch (error) {
       if (error.message?.includes('اتصال') || error.message?.includes('connection')) { remaining.push(item); continue; }
       toast(`${t('queueFailed')}: ${error.message}`, 'error');
@@ -425,7 +429,6 @@ async function syncOfflineQueue() {
   }
   state.offlineQueue = remaining;
   saveQueue();
-  if (state.feedback?.pending) state.feedback = null;
   await refresh();
   if (!remaining.length) toast(lang() === 'en' ? 'All saved answers were synced.' : 'اتزامنت كل الإجابات المحفوظة.');
 }

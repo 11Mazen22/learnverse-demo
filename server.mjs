@@ -222,7 +222,11 @@ async function handleApi(req, res, url) {
         const question = findQuestion(draft, questionId);
         const supplied = body.answers.find((answer) => answer.questionId === questionId);
         const scored = scoreQuestion(question, supplied?.answer);
-        draft.attempts.push({ id: crypto.randomUUID(), userId: user.id, questionId, questionVersion: question.version, lessonId: null, unitId: unit.id, skillId: question.skillId, difficulty: question.difficulty, answer: scored.normalizedAnswer, correct: scored.correct, assisted: false, practiceRepeat: draft.attempts.some((a) => a.userId === user.id && a.questionId === questionId), idempotencyKey: `${body.idempotencyKey}:${questionId}`, createdAt: new Date().toISOString() });
+        const isFirstAttempt = !draft.attempts.some((a) => a.userId === user.id && a.questionId === questionId);
+        draft.attempts.push({ id: crypto.randomUUID(), userId: user.id, questionId, questionVersion: question.version, lessonId: null, unitId: unit.id, skillId: question.skillId, difficulty: question.difficulty, answer: scored.normalizedAnswer, correct: scored.correct, assisted: false, practiceRepeat: !isFirstAttempt, idempotencyKey: `${body.idempotencyKey}:${questionId}`, createdAt: new Date().toISOString() });
+        if (scored.correct && isFirstAttempt) {
+          appendLedgerEntry(draft, { userId: user.id, amount: XP_RULES.correctFirstAttempt, currency: 'XP', reason: 'CORRECT_FIRST_ATTEMPT', reference: questionId, idempotencyKey: `xp-attempt:${user.id}:${body.idempotencyKey}:${questionId}` });
+        }
         return { questionId, correct: scored.correct, feedback: user.language === 'en' ? question.explanationEn : question.explanationAr };
       });
       const score = details.filter((item) => item.correct).length;
@@ -325,7 +329,10 @@ async function serveStatic(req, res, url) {
   try {
     const info = await stat(resolved);
     if (!info.isFile()) throw new Error('Not a file');
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': requested === '/index.html' ? 'no-cache' : 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'" });
+    // no-cache (not no-store): browsers may keep a copy but must revalidate with the server first.
+    // A long max-age here would let an already-open tab silently run stale app.js/styles.css for up
+    // to that long after every deploy, since this app has no content-hashed filenames to bust on.
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'" });
     createReadStream(resolved).pipe(res);
   } catch {
     if (!path.extname(requested)) return serveStatic(req, res, new URL('/index.html', url));

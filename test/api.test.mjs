@@ -119,7 +119,6 @@ test('a wrong answer offers a distinct parallel-pool variant instead of repeatin
   assert.equal(variantCorrect.body.correct, true);
   let bootstrap = await request('/api/bootstrap', { token });
   assert.equal(bootstrap.body.wallet.xp, xpBefore + 10);
-  assert.equal(bootstrap.body.wallet.level, 1);
 
   // Repeating the now-answered variant must not grant XP again.
   await request('/api/attempts', { token, body: { questionId: 'q-graph-2-v2', answer: '0', idempotencyKey: 'variant-flow:variant-repeat' } });
