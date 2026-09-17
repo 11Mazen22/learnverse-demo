@@ -3,7 +3,7 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendLedgerEntry, balanceFor, deriveMastery, purchaseItem, recommendationFor, scoreQuestion } from './lib/domain.mjs';
+import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
 import { JsonStore } from './lib/store.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -11,6 +11,16 @@ const PUBLIC = path.join(ROOT, 'public');
 const PORT = Number(process.env.PORT || 3000);
 const store = new JsonStore(process.env.DATA_FILE || path.join(ROOT, 'data', 'app.json'));
 const sessions = new Map();
+
+const rateBuckets = new Map();
+function rateLimited(key, limit, windowMs) {
+  const now = Date.now();
+  if (rateBuckets.size > 5000) for (const [bucketKey, bucket] of rateBuckets) if (now - bucket.start > windowMs) rateBuckets.delete(bucketKey);
+  let bucket = rateBuckets.get(key);
+  if (!bucket || now - bucket.start > windowMs) { bucket = { start: now, count: 0 }; rateBuckets.set(key, bucket); }
+  bucket.count += 1;
+  return bucket.count > limit;
+}
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json' };
 const json = (res, status, body) => {
@@ -69,7 +79,7 @@ function studentPayload(data, user) {
       recommendation: recommendationFor(mastery, data.curriculum),
       reviews: data.reviews.filter((item) => item.userId === user.id),
     },
-    wallet: { coins: balanceFor(data.ledger, user.id) },
+    wallet: { coins: balanceFor(data.ledger, user.id), ...xpProgress(balanceFor(data.ledger, user.id, 'XP')) },
     shopItems: data.shopItems.filter((item) => item.active),
     inventory: data.inventory.filter((item) => item.userId === user.id),
     assignments: data.assignments.filter((assignment) => data.enrollments.some((e) => e.studentId === user.id && e.classId === assignment.classId)),
@@ -96,7 +106,13 @@ function teacherPayload(data, user) {
 function adminPayload(data, user) {
   return {
     user: publicUser(user),
-    content: data.questions.map((question) => ({ id: question.id, version: question.version, skillId: question.skillId, reviewStatus: question.reviewStatus, publicationStatus: question.publicationStatus, provenance: question.provenance })),
+    content: data.questions.map((question) => ({
+      id: question.id, version: question.version, skillId: question.skillId, difficulty: question.difficulty,
+      promptAr: question.promptAr, variantOf: question.variantOf || null,
+      reviewStatus: question.reviewStatus, publicationStatus: question.publicationStatus, provenance: question.provenance,
+      reviewedBy: question.reviewedBy || null, reviewedAt: question.reviewedAt || null,
+      publishedBy: question.publishedBy || null, publishedAt: question.publishedAt || null,
+    })),
     audit: data.audit.slice(-30).reverse(),
     configuration: { masteryRuleVersion: 'mvp-1', economyRuleVersion: 'economy-mvp-1', curriculumStatus: data.curriculum.status },
     demo: true,
@@ -104,9 +120,12 @@ function adminPayload(data, user) {
 }
 
 async function handleApi(req, res, url) {
+  const ip = req.socket.remoteAddress || 'unknown';
+  if (rateLimited(`api:${ip}`, 600, 60_000)) return fail(res, 429, 'Too many requests. Please slow down.', 'RATE_LIMITED');
   const data = store.snapshot();
 
   if (req.method === 'POST' && url.pathname === '/api/auth/login') {
+    if (rateLimited(`login:${ip}`, 20, 5 * 60_000)) return fail(res, 429, 'Too many sign-in attempts. Try again in a few minutes.', 'RATE_LIMITED');
     const body = await readBody(req);
     const email = String(body.email || '').trim().toLowerCase();
     const user = data.users.find((candidate) => candidate.email === email && candidate.password === body.password);
@@ -144,11 +163,16 @@ async function handleApi(req, res, url) {
       const previous = draft.attempts.filter((item) => item.userId === user.id && item.questionId === question.id);
       const attempt = {
         id: crypto.randomUUID(), userId: user.id, questionId: question.id, questionVersion: question.version,
+        slotId: question.variantOf || question.id,
         lessonId: question.lessonId, skillId: question.skillId, difficulty: question.difficulty,
         answer: scored.normalizedAnswer, correct: scored.correct, assisted: Boolean(body.assisted),
         practiceRepeat: previous.length > 0, idempotencyKey: body.idempotencyKey, createdAt: new Date().toISOString(),
       };
       draft.attempts.push(attempt);
+      if (scored.correct && previous.length === 0) {
+        appendLedgerEntry(draft, { userId: user.id, amount: XP_RULES.correctFirstAttempt, currency: 'XP', reason: 'CORRECT_FIRST_ATTEMPT', reference: question.id, idempotencyKey: `xp-attempt:${user.id}:${body.idempotencyKey}` });
+      }
+      const retryQuestion = !scored.correct ? pickVariant(draft.questions, question.variantOf || question.id, [question.id]) : null;
       const skillAttempts = draft.attempts.filter((item) => item.userId === user.id && item.skillId === question.skillId);
       const derived = deriveMastery(skillAttempts);
       const mastery = { userId: user.id, skillId: question.skillId, ...derived, updatedAt: new Date().toISOString(), ruleVersion: 'mvp-1' };
@@ -159,12 +183,13 @@ async function handleApi(req, res, url) {
       if (reviewIndex >= 0) draft.reviews[reviewIndex] = review; else draft.reviews.push(review);
 
       const lesson = draft.curriculum.units.flatMap((unit) => unit.lessons).find((item) => item.id === question.lessonId);
-      const answeredCorrectly = new Set(draft.attempts.filter((item) => item.userId === user.id && item.lessonId === lesson.id && item.correct).map((item) => item.questionId));
+      const answeredCorrectly = new Set(draft.attempts.filter((item) => item.userId === user.id && item.lessonId === lesson.id && item.correct).map((item) => item.slotId));
       let completion = draft.lessonCompletions.find((item) => item.userId === user.id && item.lessonId === lesson.id);
       if (!completion && lesson.questionIds.every((id) => answeredCorrectly.has(id))) {
         completion = { userId: user.id, lessonId: lesson.id, completedAt: new Date().toISOString(), rewardGranted: true };
         draft.lessonCompletions.push(completion);
         appendLedgerEntry(draft, { userId: user.id, amount: 25, currency: 'COIN', reason: 'LESSON_COMPLETION', reference: lesson.id, idempotencyKey: `lesson:${user.id}:${lesson.id}` });
+        appendLedgerEntry(draft, { userId: user.id, amount: XP_RULES.lessonCompletion, currency: 'XP', reason: 'LESSON_COMPLETION', reference: lesson.id, idempotencyKey: `xp-lesson:${user.id}:${lesson.id}` });
       }
       return {
         attempt,
@@ -172,6 +197,7 @@ async function handleApi(req, res, url) {
         feedback: user.language === 'en'
           ? question.explanationEn
           : (scored.correct ? question.explanationAr : scored.feedback || question.explanationAr),
+        retryQuestion: retryQuestion ? safeQuestion(retryQuestion, user.language) : null,
         mastery,
         completion,
         duplicate: false,
@@ -191,7 +217,8 @@ async function handleApi(req, res, url) {
       if (duplicate) return { ...duplicate, duplicate: true };
       const unit = draft.curriculum.units.find((item) => item.id === bossMatch[1]);
       if (!unit || unit.locked || unit.bossQuestionIds.length !== 3) throw new Error('Challenge is unavailable');
-      const details = unit.bossQuestionIds.map((questionId) => {
+      const activeIds = activeBossQuestionIds(draft.bossAttempts, unit, user.id);
+      const details = activeIds.map((questionId) => {
         const question = findQuestion(draft, questionId);
         const supplied = body.answers.find((answer) => answer.questionId === questionId);
         const scored = scoreQuestion(question, supplied?.answer);
@@ -202,7 +229,10 @@ async function handleApi(req, res, url) {
       const outcome = score === 3 ? 'complete' : score === 2 ? 'recovery' : 'supported-practice';
       const priorCompleted = draft.bossAttempts.some((item) => item.userId === user.id && item.unitId === unit.id && item.score === 3);
       const rewardGranted = score === 3 && !priorCompleted;
-      if (rewardGranted) appendLedgerEntry(draft, { userId: user.id, amount: 60, currency: 'COIN', reason: 'BOSS_FIRST_COMPLETION', reference: unit.id, idempotencyKey: `boss:${user.id}:${unit.id}` });
+      if (rewardGranted) {
+        appendLedgerEntry(draft, { userId: user.id, amount: 60, currency: 'COIN', reason: 'BOSS_FIRST_COMPLETION', reference: unit.id, idempotencyKey: `boss:${user.id}:${unit.id}` });
+        appendLedgerEntry(draft, { userId: user.id, amount: XP_RULES.bossFirstCompletion, currency: 'XP', reason: 'BOSS_FIRST_COMPLETION', reference: unit.id, idempotencyKey: `xp-boss:${user.id}:${unit.id}` });
+      }
       const attempt = { id: crypto.randomUUID(), userId: user.id, unitId: unit.id, score, outcome, details, rewardGranted, idempotencyKey: body.idempotencyKey, createdAt: new Date().toISOString() };
       draft.bossAttempts.push(attempt);
       return attempt;
@@ -216,7 +246,7 @@ async function handleApi(req, res, url) {
     if (!user) return;
     const unit = data.curriculum.units.find((item) => item.id === unitMatch[1]);
     if (!unit || unit.locked) return fail(res, 404, 'Challenge is unavailable.', 'NOT_FOUND');
-    return json(res, 200, { unitId: unit.id, questions: unit.bossQuestionIds.map((id) => safeQuestion(findQuestion(data, id), user.language)) });
+    return json(res, 200, { unitId: unit.id, questions: activeBossQuestionIds(data.bossAttempts, unit, user.id).map((id) => safeQuestion(findQuestion(data, id), user.language)) });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/shop/purchase') {
@@ -235,7 +265,13 @@ async function handleApi(req, res, url) {
     const result = await store.transact((draft) => {
       const target = draft.users.find((item) => item.id === user.id);
       if (['ar', 'en'].includes(body.language)) target.language = body.language;
-      if (body.avatarItemId && draft.inventory.some((item) => item.userId === user.id && item.itemId === body.avatarItemId)) target.avatarItemId = body.avatarItemId;
+      const equipSlots = { avatarItemId: 'avatar', outfitItemId: 'outfit', companionItemId: 'companion', backgroundItemId: 'background' };
+      for (const [field, type] of Object.entries(equipSlots)) {
+        if (!body[field]) continue;
+        const owned = draft.inventory.some((item) => item.userId === user.id && item.itemId === body[field]);
+        const item = draft.shopItems.find((candidate) => candidate.id === body[field]);
+        if (owned && item?.type === type) target[field] = body[field];
+      }
       draft.audit.push({ id: crypto.randomUUID(), actorId: user.id, action: 'PROFILE_UPDATED', targetId: user.id, at: new Date().toISOString() });
       return publicUser(target);
     });
@@ -256,6 +292,26 @@ async function handleApi(req, res, url) {
       return assignment;
     });
     return json(res, 201, { assignment: result });
+  }
+
+  const reviewMatch = url.pathname.match(/^\/api\/admin\/questions\/([^/]+)\/status$/);
+  if (req.method === 'PATCH' && reviewMatch) {
+    const user = requireRole(req, res, data, ['admin']);
+    if (!user) return;
+    const body = await readBody(req);
+    const result = await store.transact((draft) => {
+      const index = draft.questions.findIndex((item) => item.id === reviewMatch[1]);
+      if (index < 0) throw new Error('Content item is unavailable');
+      const updated = transitionQuestion(draft.questions[index], body.action, user.id);
+      draft.questions[index] = updated;
+      draft.audit.push({ id: crypto.randomUUID(), actorId: user.id, action: `QUESTION_${String(body.action).toUpperCase().replace(/-/g, '_')}`, targetId: updated.id, at: new Date().toISOString() });
+      return updated;
+    });
+    return json(res, 200, {
+      id: result.id, version: result.version, skillId: result.skillId, difficulty: result.difficulty, promptAr: result.promptAr, variantOf: result.variantOf || null,
+      reviewStatus: result.reviewStatus, publicationStatus: result.publicationStatus, provenance: result.provenance,
+      reviewedBy: result.reviewedBy || null, reviewedAt: result.reviewedAt || null, publishedBy: result.publishedBy || null, publishedAt: result.publishedAt || null,
+    });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, schemaVersion: data.meta.schemaVersion });
