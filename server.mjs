@@ -28,14 +28,14 @@ function rateLimited(key, limit, windowMs) {
 // to touch scores/wallet/mastery since this handler never calls store.transact.
 const OLLAMA_URL = process.env.OLLAMA_URL || '';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:3b';
-const TUTOR_TIMEOUT_MS = 45_000;
+const TUTOR_TIMEOUT_MS = 70_000;
 
 function tutorSystemPrompt(lesson, question, language) {
   const lines = [
     'You are a friendly, patient study helper inside a demonstration Arabic-first learning app for a secondary-level physics unit on motion.',
     'Only help the student reason about the specific lesson/question content given below. If asked about anything else, gently steer back to this lesson.',
     'Never state the final answer to the current checkpoint question outright — guide their reasoning with a hint or a leading question instead, unless they say they already answered it and just want the idea explained.',
-    'Keep it short: two to five sentences. Be encouraging, age-appropriate, and never claim to be a teacher or to have graded anything.',
+    'Keep it very short: one to three sentences, no more. Be encouraging, age-appropriate, and never claim to be a teacher or to have graded anything.',
     language === 'en' ? 'Respond only in English. Do not mix in Arabic or any other script.' : 'أجب فقط باللغة العربية الفصحى المبسطة. لا تخلط أي حروف صينية أو إنجليزية أو أي لغة أخرى في ردك، واستخدم كلمات عربية صحيحة ومفهومة فقط.',
   ];
   if (lesson) lines.push(`Lesson: ${lesson.titleAr} / ${lesson.titleEn}. Summary: ${lesson.summaryAr} ${lesson.summaryEn}`);
@@ -81,7 +81,7 @@ async function askTutor(system, message) {
       // think:false skips Qwen3's internal reasoning pass — on slow CPU inference that pass alone
       // could eat the whole timeout before any visible reply is produced. num_predict caps a reply
       // that ignores the "keep it short" instruction from running long enough to time out anyway.
-      body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, think: false, options: { num_predict: 220 }, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
+      body: JSON.stringify({ model: OLLAMA_MODEL, stream: false, think: false, options: { num_predict: 140 }, messages: [{ role: 'system', content: system }, { role: 'user', content: message }] }),
       signal: controller.signal,
     });
     if (!response.ok) return null;
