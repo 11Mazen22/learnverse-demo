@@ -9,10 +9,20 @@ const state = {
   questionIndex: 0,
   selectedAnswer: null,
   feedback: null,
+  retryOverrides: {},
   boss: null,
   bossAnswers: {},
   busy: false,
+  offlineQueue: loadQueue(),
+  celebrate: null,
 };
+
+function loadQueue() {
+  try { return JSON.parse(localStorage.getItem('lp-offline-queue') || '[]'); } catch { return []; }
+}
+function saveQueue() {
+  try { localStorage.setItem('lp-offline-queue', JSON.stringify(state.offlineQueue)); } catch { /* private mode or storage disabled: queue stays in-memory only */ }
+}
 
 const copy = {
   ar: {
@@ -22,6 +32,11 @@ const copy = {
     lesson: 'الدرس', example: 'مثال محلول', checkpoint: 'نقطة تحقق', submit: 'تحقق من إجابتي', next: 'السؤال التالي', retry: 'جرّب مرة أخرى', correct: 'إجابة موفقة!', incorrect: 'محاولة مفيدة—خلّينا نفهمها.', finish: 'أنهِ الدرس',
     owned: 'مملوك', buy: 'شراء', coins: 'عملة', logout: 'تسجيل الخروج', language: 'لغة الواجهة', accessibility: 'الوصول والراحة', reduced: 'تقليل الحركة', privacy: 'الخصوصية', demoPrivacy: 'هذه بيانات تجريبية محلية على الخادم.',
     boss: 'تحدي الوحدة', startBoss: 'ابدأ التحدي', locked: 'قيد المراجعة', noEvidence: 'لم تبدأ الأدلة بعد', reviews: 'مراجعات مجدولة', questions: 'إجابات مسجلة', completed: 'دروس مكتملة',
+    xp: 'نقاط خبرة', level: 'المستوى', levelUp: 'مستوى جديد!', collection: 'مجموعتي', equip: 'ارتداء', equipped: 'مرتدى الآن', notOwned: 'غير مملوك بعد',
+    pendingSync: 'بانتظار الاتصال', queued: 'محفوظة — ستُرسل عند رجوع الاتصال', syncing: 'جاري المزامنة…', synced: 'تمت المزامنة', queueFailed: 'تعذّر إرسال إجابة سابقة',
+    reviewDraft: 'مسودة', reviewInReview: 'قيد المراجعة', reviewApproved: 'معتمد', pubDraft: 'غير منشور', pubPublished: 'منشور', pubRetired: 'متقاعد',
+    submitReview: 'أرسل للمراجعة', approve: 'اعتماد', returnToDraft: 'إعادة للمسودة', publish: 'نشر', retire: 'سحب من النشر', reviewedBy: 'راجعه', publishedOn: 'نُشر في',
+    assessmentOffline: 'التحدي غير متاح بدون اتصال لضمان نتيجة موثوقة.', purchaseOffline: 'الشراء غير متاح بدون اتصال.',
   },
   en: {
     brand: 'Learning Platform', demo: 'Demo environment • content is not approved', home: 'Home Base', map: 'World Map', progress: 'Progress Lab', shop: 'Reward Room', profile: 'Settings', teacher: 'Teacher Studio', admin: 'Content Studio',
@@ -30,6 +45,11 @@ const copy = {
     lesson: 'Lesson', example: 'Worked example', checkpoint: 'Checkpoint', submit: 'Check my answer', next: 'Next question', retry: 'Try again', correct: 'Nice reasoning!', incorrect: 'Useful attempt—let’s unpack it.', finish: 'Finish lesson',
     owned: 'Owned', buy: 'Buy', coins: 'coins', logout: 'Log out', language: 'Interface language', accessibility: 'Access and comfort', reduced: 'Reduce motion', privacy: 'Privacy', demoPrivacy: 'This is local demonstration data stored on the server.',
     boss: 'Unit Boss', startBoss: 'Start challenge', locked: 'Under review', noEvidence: 'No evidence yet', reviews: 'Scheduled reviews', questions: 'Recorded answers', completed: 'Completed lessons',
+    xp: 'XP', level: 'Level', levelUp: 'Level up!', collection: 'My collection', equip: 'Equip', equipped: 'Equipped', notOwned: 'Not owned yet',
+    pendingSync: 'Waiting for connection', queued: 'Saved — will send once you’re back online', syncing: 'Syncing…', synced: 'Synced', queueFailed: 'A saved answer could not be sent',
+    reviewDraft: 'Draft', reviewInReview: 'In review', reviewApproved: 'Approved', pubDraft: 'Unpublished', pubPublished: 'Published', pubRetired: 'Retired',
+    submitReview: 'Submit for review', approve: 'Approve', returnToDraft: 'Return to draft', publish: 'Publish', retire: 'Retire', reviewedBy: 'Reviewed by', publishedOn: 'Published on',
+    assessmentOffline: 'The challenge is unavailable offline, to keep the result trustworthy.', purchaseOffline: 'Purchases are unavailable offline.',
   },
 };
 
@@ -140,19 +160,25 @@ const studentNav = [
   ['home', '⌂', 'home'], ['map', '🗺', 'map'], ['progress', '◔', 'progress'], ['shop', '✦', 'shop'], ['profile', '⚙', 'profile'],
 ];
 
+function equippedIcon(user) {
+  const item = state.data.shopItems?.find((candidate) => candidate.id === user.avatarItemId);
+  return item?.icon || (user.role === 'student' ? '🧭' : user.role === 'teacher' ? '📋' : '🛡️');
+}
+
 function shell(content, title = '') {
   const role = state.data.user.role;
   const nav = role === 'student' ? studentNav : role === 'teacher' ? [['teacher', '▦', 'teacher']] : [['admin', '▤', 'admin']];
-  const balance = state.data.wallet?.coins;
+  const wallet = state.data.wallet;
+  const pending = state.offlineQueue.length;
   return `
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand"><div class="brand-mark">ل</div><span class="brand-name">${t('brand')}</span></div>
         <nav class="sidebar-nav" aria-label="${lang() === 'en' ? 'Main navigation' : 'التنقل الرئيسي'}">${nav.map(navButton).join('')}</nav>
-        <div class="sidebar-user"><div class="mini-avatar">${role === 'student' ? '🧭' : role === 'teacher' ? '📋' : '🛡️'}</div><div><strong>${esc(name())}</strong><span>${role}</span></div></div>
+        <div class="sidebar-user"><div class="mini-avatar" style="background:${state.data.shopItems?.find((i) => i.id === state.data.user.avatarItemId)?.color || '#8174e6'}">${equippedIcon(state.data.user)}</div><div><strong>${esc(name())}</strong><span>${role === 'student' && wallet ? `${t('level')} ${wallet.level}` : role}</span></div></div>
       </aside>
       <div class="main-wrap">
-        <header class="topbar"><span class="topbar-title">${esc(title || t(state.view))}</span><div class="top-actions">${balance !== undefined ? `<span class="stat-pill"><i class="coin-dot">✦</i><b>${balance}</b><span>${t('coins')}</span></span>` : ''}<button class="icon-button" data-action="logout" aria-label="${t('logout')}">↪</button></div></header>
+        <header class="topbar"><span class="topbar-title">${esc(title || t(state.view))}</span><div class="top-actions">${pending ? `<span class="stat-pill pending-pill" title="${t('pendingSync')}">⏳<b>${pending}</b></span>` : ''}${wallet ? `<span class="stat-pill xp-pill" title="${t('xp')}">★<b>${wallet.xp}</b></span><span class="stat-pill"><i class="coin-dot">✦</i><b>${wallet.coins}</b><span>${t('coins')}</span></span>` : ''}<button class="icon-button" data-action="logout" aria-label="${t('logout')}">↪</button></div></header>
         <main id="main" class="content">${content}</main>
       </div>
       <nav class="mobile-nav" aria-label="${lang() === 'en' ? 'Mobile navigation' : 'التنقل على الهاتف'}">${nav.map(navButton).join('')}</nav>
@@ -161,6 +187,12 @@ function shell(content, title = '') {
 
 function navButton([view, icon, key]) {
   return `<button class="nav-button ${state.view === view ? 'active' : ''}" data-view="${view}"><span class="nav-icon" aria-hidden="true">${icon}</span><span>${t(key)}</span></button>`;
+}
+
+function renderCelebration() {
+  if (!state.celebrate) return '';
+  const isBoss = state.celebrate === 'boss';
+  return `<div class="modal-backdrop celebration-backdrop"><section class="modal celebration-modal" role="dialog" aria-modal="true" aria-labelledby="celebrate-title"><div class="confetti" aria-hidden="true">${'🎉✨🏆✦🌟'.split('').map((e, i) => `<i style="--i:${i}">${e}</i>`).join('')}</div><div class="celebration-icon">${isBoss ? '🏆' : '🎓'}</div><h2 id="celebrate-title">${isBoss ? (lang() === 'en' ? 'Unit Boss complete!' : 'أكملت تحدي الوحدة!') : (lang() === 'en' ? 'Lesson complete!' : 'أكملت الدرس!')}</h2><p>${isBoss ? (lang() === 'en' ? 'A one-time reward was recorded on your ledger.' : 'اتسجلت مكافأة الإكمال لمرة واحدة في سجلك.') : (lang() === 'en' ? '25 coins and 15 XP were recorded once.' : 'اتسجلت 25 عملة و15 نقطة خبرة لمرة واحدة.')}</p><button class="btn btn-primary btn-block" data-action="dismiss-celebration">${lang() === 'en' ? 'Keep going' : 'كمّل رحلتك'}</button></section></div>`;
 }
 
 function render() {
@@ -172,6 +204,8 @@ function render() {
     const views = { home: renderHome, map: renderMap, lesson: renderLesson, progress: renderProgress, shop: renderShop, profile: renderProfile, boss: renderBoss };
     app.innerHTML = shell((views[state.view] || renderHome)(), state.view === 'lesson' ? t('lesson') : t(state.view));
   }
+  app.insertAdjacentHTML('beforeend', renderCelebration());
+  if (state.celebrate && !document.activeElement?.closest('.celebration-modal')) app.querySelector('.celebration-modal [data-action="dismiss-celebration"]')?.focus();
 }
 
 function firstAvailableLesson() {
@@ -189,8 +223,10 @@ function renderHome() {
   const lesson = firstAvailableLesson();
   const assignment = state.data.assignments[0];
   const completed = state.data.progress.completedLessons.some((item) => item.lessonId === lesson.id);
+  const wallet = state.data.wallet;
   return `
     <div class="welcome-row"><div><p class="eyebrow">${t('greeting')}، ${esc(name())} 👋</p><h1>${t('ready')}</h1><p>${t('meaningful')}</p></div><div class="demo-banner">⚠ ${t('demo')}</div></div>
+    <section class="card xp-card"><div class="xp-card-head"><span class="level-badge">${t('level')} ${wallet.level}</span><span class="xp-count">★ ${wallet.xp} ${t('xp')}</span></div><div class="bar xp-bar"><i style="width:${wallet.levelPercent}%"></i></div><p class="xp-hint">${lang() === 'en' ? `${wallet.levelCeilingXp - wallet.xp} XP to level ${wallet.level + 1}` : `${wallet.levelCeilingXp - wallet.xp} نقطة للمستوى ${wallet.level + 1}`}</p></section>
     <div class="dashboard-grid">
       <section class="card quest-card">
         <div><span class="tag">${completed ? (lang() === 'en' ? 'Review' : 'مراجعة ذكية') : t('today')}</span><h2>${esc(local(lesson, 'title'))}</h2><p>${esc(local(lesson, 'summary'))}</p></div>
@@ -219,10 +255,15 @@ function currentLesson() {
   return state.data.curriculum.units.flatMap((unit) => unit.lessons).find((lesson) => lesson.id === state.activeLessonId) || firstAvailableLesson();
 }
 
+function activeQuestion(lesson, index = state.questionIndex) {
+  return state.retryOverrides[`${lesson.id}:${index}`] || lesson.questions[index] || lesson.questions[0];
+}
+
 function renderLesson() {
   const lesson = currentLesson();
   state.activeLessonId = lesson.id;
-  const question = lesson.questions[state.questionIndex] || lesson.questions[0];
+  const question = activeQuestion(lesson);
+  const isVariant = question.id !== lesson.questions[state.questionIndex]?.id;
   const suffix = lang() === 'en' ? ['A','B','C','D'] : ['أ','ب','ج','د'];
   return `
     <div class="lesson-layout">
@@ -230,11 +271,11 @@ function renderLesson() {
         <div class="lesson-hero"><div class="breadcrumb">${t('map')} / ${t('lesson')} ${lesson.order}</div><h1>${esc(local(lesson, 'title'))}</h1><p>${esc(local(lesson, 'summary'))}</p>${lesson.id === 'lesson-motion-basics' ? `<div class="formula-box">speed = distance ÷ time</div>` : ''}</div>
         <div class="worked-example"><h3>💡 ${t('example')}</h3><p>${esc(local(lesson, 'worked'))}</p></div>
         <div class="question-stage">
-          <div class="question-meta"><span class="tag">${t('checkpoint')} ${state.questionIndex + 1}/${lesson.questions.length}</span><span class="tag ${question.difficulty === 'core' ? 'success' : 'warning'}">${difficultyLabel(question.difficulty)}</span></div>
+          <div class="question-meta"><span class="tag">${t('checkpoint')} ${state.questionIndex + 1}/${lesson.questions.length}</span><span class="tag ${question.difficulty === 'core' ? 'success' : 'warning'}">${difficultyLabel(question.difficulty)}</span>${isVariant ? `<span class="tag variant-tag">🔄 ${lang() === 'en' ? 'New question, same idea' : 'سؤال جديد، نفس الفكرة'}</span>` : ''}</div>
           <h2>${esc(question.prompt)}</h2>
           ${question.type === 'multiple-choice' ? `<div class="choices">${question.choices.map((choice, index) => `<button class="choice ${String(state.selectedAnswer) === String(index) ? 'selected' : ''}" data-answer="${index}" ${state.feedback ? 'disabled' : ''}><span class="choice-letter">${suffix[index]}</span><span>${esc(choice)}</span></button>`).join('')}</div>` : `<div class="numeric-wrap"><input id="numeric-answer" type="number" step="any" inputmode="decimal" placeholder="0" value="${esc(state.selectedAnswer ?? '')}" ${state.feedback ? 'disabled' : ''}><span>${question.unit || (lang() === 'en' ? 'm/s' : 'م/ث')}</span></div>`}
-          ${state.feedback ? `<div class="feedback ${state.feedback.correct ? 'correct' : 'incorrect'}" role="status"><strong>${state.feedback.correct ? t('correct') : t('incorrect')}</strong><br>${esc(state.feedback.feedback)}</div>` : ''}
-          <div class="question-actions">${state.feedback ? `<button class="btn ${state.feedback.correct ? 'btn-primary' : 'btn-secondary'}" data-action="${state.feedback.correct ? 'next-question' : 'retry-question'}">${state.feedback.correct ? (state.questionIndex === lesson.questions.length - 1 ? t('finish') : t('next')) : t('retry')}</button>` : `<button class="btn btn-primary" data-action="submit-answer" ${state.selectedAnswer === null ? 'disabled' : ''}>${t('submit')}</button>`}</div>
+          ${state.feedback?.pending ? `<div class="feedback pending" role="status"><strong>⏳ ${t('pendingSync')}</strong><br>${t('queued')}</div>` : state.feedback ? `<div class="feedback ${state.feedback.correct ? 'correct' : 'incorrect'}" role="status"><strong>${state.feedback.correct ? t('correct') : t('incorrect')}</strong><br>${esc(state.feedback.feedback)}</div>` : ''}
+          <div class="question-actions">${state.feedback?.pending ? `<button class="btn btn-ghost" data-view="map">${t('map')}</button>` : state.feedback ? `<button class="btn ${state.feedback.correct ? 'btn-primary' : 'btn-secondary'}" data-action="${state.feedback.correct ? 'next-question' : 'retry-question'}">${state.feedback.correct ? (state.questionIndex === lesson.questions.length - 1 ? t('finish') : t('next')) : t('retry')}</button>` : `<button class="btn btn-primary" data-action="submit-answer" ${state.selectedAnswer === null || state.busy ? 'disabled' : ''}>${state.busy ? '…' : t('submit')}</button>`}</div>
         </div>
       </section>
       <aside class="card lesson-aside"><h3>${lang() === 'en' ? 'Quest checkpoints' : 'محطات الرحلة'}</h3><div class="step-list">${lesson.questions.map((_, index) => `<div class="step ${index < state.questionIndex ? 'done' : index === state.questionIndex ? 'current' : ''}"><span class="step-number">${index < state.questionIndex ? '✓' : index + 1}</span><span>${t('checkpoint')} ${index + 1}</span></div>`).join('')}</div><button class="btn btn-ghost btn-block" style="margin-top:1rem" data-view="map">${lang() === 'en' ? 'Back to map' : 'العودة للخريطة'}</button></aside>
@@ -274,9 +315,21 @@ function typeLabel(type) {
   return values[lang()][type] || type;
 }
 
+const EQUIP_FIELD_BY_TYPE = { avatar: 'avatarItemId', outfit: 'outfitItemId', companion: 'companionItemId', background: 'backgroundItemId' };
+
 function renderProfile() {
+  const owned = new Set(state.data.inventory.map((item) => item.itemId));
+  const collection = state.data.shopItems.filter((item) => owned.has(item.id));
   return `
     <div class="page-header"><div><p class="eyebrow">${esc(state.data.user.email)}</p><h1>${t('profile')}</h1><p>${lang() === 'en' ? 'Make the experience comfortable for you.' : 'خلّي التجربة مريحة ومناسبة ليك.'}</p></div></div>
+    <section class="card collection-card">
+      <h2>${t('collection')}</h2>
+      <div class="collection-grid">${collection.length ? collection.map((item) => {
+        const field = EQUIP_FIELD_BY_TYPE[item.type];
+        const isEquipped = field && state.data.user[field] === item.id;
+        return `<article class="collection-item ${isEquipped ? 'equipped' : ''}"><div class="item-preview" style="--item:${item.color}">${item.icon}</div><div class="item-body"><h3>${esc(local(item, 'name'))}</h3><p>${typeLabel(item.type)}</p>${field ? `<button class="btn ${isEquipped ? 'btn-primary' : 'btn-ghost'} btn-sm" data-equip="${field}:${item.id}" ${isEquipped ? 'disabled' : ''}>${isEquipped ? `✓ ${t('equipped')}` : t('equip')}</button>` : ''}</div></article>`;
+      }).join('') : `<p class="muted">${lang() === 'en' ? 'Nothing owned yet — visit the Reward Room.' : 'لا شيء مملوك بعد — زُر غرفة المكافآت.'}</p>`}</div>
+    </section>
     <div class="settings-grid">
       <section class="card settings-card"><h2>${t('language')}</h2><div class="setting-row"><div><strong>العربية</strong><span>واجهة كاملة من اليمين لليسار</span></div><button class="btn ${lang() === 'ar' ? 'btn-primary' : 'btn-ghost'}" data-language="ar">${lang() === 'ar' ? '✓' : 'اختيار'}</button></div><div class="setting-row"><div><strong>English</strong><span>Complete left-to-right interface</span></div><button class="btn ${lang() === 'en' ? 'btn-primary' : 'btn-ghost'}" data-language="en">${lang() === 'en' ? '✓' : 'Choose'}</button></div></section>
       <section class="card settings-card"><h2>${t('accessibility')}</h2><div class="setting-row"><div><strong>${t('reduced')}</strong><span>${lang() === 'en' ? 'Respects your device preference automatically' : 'نحترم إعداد جهازك تلقائيًا'}</span></div><button class="toggle" data-toggle="motion" aria-label="${t('reduced')}"></button></div><div class="setting-row"><div><strong>${t('privacy')}</strong><span>${t('demoPrivacy')}</span></div><span aria-hidden="true">🔒</span></div></section>
@@ -303,26 +356,78 @@ function renderTeacher() {
       <form class="card form-card" id="assignment-form"><h2>${lang() === 'en' ? 'Create an assignment' : 'إنشاء تكليف'}</h2><div class="field"><label for="assign-class">${lang() === 'en' ? 'Class' : 'الفصل'}</label><select id="assign-class" name="classId">${state.data.classes.map((item) => `<option value="${item.id}">${esc(local(item, 'name'))}</option>`).join('')}</select></div><div class="field"><label for="assign-lesson">${t('lesson')}</label><select id="assign-lesson" name="lessonId">${state.data.curriculum.units.flatMap((unit) => unit.lessons).map((lesson) => `<option value="${lesson.id}">${esc(local(lesson, 'title'))}</option>`).join('')}</select></div><button class="btn btn-primary btn-block" type="submit">${lang() === 'en' ? 'Assign lesson' : 'إسناد الدرس'}</button></form></div>`;
 }
 
+function reviewBadge(status) {
+  const map = { draft: ['reviewDraft', ''], 'in-review': ['reviewInReview', 'warning'], approved: ['reviewApproved', 'success'] };
+  const [key, cls] = map[status] || [status, ''];
+  return `<span class="tag ${cls}">${t(key)}</span>`;
+}
+function pubBadge(status) {
+  const map = { draft: ['pubDraft', ''], 'published-demo': ['pubPublished', 'success'], retired: ['pubRetired', 'warning'] };
+  const [key, cls] = map[status] || [status, ''];
+  return `<span class="tag ${cls}">${t(key)}</span>`;
+}
+function reviewActionsFor(item) {
+  const btn = (action, label) => `<button class="btn btn-ghost btn-sm" data-review-action="${item.id}:${action}">${label}</button>`;
+  if (item.publicationStatus === 'retired') return '';
+  if (item.reviewStatus === 'draft') return btn('submit-review', t('submitReview'));
+  if (item.reviewStatus === 'in-review') return `${btn('approve', t('approve'))}${btn('return-to-draft', t('returnToDraft'))}`;
+  if (item.reviewStatus === 'approved' && item.publicationStatus === 'draft') return btn('publish', t('publish'));
+  if (item.publicationStatus === 'published-demo') return btn('retire', t('retire'));
+  return '';
+}
+
 function renderAdmin() {
+  const drafts = state.data.content.filter((item) => item.publicationStatus === 'draft').length;
   return `
-    <div class="page-header"><div><p class="eyebrow">${esc(name())}</p><h1>${t('admin')}</h1><p>${lang() === 'en' ? 'Review provenance, publication state, configuration, and audit history.' : 'راجع المصدر، وحالة النشر، والإعدادات، وسجل التغييرات.'}</p></div><div class="demo-banner">⚠ ${t('demo')}</div></div>
-    <div class="stat-grid"><article class="card metric-card"><span>${lang() === 'en' ? 'Question versions' : 'إصدارات الأسئلة'}</span><strong>${state.data.content.length}</strong></article><article class="card metric-card"><span>${lang() === 'en' ? 'Approved demo items' : 'عناصر تجريبية مراجعة'}</span><strong>${state.data.content.filter((item) => item.reviewStatus === 'approved').length}</strong></article><article class="card metric-card"><span>${lang() === 'en' ? 'Rule versions' : 'إصدارات القواعد'}</span><strong>2</strong><em>${state.data.configuration.masteryRuleVersion} · ${state.data.configuration.economyRuleVersion}</em></article></div>
-    <section class="card table-card"><table class="data-table"><thead><tr><th>ID</th><th>${lang() === 'en' ? 'Version' : 'الإصدار'}</th><th>${lang() === 'en' ? 'Review' : 'المراجعة'}</th><th>${lang() === 'en' ? 'Publication' : 'النشر'}</th><th>${lang() === 'en' ? 'Provenance' : 'المصدر'}</th></tr></thead><tbody>${state.data.content.map((item) => `<tr><td><code>${item.id}</code></td><td>${item.version}</td><td><span class="tag success">${item.reviewStatus}</span></td><td><span class="tag warning">${item.publicationStatus}</span></td><td>${esc(item.provenance)}</td></tr>`).join('')}</tbody></table></section>
+    <div class="page-header"><div><p class="eyebrow">${esc(name())}</p><h1>${t('admin')}</h1><p>${lang() === 'en' ? 'Move content through draft → review → approve → publish, and audit every change.' : 'حرّك المحتوى عبر مسودة ← مراجعة ← اعتماد ← نشر، وراقب كل تغيير.'}</p></div><div class="demo-banner">⚠ ${t('demo')}</div></div>
+    <div class="stat-grid"><article class="card metric-card"><span>${lang() === 'en' ? 'Question versions' : 'إصدارات الأسئلة'}</span><strong>${state.data.content.length}</strong></article><article class="card metric-card"><span>${lang() === 'en' ? 'Published, live' : 'منشور وفعّال'}</span><strong>${state.data.content.filter((item) => item.publicationStatus === 'published-demo').length}</strong></article><article class="card metric-card"><span>${lang() === 'en' ? 'Awaiting publish' : 'بانتظار النشر'}</span><strong>${drafts}</strong></article><article class="card metric-card"><span>${lang() === 'en' ? 'Rule versions' : 'إصدارات القواعد'}</span><strong>2</strong><em>${state.data.configuration.masteryRuleVersion} · ${state.data.configuration.economyRuleVersion}</em></article></div>
+    <section class="card table-card"><table class="data-table"><thead><tr><th>ID</th><th>${lang() === 'en' ? 'Prompt' : 'السؤال'}</th><th>${lang() === 'en' ? 'Review' : 'المراجعة'}</th><th>${lang() === 'en' ? 'Publication' : 'النشر'}</th><th>${lang() === 'en' ? 'Actions' : 'إجراءات'}</th></tr></thead><tbody>${state.data.content.map((item) => `<tr><td><code>${item.id}</code>${item.variantOf ? `<div class="row-sub">↳ ${lang() === 'en' ? 'variant of' : 'نسخة بديلة لـ'} ${item.variantOf}</div>` : ''}</td><td class="prompt-cell">${esc(item.promptAr || '')}</td><td>${reviewBadge(item.reviewStatus)}${item.reviewedBy ? `<div class="row-sub">${t('reviewedBy')} ${esc(item.reviewedBy)}</div>` : ''}</td><td>${pubBadge(item.publicationStatus)}${item.publishedAt ? `<div class="row-sub">${t('publishedOn')} ${new Date(item.publishedAt).toLocaleDateString()}</div>` : ''}</td><td class="actions-cell">${reviewActionsFor(item)}</td></tr>`).join('')}</tbody></table></section>
     <section class="section"><div class="section-head"><h2>${lang() === 'en' ? 'Recent audit events' : 'أحدث أحداث التدقيق'}</h2></div>${state.data.audit.length ? `<div class="card table-card"><table class="data-table"><tbody>${state.data.audit.map((item) => `<tr><td>${esc(item.action)}</td><td>${esc(item.actorId)}</td><td>${new Date(item.at).toLocaleString()}</td></tr>`).join('')}</tbody></table></div>` : `<div class="card empty-state"><div class="empty-icon">🛡️</div><h2>${lang() === 'en' ? 'No privileged changes yet' : 'لا توجد تغييرات إدارية بعد'}</h2><p>${lang() === 'en' ? 'Profile and assignment changes will appear here.' : 'تغييرات الملف والتكليفات ستظهر هنا.'}</p></div>`}</section>`;
 }
 
 async function submitCurrentAnswer() {
   const lesson = currentLesson();
-  const question = lesson.questions[state.questionIndex];
+  const question = activeQuestion(lesson);
   if (state.selectedAnswer === null || state.busy) return;
   state.busy = true;
   render();
+  const payload = { questionId: question.id, answer: state.selectedAnswer, assisted: false, idempotencyKey: id() };
+  if (!navigator.onLine) {
+    state.offlineQueue.push({ id: payload.idempotencyKey, route: '/api/attempts', body: payload, lessonId: lesson.id, questionIndex: state.questionIndex, createdAt: new Date().toISOString() });
+    saveQueue();
+    state.feedback = { pending: true };
+    state.busy = false;
+    render();
+    return;
+  }
   try {
-    const result = await api('/api/attempts', { method: 'POST', body: JSON.stringify({ questionId: question.id, answer: state.selectedAnswer, assisted: false, idempotencyKey: id() }) });
+    const result = await api('/api/attempts', { method: 'POST', body: JSON.stringify(payload) });
     state.feedback = result;
+    if (result.retryQuestion) state.retryOverrides[`${lesson.id}:${state.questionIndex}`] = result.retryQuestion;
     await refresh(false);
   } catch (error) { toast(error.message, 'error'); }
   finally { state.busy = false; render(); }
+}
+
+async function syncOfflineQueue() {
+  if (!state.offlineQueue.length || !navigator.onLine) return;
+  const remaining = [];
+  for (const item of state.offlineQueue) {
+    try {
+      const result = await api(item.route, { method: 'POST', body: JSON.stringify(item.body) });
+      if (item.lessonId != null && result.retryQuestion && !result.correct) {
+        state.retryOverrides[`${item.lessonId}:${item.questionIndex}`] = result.retryQuestion;
+      }
+    } catch (error) {
+      if (error.message?.includes('اتصال') || error.message?.includes('connection')) { remaining.push(item); continue; }
+      toast(`${t('queueFailed')}: ${error.message}`, 'error');
+    }
+  }
+  state.offlineQueue = remaining;
+  saveQueue();
+  if (state.feedback?.pending) state.feedback = null;
+  await refresh();
+  if (!remaining.length) toast(lang() === 'en' ? 'All saved answers were synced.' : 'اتزامنت كل الإجابات المحفوظة.');
 }
 
 async function refresh(doRender = true) {
@@ -357,11 +462,17 @@ document.addEventListener('click', async (event) => {
   const answer = event.target.closest('[data-answer]');
   if (answer) { state.selectedAnswer = answer.dataset.answer; render(); return; }
   const boss = event.target.closest('[data-start-boss]');
-  if (boss) return openBoss(boss.dataset.startBoss);
+  if (boss) {
+    if (!navigator.onLine) { toast(t('assessmentOffline'), 'error'); return; }
+    return openBoss(boss.dataset.startBoss);
+  }
   const bossAnswer = event.target.closest('[data-boss-answer]');
   if (bossAnswer) { const [questionId, value] = bossAnswer.dataset.bossAnswer.split(':'); state.bossAnswers[questionId] = value; render(); return; }
   const buy = event.target.closest('[data-buy]');
-  if (buy) return showPurchaseConfirmation(buy.dataset.buy);
+  if (buy) {
+    if (!navigator.onLine) { toast(t('purchaseOffline'), 'error'); return; }
+    return showPurchaseConfirmation(buy.dataset.buy);
+  }
   const close = event.target.closest('[data-close-modal]');
   if (close) return close.closest('.modal-backdrop').remove();
   const confirmBuy = event.target.closest('[data-confirm-buy]');
@@ -371,6 +482,21 @@ document.addEventListener('click', async (event) => {
     catch (error) { toast(error.message, 'error'); confirmBuy.disabled = false; }
     return;
   }
+  const equip = event.target.closest('[data-equip]');
+  if (equip) {
+    const [field, itemId] = equip.dataset.equip.split(':');
+    try { await api('/api/profile', { method: 'PATCH', body: JSON.stringify({ [field]: itemId }) }); await refresh(); }
+    catch (error) { toast(error.message, 'error'); }
+    return;
+  }
+  const review = event.target.closest('[data-review-action]');
+  if (review) {
+    const [questionId, reviewAction] = review.dataset.reviewAction.split(':');
+    review.disabled = true;
+    try { await api(`/api/admin/questions/${questionId}/status`, { method: 'PATCH', body: JSON.stringify({ action: reviewAction }) }); await refresh(); }
+    catch (error) { toast(error.message, 'error'); review.disabled = false; }
+    return;
+  }
   const language = event.target.closest('[data-language]');
   if (language) { try { await api('/api/profile', { method: 'PATCH', body: JSON.stringify({ language: language.dataset.language }) }); await refresh(); } catch (error) { toast(error.message, 'error'); } return; }
   const action = event.target.closest('[data-action]')?.dataset.action;
@@ -378,18 +504,32 @@ document.addEventListener('click', async (event) => {
   if (action === 'retry-question') { state.selectedAnswer = null; state.feedback = null; render(); return; }
   if (action === 'next-question') {
     const lesson = currentLesson();
+    delete state.retryOverrides[`${lesson.id}:${state.questionIndex}`];
     if (state.questionIndex < lesson.questions.length - 1) { state.questionIndex += 1; state.selectedAnswer = null; state.feedback = null; render(); }
-    else { state.view = 'progress'; state.questionIndex = 0; state.selectedAnswer = null; state.feedback = null; render(); toast(lang() === 'en' ? 'Lesson completed—25 coins recorded once.' : 'اكتمل الدرس—اتسجلت 25 عملة لمرة واحدة.'); }
+    else {
+      const justCompleted = state.data.progress.completedLessons.some((item) => item.lessonId === lesson.id);
+      state.view = 'progress'; state.questionIndex = 0; state.selectedAnswer = null; state.feedback = null;
+      if (justCompleted) state.celebrate = 'lesson';
+      render();
+      toast(lang() === 'en' ? 'Lesson completed—25 coins and 15 XP recorded once.' : 'اكتمل الدرس—اتسجلت 25 عملة و15 نقطة خبرة لمرة واحدة.');
+    }
     return;
   }
   if (action === 'submit-boss') {
-    try { state.boss.result = await api(`/api/boss/${state.boss.unitId}`, { method: 'POST', body: JSON.stringify({ idempotencyKey: id(), answers: Object.entries(state.bossAnswers).map(([questionId, answer]) => ({ questionId, answer })) }) }); await refresh(false); render(); }
+    try {
+      state.boss.result = await api(`/api/boss/${state.boss.unitId}`, { method: 'POST', body: JSON.stringify({ idempotencyKey: id(), answers: Object.entries(state.bossAnswers).map(([questionId, answer]) => ({ questionId, answer })) }) });
+      if (state.boss.result.score === 3) state.celebrate = 'boss';
+      await refresh(false); render();
+    }
     catch (error) { toast(error.message, 'error'); }
     return;
   }
+  if (action === 'dismiss-celebration') { state.celebrate = null; render(); return; }
   if (action === 'logout') {
     await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
     sessionStorage.removeItem('lp-token'); state.token = null; state.data = null;
+    state.offlineQueue = []; state.retryOverrides = {};
+    try { localStorage.removeItem('lp-offline-queue'); } catch { /* private mode: nothing to clear */ }
     if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then((items) => items.forEach((item) => item.unregister()));
     renderLogin();
   }
@@ -409,8 +549,8 @@ document.addEventListener('submit', async (event) => {
   }
 });
 
-window.addEventListener('offline', () => { const bar = document.createElement('div'); bar.className = 'offline-bar'; bar.id = 'offline-bar'; bar.textContent = lang() === 'en' ? 'Offline — submissions will wait for a connection' : 'أنت بدون اتصال — لن نرسل الإجابات حتى يرجع الاتصال'; document.body.append(bar); });
-window.addEventListener('online', () => { document.querySelector('#offline-bar')?.remove(); toast(lang() === 'en' ? 'Connection restored.' : 'رجع الاتصال.'); });
+window.addEventListener('offline', () => { const bar = document.createElement('div'); bar.className = 'offline-bar'; bar.id = 'offline-bar'; bar.textContent = lang() === 'en' ? 'Offline — practice answers will wait for a connection' : 'أنت بدون اتصال — إجابات التدريب هتستنى رجوع الاتصال'; document.body.append(bar); });
+window.addEventListener('online', () => { document.querySelector('#offline-bar')?.remove(); toast(lang() === 'en' ? 'Connection restored.' : 'رجع الاتصال.'); syncOfflineQueue(); });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
-bootstrap();
+bootstrap().then(() => { if (navigator.onLine) syncOfflineQueue(); });
