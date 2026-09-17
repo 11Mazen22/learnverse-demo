@@ -49,11 +49,24 @@ function tutorSystemPrompt(lesson, question, language) {
 // (see askTutor) until this finishes, which is fine for a background study helper.
 async function ensureTutorModelPulled() {
   if (!OLLAMA_URL) return;
+  const log = (message) => { if (process.env.NODE_ENV !== 'test') console.log(message); };
   try {
+    // Ollama never deletes a model just because a different one is now configured — old and new
+    // simply coexist on disk. On a small demo-sized volume that silently eats the space a fresh
+    // pull needs, so remove anything that isn't the currently configured model first.
+    const tagsResponse = await fetch(`${OLLAMA_URL}/api/tags`);
+    if (tagsResponse.ok) {
+      const { models = [] } = await tagsResponse.json();
+      for (const model of models) {
+        if (model.name === OLLAMA_MODEL || model.model === OLLAMA_MODEL) continue;
+        const deleted = await fetch(`${OLLAMA_URL}/api/delete`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model.name || model.model }) });
+        log(deleted.ok ? `Study helper: removed superseded model ${model.name || model.model}` : `Study helper: failed to remove ${model.name || model.model} (HTTP ${deleted.status})`);
+      }
+    }
     const response = await fetch(`${OLLAMA_URL}/api/pull`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: OLLAMA_MODEL, stream: false }) });
-    if (process.env.NODE_ENV !== 'test') console.log(response.ok ? `Study helper model ready: ${OLLAMA_MODEL}` : `Study helper model pull failed: HTTP ${response.status}`);
+    log(response.ok ? `Study helper model ready: ${OLLAMA_MODEL}` : `Study helper model pull failed: HTTP ${response.status}`);
   } catch (error) {
-    if (process.env.NODE_ENV !== 'test') console.error(`Study helper model pull failed: ${error.message}`);
+    log(`Study helper model pull failed: ${error.message}`);
   }
 }
 
