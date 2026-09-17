@@ -1,0 +1,297 @@
+import http from 'node:http';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { appendLedgerEntry, balanceFor, deriveMastery, purchaseItem, recommendationFor, scoreQuestion } from './lib/domain.mjs';
+import { JsonStore } from './lib/store.mjs';
+
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const PUBLIC = path.join(ROOT, 'public');
+const PORT = Number(process.env.PORT || 3000);
+const store = new JsonStore(process.env.DATA_FILE || path.join(ROOT, 'data', 'app.json'));
+const sessions = new Map();
+
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json' };
+const json = (res, status, body) => {
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+  res.end(JSON.stringify(body));
+};
+const fail = (res, status, message, code = 'REQUEST_FAILED') => json(res, status, { error: { code, message } });
+const readBody = async (req) => {
+  let raw = '';
+  for await (const chunk of req) {
+    raw += chunk;
+    if (raw.length > 100_000) throw new Error('Request body is too large');
+  }
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { throw new Error('Invalid JSON'); }
+};
+const publicUser = ({ password, ...user }) => user;
+const findQuestion = (data, id) => data.questions.find((question) => question.id === id && question.publicationStatus === 'published-demo');
+
+function authenticate(req, data) {
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  const userId = token && sessions.get(token);
+  return data.users.find((user) => user.id === userId) || null;
+}
+
+function requireRole(req, res, data, roles) {
+  const user = authenticate(req, data);
+  if (!user) { fail(res, 401, 'Please sign in again.', 'AUTH_REQUIRED'); return null; }
+  if (!roles.includes(user.role)) { fail(res, 403, 'You do not have access to this action.', 'FORBIDDEN'); return null; }
+  return user;
+}
+
+function safeQuestion(question, language = 'ar') {
+  const suffix = language === 'en' ? 'En' : 'Ar';
+  return {
+    id: question.id, version: question.version, type: question.type, difficulty: question.difficulty,
+    skillId: question.skillId, prompt: question[`prompt${suffix}`], choices: question[`choices${suffix}`] || null,
+    unit: question[`unit${suffix}`] || null,
+  };
+}
+
+function studentPayload(data, user) {
+  const language = user.language || 'ar';
+  const attempts = data.attempts.filter((item) => item.userId === user.id);
+  const mastery = data.mastery.filter((item) => item.userId === user.id);
+  const curriculum = structuredClone(data.curriculum);
+  curriculum.units.forEach((unit) => unit.lessons.forEach((lesson) => {
+    lesson.questions = lesson.questionIds.map((id) => safeQuestion(findQuestion(data, id), language));
+  }));
+  return {
+    user: publicUser(user), curriculum, skills: data.skills,
+    progress: {
+      attempts: attempts.map(({ answer, ...attempt }) => attempt), mastery,
+      completedLessons: data.lessonCompletions.filter((item) => item.userId === user.id),
+      bossAttempts: data.bossAttempts.filter((item) => item.userId === user.id),
+      recommendation: recommendationFor(mastery, data.curriculum),
+      reviews: data.reviews.filter((item) => item.userId === user.id),
+    },
+    wallet: { coins: balanceFor(data.ledger, user.id) },
+    shopItems: data.shopItems.filter((item) => item.active),
+    inventory: data.inventory.filter((item) => item.userId === user.id),
+    assignments: data.assignments.filter((assignment) => data.enrollments.some((e) => e.studentId === user.id && e.classId === assignment.classId)),
+    demo: true,
+  };
+}
+
+function teacherPayload(data, user) {
+  const classes = data.classes.filter((item) => item.teacherId === user.id).map((item) => ({
+    ...item,
+    students: data.enrollments.filter((e) => e.classId === item.id).map((e) => {
+      const student = data.users.find((candidate) => candidate.id === e.studentId);
+      return {
+        ...publicUser(student),
+        attempts: data.attempts.filter((a) => a.userId === student.id).length,
+        mastery: data.mastery.filter((m) => m.userId === student.id),
+        lastActiveAt: data.attempts.filter((a) => a.userId === student.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]?.createdAt || null,
+      };
+    }),
+  }));
+  return { user: publicUser(user), classes, skills: data.skills, assignments: data.assignments.filter((a) => a.teacherId === user.id), curriculum: data.curriculum, demo: true };
+}
+
+function adminPayload(data, user) {
+  return {
+    user: publicUser(user),
+    content: data.questions.map((question) => ({ id: question.id, version: question.version, skillId: question.skillId, reviewStatus: question.reviewStatus, publicationStatus: question.publicationStatus, provenance: question.provenance })),
+    audit: data.audit.slice(-30).reverse(),
+    configuration: { masteryRuleVersion: 'mvp-1', economyRuleVersion: 'economy-mvp-1', curriculumStatus: data.curriculum.status },
+    demo: true,
+  };
+}
+
+async function handleApi(req, res, url) {
+  const data = store.snapshot();
+
+  if (req.method === 'POST' && url.pathname === '/api/auth/login') {
+    const body = await readBody(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const user = data.users.find((candidate) => candidate.email === email && candidate.password === body.password);
+    if (!user) return fail(res, 401, 'Email or password is incorrect.', 'INVALID_CREDENTIALS');
+    const token = crypto.randomUUID();
+    sessions.set(token, user.id);
+    return json(res, 200, { token, user: publicUser(user) });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/auth/logout') {
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    if (token) sessions.delete(token);
+    return json(res, 200, { ok: true });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/bootstrap') {
+    const user = requireRole(req, res, data, ['student', 'teacher', 'admin']);
+    if (!user) return;
+    if (user.role === 'student') return json(res, 200, studentPayload(data, user));
+    if (user.role === 'teacher') return json(res, 200, teacherPayload(data, user));
+    return json(res, 200, adminPayload(data, user));
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/attempts') {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const body = await readBody(req);
+    if (!body.idempotencyKey || !body.questionId) return fail(res, 400, 'Question and request key are required.', 'VALIDATION');
+    const result = await store.transact((draft) => {
+      const duplicate = draft.attempts.find((item) => item.idempotencyKey === body.idempotencyKey && item.userId === user.id);
+      if (duplicate) return { attempt: duplicate, duplicate: true };
+      const question = findQuestion(draft, body.questionId);
+      if (!question || !question.lessonId) throw new Error('Question is unavailable');
+      const scored = scoreQuestion(question, body.answer);
+      const previous = draft.attempts.filter((item) => item.userId === user.id && item.questionId === question.id);
+      const attempt = {
+        id: crypto.randomUUID(), userId: user.id, questionId: question.id, questionVersion: question.version,
+        lessonId: question.lessonId, skillId: question.skillId, difficulty: question.difficulty,
+        answer: scored.normalizedAnswer, correct: scored.correct, assisted: Boolean(body.assisted),
+        practiceRepeat: previous.length > 0, idempotencyKey: body.idempotencyKey, createdAt: new Date().toISOString(),
+      };
+      draft.attempts.push(attempt);
+      const skillAttempts = draft.attempts.filter((item) => item.userId === user.id && item.skillId === question.skillId);
+      const derived = deriveMastery(skillAttempts);
+      const mastery = { userId: user.id, skillId: question.skillId, ...derived, updatedAt: new Date().toISOString(), ruleVersion: 'mvp-1' };
+      const oldIndex = draft.mastery.findIndex((item) => item.userId === user.id && item.skillId === question.skillId);
+      if (oldIndex >= 0) draft.mastery[oldIndex] = mastery; else draft.mastery.push(mastery);
+      const reviewIndex = draft.reviews.findIndex((item) => item.userId === user.id && item.skillId === question.skillId);
+      const review = { userId: user.id, skillId: question.skillId, dueAt: mastery.nextReviewAt, reason: scored.correct ? 'retention-check' : 'recovery', updatedAt: mastery.updatedAt };
+      if (reviewIndex >= 0) draft.reviews[reviewIndex] = review; else draft.reviews.push(review);
+
+      const lesson = draft.curriculum.units.flatMap((unit) => unit.lessons).find((item) => item.id === question.lessonId);
+      const answeredCorrectly = new Set(draft.attempts.filter((item) => item.userId === user.id && item.lessonId === lesson.id && item.correct).map((item) => item.questionId));
+      let completion = draft.lessonCompletions.find((item) => item.userId === user.id && item.lessonId === lesson.id);
+      if (!completion && lesson.questionIds.every((id) => answeredCorrectly.has(id))) {
+        completion = { userId: user.id, lessonId: lesson.id, completedAt: new Date().toISOString(), rewardGranted: true };
+        draft.lessonCompletions.push(completion);
+        appendLedgerEntry(draft, { userId: user.id, amount: 25, currency: 'COIN', reason: 'LESSON_COMPLETION', reference: lesson.id, idempotencyKey: `lesson:${user.id}:${lesson.id}` });
+      }
+      return {
+        attempt,
+        correct: scored.correct,
+        feedback: user.language === 'en'
+          ? question.explanationEn
+          : (scored.correct ? question.explanationAr : scored.feedback || question.explanationAr),
+        mastery,
+        completion,
+        duplicate: false,
+      };
+    });
+    return json(res, 200, result);
+  }
+
+  const bossMatch = url.pathname.match(/^\/api\/boss\/([^/]+)$/);
+  if (req.method === 'POST' && bossMatch) {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const body = await readBody(req);
+    if (!body.idempotencyKey || !Array.isArray(body.answers)) return fail(res, 400, 'Three answers and request key are required.', 'VALIDATION');
+    const result = await store.transact((draft) => {
+      const duplicate = draft.bossAttempts.find((item) => item.userId === user.id && item.idempotencyKey === body.idempotencyKey);
+      if (duplicate) return { ...duplicate, duplicate: true };
+      const unit = draft.curriculum.units.find((item) => item.id === bossMatch[1]);
+      if (!unit || unit.locked || unit.bossQuestionIds.length !== 3) throw new Error('Challenge is unavailable');
+      const details = unit.bossQuestionIds.map((questionId) => {
+        const question = findQuestion(draft, questionId);
+        const supplied = body.answers.find((answer) => answer.questionId === questionId);
+        const scored = scoreQuestion(question, supplied?.answer);
+        draft.attempts.push({ id: crypto.randomUUID(), userId: user.id, questionId, questionVersion: question.version, lessonId: null, unitId: unit.id, skillId: question.skillId, difficulty: question.difficulty, answer: scored.normalizedAnswer, correct: scored.correct, assisted: false, practiceRepeat: draft.attempts.some((a) => a.userId === user.id && a.questionId === questionId), idempotencyKey: `${body.idempotencyKey}:${questionId}`, createdAt: new Date().toISOString() });
+        return { questionId, correct: scored.correct, feedback: user.language === 'en' ? question.explanationEn : question.explanationAr };
+      });
+      const score = details.filter((item) => item.correct).length;
+      const outcome = score === 3 ? 'complete' : score === 2 ? 'recovery' : 'supported-practice';
+      const priorCompleted = draft.bossAttempts.some((item) => item.userId === user.id && item.unitId === unit.id && item.score === 3);
+      const rewardGranted = score === 3 && !priorCompleted;
+      if (rewardGranted) appendLedgerEntry(draft, { userId: user.id, amount: 60, currency: 'COIN', reason: 'BOSS_FIRST_COMPLETION', reference: unit.id, idempotencyKey: `boss:${user.id}:${unit.id}` });
+      const attempt = { id: crypto.randomUUID(), userId: user.id, unitId: unit.id, score, outcome, details, rewardGranted, idempotencyKey: body.idempotencyKey, createdAt: new Date().toISOString() };
+      draft.bossAttempts.push(attempt);
+      return attempt;
+    });
+    return json(res, 200, result);
+  }
+
+  const unitMatch = url.pathname.match(/^\/api\/units\/([^/]+)\/boss$/);
+  if (req.method === 'GET' && unitMatch) {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const unit = data.curriculum.units.find((item) => item.id === unitMatch[1]);
+    if (!unit || unit.locked) return fail(res, 404, 'Challenge is unavailable.', 'NOT_FOUND');
+    return json(res, 200, { unitId: unit.id, questions: unit.bossQuestionIds.map((id) => safeQuestion(findQuestion(data, id), user.language)) });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/shop/purchase') {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const body = await readBody(req);
+    if (!body.itemId || !body.idempotencyKey) return fail(res, 400, 'Item and request key are required.', 'VALIDATION');
+    const result = await store.transact((draft) => purchaseItem(draft, { userId: user.id, itemId: body.itemId, idempotencyKey: body.idempotencyKey }));
+    return json(res, 200, result);
+  }
+
+  if (req.method === 'PATCH' && url.pathname === '/api/profile') {
+    const user = requireRole(req, res, data, ['student', 'teacher', 'admin']);
+    if (!user) return;
+    const body = await readBody(req);
+    const result = await store.transact((draft) => {
+      const target = draft.users.find((item) => item.id === user.id);
+      if (['ar', 'en'].includes(body.language)) target.language = body.language;
+      if (body.avatarItemId && draft.inventory.some((item) => item.userId === user.id && item.itemId === body.avatarItemId)) target.avatarItemId = body.avatarItemId;
+      draft.audit.push({ id: crypto.randomUUID(), actorId: user.id, action: 'PROFILE_UPDATED', targetId: user.id, at: new Date().toISOString() });
+      return publicUser(target);
+    });
+    return json(res, 200, { user: result });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/assignments') {
+    const user = requireRole(req, res, data, ['teacher']);
+    if (!user) return;
+    const body = await readBody(req);
+    const result = await store.transact((draft) => {
+      const classItem = draft.classes.find((item) => item.id === body.classId && item.teacherId === user.id);
+      const lesson = draft.curriculum.units.flatMap((unit) => unit.lessons).find((item) => item.id === body.lessonId);
+      if (!classItem || !lesson) throw new Error('Class or lesson is unavailable');
+      const assignment = { id: crypto.randomUUID(), classId: classItem.id, teacherId: user.id, lessonId: lesson.id, titleAr: String(body.titleAr || lesson.titleAr), titleEn: String(body.titleEn || lesson.titleEn), dueAt: body.dueAt || null, createdAt: new Date().toISOString() };
+      draft.assignments.push(assignment);
+      draft.audit.push({ id: crypto.randomUUID(), actorId: user.id, action: 'ASSIGNMENT_CREATED', targetId: assignment.id, at: assignment.createdAt });
+      return assignment;
+    });
+    return json(res, 201, { assignment: result });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, schemaVersion: data.meta.schemaVersion });
+  return fail(res, 404, 'This endpoint does not exist.', 'NOT_FOUND');
+}
+
+async function serveStatic(req, res, url) {
+  const requested = url.pathname === '/' ? '/index.html' : url.pathname;
+  const resolved = path.resolve(PUBLIC, `.${requested}`);
+  if (!resolved.startsWith(PUBLIC)) return fail(res, 403, 'Forbidden', 'FORBIDDEN');
+  try {
+    const info = await stat(resolved);
+    if (!info.isFile()) throw new Error('Not a file');
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': requested === '/index.html' ? 'no-cache' : 'public, max-age=3600', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'" });
+    createReadStream(resolved).pipe(res);
+  } catch {
+    if (!path.extname(requested)) return serveStatic(req, res, new URL('/index.html', url));
+    return fail(res, 404, 'File not found', 'NOT_FOUND');
+  }
+}
+
+export async function createServer(options = {}) {
+  await store.init({ reset: options.reset });
+  return http.createServer(async (req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    try {
+      if (url.pathname.startsWith('/api/')) await handleApi(req, res, url);
+      else await serveStatic(req, res, url);
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'test') console.error(error);
+      fail(res, error.message === 'Insufficient balance' ? 409 : 400, error.message, 'BUSINESS_RULE');
+    }
+  });
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const server = await createServer();
+  server.listen(PORT, () => console.log(`Learning Platform running at http://localhost:${PORT}`));
+}

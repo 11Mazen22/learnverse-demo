@@ -1,0 +1,6 @@
+node_modules/
+data/app.json
+data/*.tmp
+.env
+coverage/
+*.log

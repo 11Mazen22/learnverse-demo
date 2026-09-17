@@ -1,0 +1,9 @@
+{
+  "name": "Learning Platform — منصة التعلّم",
+  "short_name": "التعلّم",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f6fd",
+  "theme_color": "#6757d9",
+  "icons": []
+}
