@@ -42,6 +42,10 @@ const CHAT_ATTACHMENT_MAX_BASE64 = 6_000_000; // defense-in-depth backstop; the 
 const CHAT_HISTORY_WINDOW = 12; // last N stored messages sent to Ollama per generation — a latency control on
 // CPU-only inference, not a model context-window limit (the model's real window is far larger)
 const CHAT_NUM_PREDICT = 600; // fuller answers than the tutor widget's 200 (tuned for 1-3-sentence hints)
+const CHAT_NUM_PREDICT_THINKING = 1600; // reasoning + answer share this budget — a verbose reasoning
+// pass can otherwise eat the whole cap and leave zero room for the actual final answer
+const CHAT_TIMEOUT_MS_THINKING = 110_000; // thinking mode is a deliberate slow path on CPU-only
+// inference; timing out at the same budget as a quick reply would defeat the point of offering it
 
 // Cached at boot by probeThinkingSupport(): whether the deployed model/Ollama build genuinely keeps
 // reasoning in a separate `message.thinking` field instead of leaking it into `message.content`. The
@@ -129,10 +133,15 @@ async function buildChatOllamaMessages(conversation, user) {
 // Real token streaming: parses Ollama's own newline-delimited JSON as it arrives and re-emits each
 // content/thinking delta immediately via onDelta — no artificial batching or pacing.
 async function streamOllamaChat({ messages, think }, { signal, onDelta }) {
+  // Thinking mode needs materially more budget than the plain-answer case: num_predict caps the
+  // COMBINED reasoning-plus-answer token count, and a verbose reasoning pass can otherwise consume
+  // the entire budget before any final-answer content is produced at all — the model then technically
+  // "succeeds" but content comes back empty, which reads as a false "unavailable" fallback.
+  const numPredict = think ? CHAT_NUM_PREDICT_THINKING : CHAT_NUM_PREDICT;
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think, options: { num_predict: CHAT_NUM_PREDICT }, messages }),
+    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think, options: { num_predict: numPredict }, messages }),
     signal,
   });
   if (!response.ok || !response.body) throw new Error(`Ollama HTTP ${response.status}`);
@@ -762,15 +771,16 @@ async function handleApi(req, res, url) {
       unavailable = true;
       writeLine({ type: 'delta', kind: 'content', text: finalContent });
     } else {
+      const think = Boolean(body.thinking) && aiCapabilities.thinkingSupported;
       const upstreamController = new AbortController();
-      const timer = setTimeout(() => upstreamController.abort(), TUTOR_TIMEOUT_MS);
+      const timer = setTimeout(() => upstreamController.abort(), think ? CHAT_TIMEOUT_MS_THINKING : TUTOR_TIMEOUT_MS);
       let clientClosed = false;
       const onClose = () => { clientClosed = true; upstreamController.abort(); };
       res.on('close', onClose);
       try {
         const messages = await buildChatOllamaMessages(phase1.conversation, user);
         const result = await streamOllamaChat(
-          { messages, think: Boolean(body.thinking) && aiCapabilities.thinkingSupported },
+          { messages, think },
           { signal: upstreamController.signal, onDelta: (delta) => writeLine({ type: 'delta', kind: delta.kind, text: delta.text }) },
         );
         finalContent = result.content;
