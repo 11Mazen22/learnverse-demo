@@ -112,6 +112,22 @@ test('headings, lists, and blockquotes parse into the expected node shapes', () 
   assert.equal(ast[2].type, 'blockquote');
 });
 
+test('GFM checklists preserve checked state without creating executable markup', () => {
+  const ast = parseMarkdown('- [x] shipped\n- [ ] pending');
+  assert.equal(ast[0].type, 'list');
+  assert.equal(ast[0].items[0].checked, true);
+  assert.equal(ast[0].items[1].checked, false);
+});
+
+test('callouts and Mermaid fences are classified while their content stays plain text', () => {
+  const ast = parseMarkdown('> [!WARNING] Check this carefully.\n\n```mermaid\ngraph TD\nA-->B\n```');
+  assert.equal(ast[0].type, 'blockquote');
+  assert.equal(ast[0].callout, 'warning');
+  assert.equal(ast[1].type, 'code-block');
+  assert.equal(ast[1].lang, 'mermaid');
+  assert.match(ast[1].code, /A-->B/);
+});
+
 test('tokenize() never emits a class for plain/unmatched text and handles an unknown language gracefully', () => {
   const spans = tokenize('some arbitrary text', 'made-up-language');
   assert.deepEqual(spans, [{ text: 'some arbitrary text', cls: null }]);

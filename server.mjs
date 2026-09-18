@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveChatTitle, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
 import { releaseGenerationLock, tryAcquireGenerationLock } from './lib/generationLock.mjs';
-import { createVisibleReasoningRouter } from './lib/chat-reasoning.mjs';
+import { canContinueMessage, continuationInstruction, mergeContinuation } from './lib/chat-continuation.mjs';
 import { JsonStore } from './lib/store.mjs';
 import { detectConversationLanguage } from './public/langdetect.js';
 
@@ -89,46 +89,43 @@ async function sweepStaleGeneratingMessages() {
       draft.chatConversations ||= [];
       for (const conversation of draft.chatConversations) {
         for (const message of conversation.messages) {
-          if (message.status === 'generating') { message.status = 'stopped'; message.stopped = true; message.unavailable = true; }
+          if (message.status === 'generating' || message.status === 'continuing') {
+            message.status = 'stopped';
+            message.stopped = true;
+            message.recoverable = Boolean(message.content);
+            message.unavailable = false;
+          }
         }
       }
     });
   } catch { /* best-effort */ }
 }
 
-// The whole prompt is written in the detected conversational language. In Thinking mode we request a
-// concise, user-facing reasoning explanation through explicit tags instead of exposing the model's
-// native private trace, whose language is model-controlled and can drift into English. The server
-// removes those tags and routes the two sections into the existing reasoning/content stream channels.
+// The prompt follows the detected conversational language. Thinking uses Ollama's native reasoning
+// channel, which is never exposed verbatim; users see an honest localized progress explanation while
+// the separately streamed final answer remains clean and non-duplicated.
 function chatSystemPrompt(language, think) {
   if (language === 'en') {
     const lines = [
-      'You are the AI study assistant inside a demonstration Arabic-first learning app for secondary-level students.',
-      'Help the student understand ideas, work through problems, and study effectively. You may discuss any study topic they ask about, not only one specific lesson.',
-      'Be encouraging, clear, and age-appropriate. Never claim to be a human teacher, and never claim to have graded or scored anything.',
-      'If asked to simply do a student\'s graded assignment for them, offer to explain the underlying concept instead of just giving the final answer.',
-      think
-        ? 'Work through the problem carefully. Give the student a concise, useful reasoning summary followed by a clear, well-organized final answer.'
-        : 'Keep your answer tight and efficient: get straight to the point in a few clear sentences or a short structured list, with one worked example only if it genuinely helps — avoid restating the question, padding, or unnecessary preamble.',
-      'Respond in natural, clear English. Preserve code, commands, model names, technical identifiers, and established terminology as-is rather than translating them.',
+      'You are a reliable AI study assistant for secondary-level students. Answer the user’s actual request directly and at their apparent level.',
+      'Identify whether they need an explanation, solution, code, plan, comparison, rewrite, analysis, or creative output. Ask one clarifying question only when missing information would materially change the result.',
+      'Never invent facts, sources, files, actions, or capabilities. Clearly distinguish facts, assumptions, and uncertainty. Do not repeat the question or conclusion unnecessarily.',
+      think ? 'Use the model’s reasoning mode to analyze intent, relevant concepts, ambiguity, an explanation plan, and a final accuracy check before answering. Keep the final answer separate; do not narrate private chain-of-thought.' : 'Answer directly without an artificial reasoning preamble.',
+      'Use Markdown only when it improves comprehension: prose for simple answers, bullets for groups, numbered steps for sequences, tables for exact comparisons, and fenced code for runnable code. Use Mermaid or equations only when materially useful. Avoid decorative over-formatting.',
+      'Produce valid, complete code when requested. Preserve code, commands, model names, identifiers, URLs, and established technical terminology as-is.',
+      'Respond in natural English only unless the user explicitly requests another language.',
     ];
-    if (think) lines.push('Return exactly two sections with no preamble and no Markdown fence around the tags: <reasoning>A concise student-facing reasoning summary in English.</reasoning><answer>The final answer in English.</answer> Never expose private chain-of-thought; provide only the useful summarized rationale.');
     return lines.join('\n');
   }
   const lines = [
-    'أنت المساعد الدراسي الذكي داخل تطبيق تعليمي عربي تجريبي لطلاب المرحلة الثانوية.',
-    'ساعد الطالب على فهم الأفكار، وحل المسائل خطوة بخطوة، والمذاكرة بفعالية. يمكنك مناقشة أي موضوع دراسي يسأل عنه، وليس فقط درسًا واحدًا محددًا.',
-    'كن مشجّعًا وواضحًا ومناسبًا لعمر الطالب. لا تدّعِ أبدًا أنك معلّم بشري، ولا تدّعِ أنك صححت أو قيّمت أي شيء.',
-    'إذا طلب الطالب منك حل واجب مدرسي بالكامل نيابة عنه، اعرض عليه شرح الفكرة الأساسية بدلًا من إعطائه الإجابة النهائية مباشرة.',
-    // CPU-only inference makes every extra sentence real, felt latency — brevity is a genuine
-    // performance lever here, not just a style preference. Thinking mode is the deliberate
-    // slow/thorough path (see CHAT_NUM_PREDICT_THINKING), so this constraint is relaxed there.
-    think
-      ? 'حلّل المسألة بعناية، ثم قدّم للطالب ملخصًا موجزًا ومفيدًا لطريقة الاستدلال، وبعده إجابة نهائية واضحة ومنظمة.'
-      : 'اجعل إجابتك مختصرة ومباشرة: اذهب إلى صلب الموضوع في جمل واضحة قليلة أو قائمة منظمة قصيرة، مع مثال محلول واحد فقط إذا كان مفيدًا حقًا — تجنّب إعادة صياغة السؤال أو الحشو أو المقدمات غير الضرورية.',
-    'اكتب بالعربية الفصحى الطبيعية والواضحة. حافظ على الأكواد والأوامر وأسماء النماذج والمعرّفات والمصطلحات التقنية الراسخة كما هي إذا كانت ترجمتها تقلل من الوضوح.',
+    'أنت مساعد دراسي ذكي وموثوق لطلاب المرحلة الثانوية. أجب عن طلب المستخدم الحقيقي مباشرة وبمستوى يناسب خبرته الظاهرة.',
+    'حدّد هل يريد شرحًا أم حلًا أم كودًا أم خطة أم مقارنة أم إعادة صياغة أم تحليلًا أم محتوى إبداعيًا. لا تسأل سؤالًا توضيحيًا إلا إذا كانت المعلومة الناقصة ستغيّر النتيجة جوهريًا.',
+    'لا تختلق حقائق أو مصادر أو ملفات أو إجراءات أو قدرات. ميّز بوضوح بين الحقائق والافتراضات ومواضع عدم اليقين، ولا تكرر السؤال أو الخلاصة بلا حاجة.',
+    think ? 'استخدم وضع الاستدلال في النموذج لتحليل المقصود والمفاهيم ذات الصلة ومواضع الغموض وخطة الشرح، ثم راجع الدقة قبل الإجابة. اجعل الإجابة النهائية منفصلة، ولا تسرد سلسلة التفكير الخاصة.' : 'أجب مباشرة من دون مقدمة تفكير مصطنعة.',
+    'استخدم Markdown حين يفيد الفهم فقط: النثر للإجابة البسيطة، والنقاط للمجموعات، والخطوات المرقمة للتسلسل، والجداول للمقارنات الدقيقة، والأسوار البرمجية للكود القابل للتشغيل. استخدم Mermaid أو المعادلات فقط عندما تضيف وضوحًا حقيقيًا، وتجنب التنسيق الزخرفي المفرط.',
+    'اكتب كودًا صحيحًا ومكتملًا عند طلبه. أبقِ الأكواد والأوامر وأسماء النماذج والمعرّفات والروابط والمصطلحات التقنية الراسخة كما هي، وادمجها في جمل عربية سليمة بدل خلط أفعال إنجليزية عشوائية داخل العربية.',
+    'اكتب بالعربية الفصحى الطبيعية والواضحة فقط، ما لم يطلب المستخدم لغة أخرى صراحة.',
   ];
-  if (think) lines.push('أخرج قسمين فقط بهذا الشكل الحرفي، بلا مقدمة وبلا سياج Markdown حول الوسوم: <reasoning>ملخص موجز لطريقة الاستدلال وموجّه للطالب باللغة العربية الفصحى.</reasoning><answer>الإجابة النهائية باللغة العربية الفصحى.</answer> لا تعرض سلسلة التفكير الخاصة؛ اعرض فقط خلاصة الاستدلال المفيدة للطالب.');
   return lines.join('\n');
 }
 
@@ -164,27 +161,32 @@ function buildChatOllamaMessages(conversation, detectedLanguage, think) {
   return messages;
 }
 
+function buildContinuationMessages(conversation, assistantMessage, detectedLanguage) {
+  const targetIndex = conversation.messages.indexOf(assistantMessage);
+  const throughTarget = { ...conversation, messages: conversation.messages.slice(0, targetIndex + 1) };
+  const messages = buildChatOllamaMessages(throughTarget, detectedLanguage, false);
+  messages.push({ role: 'user', content: continuationInstruction(detectedLanguage, assistantMessage.content) });
+  return messages;
+}
+
 // Real token streaming: parses Ollama's own newline-delimited JSON as it arrives and re-emits each
 // content/thinking delta immediately via onDelta — no artificial batching or pacing.
-async function streamOllamaChat({ messages, think }, { signal, onDelta }) {
+async function streamOllamaChat({ messages, think, language = 'ar' }, { signal, onDelta }) {
   // Thinking mode needs materially more budget than the plain-answer case: num_predict caps the
   // COMBINED reasoning-plus-answer token count, and a verbose reasoning pass can otherwise consume
   // the entire budget before any final-answer content is produced at all — the model then technically
   // "succeeds" but content comes back empty, which reads as a false "unavailable" fallback.
   const numPredict = think ? CHAT_NUM_PREDICT_THINKING : CHAT_NUM_PREDICT;
-  const visibleReasoningRouter = think ? createVisibleReasoningRouter(onDelta) : null;
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // Native `thinking` is deliberately disabled here. Its trace language is controlled by the model
-    // and may ignore the requested locale; Thinking mode instead uses the localized, visible reasoning
-    // contract in chatSystemPrompt and the streaming router above.
-    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think: false, options: { num_predict: numPredict }, messages }),
+    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think, options: { num_predict: numPredict }, messages }),
     signal,
   });
   if (!response.ok || !response.body) throw new Error(`Ollama HTTP ${response.status}`);
   let content = '';
-  let thinking = '';
+  let reasoningObserved = false;
+  let progressEmitted = false;
   let buffer = '';
   for await (const chunk of response.body) {
     // response.body yields Uint8Array chunks (not Node Buffer) from the built-in fetch — Buffer.from
@@ -201,16 +203,32 @@ async function streamOllamaChat({ messages, think }, { signal, onDelta }) {
       const deltaContent = parsed?.message?.content || '';
       const deltaThinking = parsed?.message?.thinking || '';
       if (deltaContent) {
-        if (visibleReasoningRouter) visibleReasoningRouter.push(deltaContent);
-        else { content += deltaContent; onDelta({ kind: 'content', text: deltaContent }); }
+        content += deltaContent;
+        onDelta({ kind: 'content', text: deltaContent });
       }
-      // Defensive only: with think:false this should stay empty. Never expose an uncontrolled native
-      // trace because doing so can leak the wrong language before the localized stream begins.
-      if (deltaThinking && !visibleReasoningRouter) { thinking += deltaThinking; onDelta({ kind: 'thinking', text: deltaThinking }); }
-      if (parsed?.done) return visibleReasoningRouter ? visibleReasoningRouter.finish() : { content, thinking };
+      // The raw trace can contain private chain-of-thought and can drift languages. Record only that
+      // real native reasoning occurred, and expose one localized, truthful progress description.
+      if (deltaThinking) {
+        reasoningObserved = true;
+        if (!progressEmitted) {
+          progressEmitted = true;
+          onDelta({ kind: 'thinking', text: language === 'en'
+            ? 'Analyzing the request, selecting the relevant concepts, and checking the response plan…'
+            : 'جارٍ تحليل الطلب، وتحديد المفاهيم ذات الصلة، ومراجعة خطة الإجابة…' });
+        }
+      }
+      if (parsed?.done) {
+        const thinking = progressEmitted
+          ? (language === 'en' ? 'Analyzed the request, selected the relevant concepts, and checked the response plan.' : 'تم تحليل الطلب، وتحديد المفاهيم ذات الصلة، ومراجعة خطة الإجابة.')
+          : '';
+        return { content, thinking, reasoningObserved };
+      }
     }
   }
-  return visibleReasoningRouter ? visibleReasoningRouter.finish() : { content, thinking };
+  const thinking = progressEmitted
+    ? (language === 'en' ? 'Analyzed the request, selected the relevant concepts, and checked the response plan.' : 'تم تحليل الطلب، وتحديد المفاهيم ذات الصلة، ومراجعة خطة الإجابة.')
+    : '';
+  return { content, thinking, reasoningObserved };
 }
 
 function tutorSystemPrompt(lesson, question, language) {
@@ -724,6 +742,7 @@ async function handleApi(req, res, url) {
     if (!idempotencyKey) return fail(res, 400, 'A request key is required.', 'VALIDATION');
     const content = String(body.content || '').trim().slice(0, 4000);
     const isRegenerate = Boolean(body.regenerate);
+    const continueMessageId = body.continueMessageId ? String(body.continueMessageId) : null;
     const editFromMessageId = body.editFromMessageId ? String(body.editFromMessageId) : null;
     const requestStartedAt = Date.now();
 
@@ -744,7 +763,8 @@ async function handleApi(req, res, url) {
         };
       }
     }
-    if (!isRegenerate && !content && !attachment) return fail(res, 400, 'Write a message first.', 'VALIDATION');
+    if (!isRegenerate && !continueMessageId && !content && !attachment) return fail(res, 400, 'Write a message first.', 'VALIDATION');
+    if (continueMessageId && (content || attachment || isRegenerate || editFromMessageId)) return fail(res, 400, 'A continuation cannot also create or edit a turn.', 'VALIDATION');
 
     if (!tryAcquireGenerationLock()) return fail(res, 429, 'The assistant is busy with another request — try again in a moment.', 'ASSISTANT_BUSY');
     let released = false;
@@ -760,8 +780,30 @@ async function handleApi(req, res, url) {
         const conversation = draft.chatConversations.find((item) => item.id === conversationId && item.userId === user.id);
         if (!conversation) throw new Error('Conversation is unavailable');
 
-        const duplicateAssistant = conversation.messages.find((message) => message.role === 'assistant' && message.replyToIdempotencyKey === idempotencyKey);
-        if (duplicateAssistant) return { conversation, duplicate: true, assistantMessage: duplicateAssistant };
+        const duplicateAssistant = conversation.messages.find((message) => message.role === 'assistant' && (message.replyToIdempotencyKey === idempotencyKey || message.continuations?.some((item) => item.key === idempotencyKey)));
+        if (duplicateAssistant) {
+          const replayContinuation = duplicateAssistant.continuations?.find((item) => item.key === idempotencyKey);
+          return { conversation, duplicate: true, assistantMessage: duplicateAssistant, replayContent: replayContinuation?.content };
+        }
+
+        if (continueMessageId) {
+          const assistantMessage = conversation.messages.find((message) => message.id === continueMessageId);
+          const isLast = conversation.messages.at(-1)?.id === continueMessageId;
+          if (!isLast || !canContinueMessage(assistantMessage)) throw new Error('Response cannot be continued');
+          const detectedLanguage = assistantMessage.language || detectConversationLanguage(
+            conversation.messages.filter((message) => message.role === 'user').slice(-CHAT_HISTORY_WINDOW).map((message) => message.content),
+            'ar',
+          );
+          assistantMessage.status = 'continuing';
+          assistantMessage.stopped = false;
+          assistantMessage.unavailable = false;
+          assistantMessage.continuationKey = idempotencyKey;
+          conversation.updatedAt = new Date().toISOString();
+          return {
+            conversation, duplicate: false, continuation: true, assistantMessage, detectedLanguage,
+            previousContent: assistantMessage.content, previousThinking: assistantMessage.thinking || '',
+          };
+        }
 
         if (editFromMessageId) {
           const cutIndex = conversation.messages.findIndex((message) => message.id === editFromMessageId);
@@ -830,15 +872,37 @@ async function handleApi(req, res, url) {
     res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Accel-Buffering': 'no' });
     const writeLine = (payload) => { try { res.write(`${JSON.stringify(payload)}\n`); } catch { /* client already gone */ } };
     let firstResponseAt = null;
+    let observedContent = '';
+    let observedThinking = '';
     const writeDelta = (delta) => {
       if (firstResponseAt === null) firstResponseAt = Date.now();
+      if (delta.kind === 'thinking') observedThinking += delta.text;
+      else observedContent += delta.text;
       writeLine({ type: 'delta', kind: delta.kind, text: delta.text });
+    };
+    let continuationRaw = '';
+    let continuationStarted = !phase1.continuation;
+    const flushContinuationPrefix = () => {
+      if (continuationStarted || !continuationRaw) return;
+      const merged = mergeContinuation(phase1.previousContent, continuationRaw);
+      const extension = merged.slice(phase1.previousContent.length);
+      continuationStarted = true;
+      if (extension) writeDelta({ kind: 'content', text: extension });
+    };
+    const writeModelDelta = (delta) => {
+      if (!phase1.continuation || delta.kind !== 'content') { writeDelta(delta); return; }
+      continuationRaw += delta.text;
+      if (!continuationStarted) {
+        if (continuationRaw.length >= 180 || continuationRaw.includes('\n')) flushContinuationPrefix();
+        return;
+      }
+      writeDelta(delta);
     };
 
     if (phase1.duplicate) {
       writeLine({ type: 'meta', conversationId, userMessageId: null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title, language: phase1.assistantMessage.language || 'ar' });
       if (phase1.assistantMessage.thinking) writeDelta({ kind: 'thinking', text: phase1.assistantMessage.thinking });
-      writeDelta({ kind: 'content', text: phase1.assistantMessage.content || '' });
+      writeDelta({ kind: 'content', text: phase1.replayContent ?? phase1.assistantMessage.content ?? '' });
       writeLine({ type: 'done', aiGenerated: Boolean(phase1.assistantMessage.aiGenerated), unavailable: Boolean(phase1.assistantMessage.unavailable), stopped: Boolean(phase1.assistantMessage.stopped), timing: phase1.assistantMessage.timing || null });
       res.end();
       release();
@@ -850,7 +914,7 @@ async function handleApi(req, res, url) {
     // runs the exact same detectConversationLanguage on its own copy of the conversation at send-time,
     // so the placeholder bubble's direction/typography is already correct before this line ever
     // arrives. This is what keeps a language switch flicker-free instead of just fast.
-    writeLine({ type: 'meta', conversationId, userMessageId: phase1.userMessage?.id || null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title, language: phase1.detectedLanguage });
+    writeLine({ type: 'meta', conversationId, userMessageId: phase1.userMessage?.id || null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title, language: phase1.detectedLanguage, continuation: Boolean(phase1.continuation) });
 
     if (attachment && attachment.kind === 'image' && phase1.userMessage?.attachment?.attachmentId) {
       try {
@@ -862,39 +926,51 @@ async function handleApi(req, res, url) {
     // Phase 2 — outside any store.transact, so one user's slow generation never blocks the
     // server-wide write queue that every other request (including every other student) shares.
     let finalContent = '', finalThinking = '', stopped = false, aiGenerated = false, unavailable = false;
-    if (!OLLAMA_URL) {
+    if (!OLLAMA_URL && phase1.continuation) {
+      unavailable = true;
+    } else if (!OLLAMA_URL) {
       finalContent = phase1.detectedLanguage === 'en' ? 'The AI Chat assistant is not set up on this deployment yet.' : 'مساعد الدردشة الذكي غير مفعّل على هذه النسخة بعد.';
       unavailable = true;
       writeDelta({ kind: 'content', text: finalContent });
     } else {
-      const think = Boolean(phase1.assistantMessage.thinkingRequested);
+      const think = !phase1.continuation && Boolean(phase1.assistantMessage.thinkingRequested);
       const upstreamController = new AbortController();
       const timer = setTimeout(() => upstreamController.abort(), think ? CHAT_TIMEOUT_MS_THINKING : TUTOR_TIMEOUT_MS);
       let clientClosed = false;
       const onClose = () => { clientClosed = true; upstreamController.abort(); };
       res.on('close', onClose);
       try {
-        const messages = buildChatOllamaMessages(phase1.conversation, phase1.detectedLanguage, think);
+        const messages = phase1.continuation
+          ? buildContinuationMessages(phase1.conversation, phase1.assistantMessage, phase1.detectedLanguage)
+          : buildChatOllamaMessages(phase1.conversation, phase1.detectedLanguage, think);
         const result = await streamOllamaChat(
-          { messages, think },
-          { signal: upstreamController.signal, onDelta: writeDelta },
+          { messages, think, language: phase1.detectedLanguage },
+          { signal: upstreamController.signal, onDelta: writeModelDelta },
         );
+        flushContinuationPrefix();
         finalContent = result.content;
         finalThinking = result.thinking;
         aiGenerated = finalContent.length > 0;
         unavailable = !aiGenerated;
         if (!aiGenerated) {
-          finalContent = phase1.detectedLanguage === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
-          writeDelta({ kind: 'content', text: finalContent });
+          if (!phase1.continuation) {
+            finalContent = phase1.detectedLanguage === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
+            writeDelta({ kind: 'content', text: finalContent });
+          }
         }
       } catch (streamError) {
+        finalContent = phase1.continuation ? continuationRaw : observedContent;
+        finalThinking = observedThinking;
+        aiGenerated = finalContent.length > 0;
         if (clientClosed) {
           stopped = true;
         } else {
           unavailable = true;
           if (process.env.NODE_ENV !== 'test') console.error(`AI Chat generation failed: ${streamError.message}`);
-          finalContent = phase1.detectedLanguage === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
-          writeDelta({ kind: 'content', text: finalContent });
+          if (!phase1.continuation) {
+            finalContent = phase1.detectedLanguage === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
+            writeDelta({ kind: 'content', text: finalContent });
+          }
         }
       } finally {
         clearTimeout(timer);
@@ -912,18 +988,25 @@ async function handleApi(req, res, url) {
       const conversation = (draft.chatConversations || []).find((item) => item.id === conversationId && item.userId === user.id);
       const assistantMessage = conversation?.messages.find((message) => message.id === phase1.assistantMessage.id);
       if (!assistantMessage) return;
-      assistantMessage.content = finalContent;
-      assistantMessage.thinking = finalThinking;
-      assistantMessage.status = stopped ? 'stopped' : 'complete';
+      assistantMessage.content = phase1.continuation ? mergeContinuation(phase1.previousContent, finalContent) : finalContent;
+      assistantMessage.thinking = phase1.continuation ? phase1.previousThinking : finalThinking;
+      assistantMessage.status = stopped ? 'stopped' : (phase1.continuation && unavailable ? 'failed' : 'complete');
       assistantMessage.aiGenerated = aiGenerated;
       assistantMessage.unavailable = unavailable;
       assistantMessage.stopped = stopped;
+      assistantMessage.recoverable = Boolean(phase1.continuation && unavailable);
+      if (phase1.continuation) {
+        assistantMessage.continuations ||= [];
+        assistantMessage.continuations.push({ key: idempotencyKey, content: finalContent, status: assistantMessage.status, at: new Date().toISOString() });
+        if (assistantMessage.continuations.length > 12) assistantMessage.continuations = assistantMessage.continuations.slice(-12);
+      }
+      delete assistantMessage.continuationKey;
       assistantMessage.timing = timing;
       conversation.updatedAt = new Date().toISOString();
     }).catch(() => {});
 
     release();
-    if (!stopped) { writeLine({ type: 'done', aiGenerated, unavailable, stopped, timing }); res.end(); }
+    if (!stopped) { writeLine({ type: 'done', aiGenerated, unavailable, stopped, recoverable: Boolean(phase1.continuation && unavailable), timing }); res.end(); }
     return;
   }
 

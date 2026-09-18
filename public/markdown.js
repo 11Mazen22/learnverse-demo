@@ -11,7 +11,7 @@
 // Link hrefs are validated against a strict http(s)-only pattern before being set via setAttribute;
 // anything else renders as plain text instead of an anchor.
 
-const BLOCK_ELEMENTS = new Set(['h1', 'h2', 'h3', 'p', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'a', 'strong', 'em', 'br']);
+const BLOCK_ELEMENTS = new Set(['h1', 'h2', 'h3', 'p', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'a', 'strong', 'em', 'br', 'input']);
 
 export function isSafeHref(href) {
   return typeof href === 'string' && /^https?:\/\/\S+$/i.test(href.trim());
@@ -142,7 +142,13 @@ export function parseMarkdown(text) {
         quoteLines.push(match ? match[1] : lines[i]);
         i += 1;
       }
-      blocks.push({ type: 'blockquote', children: parseMarkdown(quoteLines.join('\n')) });
+      const callout = quoteLines[0]?.match(/^\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]\s*(.*)$/i);
+      if (callout) {
+        quoteLines[0] = callout[2] || '';
+        blocks.push({ type: 'blockquote', callout: callout[1].toLowerCase(), children: parseMarkdown(quoteLines.join('\n')) });
+      } else {
+        blocks.push({ type: 'blockquote', children: parseMarkdown(quoteLines.join('\n')) });
+      }
       continue;
     }
 
@@ -166,7 +172,12 @@ export function parseMarkdown(text) {
         else if (lines[i].trim() && items.length && /^ {2,}\S/.test(lines[i])) { items[items.length - 1].push(lines[i].trim()); i += 1; }
         else break;
       }
-      blocks.push({ type: 'list', ordered, items: items.map((linesForItem) => parseInline(linesForItem.join(' '))) });
+      blocks.push({ type: 'list', ordered, items: items.map((linesForItem) => {
+        const checklist = linesForItem[0].match(/^\[([ xX])\]\s+(.*)$/);
+        const nodes = parseInline(checklist ? [checklist[2], ...linesForItem.slice(1)].join(' ') : linesForItem.join(' '));
+        if (checklist) nodes.checked = checklist[1].toLowerCase() === 'x';
+        return nodes;
+      }) });
       continue;
     }
 
@@ -226,10 +237,29 @@ function renderBlocks(blocks, onCopyRequest) {
     if (block.type === 'heading') { const h = el(`h${block.level}`); h.append(renderInlineNodes(block.children, onCopyRequest)); fragment.append(h); continue; }
     if (block.type === 'paragraph') { const p = el('p'); p.append(renderInlineNodes(block.children, onCopyRequest)); fragment.append(p); continue; }
     if (block.type === 'hr') { fragment.append(el('hr')); continue; }
-    if (block.type === 'blockquote') { const bq = el('blockquote'); bq.append(renderBlocks(block.children, onCopyRequest)); fragment.append(bq); continue; }
+    if (block.type === 'blockquote') {
+      const bq = el('blockquote', block.callout ? `md-callout md-callout-${block.callout}` : '');
+      if (block.callout) {
+        const label = el('strong', 'md-callout-label');
+        label.textContent = block.callout;
+        bq.append(label);
+      }
+      bq.append(renderBlocks(block.children, onCopyRequest)); fragment.append(bq); continue;
+    }
     if (block.type === 'list') {
       const list = el(block.ordered ? 'ol' : 'ul');
-      for (const item of block.items) { const li = el('li'); li.append(renderInlineNodes(item, onCopyRequest)); list.append(li); }
+      for (const item of block.items) {
+        const li = el('li', Object.hasOwn(item, 'checked') ? 'md-task-item' : '');
+        if (Object.hasOwn(item, 'checked')) {
+          const checkbox = el('input');
+          checkbox.setAttribute('type', 'checkbox');
+          checkbox.setAttribute('disabled', '');
+          if (item.checked) checkbox.setAttribute('checked', '');
+          checkbox.setAttribute('aria-label', item.checked ? 'Completed' : 'Not completed');
+          li.append(checkbox);
+        }
+        li.append(renderInlineNodes(item, onCopyRequest)); list.append(li);
+      }
       fragment.append(list);
       continue;
     }
@@ -251,10 +281,11 @@ function renderBlocks(blocks, onCopyRequest) {
       continue;
     }
     if (block.type === 'code-block') {
-      const wrap = el('div', 'md-code-block');
+      const isMermaid = String(block.lang).toLowerCase() === 'mermaid';
+      const wrap = el('div', `md-code-block${isMermaid ? ' md-mermaid' : ''}`);
       const header = el('div', 'md-code-head');
       const label = el('span', 'md-code-lang');
-      label.textContent = block.lang || 'text';
+      label.textContent = isMermaid ? 'Mermaid diagram' : (block.lang || 'text');
       const copyButton = el('a', 'md-code-copy');
       copyButton.setAttribute('href', '#');
       copyButton.dataset.mdCopy = '1';

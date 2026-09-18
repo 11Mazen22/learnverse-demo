@@ -17,10 +17,10 @@ const copy = {
     noConversations: 'لا توجد محادثات بعد', noResults: 'لا نتائج مطابقة', startHint: 'ابدأ محادثة جديدة من الأعلى.',
     welcomeTitle: 'أهلًا، بماذا أساعدك اليوم؟', welcomeBody: 'اسأل عن أي فكرة دراسية، اطلب شرحًا، أو ناقش مسألة خطوة بخطوة.',
     suggestion1: 'اشرح لي معنى السرعة المتوسطة بمثال', suggestion2: 'ساعدني أفهم رسم المسافة والزمن', suggestion3: 'كيف أراجع لاختبار الغد بذكاء؟',
-    placeholder: 'اكتب رسالتك…', placeholderThinking: 'اسأل سؤالاً يحتاج تفكيرًا عميقًا…', send: 'إرسال', stop: 'إيقاف', thinking: 'تفكير عميق', reasoning: 'التفكير', reasoningHint: 'خطوات تفكير المساعد — ليست الإجابة النهائية.',
+    placeholder: 'اكتب رسالتك…', placeholderThinking: 'اسأل سؤالاً يحتاج تفكيرًا عميقًا…', send: 'إرسال', stop: 'إيقاف', thinking: 'تفكير عميق', reasoning: 'التحليل', reasoningHint: 'حالة موجزة لعملية التحليل — لا تعرض سلسلة التفكير الخاصة.',
     attach: 'إرفاق ملف أو صورة', remove: 'إزالة', rename: 'إعادة تسمية', pin: 'تثبيت', unpin: 'إلغاء التثبيت', archive: 'أرشفة', unarchive: 'إلغاء الأرشفة', delete: 'حذف',
     confirmDeleteTitle: 'حذف المحادثة؟', confirmDeleteBody: 'سيتم حذف هذه المحادثة وكل رسائلها نهائيًا.', cancel: 'إلغاء', regenerate: 'إعادة توليد', copy: 'نسخ', copied: 'تم النسخ',
-    edit: 'تعديل', save: 'حفظ', aiDraft: 'مسودة ذكاء اصطناعي', stopped: 'تم الإيقاف', unavailable: 'المساعد غير متاح الآن',
+    edit: 'تعديل', save: 'حفظ', aiDraft: 'مسودة ذكاء اصطناعي', stopped: 'تم الإيقاف', continueResponse: 'متابعة الرد', retryContinue: 'إعادة محاولة المتابعة', continuationFailed: 'تعذرت المتابعة — بقي الرد الجزئي محفوظًا.', unavailable: 'المساعد غير متاح الآن',
     imageRejected: 'الملفات غير الصورية غير مدعومة.', imageTooLarge: 'حجم الصورة كبير جدًا.', fileTooLarge: 'حجم الملف كبير جدًا (الحد الأقصى 2 ميجابايت).', fileReadFailed: 'تعذّرت قراءة الملف.', fileTypeRejected: 'نوع الملف غير مدعوم. يمكنك إرفاق صورة أو ملف نصي (txt, py, json, ...).', contextDivider: 'الرسائل الأقدم غير متاحة لذاكرة المساعد في هذا الرد.',
     ocrExtracting: 'جارٍ استخراج النص من الصورة…', ocrDone: 'تم استخراج النص من الصورة', ocrEmpty: 'لم يُعثر على نص مقروء في الصورة', ocrError: 'تعذّر استخراج النص من الصورة', ocrLoadFailed: 'تعذّر تحميل محرك قراءة النصوص',
     lightMode: 'وضع فاتح', darkMode: 'وضع داكن', you: 'أنت', assistant: 'المساعد', unavailableChip: 'الدردشة الذكية غير مفعّلة على هذه النسخة بعد.',
@@ -35,10 +35,10 @@ const copy = {
     noConversations: 'No conversations yet', noResults: 'No matching conversations', startHint: 'Start a new one above.',
     welcomeTitle: 'Hi — what can I help you with?', welcomeBody: 'Ask about any study topic, request an explanation, or work through a problem step by step.',
     suggestion1: 'Explain average speed with a worked example', suggestion2: 'Help me understand distance-time graphs', suggestion3: 'How should I revise for tomorrow’s test?',
-    placeholder: 'Write your message…', placeholderThinking: 'Ask something that needs deep thinking…', send: 'Send', stop: 'Stop', thinking: 'Deep thinking', reasoning: 'Reasoning', reasoningHint: 'The assistant’s thinking steps — not the final answer.',
+    placeholder: 'Write your message…', placeholderThinking: 'Ask something that needs deep thinking…', send: 'Send', stop: 'Stop', thinking: 'Deep thinking', reasoning: 'Analysis', reasoningHint: 'A concise analysis status — private chain-of-thought is not displayed.',
     attach: 'Attach a file or image', remove: 'Remove', rename: 'Rename', pin: 'Pin', unpin: 'Unpin', archive: 'Archive', unarchive: 'Unarchive', delete: 'Delete',
     confirmDeleteTitle: 'Delete this conversation?', confirmDeleteBody: 'This conversation and all its messages will be permanently deleted.', cancel: 'Cancel', regenerate: 'Regenerate', copy: 'Copy', copied: 'Copied',
-    edit: 'Edit', save: 'Save', aiDraft: 'AI draft', stopped: 'Stopped', unavailable: 'The assistant is unavailable right now',
+    edit: 'Edit', save: 'Save', aiDraft: 'AI draft', stopped: 'Stopped', continueResponse: 'Continue response', retryContinue: 'Retry continuation', continuationFailed: 'Continuation failed — the partial response is preserved.', unavailable: 'The assistant is unavailable right now',
     imageRejected: 'Non-image files are not supported.', imageTooLarge: 'That image is too large.', fileTooLarge: 'That file is too large (2MB max).', fileReadFailed: 'Could not read that file.', fileTypeRejected: 'That file type isn’t supported. Attach an image or a text file (txt, py, json, ...).', contextDivider: 'Earlier messages aren’t included in the assistant’s memory for this reply.',
     ocrExtracting: 'Extracting text from image…', ocrDone: 'Text extracted from image', ocrEmpty: 'No readable text found in the image', ocrError: 'Could not extract text from the image', ocrLoadFailed: 'Could not load the text-reading engine',
     lightMode: 'Light mode', darkMode: 'Dark mode', you: 'You', assistant: 'Assistant', unavailableChip: 'AI Chat is not set up on this deployment yet.',
@@ -75,6 +75,7 @@ const ICONS = {
   plus: '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   send: '<path d="M3.2 11.3 19.7 4.3l-6.4 15.4-2.3-7-8-1.4Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>',
   stop: '<rect x="7" y="7" width="10" height="10" rx="2.2" fill="currentColor"/>',
+  continue: '<path d="M7 4.8 18.5 12 7 19.2V4.8Z" fill="currentColor"/><path d="M4.2 5.5v13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   search: '<circle cx="10.3" cy="10.3" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14.8 14.8 19.5 19.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
   file: '<path d="M6.5 3h7.2L18 6.8V20a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M13.5 3v3.8H18M9 12.2h6M9 15.5h6M9 8.8h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
   dots: '<circle cx="4" cy="10" r="1.6" fill="currentColor"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/>',
@@ -112,7 +113,7 @@ function saveChatTheme(theme) {
 
 const chatState = {
   initialized: false, loadingList: false, conversations: [], aiCapabilities: { chatAvailable: false, thinkingSupported: false },
-  activeId: null, activeConversation: null, loadingConversation: false, creatingConversation: null,
+  activeId: null, activeConversation: null, loadingConversation: false, creatingConversation: null, openRequestVersion: 0,
   search: '', sidebarOpen: window.innerWidth > 900, showArchived: false,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
   streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamLanguage: 'ar', streamContent: '', streamThinking: '',
@@ -163,17 +164,22 @@ async function loadConversations() {
 }
 
 async function openConversation(conversationId) {
+  if (!conversationId) return;
+  const requestVersion = ++chatState.openRequestVersion;
   chatState.activeId = conversationId;
   chatState.loadingConversation = true;
   chatState.activeConversation = null;
   refreshSidebarDOM();
   try {
     const result = await api(`/api/chat/conversations/${conversationId}`);
+    if (requestVersion !== chatState.openRequestVersion || chatState.activeId !== conversationId) return;
     chatState.activeConversation = result.conversation;
   } catch (error) {
+    if (requestVersion !== chatState.openRequestVersion) return;
     toast(error.message, 'error');
     chatState.activeId = null;
   } finally {
+    if (requestVersion !== chatState.openRequestVersion) return;
     chatState.loadingConversation = false;
     refreshChatMainDOM({ focusInput: true });
     refreshSidebarDOM();
@@ -183,8 +189,10 @@ async function openConversation(conversationId) {
 async function createConversation({ renderResult = true, focusInput = true } = {}) {
   if (chatState.creatingConversation) return chatState.creatingConversation;
   chatState.creatingConversation = (async () => {
+    const requestVersion = ++chatState.openRequestVersion;
     const result = await api('/api/chat/conversations', { method: 'POST', body: JSON.stringify({}) });
-    chatState.conversations.unshift({ id: result.conversation.id, title: null, pinned: false, archived: false, createdAt: result.conversation.createdAt, updatedAt: result.conversation.updatedAt, preview: '' });
+    if (!chatState.conversations.some((item) => item.id === result.conversation.id)) chatState.conversations.unshift({ id: result.conversation.id, title: null, pinned: false, archived: false, createdAt: result.conversation.createdAt, updatedAt: result.conversation.updatedAt, preview: '' });
+    if (requestVersion !== chatState.openRequestVersion) { refreshSidebarDOM(); return result.conversation; }
     chatState.activeId = result.conversation.id;
     chatState.activeConversation = result.conversation;
     chatState.search = '';
@@ -421,7 +429,7 @@ function contextDividerIndexFor(conversation) {
   return conversation.messages.length > CHAT_HISTORY_WINDOW ? conversation.messages.length - CHAT_HISTORY_WINDOW : -1;
 }
 
-async function sendChat({ content = '', regenerate = false, editFromMessageId = null } = {}) {
+async function sendChat({ content = '', regenerate = false, editFromMessageId = null, continueMessageId = null } = {}) {
   if (chatState.streaming) return;
   // The welcome screen is a ready-to-use draft. Persist its conversation on first submit so the
   // user never has to press "New chat" before Enter or Send can work.
@@ -431,13 +439,22 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
     if (chatState.streaming) return;
   }
   const conversation = chatState.activeConversation;
+  const continuingMessage = continueMessageId
+    ? conversation.messages.find((message) => message.id === continueMessageId && message.role === 'assistant' && ['stopped', 'failed'].includes(message.status))
+    : null;
+  if (continueMessageId && (!continuingMessage || conversation.messages.at(-1)?.id !== continueMessageId || !continuingMessage.content)) return;
   const attachment = chatState.composerAttachment;
   // Images are only ever handed to the assistant as OCR'd text (see runOcr) — sending before that
   // finishes would either block on nothing (no text yet) or silently drop the image's content.
   if (attachment?.kind === 'image' && attachment.ocrStatus === 'pending') return;
   const idempotencyKey = id();
 
-  if (!regenerate) {
+  if (continuingMessage) {
+    continuingMessage.status = 'continuing';
+    continuingMessage.stopped = false;
+    continuingMessage.unavailable = false;
+    continuingMessage.recoverable = false;
+  } else if (!regenerate) {
     if (editFromMessageId) {
       const cutIndex = conversation.messages.findIndex((message) => message.id === editFromMessageId);
       if (cutIndex >= 0) conversation.messages = conversation.messages.slice(0, cutIndex);
@@ -457,14 +474,14 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
   // it from (see server.mjs's identical use of detectConversationLanguage) — not awaited from the
   // network. That is what lets the placeholder bubble render with correct RTL/LTR direction and
   // typography from the very first frame, with nothing to flip once the real response starts arriving.
-  const detectedLanguage = detectConversationLanguage(
+  const detectedLanguage = continuingMessage?.language || detectConversationLanguage(
     conversation.messages.filter((message) => message.role === 'user').slice(-CHAT_HISTORY_WINDOW).map((message) => message.content),
     'ar',
   );
-  if (!regenerate) conversation.messages[conversation.messages.length - 1].language = detectedLanguage;
+  if (!regenerate && !continuingMessage) conversation.messages[conversation.messages.length - 1].language = detectedLanguage;
   const willUseThinking = chatState.thinkingMode && chatState.aiCapabilities.thinkingSupported;
-  const placeholderId = `pending-assistant-${idempotencyKey}`;
-  conversation.messages.push({ id: placeholderId, role: 'assistant', content: '', thinking: '', status: 'generating', thinkingRequested: willUseThinking, language: detectedLanguage });
+  const placeholderId = continuingMessage?.id || `pending-assistant-${idempotencyKey}`;
+  if (!continuingMessage) conversation.messages.push({ id: placeholderId, role: 'assistant', content: '', thinking: '', status: 'generating', thinkingRequested: willUseThinking, language: detectedLanguage });
 
   chatState.composerAttachment = null;
   chatState.attachmentError = null;
@@ -472,11 +489,12 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
   chatState.streamAssistantId = placeholderId;
   chatState.streamDomId = placeholderId;
   chatState.streamLanguage = detectedLanguage;
-  chatState.streamContent = '';
-  chatState.streamThinking = '';
-  resetStreamReveal();
+  chatState.streamContent = continuingMessage?.content || '';
+  chatState.streamThinking = continuingMessage?.thinking || '';
+  resetStreamReveal(chatState.streamContent.length);
   chatState.scrolledUp = false;
-  mountPendingTurn({ regenerate, editFromMessageId });
+  if (continuingMessage) refreshChatMainDOM();
+  else mountPendingTurn({ regenerate, editFromMessageId });
 
   const controller = new AbortController();
   chatState.streamAbort = controller;
@@ -484,13 +502,14 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
   let firstVisibleResponseAt = null;
 
   const body = { idempotencyKey, regenerate, editFromMessageId };
-  if (!regenerate) body.content = content;
+  if (continuingMessage) body.continueMessageId = continuingMessage.id;
+  else if (!regenerate) body.content = content;
   if (attachment) {
     body.attachment = attachment.kind === 'text'
       ? { kind: 'text', name: attachment.name, content: attachment.content }
       : { kind: 'image', name: attachment.name, type: attachment.type, dataBase64: attachment.dataBase64, ocrText: attachment.ocrText || '' };
   }
-  if (willUseThinking) body.thinking = true;
+  if (willUseThinking && !continuingMessage) body.thinking = true;
 
   try {
     const headers = { 'Content-Type': 'application/json' };
@@ -521,7 +540,7 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
           realUserId = parsed.userMessageId;
           const assistantMessage = conversation.messages.find((message) => message.id === placeholderId);
           if (assistantMessage) assistantMessage.id = realAssistantId;
-          if (realUserId && !regenerate) {
+          if (realUserId && !regenerate && !continuingMessage) {
             const pendingUser = conversation.messages.find((message) => message.id === `pending-${idempotencyKey}`);
             if (pendingUser) {
               remapMessageDomId(pendingUser.id, realUserId);
@@ -551,10 +570,11 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
           if (assistantMessage) {
             assistantMessage.content = chatState.streamContent;
             assistantMessage.thinking = chatState.streamThinking;
-            assistantMessage.status = parsed.stopped ? 'stopped' : 'complete';
+            assistantMessage.status = parsed.stopped ? 'stopped' : (parsed.recoverable ? 'failed' : 'complete');
             assistantMessage.aiGenerated = parsed.aiGenerated;
             assistantMessage.unavailable = parsed.unavailable;
             assistantMessage.stopped = parsed.stopped;
+            assistantMessage.recoverable = Boolean(parsed.recoverable);
             assistantMessage.timing = parsed.timing || {
               firstResponseMs: firstVisibleResponseAt === null ? null : Math.round(firstVisibleResponseAt - requestStartedAt),
               totalMs: Math.round(performance.now() - requestStartedAt),
@@ -568,9 +588,10 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
     if (assistantMessage) {
       assistantMessage.content = chatState.streamContent || (error.name === 'AbortError' ? '' : error.message);
       assistantMessage.thinking = chatState.streamThinking;
-      assistantMessage.status = error.name === 'AbortError' ? 'stopped' : 'complete';
+      assistantMessage.status = error.name === 'AbortError' ? 'stopped' : 'failed';
       assistantMessage.stopped = error.name === 'AbortError';
       assistantMessage.unavailable = error.name !== 'AbortError';
+      assistantMessage.recoverable = error.name !== 'AbortError';
       assistantMessage.aiGenerated = false;
       assistantMessage.timing = {
         firstResponseMs: firstVisibleResponseAt === null ? null : Math.round(firstVisibleResponseAt - requestStartedAt),
@@ -608,10 +629,10 @@ let streamRevealBudget = 0;
 let streamLastFrameAt = 0;
 let streamLastRenderedLength = -1;
 
-function resetStreamReveal() {
+function resetStreamReveal(initialLength = 0) {
   if (streamPaintFrame) cancelAnimationFrame(streamPaintFrame);
   streamPaintFrame = 0;
-  streamVisibleLength = 0;
+  streamVisibleLength = initialLength;
   streamRevealBudget = 0;
   streamLastFrameAt = 0;
   streamLastRenderedLength = -1;
@@ -1035,7 +1056,7 @@ function renderMessage(message, conversation) {
   }
 
   const isStreamingThis = chatState.streaming && message.id === chatState.streamAssistantId;
-  const isGenerating = message.status === 'generating' || isStreamingThis;
+  const isGenerating = ['generating', 'continuing'].includes(message.status) || isStreamingThis;
   // A full re-render can happen for reasons unrelated to this message (opening the sidebar, renaming a
   // different conversation, a window resize, ...) while this one is still actively streaming. The
   // message array's own content/thinking only get written once at the very end (see sendChat's 'done'
@@ -1072,7 +1093,7 @@ function renderMessage(message, conversation) {
           </details>` : ''}
         <div class="chat-typing" id="chat-msg-typing-${domId}" style="${showTyping ? '' : 'display:none'}"><span></span><span></span><span></span></div>
         <div class="chat-msg-text" id="chat-msg-content-${domId}" dir="${msgDir(liveLanguage)}"></div>
-        ${message.unavailable ? `<p class="chat-msg-flag">${icon('warning', 13)}<span>${ct('unavailable')}</span></p>` : ''}
+        ${message.status === 'failed' ? `<p class="chat-msg-flag is-recoverable">${icon('warning', 13)}<span>${ct('continuationFailed')}</span></p>` : message.unavailable ? `<p class="chat-msg-flag">${icon('warning', 13)}<span>${ct('unavailable')}</span></p>` : ''}
         ${message.stopped ? `<p class="chat-msg-flag">${ct('stopped')}</p>` : ''}
         ${message.aiGenerated ? `<p class="chat-ai-disclosure">${ct('aiDraft')}</p>` : ''}
         ${timing && !isGenerating ? `<div class="chat-response-metrics" title="${ct('responseTime')}">
@@ -1084,6 +1105,7 @@ function renderMessage(message, conversation) {
       ${!isGenerating ? `
         <div class="chat-msg-actions">
           <button class="icon-button icon-button-sm" data-chat-action="copy" data-chat-copy="${message.id}" aria-label="${ct('copy')}" title="${ct('copy')}">${icon('copy', 14)}</button>
+          ${isLast && ['stopped', 'failed'].includes(message.status) && message.content ? `<button class="icon-button icon-button-sm chat-continue-inline" data-chat-action="continue" data-chat-id="${message.id}" aria-label="${message.status === 'failed' ? ct('retryContinue') : ct('continueResponse')}" title="${message.status === 'failed' ? ct('retryContinue') : ct('continueResponse')}">${icon('continue', 14)}</button>` : ''}
           ${isLast ? `<button class="icon-button icon-button-sm" data-chat-action="regenerate" aria-label="${ct('regenerate')}" title="${ct('regenerate')}">${icon('refresh', 14)}</button>` : ''}
         </div>` : ''}
     </div>`;
@@ -1092,6 +1114,8 @@ function renderMessage(message, conversation) {
 function renderComposer(inWelcome) {
   const attachment = chatState.composerAttachment;
   const canThink = chatState.aiCapabilities.thinkingSupported;
+  const lastMessage = chatState.activeConversation?.messages?.at(-1);
+  const canContinue = Boolean(lastMessage?.role === 'assistant' && ['stopped', 'failed'].includes(lastMessage.status) && lastMessage.content);
   return `
     <form class="chat-composer ${chatState.dragActive ? 'drag-active' : ''}" id="chat-composer-form">
       ${chatState.dragActive ? `<div class="chat-drop-overlay">${icon('image', 20)}<span>${ct('dropHint')}</span></div>` : ''}
@@ -1116,6 +1140,8 @@ function renderComposer(inWelcome) {
         <textarea id="chat-composer-input" class="chat-composer-input" dir="auto" placeholder="${canThink && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder')}" rows="1" maxlength="4000"></textarea>
         ${chatState.streaming
           ? `<button type="button" class="chat-send-btn is-stop" data-chat-action="stop" aria-label="${ct('stop')}" title="${ct('stop')}">${icon('stop', 15)}</button>`
+          : canContinue
+            ? `<button type="button" class="chat-send-btn is-continue" data-chat-action="continue" data-chat-id="${lastMessage.id}" aria-label="${lastMessage.status === 'failed' ? ct('retryContinue') : ct('continueResponse')}" title="${lastMessage.status === 'failed' ? ct('retryContinue') : ct('continueResponse')}">${icon('continue', 16)}</button>`
           : `<button type="submit" class="chat-send-btn" ${attachment?.kind === 'image' && attachment.ocrStatus === 'pending' ? 'disabled' : ''} aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`}
       </div>
     </form>${inWelcome ? '' : ''}`;
@@ -1218,6 +1244,15 @@ document.addEventListener('click', async (event) => {
   if (action === 'confirm-delete') return deleteConversation(actionId);
   if (action === 'remove-attachment') { chatState.composerAttachment = null; chatState.attachmentError = null; refreshComposerDOM({ focus: true }); return; }
   if (action === 'stop') return stopStreaming();
+  if (action === 'continue') {
+    const input = document.getElementById('chat-composer-input');
+    const content = input?.value.trim() || '';
+    if (content || chatState.composerAttachment) {
+      if (input) input.value = '';
+      return sendChat({ content });
+    }
+    return sendChat({ continueMessageId: actionId });
+  }
   if (action === 'scroll-bottom') { chatState.scrolledUp = false; scrollMessagesToBottom(); event.target.closest('.chat-scroll-bottom')?.classList.remove('visible'); return; }
   if (action === 'regenerate') return sendChat({ regenerate: true });
   if (action === 'edit-message') {
