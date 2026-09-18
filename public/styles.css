@@ -376,6 +376,13 @@ html.force-reduce-motion .confetti { display: none; }
 @media (min-width: 901px) {
   .chat-page { transition: grid-template-columns .28s var(--ease); }
   .chat-page.sidebar-collapsed { grid-template-columns: 0px 1fr; }
+  /* .chat-page prefix (not just the bare class) is deliberate: the base display:none rule for this
+     same button sits LATER in the file for the mobile-drawer case, and at equal specificity the later
+     rule wins by source order — confirmed live (computed display stayed "none" without this). One
+     extra qualifying selector beats it outright instead of depending on where either rule happens to
+     sit in the file. */
+  .chat-page .chat-sidebar-close { display: inline-flex; align-items: center; justify-content: center; margin-inline-start: auto; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; }
+  .chat-page .chat-sidebar-close:hover { background: var(--chat-surface); color: var(--chat-ink); }
   .chat-sidebar { transition: opacity .2s var(--ease), border-color .2s var(--ease); }
   .chat-page.sidebar-collapsed .chat-sidebar { opacity: 0; border-inline-end-color: transparent; pointer-events: none; }
   .chat-menu-toggle { transition: opacity .2s var(--ease) .1s, visibility .2s var(--ease) .1s; }
@@ -619,6 +626,7 @@ html[dir="ltr"] .chat-composer { padding: .65rem .85rem .65rem .65rem; }
 .chat-thinking-btn.on .chat-thinking-dot { background: linear-gradient(135deg, #6c5bd8, #9b7ef0); opacity: 1; transform: scale(1.15); box-shadow: 0 0 6px color-mix(in srgb, var(--chat-accent) 70%, transparent); }
 
 .chat-send-btn { flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 0; background: var(--chat-accent); color: var(--chat-accent-ink); cursor: pointer; transition: transform .12s ease, opacity .12s ease; }
+.chat-btn-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .chat-send-btn:hover { transform: translateY(-1px) scale(1.04); }
 .chat-send-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 .chat-send-btn.is-stop { background: var(--chat-ink); color: var(--chat-bg); }
