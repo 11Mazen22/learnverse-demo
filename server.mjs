@@ -945,7 +945,16 @@ async function handleApi(req, res, url) {
         flushContinuationPrefix();
         finalContent = result.content;
         finalThinking = result.thinking;
-        aiGenerated = finalContent.length > 0;
+        // A continuation "succeeding" with the model just echoing/restating the tail it was given —
+        // a real, observed small-model behavior — is functionally identical to failing: mergeContinuation
+        // correctly strips the repeated part, so the stored content never actually grows, but checking
+        // only the model's raw (pre-merge) output length would still call that "aiGenerated" and mark the
+        // turn complete. The user then sees exactly the reported symptom: it runs for a few seconds and
+        // settles back at the same point, with no error and no obvious way to tell it silently did nothing.
+        const producedNewContent = phase1.continuation
+          ? mergeContinuation(phase1.previousContent, finalContent).length > phase1.previousContent.length
+          : finalContent.length > 0;
+        aiGenerated = producedNewContent;
         unavailable = !aiGenerated;
         if (!aiGenerated) {
           if (!phase1.continuation) {
@@ -954,6 +963,15 @@ async function handleApi(req, res, url) {
           }
         }
       } catch (streamError) {
+        // writeModelDelta buffers a continuation's leading text (to strip a model-repeated overlap)
+        // until either ~180 chars or a newline is seen — flushContinuationPrefix is what actually
+        // turns that buffer into a real delta the client can see. The success path already calls it
+        // unconditionally; skipping it here meant any continuation that errored or got aborted BEFORE
+        // reaching that threshold silently dropped its buffered text from the live stream, even though
+        // it was still saved to the message below — the client saw no growth at all and the turn just
+        // reverted to stopped/failed, which is exactly "it ran for a few seconds then stopped at the
+        // same point" from the outside.
+        flushContinuationPrefix();
         finalContent = phase1.continuation ? continuationRaw : observedContent;
         finalThinking = observedThinking;
         aiGenerated = finalContent.length > 0;
