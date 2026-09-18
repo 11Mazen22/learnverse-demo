@@ -84,7 +84,7 @@ const chatState = {
   activeId: null, activeConversation: null, loadingConversation: false,
   search: '', sidebarOpen: window.innerWidth > 900,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
-  streaming: false, streamAbort: null, streamAssistantId: null, streamContent: '', streamThinking: '',
+  streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamContent: '', streamThinking: '',
   editingMessageId: null, renamingId: null, confirmDeleteId: null, openMenuId: null, dragActive: false,
   theme: loadChatTheme(), scrolledUp: false,
 };
@@ -247,6 +247,7 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
   chatState.attachmentError = null;
   chatState.streaming = true;
   chatState.streamAssistantId = placeholderId;
+  chatState.streamDomId = placeholderId;
   chatState.streamContent = '';
   chatState.streamThinking = '';
   chatState.scrolledUp = false;
@@ -327,6 +328,7 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
     chatState.streaming = false;
     chatState.streamAbort = null;
     chatState.streamAssistantId = null;
+    chatState.streamDomId = null;
     const summary = chatState.conversations.find((item) => item.id === conversation.id);
     const lastMessage = conversation.messages[conversation.messages.length - 1];
     if (summary) { summary.updatedAt = new Date().toISOString(); summary.title = conversation.title; summary.preview = String(lastMessage?.content || '').slice(0, 120); }
@@ -349,7 +351,14 @@ function stopStreaming() {
 // code blocks/bold/lists appear progressively without re-parsing on every single character.
 let lastMarkdownRenderAt = 0;
 function updateStreamingBubbleDOM() {
-  const msgId = chatState.streamAssistantId;
+  // Deliberately the DOM id captured at send-time (streamDomId), NOT streamAssistantId — the latter
+  // gets reassigned to the server's real message id once the `meta` line arrives, but the rendered
+  // DOM element still carries the original placeholder id from the send-start render. Looking it up
+  // by streamAssistantId after that point would silently find nothing for the rest of the stream
+  // (this was the actual bug behind "the reply only appears once it's completely finished" — the
+  // text was accumulating in state the whole time, just never reaching the DOM until the next full
+  // re-render at stream-end happened to use the now-correct id).
+  const msgId = chatState.streamDomId;
   const contentEl = document.getElementById(`chat-msg-content-${msgId}`);
   if (contentEl) contentEl.textContent = chatState.streamContent;
   const thinkingEl = document.getElementById(`chat-msg-thinking-${msgId}`);
