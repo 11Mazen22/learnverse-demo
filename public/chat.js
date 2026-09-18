@@ -477,7 +477,7 @@ function updateStreamingBubbleDOM() {
   // re-render at stream-end happened to use the now-correct id).
   const msgId = chatState.streamDomId;
   const contentEl = document.getElementById(`chat-msg-content-${msgId}`);
-  if (contentEl) { contentEl.textContent = chatState.streamContent; appendStreamCursor(contentEl); }
+  if (contentEl) { paintStreamingText(contentEl, chatState.streamContent); appendStreamCursor(contentEl); }
   const thinkingEl = document.getElementById(`chat-msg-thinking-${msgId}`);
   if (thinkingEl) thinkingEl.textContent = chatState.streamThinking;
 
@@ -505,16 +505,79 @@ function updateStreamingBubbleDOM() {
   if (contentEl && now - lastMarkdownRenderAt > 140) {
     lastMarkdownRenderAt = now;
     contentEl.replaceChildren(renderMarkdownToDOM(chatState.streamContent));
+    // Everything up to this point is now shown via real Markdown nodes rather than the raw-text char
+    // spans below — mark it all "painted" so the next delta's paintStreamingText only animates in
+    // whatever arrives after this snapshot, instead of re-animating text already on screen.
+    contentEl.dataset.painted = String(chatState.streamContent.length);
     appendStreamCursor(contentEl);
   }
   if (!chatState.scrolledUp) scrollMessagesToBottom();
 }
 
-// A blinking cursor at the exact end of the live text — the clearest, most standard signal that a
+// Reveals new text one character at a time, ChatGPT-style, instead of jumping in by whatever chunk
+// size the network happened to deliver. `el.dataset.painted` tracks how much of `fullText` this exact
+// element has already shown — it lives on the element (not in chatState) so a brand-new element from a
+// mid-stream full re-render (see renderMessage's stream-aware domId) naturally starts over at 0 without
+// any extra bookkeeping, and a genuinely new delta on the same element just continues where it left off.
+function paintStreamingText(el, fullText) {
+  const paintedLen = Number(el.dataset.painted || 0);
+  if (paintedLen >= fullText.length) return;
+  // The cursor (if present) is always the current last child — detach it first so the text-node-merge
+  // logic below operates on the real trailing text, not on the cursor span. The caller re-appends it.
+  el.querySelector(':scope > .chat-stream-cursor')?.remove();
+  settleCharSpans(el);
+  const newChars = fullText.slice(paintedLen);
+  const ANIMATE_TAIL = 24;
+  if (newChars.length > ANIMATE_TAIL) {
+    // A jump this large in one paint means this element has no rendering history of its own (freshly
+    // (re)minted mid-stream) rather than one ordinary network delta — settle the bulk instantly as
+    // plain text and animate only the trailing slice, so resuming a long reply never mass-animates
+    // hundreds of characters at once.
+    appendSettledText(el, newChars.slice(0, newChars.length - ANIMATE_TAIL));
+    appendCharSpans(el, newChars.slice(newChars.length - ANIMATE_TAIL));
+  } else {
+    appendCharSpans(el, newChars);
+  }
+  el.dataset.painted = String(fullText.length);
+}
+
+function appendSettledText(el, text) {
+  if (!text) return;
+  const last = el.lastChild;
+  if (last && last.nodeType === Node.TEXT_NODE) last.data += text;
+  else el.appendChild(document.createTextNode(text));
+}
+
+function appendCharSpans(el, chars) {
+  const frag = document.createDocumentFragment();
+  for (const ch of chars) {
+    const span = document.createElement('span');
+    span.className = 'chat-char-in';
+    span.textContent = ch;
+    frag.appendChild(span);
+  }
+  el.appendChild(frag);
+}
+
+// Folds the previous delta's animated character spans into a plain trailing text node once a new delta
+// arrives — by then their entrance animation (~180ms) has long finished, and a real chat reply streams
+// in every 100-300ms+ per network delta, so this never visibly interrupts anything. Keeps the DOM from
+// accumulating one permanent <span> per character over a whole reply.
+function settleCharSpans(el) {
+  const spans = el.querySelectorAll(':scope > span.chat-char-in');
+  if (!spans.length) return;
+  let text = '';
+  spans.forEach((span) => { text += span.textContent; span.remove(); });
+  appendSettledText(el, text);
+}
+
+// A blinking caret at the exact end of the live text — the clearest, most standard signal that a
 // reply is actively being written (not stalled), sitting inline wherever the text currently wraps to
-// rather than pinned to the bubble's corner. Re-appended after every DOM write since both textContent
-// assignment and replaceChildren() above wipe any previous child, cursor included.
+// rather than pinned to the bubble's corner. Recreated (not just moved) on every update so its blink
+// animation restarts each time: like a real text cursor, it stays solid while tokens keep arriving
+// faster than one blink cycle, and only visibly starts blinking once generation genuinely pauses.
 function appendStreamCursor(el) {
+  el.querySelector(':scope > .chat-stream-cursor')?.remove();
   const cursor = document.createElement('span');
   cursor.className = 'chat-stream-cursor';
   cursor.setAttribute('aria-hidden', 'true');
@@ -555,7 +618,14 @@ function renderChatPage() {
         ${chatState.activeConversation && chatState.activeConversation.messages.length > 0 ? renderConversationBody() : renderChatWelcome()}
       </div>
     </div>`;
-  queueMicrotask(() => { hydrateChatMessages(); if (chatState.activeConversation && !chatState.scrolledUp) scrollMessagesToBottom(); });
+  queueMicrotask(() => {
+    hydrateChatMessages();
+    // A full re-render mid-stream mints a fresh, empty content element for the streaming bubble (see
+    // renderMessage) — repaint it immediately with whatever has already arrived, so an unrelated action
+    // (opening the sidebar, a rename elsewhere, ...) never shows a blank/reset bubble even for one frame.
+    if (chatState.streaming) updateStreamingBubbleDOM();
+    if (chatState.activeConversation && !chatState.scrolledUp) scrollMessagesToBottom();
+  });
   return html;
 }
 
@@ -704,7 +774,18 @@ function renderMessage(message, conversation) {
 
   const isStreamingThis = chatState.streaming && message.id === chatState.streamAssistantId;
   const isGenerating = message.status === 'generating' || isStreamingThis;
-  const hasThinking = Boolean(message.thinking && message.thinking.length);
+  // A full re-render can happen for reasons unrelated to this message (opening the sidebar, renaming a
+  // different conversation, a window resize, ...) while this one is still actively streaming. The
+  // message array's own content/thinking only get written once at the very end (see sendChat's 'done'
+  // handler) — reading them here mid-stream would repaint the bubble back to blank/placeholder and,
+  // worse, re-mint its DOM ids from message.id, which no longer matches the frozen streamDomId the hot
+  // loop (updateStreamingBubbleDOM) looks up by. Both would silently stop all further live updates until
+  // the response finishes. Reading the live buffer + frozen id here instead makes every full re-render
+  // mid-stream a no-op for this bubble's correctness, not a source of lost progress.
+  const domId = isStreamingThis ? chatState.streamDomId : message.id;
+  const liveContent = isStreamingThis ? chatState.streamContent : message.content;
+  const liveThinking = isStreamingThis ? chatState.streamThinking : message.thinking;
+  const hasThinking = Boolean(liveThinking && liveThinking.length);
   // A message generated with Thinking mode on shows its reasoning panel from the very first render —
   // OPEN, with a live "thinking…" indicator in the summary — not only once actual reasoning text has
   // streamed in. thinkingRequested is set at message-creation time (see sendChat), before this first
@@ -713,19 +794,19 @@ function renderMessage(message, conversation) {
   const willThink = Boolean(message.thinkingRequested) || hasThinking;
   const showReasoningBlock = isGenerating ? willThink : hasThinking;
   const showThinkingPlaceholder = isGenerating && willThink && !hasThinking;
-  const showTyping = isGenerating && !message.content && !willThink;
+  const showTyping = isGenerating && !liveContent && !willThink;
   return `
-    <div class="chat-msg chat-msg-assistant ${isStreamingThis ? 'is-streaming' : ''} ${newestClass}" data-chat-msg="${message.id}">
+    <div class="chat-msg chat-msg-assistant ${isStreamingThis ? 'is-streaming' : ''} ${newestClass}" data-chat-msg="${domId}">
       <div class="chat-msg-avatar" aria-hidden="true">${icon('spark', 15)}</div>
       <div class="chat-msg-bubble">
         ${showReasoningBlock ? `
-          <details class="chat-reasoning" id="chat-reasoning-${message.id}" ${isStreamingThis ? 'open' : ''}>
-            <summary>${icon('node', 13)}<span>${ct('reasoning')}</span><span class="chat-reasoning-live" id="chat-reasoning-live-${message.id}" style="${showThinkingPlaceholder ? '' : 'display:none'}"><i></i><i></i><i></i></span></summary>
+          <details class="chat-reasoning" id="chat-reasoning-${domId}" ${isStreamingThis ? 'open' : ''}>
+            <summary>${icon('node', 13)}<span>${ct('reasoning')}</span><span class="chat-reasoning-live" id="chat-reasoning-live-${domId}" style="${showThinkingPlaceholder ? '' : 'display:none'}"><i></i><i></i><i></i></span></summary>
             <p class="chat-reasoning-hint">${ct('reasoningHint')}</p>
-            <div class="chat-reasoning-text" id="chat-msg-thinking-${message.id}">${esc(message.thinking || '')}</div>
+            <div class="chat-reasoning-text" id="chat-msg-thinking-${domId}">${esc(liveThinking || '')}</div>
           </details>` : ''}
-        <div class="chat-typing" id="chat-msg-typing-${message.id}" style="${showTyping ? '' : 'display:none'}"><span></span><span></span><span></span></div>
-        <div class="chat-msg-text" id="chat-msg-content-${message.id}"></div>
+        <div class="chat-typing" id="chat-msg-typing-${domId}" style="${showTyping ? '' : 'display:none'}"><span></span><span></span><span></span></div>
+        <div class="chat-msg-text" id="chat-msg-content-${domId}"></div>
         ${message.unavailable ? `<p class="chat-msg-flag">${icon('warning', 13)}<span>${ct('unavailable')}</span></p>` : ''}
         ${message.stopped ? `<p class="chat-msg-flag">${ct('stopped')}</p>` : ''}
         ${message.aiGenerated ? `<p class="chat-ai-disclosure">${ct('aiDraft')}</p>` : ''}
@@ -815,10 +896,36 @@ document.addEventListener('click', async (event) => {
   }
 
   if (action === 'new-chat') return createConversation();
-  if (action === 'open-sidebar') { chatState.sidebarOpen = true; renderNow(); return; }
-  if (action === 'close-sidebar') { chatState.sidebarOpen = false; renderNow(); return; }
-  if (action === 'toggle-theme') { chatState.theme = chatState.theme === 'dark' ? 'light' : 'dark'; saveChatTheme(chatState.theme); renderNow(); return; }
-  if (action === 'toggle-thinking') { chatState.thinkingMode = !chatState.thinkingMode; renderNow(); return; }
+  // These four are purely cosmetic, page-local toggles — routing them through the app's normal full
+  // renderNow() (a whole-page innerHTML replace) was overkill even at rest, and actively harmful mid-
+  // stream: it re-mints every element (including the streaming bubble's, restarting entrance animations
+  // and visibly flashing the entire page) and, before the renderMessage fix above, could silently break
+  // the rest of the live response. Mutating the DOM directly here touches nothing but the toggle itself.
+  if (action === 'open-sidebar' || action === 'close-sidebar') {
+    chatState.sidebarOpen = action === 'open-sidebar';
+    document.querySelector('.chat-sidebar')?.classList.toggle('open', chatState.sidebarOpen);
+    document.querySelector('.chat-sidebar-backdrop')?.classList.toggle('visible', chatState.sidebarOpen);
+    return;
+  }
+  if (action === 'toggle-theme') {
+    chatState.theme = chatState.theme === 'dark' ? 'light' : 'dark';
+    saveChatTheme(chatState.theme);
+    document.querySelector('.chat-page')?.setAttribute('data-theme', chatState.theme);
+    const themeBtn = document.querySelector('.chat-theme-toggle');
+    if (themeBtn) {
+      themeBtn.setAttribute('aria-pressed', String(chatState.theme === 'dark'));
+      themeBtn.innerHTML = `${chatState.theme === 'dark' ? icon('sun', 15) : icon('moon', 15)}<span>${chatState.theme === 'dark' ? ct('lightMode') : ct('darkMode')}</span>`;
+    }
+    return;
+  }
+  if (action === 'toggle-thinking') {
+    chatState.thinkingMode = !chatState.thinkingMode;
+    const thinkBtn = document.querySelector('.chat-thinking-btn');
+    if (thinkBtn) { thinkBtn.classList.toggle('on', chatState.thinkingMode); thinkBtn.setAttribute('aria-checked', String(chatState.thinkingMode)); }
+    const composerInput = document.getElementById('chat-composer-input');
+    if (composerInput) composerInput.placeholder = chatState.aiCapabilities.thinkingSupported && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder');
+    return;
+  }
   if (action === 'toggle-menu') { chatState.openMenuId = chatState.openMenuId === actionId ? null : actionId; renderNow(); return; }
   if (action === 'pin') return patchConversation(actionId, { pinned: !chatState.conversations.find((item) => item.id === actionId)?.pinned });
   if (action === 'archive') { chatState.openMenuId = null; return patchConversation(actionId, { archived: !chatState.conversations.find((item) => item.id === actionId)?.archived }); }
