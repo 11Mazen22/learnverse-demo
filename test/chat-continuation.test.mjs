@@ -24,6 +24,10 @@ test('continuation merge removes repeated boundary text without dropping new tex
   assert.equal(mergeContinuation(existing, extension), 'First paragraph.\n\nSecond paragraph starts here. It now finishes.\n\nThird paragraph.');
 });
 
+test('continuation merge repairs a stop inside an Arabic word', () => {
+  assert.equal(mergeContinuation('ثم نبدأ ال', 'التعامل مع البيانات.'), 'ثم نبدأ التعامل مع البيانات.');
+});
+
 test('continuation instruction accounts for incomplete Markdown structures', () => {
   assert.equal(describeOpenMarkdown('```js\nconst x = 1;'), 'an open fenced block');
   assert.match(continuationInstruction('en', '- unfinished'), /Do not repeat/);
