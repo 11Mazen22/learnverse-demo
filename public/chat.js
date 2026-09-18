@@ -360,7 +360,7 @@ function updateStreamingBubbleDOM() {
   // re-render at stream-end happened to use the now-correct id).
   const msgId = chatState.streamDomId;
   const contentEl = document.getElementById(`chat-msg-content-${msgId}`);
-  if (contentEl) contentEl.textContent = chatState.streamContent;
+  if (contentEl) { contentEl.textContent = chatState.streamContent; appendStreamCursor(contentEl); }
   const thinkingEl = document.getElementById(`chat-msg-thinking-${msgId}`);
   if (thinkingEl) thinkingEl.textContent = chatState.streamThinking;
 
@@ -382,8 +382,20 @@ function updateStreamingBubbleDOM() {
   if (contentEl && now - lastMarkdownRenderAt > 140) {
     lastMarkdownRenderAt = now;
     contentEl.replaceChildren(renderMarkdownToDOM(chatState.streamContent));
+    appendStreamCursor(contentEl);
   }
   if (!chatState.scrolledUp) scrollMessagesToBottom();
+}
+
+// A blinking cursor at the exact end of the live text — the clearest, most standard signal that a
+// reply is actively being written (not stalled), sitting inline wherever the text currently wraps to
+// rather than pinned to the bubble's corner. Re-appended after every DOM write since both textContent
+// assignment and replaceChildren() above wipe any previous child, cursor included.
+function appendStreamCursor(el) {
+  const cursor = document.createElement('span');
+  cursor.className = 'chat-stream-cursor';
+  cursor.setAttribute('aria-hidden', 'true');
+  el.appendChild(cursor);
 }
 
 // ---------------------------------------------------------------------------
@@ -542,6 +554,8 @@ function renderConversationBody() {
 }
 
 function renderMessage(message, conversation) {
+  const isLast = conversation.messages[conversation.messages.length - 1]?.id === message.id;
+  const newestClass = isLast ? 'chat-msg-newest' : '';
   if (message.role === 'user') {
     if (chatState.editingMessageId === message.id) {
       return `
@@ -553,7 +567,7 @@ function renderMessage(message, conversation) {
         </div>`;
     }
     return `
-      <div class="chat-msg chat-msg-user" data-chat-msg="${message.id}">
+      <div class="chat-msg chat-msg-user ${newestClass}" data-chat-msg="${message.id}">
         <div class="chat-msg-bubble">
           ${message.attachment ? `<div class="chat-msg-attachment">${message.attachment.previewUrl ? `<img src="${esc(message.attachment.previewUrl)}" alt="${esc(message.attachment.name)}">` : message.attachment.attachmentId ? `<img src="/api/chat/attachments/${message.attachment.attachmentId}" alt="${esc(message.attachment.name)}">` : `<div class="chat-attachment-chip">${icon('image', 14)}<span>${esc(message.attachment.name)}</span></div>`}</div>` : ''}
           <div class="chat-msg-text">${esc(message.content)}</div>
@@ -577,9 +591,8 @@ function renderMessage(message, conversation) {
   const showReasoningBlock = isGenerating ? willThink : hasThinking;
   const showThinkingPlaceholder = isGenerating && willThink && !hasThinking;
   const showTyping = isGenerating && !message.content && !willThink;
-  const isLast = conversation.messages[conversation.messages.length - 1]?.id === message.id;
   return `
-    <div class="chat-msg chat-msg-assistant" data-chat-msg="${message.id}">
+    <div class="chat-msg chat-msg-assistant ${isStreamingThis ? 'is-streaming' : ''} ${newestClass}" data-chat-msg="${message.id}">
       <div class="chat-msg-avatar" aria-hidden="true">${icon('spark', 15)}</div>
       <div class="chat-msg-bubble">
         ${showReasoningBlock ? `
