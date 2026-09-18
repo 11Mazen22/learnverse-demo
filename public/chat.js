@@ -38,6 +38,10 @@ const copy = {
     ocrExtracting: 'Extracting text from image…', ocrDone: 'Text extracted from image', ocrEmpty: 'No readable text found in the image', ocrError: 'Could not extract text from the image', ocrLoadFailed: 'Could not load the text-reading engine',
     lightMode: 'Light mode', darkMode: 'Dark mode', you: 'You', assistant: 'Assistant', unavailableChip: 'AI Chat is not set up on this deployment yet.',
     dropHint: 'Drop image here', newMessages: 'New messages',
+    assistantOnline: 'AI ready', assistantOffline: 'AI unavailable', history: 'History', archived: 'Archived',
+    activeChats: 'Active', noArchived: 'No archived conversations', today: 'Today', yesterday: 'Yesterday', older: 'Older',
+    responseTime: 'Response', firstToken: 'first token', totalTime: 'total', goodSpeed: 'Fast', fairSpeed: 'Okay', slowSpeed: 'Slow',
+    chatWorkspace: 'AI study space', messagesLabel: 'messages', clearSearch: 'Clear search',
   },
 };
 const ct = (key) => copy[lang()]?.[key] || copy.ar[key] || key;
@@ -307,7 +311,7 @@ async function runOcr(attachment) {
     const text = await recognizeImageText(attachment.previewUrl, (progress) => {
       if (chatState.composerAttachment !== attachment) return;
       attachment.ocrProgress = progress;
-      renderNow();
+      updateOcrStatusDOM(attachment);
     });
     if (chatState.composerAttachment !== attachment) return;
     attachment.ocrStatus = 'done';
@@ -317,6 +321,21 @@ async function runOcr(attachment) {
     attachment.ocrStatus = 'error';
   }
   renderNow();
+}
+
+// Tesseract's progress callback fires many times a second while recognizing — routing every tick
+// through the full renderNow() tore down and rebuilt the whole composer each time, which forced the
+// browser to redecode the preview <img> from scratch on every tick even though its blob: URL never
+// changed, visibly flickering/"reloading" the image throughout OCR. Only the status line's percentage
+// actually changes per tick, so only that gets touched; the one real state change (pending -> done/
+// error, which also enables the send button) still goes through a normal renderNow() at the end.
+function updateOcrStatusDOM(attachment) {
+  const el = document.querySelector('.chat-ocr-status');
+  if (!el) { renderNow(); return; }
+  el.className = `chat-ocr-status chat-ocr-${attachment.ocrStatus}`;
+  el.innerHTML = attachment.ocrStatus === 'pending'
+    ? `<i class="chat-ocr-spinner" aria-hidden="true"></i><span>${ct('ocrExtracting')} ${attachment.ocrProgress || 0}%</span>`
+    : '';
 }
 
 // ---------------------------------------------------------------------------
