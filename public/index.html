@@ -17,6 +17,13 @@
   <a class="skip-link" href="#main">انتقل إلى المحتوى</a>
   <div id="app" aria-live="polite"></div>
   <div id="toast-region" class="toast-region" aria-live="assertive" aria-atomic="true"></div>
-  <script type="module" src="/app.js?v=2"></script>
+  <!-- No ?v= query string here on purpose: chat.js imports app.js back (a safe circular reference —
+       see docs/DECISIONS.md), and ES module identity is keyed by the exact resolved URL including any
+       query string. A version-busted URL here would resolve differently than chat.js's own bare
+       `import ... from './app.js'`, causing the browser to fetch and instantiate app.js TWICE as two
+       separate module graphs — two state objects, and every click/input/submit/keydown listener
+       registered twice. Freshness after a deploy is already handled by the no-cache response header
+       (see server.mjs's serveStatic), which forces revalidation on every load without needing this. -->
+  <script type="module" src="/app.js"></script>
 </body>
 </html>

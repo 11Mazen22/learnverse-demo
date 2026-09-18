@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { createReadStream } from 'node:fs';
-import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveChatTitle, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
@@ -39,6 +39,7 @@ const TUTOR_TIMEOUT_MS = 70_000;
 // grounded to one lesson and is student-only.
 const CHAT_MESSAGE_BODY_MAX = 8_000_000; // accommodates a client-resized (~1600px, JPEG) image plus JSON overhead
 const CHAT_ATTACHMENT_MAX_BASE64 = 6_000_000; // defense-in-depth backstop; the client resize is the primary control
+const MAX_TEXT_ATTACHMENT_CHARS = 20_000; // matches the client-side truncation cap for text-file attachments and OCR text
 const CHAT_HISTORY_WINDOW = 12; // last N stored messages sent to Ollama per generation — a latency control on
 // CPU-only inference, not a model context-window limit (the model's real window is far larger)
 const CHAT_NUM_PREDICT = 600; // fuller answers than the tutor widget's 200 (tuned for 1-3-sentence hints)
@@ -126,22 +127,30 @@ function chatSystemPrompt(language, think) {
 }
 
 // Builds the Ollama messages array for one generation: the system prompt plus the last
-// CHAT_HISTORY_WINDOW stored messages (a latency control, see above). Any in-window user message
-// with a persisted image attachment is re-read from disk and re-attached — images age out of context
-// naturally once their message scrolls out of the window, rather than being resent forever.
-async function buildChatOllamaMessages(conversation, user, think) {
+// CHAT_HISTORY_WINDOW stored messages (a latency control, see above). The deployed model has no
+// vision capability, so image attachments are never sent as image bytes to Ollama — instead, the
+// client runs real OCR (Tesseract.js) on the image before sending, and the extracted text is folded
+// into the user turn's content here, clearly labelled as OCR output rather than the student's own
+// words. Text-file attachments (py/txt/json/etc.) are folded in the same way. Attachments age out of
+// context naturally once their message scrolls out of the CHAT_HISTORY_WINDOW, like any other turn.
+function buildChatOllamaMessages(conversation, user, think) {
   const recent = conversation.messages.slice(-CHAT_HISTORY_WINDOW).filter((message) => message.status !== 'generating');
   const messages = [{ role: 'system', content: chatSystemPrompt(user.language, think) }];
   for (const message of recent) {
     if (message.role === 'user') {
-      const entry = { role: 'user', content: message.content };
-      if (message.attachment?.attachmentId) {
-        try {
-          const bytes = await readFile(path.join(CHAT_ATTACHMENTS_DIR, `${message.attachment.attachmentId}.jpg`));
-          entry.images = [bytes.toString('base64')];
-        } catch { /* file missing or unreadable: fall back to the text-only turn */ }
+      let content = message.content || '';
+      const attachment = message.attachment;
+      if (attachment?.kind === 'text' && attachment.content) {
+        const label = user.language === 'en' ? `Attached file "${attachment.name}":` : `الملف المرفق "${attachment.name}":`;
+        content = `${content}\n\n${label}\n${attachment.content}`.trim();
+      } else if (attachment?.kind === 'image' && attachment.ocrText) {
+        const label = user.language === 'en' ? `Text extracted via OCR from an attached image ("${attachment.name}"):` : `نص مستخرج بتقنية OCR من صورة مرفقة ("${attachment.name}"):`;
+        content = `${content}\n\n${label}\n${attachment.ocrText}`.trim();
+      } else if (attachment?.kind === 'image') {
+        const note = user.language === 'en' ? '[The student attached an image, but no readable text was found in it.]' : '[أرفق الطالب صورة، لكن لم يُعثر على نص مقروء بداخلها.]';
+        content = `${content}\n\n${note}`.trim();
       }
-      messages.push(entry);
+      messages.push({ role: 'user', content });
     } else if (message.role === 'assistant' && message.content) {
       messages.push({ role: 'assistant', content: message.content });
     }
@@ -253,7 +262,7 @@ async function askTutor(system, message) {
   }
 }
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm' };
 const json = (res, status, body) => {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
   res.end(JSON.stringify(body));
@@ -299,7 +308,11 @@ function studentPayload(data, user) {
   const mastery = data.mastery.filter((item) => item.userId === user.id);
   const curriculum = structuredClone(data.curriculum);
   curriculum.units.forEach((unit) => unit.lessons.forEach((lesson) => {
-    lesson.questions = lesson.questionIds.map((id) => safeQuestion(findQuestion(data, id), language));
+    // A lesson's questionIds can outlive an individual question's publication status (e.g. an admin
+    // retires or unpublishes one after it was already wired into a lesson) — findQuestion only resolves
+    // currently 'published-demo' questions, so a stale id must be skipped here rather than crash the
+    // whole bootstrap response for every student.
+    lesson.questions = lesson.questionIds.map((id) => findQuestion(data, id)).filter(Boolean).map((question) => safeQuestion(question, language));
   }));
   return {
     user: publicUser(user), curriculum, skills: data.skills,
@@ -481,7 +494,7 @@ async function handleApi(req, res, url) {
     if (!user) return;
     const unit = data.curriculum.units.find((item) => item.id === unitMatch[1]);
     if (!unit || unit.locked) return fail(res, 404, 'Challenge is unavailable.', 'NOT_FOUND');
-    return json(res, 200, { unitId: unit.id, questions: activeBossQuestionIds(data.bossAttempts, unit, user.id).map((id) => safeQuestion(findQuestion(data, id), user.language)) });
+    return json(res, 200, { unitId: unit.id, questions: activeBossQuestionIds(data.bossAttempts, unit, user.id).map((id) => findQuestion(data, id)).filter(Boolean).map((question) => safeQuestion(question, user.language)) });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/shop/purchase') {
@@ -700,10 +713,20 @@ async function handleApi(req, res, url) {
 
     let attachment = null;
     if (body.attachment) {
-      const { name, type, dataBase64 } = body.attachment;
-      if (typeof type !== 'string' || !type.startsWith('image/')) return fail(res, 413, 'Only image attachments are supported.', 'ATTACHMENT_UNSUPPORTED');
-      if (typeof dataBase64 !== 'string' || !dataBase64 || dataBase64.length > CHAT_ATTACHMENT_MAX_BASE64) return fail(res, 413, 'The image is too large.', 'ATTACHMENT_TOO_LARGE');
-      attachment = { name: String(name || 'image').slice(0, 120), type, size: Math.round(dataBase64.length * 0.75), dataBase64 };
+      if (body.attachment.kind === 'text') {
+        const { name, content } = body.attachment;
+        if (typeof content !== 'string' || !content) return fail(res, 400, 'The file has no readable text.', 'ATTACHMENT_EMPTY');
+        if (content.length > MAX_TEXT_ATTACHMENT_CHARS) return fail(res, 413, 'The file is too large.', 'ATTACHMENT_TOO_LARGE');
+        attachment = { kind: 'text', name: String(name || 'file.txt').slice(0, 120), content, size: content.length };
+      } else {
+        const { name, type, dataBase64, ocrText } = body.attachment;
+        if (typeof type !== 'string' || !type.startsWith('image/')) return fail(res, 413, 'Only image attachments are supported.', 'ATTACHMENT_UNSUPPORTED');
+        if (typeof dataBase64 !== 'string' || !dataBase64 || dataBase64.length > CHAT_ATTACHMENT_MAX_BASE64) return fail(res, 413, 'The image is too large.', 'ATTACHMENT_TOO_LARGE');
+        attachment = {
+          kind: 'image', name: String(name || 'image').slice(0, 120), type, size: Math.round(dataBase64.length * 0.75), dataBase64,
+          ocrText: typeof ocrText === 'string' ? ocrText.slice(0, MAX_TEXT_ATTACHMENT_CHARS) : '',
+        };
+      }
     }
     if (!isRegenerate && !content && !attachment) return fail(res, 400, 'Write a message first.', 'VALIDATION');
 
@@ -737,11 +760,18 @@ async function handleApi(req, res, url) {
         if (!isRegenerate) {
           userMessage = {
             id: crypto.randomUUID(), role: 'user', content, idempotencyKey,
-            attachment: attachment ? { name: attachment.name, type: attachment.type, size: attachment.size, attachmentId: crypto.randomUUID() } : null,
+            attachment: attachment
+              ? (attachment.kind === 'text'
+                ? { kind: 'text', name: attachment.name, size: attachment.size, content: attachment.content }
+                : { kind: 'image', name: attachment.name, type: attachment.type, size: attachment.size, attachmentId: crypto.randomUUID(), ocrText: attachment.ocrText })
+              : null,
             createdAt: new Date().toISOString(),
           };
           conversation.messages.push(userMessage);
-          if (!conversation.title) conversation.title = deriveChatTitle(content) || (attachment ? (user.language === 'en' ? 'Image' : 'صورة') : null);
+          if (!conversation.title) {
+            const attachmentTitle = attachment && (attachment.kind === 'text' ? (user.language === 'en' ? 'File' : 'ملف') : (user.language === 'en' ? 'Image' : 'صورة'));
+            conversation.title = deriveChatTitle(content) || attachmentTitle || null;
+          }
         }
 
         const assistantMessage = {
@@ -782,7 +812,7 @@ async function handleApi(req, res, url) {
 
     writeLine({ type: 'meta', conversationId, userMessageId: phase1.userMessage?.id || null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title });
 
-    if (attachment && phase1.userMessage?.attachment?.attachmentId) {
+    if (attachment && attachment.kind === 'image' && phase1.userMessage?.attachment?.attachmentId) {
       try {
         await mkdir(CHAT_ATTACHMENTS_DIR, { recursive: true });
         await writeFile(path.join(CHAT_ATTACHMENTS_DIR, `${phase1.userMessage.attachment.attachmentId}.jpg`), Buffer.from(attachment.dataBase64, 'base64'));
@@ -866,7 +896,12 @@ async function serveStatic(req, res, url) {
     // no-cache (not no-store): browsers may keep a copy but must revalidate with the server first.
     // A long max-age here would let an already-open tab silently run stale app.js/styles.css for up
     // to that long after every deploy, since this app has no content-hashed filenames to bust on.
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; img-src 'self' data:; connect-src 'self'" });
+    // script-src includes 'wasm-unsafe-eval' and worker-src/connect-src allow blob:/data: for the
+    // client-side OCR engine (Tesseract.js, vendored under /vendor/tesseract): it wraps its worker
+    // script in a blob: URL before instantiating the Worker, and that worker in turn fetches its WASM
+    // core via blob:/data: URIs it constructs itself — each was confirmed necessary via a live CSP
+    // violation report (worker-src, then connect-src) rather than assumed upfront.
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' blob: data:" });
     createReadStream(resolved).pipe(res);
   } catch {
     if (!path.extname(requested)) return serveStatic(req, res, new URL('/index.html', url));

@@ -459,8 +459,15 @@ html[dir="ltr"] .chat-composer { padding: .65rem .85rem .65rem .65rem; }
 .chat-drop-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: .5rem; background: color-mix(in srgb, var(--chat-accent) 12%, var(--chat-surface) 88%); border-radius: 19px; font-weight: 800; font-size: .85rem; color: var(--chat-accent); pointer-events: none; z-index: 2; }
 .chat-composer-attachment { position: relative; display: inline-block; margin: .2rem .2rem 0; }
 .chat-composer-attachment img { max-height: 90px; border-radius: 12px; display: block; border: 1px solid var(--chat-line); }
+.chat-composer-attachment.is-file { display: flex; align-items: center; gap: .4rem; padding: .5rem .8rem; border-radius: 12px; border: 1px solid var(--chat-line); background: var(--chat-surface-2); color: var(--chat-ink); max-width: 260px; }
+.chat-composer-attachment.is-file .chat-file-name { font-size: .78rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-attachment-remove { position: absolute; top: -7px; inset-inline-end: -7px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--chat-ink); color: var(--chat-bg); border: 2px solid var(--chat-surface); cursor: pointer; padding: 0; }
 .chat-attachment-error { display: flex; align-items: center; gap: .35rem; margin: 0 .3rem; color: var(--red); font-size: .72rem; }
+.chat-ocr-status { display: flex; align-items: center; gap: .35rem; margin: .1rem .3rem 0; font-size: .72rem; color: var(--chat-muted); }
+.chat-ocr-status.chat-ocr-done { color: var(--green, #2f9e5b); }
+.chat-ocr-status.chat-ocr-error { color: var(--red); }
+.chat-ocr-spinner { width: 11px; height: 11px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--chat-accent) 30%, transparent); border-top-color: var(--chat-accent); animation: chat-ocr-spin .7s linear infinite; flex: 0 0 auto; }
+@keyframes chat-ocr-spin { to { transform: rotate(360deg); } }
 .chat-composer-row { display: flex; align-items: flex-end; gap: .3rem; }
 .chat-attach-button { flex: 0 0 auto; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: transparent; color: var(--chat-muted); cursor: pointer; }
 .chat-attach-button:hover { background: var(--chat-surface-2); color: var(--chat-accent); }

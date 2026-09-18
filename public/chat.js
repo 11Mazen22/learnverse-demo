@@ -17,10 +17,11 @@ const copy = {
     welcomeTitle: 'أهلًا، بماذا أساعدك اليوم؟', welcomeBody: 'اسأل عن أي فكرة دراسية، اطلب شرحًا، أو ناقش مسألة خطوة بخطوة.',
     suggestion1: 'اشرح لي معنى السرعة المتوسطة بمثال', suggestion2: 'ساعدني أفهم رسم المسافة والزمن', suggestion3: 'كيف أراجع لاختبار الغد بذكاء؟',
     placeholder: 'اكتب رسالتك…', placeholderThinking: 'اسأل سؤالاً يحتاج تفكيرًا عميقًا…', send: 'إرسال', stop: 'إيقاف', thinking: 'تفكير عميق', reasoning: 'التفكير', reasoningHint: 'خطوات تفكير المساعد — ليست الإجابة النهائية.',
-    attach: 'إرفاق صورة', remove: 'إزالة', rename: 'إعادة تسمية', pin: 'تثبيت', unpin: 'إلغاء التثبيت', archive: 'أرشفة', unarchive: 'إلغاء الأرشفة', delete: 'حذف',
+    attach: 'إرفاق ملف أو صورة', remove: 'إزالة', rename: 'إعادة تسمية', pin: 'تثبيت', unpin: 'إلغاء التثبيت', archive: 'أرشفة', unarchive: 'إلغاء الأرشفة', delete: 'حذف',
     confirmDeleteTitle: 'حذف المحادثة؟', confirmDeleteBody: 'سيتم حذف هذه المحادثة وكل رسائلها نهائيًا.', cancel: 'إلغاء', regenerate: 'إعادة توليد', copy: 'نسخ', copied: 'تم النسخ',
     edit: 'تعديل', save: 'حفظ', aiDraft: 'مسودة ذكاء اصطناعي', stopped: 'تم الإيقاف', unavailable: 'المساعد غير متاح الآن',
-    imageRejected: 'الملفات غير الصورية غير مدعومة.', imageTooLarge: 'حجم الصورة كبير جدًا.', contextDivider: 'الرسائل الأقدم غير متاحة لذاكرة المساعد في هذا الرد.',
+    imageRejected: 'الملفات غير الصورية غير مدعومة.', imageTooLarge: 'حجم الصورة كبير جدًا.', fileTooLarge: 'حجم الملف كبير جدًا (الحد الأقصى 2 ميجابايت).', fileReadFailed: 'تعذّرت قراءة الملف.', fileTypeRejected: 'نوع الملف غير مدعوم. يمكنك إرفاق صورة أو ملف نصي (txt, py, json, ...).', contextDivider: 'الرسائل الأقدم غير متاحة لذاكرة المساعد في هذا الرد.',
+    ocrExtracting: 'جارٍ استخراج النص من الصورة…', ocrDone: 'تم استخراج النص من الصورة', ocrEmpty: 'لم يُعثر على نص مقروء في الصورة', ocrError: 'تعذّر استخراج النص من الصورة', ocrLoadFailed: 'تعذّر تحميل محرك قراءة النصوص',
     lightMode: 'وضع فاتح', darkMode: 'وضع داكن', you: 'أنت', assistant: 'المساعد', unavailableChip: 'الدردشة الذكية غير مفعّلة على هذه النسخة بعد.',
     dropHint: 'أفلت الصورة هنا', newMessages: 'رسائل جديدة',
   },
@@ -30,10 +31,11 @@ const copy = {
     welcomeTitle: 'Hi — what can I help you with?', welcomeBody: 'Ask about any study topic, request an explanation, or work through a problem step by step.',
     suggestion1: 'Explain average speed with a worked example', suggestion2: 'Help me understand distance-time graphs', suggestion3: 'How should I revise for tomorrow’s test?',
     placeholder: 'Write your message…', placeholderThinking: 'Ask something that needs deep thinking…', send: 'Send', stop: 'Stop', thinking: 'Deep thinking', reasoning: 'Reasoning', reasoningHint: 'The assistant’s thinking steps — not the final answer.',
-    attach: 'Attach image', remove: 'Remove', rename: 'Rename', pin: 'Pin', unpin: 'Unpin', archive: 'Archive', unarchive: 'Unarchive', delete: 'Delete',
+    attach: 'Attach a file or image', remove: 'Remove', rename: 'Rename', pin: 'Pin', unpin: 'Unpin', archive: 'Archive', unarchive: 'Unarchive', delete: 'Delete',
     confirmDeleteTitle: 'Delete this conversation?', confirmDeleteBody: 'This conversation and all its messages will be permanently deleted.', cancel: 'Cancel', regenerate: 'Regenerate', copy: 'Copy', copied: 'Copied',
     edit: 'Edit', save: 'Save', aiDraft: 'AI draft', stopped: 'Stopped', unavailable: 'The assistant is unavailable right now',
-    imageRejected: 'Non-image files are not supported.', imageTooLarge: 'That image is too large.', contextDivider: 'Earlier messages aren’t included in the assistant’s memory for this reply.',
+    imageRejected: 'Non-image files are not supported.', imageTooLarge: 'That image is too large.', fileTooLarge: 'That file is too large (2MB max).', fileReadFailed: 'Could not read that file.', fileTypeRejected: 'That file type isn’t supported. Attach an image or a text file (txt, py, json, ...).', contextDivider: 'Earlier messages aren’t included in the assistant’s memory for this reply.',
+    ocrExtracting: 'Extracting text from image…', ocrDone: 'Text extracted from image', ocrEmpty: 'No readable text found in the image', ocrError: 'Could not extract text from the image', ocrLoadFailed: 'Could not load the text-reading engine',
     lightMode: 'Light mode', darkMode: 'Dark mode', you: 'You', assistant: 'Assistant', unavailableChip: 'AI Chat is not set up on this deployment yet.',
     dropHint: 'Drop image here', newMessages: 'New messages',
   },
@@ -57,6 +59,7 @@ const ICONS = {
   spark: '<path d="M12 2.2c.7 4.1 2.7 6.1 6.8 6.8-4.1.7-6.1 2.7-6.8 6.8-.7-4.1-2.7-6.1-6.8-6.8 4.1-.7 6.1-2.7 6.8-6.8Z" fill="currentColor"/>',
   image: '<rect x="3" y="4.5" width="18" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8.7" cy="10" r="1.5" fill="currentColor"/><path d="M21 15.5l-5.4-5.3L6.5 19.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>',
   warning: '<path d="M12 3.3 21.3 19.5H2.7L12 3.3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M12 9.8v4M12 16.7h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  check: '<path d="M4.5 12.5l5 5 10-11" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
   refresh: '<path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M17.3 3.2v4h-4M6.7 20.8v-4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
   attach: '<path d="M8 12.8V6.8a4 4 0 0 1 8 0v9.4a2.6 2.6 0 0 1-5.2 0V8.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>',
   copy: '<rect x="4" y="4" width="12" height="12" rx="1.6" stroke="currentColor" stroke-width="1.5"/><path d="M9 20h7.4a1.6 1.6 0 0 0 1.6-1.6V9" stroke="currentColor" stroke-width="1.5" fill="none"/>',
@@ -64,6 +67,7 @@ const ICONS = {
   send: '<path d="M3.2 11.3 19.7 4.3l-6.4 15.4-2.3-7-8-1.4Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>',
   stop: '<rect x="7" y="7" width="10" height="10" rx="2.2" fill="currentColor"/>',
   search: '<circle cx="10.3" cy="10.3" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14.8 14.8 19.5 19.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  file: '<path d="M6.5 3h7.2L18 6.8V20a1 1 0 0 1-1 1H6.5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M13.5 3v3.8H18M9 12.2h6M9 15.5h6M9 8.8h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
   dots: '<circle cx="4" cy="10" r="1.6" fill="currentColor"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/>',
   node: '<circle cx="12" cy="6" r="2.1" stroke="currentColor" stroke-width="1.6"/><circle cx="5.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/><circle cx="18.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/><path d="M12 8.1V12M12 12l-5.3 3.3M12 12l5.3 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   arrowDown: '<path d="M12 4v14.5M6 13l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
@@ -189,7 +193,7 @@ function resizeImageFile(file) {
         blobReader.onerror = () => reject(new Error('read-failed'));
         blobReader.onload = () => {
           const dataBase64 = String(blobReader.result).split(',')[1] || '';
-          resolve({ dataBase64, type: 'image/jpeg', name: file.name, size: blob.size, previewUrl: URL.createObjectURL(blob) });
+          resolve({ kind: 'image', dataBase64, type: 'image/jpeg', name: file.name, size: blob.size, previewUrl: URL.createObjectURL(blob) });
         };
         blobReader.readAsDataURL(blob);
       }, 'image/jpeg', 0.85);
@@ -198,15 +202,119 @@ function resizeImageFile(file) {
   });
 }
 
+// Plain-text-ish file types the assistant can genuinely read — extension-based, since browsers don't
+// reliably report a useful MIME type for source files like .py (often empty or "application/x-python").
+const TEXT_FILE_EXTENSIONS = ['.txt', '.md', '.py', '.js', '.jsx', '.ts', '.tsx', '.json', '.csv', '.html', '.css', '.xml', '.yml', '.yaml', '.sh', '.log', '.c', '.cpp', '.java', '.rb', '.go', '.rs', '.sql'];
+const MAX_TEXT_ATTACHMENT_CHARS = 20_000;
+
+function isTextFile(file) {
+  const name = file.name.toLowerCase();
+  return TEXT_FILE_EXTENSIONS.some((ext) => name.endsWith(ext)) || file.type === 'text/plain';
+}
+
+async function attachTextFile(file) {
+  chatState.attachmentError = null;
+  if (file.size > 2_000_000) { chatState.attachmentError = ct('fileTooLarge'); renderNow(); return; }
+  try {
+    let text = await file.text();
+    let truncated = false;
+    if (text.length > MAX_TEXT_ATTACHMENT_CHARS) { text = text.slice(0, MAX_TEXT_ATTACHMENT_CHARS); truncated = true; }
+    chatState.composerAttachment = { kind: 'text', name: file.name, content: text, size: file.size, truncated };
+  } catch {
+    chatState.attachmentError = ct('fileReadFailed');
+  }
+  renderNow();
+}
+
+async function attachFile(file) {
+  if (isTextFile(file)) return attachTextFile(file);
+  if (file.type.startsWith('image/')) return attachImageFile(file);
+  chatState.attachmentError = ct('fileTypeRejected');
+  renderNow();
+}
+
 async function attachImageFile(file) {
   chatState.attachmentError = null;
-  if (!file.type.startsWith('image/')) { chatState.attachmentError = ct('imageRejected'); renderNow(); return; }
   if (file.size > MAX_ATTACHMENT_BYTES * 4) { chatState.attachmentError = ct('imageTooLarge'); renderNow(); return; }
   try {
     const resized = await resizeImageFile(file);
+    resized.ocrStatus = 'pending';
+    resized.ocrProgress = 0;
+    resized.ocrText = '';
     chatState.composerAttachment = resized;
+    renderNow();
+    runOcr(resized);
   } catch {
     chatState.attachmentError = ct('imageTooLarge');
+    renderNow();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Real client-side OCR (Tesseract.js, vendored under /public/vendor/tesseract — no CDN, this app has
+// no external-script CSP allowance). The deployed Ollama model has no vision capability at all (verified
+// against its published model card), so image attachments are never sent to it as image bytes: instead,
+// the browser genuinely reads the text out of the photo before sending, and that extracted text — not
+// the pixels — is what the assistant actually receives. A persistent worker recognizes both Arabic and
+// English (the app's two supported languages) so a screenshot in either script works without asking the
+// student which language their photo is in.
+// ---------------------------------------------------------------------------
+
+const TESSERACT_BASE = '/vendor/tesseract';
+let tesseractScriptPromise = null;
+let tesseractWorkerPromise = null;
+let currentOcrProgressHandler = null;
+
+function loadTesseractScript() {
+  if (window.Tesseract) return Promise.resolve();
+  if (!tesseractScriptPromise) {
+    tesseractScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `${TESSERACT_BASE}/tesseract.min.js`;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('tesseract-load-failed'));
+      document.head.appendChild(script);
+    });
+  }
+  return tesseractScriptPromise;
+}
+
+function getTesseractWorker() {
+  if (!tesseractWorkerPromise) {
+    tesseractWorkerPromise = loadTesseractScript().then(() => window.Tesseract.createWorker(['ara', 'eng'], 1, {
+      workerPath: `${TESSERACT_BASE}/worker.min.js`,
+      corePath: `${TESSERACT_BASE}/tesseract-core-simd.wasm.js`,
+      langPath: `${TESSERACT_BASE}/`,
+      logger: (m) => { if (currentOcrProgressHandler && m.status === 'recognizing text') currentOcrProgressHandler(Math.round((m.progress || 0) * 100)); },
+    })).catch((error) => { tesseractWorkerPromise = null; throw error; });
+  }
+  return tesseractWorkerPromise;
+}
+
+async function recognizeImageText(imageUrl, onProgress) {
+  const worker = await getTesseractWorker();
+  currentOcrProgressHandler = onProgress;
+  try {
+    const { data } = await worker.recognize(imageUrl);
+    return (data?.text || '').trim();
+  } finally {
+    currentOcrProgressHandler = null;
+  }
+}
+
+async function runOcr(attachment) {
+  try {
+    const text = await recognizeImageText(attachment.previewUrl, (progress) => {
+      if (chatState.composerAttachment !== attachment) return;
+      attachment.ocrProgress = progress;
+      renderNow();
+    });
+    if (chatState.composerAttachment !== attachment) return;
+    attachment.ocrStatus = 'done';
+    attachment.ocrText = text.slice(0, MAX_TEXT_ATTACHMENT_CHARS);
+  } catch {
+    if (chatState.composerAttachment !== attachment) return;
+    attachment.ocrStatus = 'error';
   }
   renderNow();
 }
@@ -223,6 +331,9 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
   if (chatState.streaming || !chatState.activeConversation) return;
   const conversation = chatState.activeConversation;
   const attachment = chatState.composerAttachment;
+  // Images are only ever handed to the assistant as OCR'd text (see runOcr) — sending before that
+  // finishes would either block on nothing (no text yet) or silently drop the image's content.
+  if (attachment?.kind === 'image' && attachment.ocrStatus === 'pending') return;
   const idempotencyKey = id();
 
   if (!regenerate) {
@@ -232,7 +343,9 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
     }
     conversation.messages.push({
       id: `pending-${idempotencyKey}`, role: 'user', content,
-      attachment: attachment ? { name: attachment.name, type: attachment.type, size: attachment.size, previewUrl: attachment.previewUrl } : null,
+      attachment: attachment ? (attachment.kind === 'text'
+        ? { kind: 'text', name: attachment.name, size: attachment.size, truncated: attachment.truncated }
+        : { kind: 'image', name: attachment.name, type: attachment.type, size: attachment.size, previewUrl: attachment.previewUrl }) : null,
       createdAt: new Date().toISOString(),
     });
   } else {
@@ -259,7 +372,11 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
 
   const body = { idempotencyKey, regenerate, editFromMessageId };
   if (!regenerate) body.content = content;
-  if (attachment) body.attachment = { name: attachment.name, type: attachment.type, dataBase64: attachment.dataBase64 };
+  if (attachment) {
+    body.attachment = attachment.kind === 'text'
+      ? { kind: 'text', name: attachment.name, content: attachment.content }
+      : { kind: 'image', name: attachment.name, type: attachment.type, dataBase64: attachment.dataBase64, ocrText: attachment.ocrText || '' };
+  }
   if (willUseThinking) body.thinking = true;
 
   try {
@@ -435,7 +552,7 @@ function renderChatPage() {
       ${renderSidebar()}
       <div class="chat-sidebar-backdrop ${chatState.sidebarOpen ? 'visible' : ''}" data-chat-action="close-sidebar"></div>
       <div class="chat-main">
-        ${chatState.activeConversation ? renderConversationBody() : renderChatWelcome()}
+        ${chatState.activeConversation && chatState.activeConversation.messages.length > 0 ? renderConversationBody() : renderChatWelcome()}
       </div>
     </div>`;
   queueMicrotask(() => { hydrateChatMessages(); if (chatState.activeConversation && !chatState.scrolledUp) scrollMessagesToBottom(); });
@@ -575,7 +692,7 @@ function renderMessage(message, conversation) {
     return `
       <div class="chat-msg chat-msg-user ${newestClass}" data-chat-msg="${message.id}">
         <div class="chat-msg-bubble">
-          ${message.attachment ? `<div class="chat-msg-attachment">${message.attachment.previewUrl ? `<img src="${esc(message.attachment.previewUrl)}" alt="${esc(message.attachment.name)}">` : message.attachment.attachmentId ? `<img src="/api/chat/attachments/${message.attachment.attachmentId}" alt="${esc(message.attachment.name)}">` : `<div class="chat-attachment-chip">${icon('image', 14)}<span>${esc(message.attachment.name)}</span></div>`}</div>` : ''}
+          ${message.attachment ? `<div class="chat-msg-attachment">${message.attachment.previewUrl ? `<img src="${esc(message.attachment.previewUrl)}" alt="${esc(message.attachment.name)}">` : message.attachment.attachmentId ? `<img src="/api/chat/attachments/${message.attachment.attachmentId}" alt="${esc(message.attachment.name)}">` : `<div class="chat-attachment-chip">${icon(message.attachment.kind === 'text' ? 'file' : 'image', 14)}<span>${esc(message.attachment.name)}</span></div>`}</div>` : ''}
           <div class="chat-msg-text">${esc(message.content)}</div>
         </div>
         <div class="chat-msg-actions">
@@ -627,10 +744,20 @@ function renderComposer(inWelcome) {
   return `
     <form class="chat-composer ${chatState.dragActive ? 'drag-active' : ''}" id="chat-composer-form">
       ${chatState.dragActive ? `<div class="chat-drop-overlay">${icon('image', 20)}<span>${ct('dropHint')}</span></div>` : ''}
-      ${attachment ? `<div class="chat-composer-attachment"><img src="${esc(attachment.previewUrl)}" alt=""><button type="button" class="chat-attachment-remove" data-chat-action="remove-attachment" aria-label="${ct('remove')}">${icon('close', 12)}</button></div>` : ''}
+      ${attachment ? `<div class="chat-composer-attachment ${attachment.kind === 'text' ? 'is-file' : ''}">
+        ${attachment.kind === 'text'
+          ? `${icon('file', 20)}<span class="chat-file-name">${esc(attachment.name)}</span>`
+          : `<img src="${esc(attachment.previewUrl)}" alt="">`}
+        <button type="button" class="chat-attachment-remove" data-chat-action="remove-attachment" aria-label="${ct('remove')}">${icon('close', 12)}</button>
+      </div>
+      ${attachment.kind === 'image' ? `<p class="chat-ocr-status chat-ocr-${attachment.ocrStatus}">
+        ${attachment.ocrStatus === 'pending' ? `<i class="chat-ocr-spinner" aria-hidden="true"></i><span>${ct('ocrExtracting')} ${attachment.ocrProgress || 0}%</span>` : ''}
+        ${attachment.ocrStatus === 'done' ? `${icon('check', 13)}<span>${attachment.ocrText ? ct('ocrDone') : ct('ocrEmpty')}</span>` : ''}
+        ${attachment.ocrStatus === 'error' ? `${icon('warning', 13)}<span>${ct('ocrError')}</span>` : ''}
+      </p>` : ''}` : ''}
       ${chatState.attachmentError ? `<p class="chat-attachment-error">${icon('warning', 13)}<span>${esc(chatState.attachmentError)}</span></p>` : ''}
       <div class="chat-composer-row">
-        <label class="chat-attach-button" title="${ct('attach')}"><input type="file" accept="image/*" id="chat-file-input" hidden>${icon('attach', 18)}</label>
+        <label class="chat-attach-button" title="${ct('attach')}"><input type="file" accept="image/*,.txt,.md,.py,.js,.jsx,.ts,.tsx,.json,.csv,.html,.css,.xml,.yml,.yaml,.sh,.log,.c,.cpp,.java,.rb,.go,.rs,.sql" id="chat-file-input" hidden>${icon('attach', 18)}</label>
         ${canThink ? `
           <button type="button" class="chat-thinking-btn ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" role="switch" aria-checked="${chatState.thinkingMode}" aria-label="${ct('thinking')}" title="${ct('thinking')}">
             ${icon('node', 17)}<i class="chat-thinking-dot" aria-hidden="true"></i>
@@ -638,7 +765,7 @@ function renderComposer(inWelcome) {
         <textarea id="chat-composer-input" class="chat-composer-input" placeholder="${canThink && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder')}" rows="1" maxlength="4000"></textarea>
         ${chatState.streaming
           ? `<button type="button" class="chat-send-btn is-stop" data-chat-action="stop" aria-label="${ct('stop')}" title="${ct('stop')}">${icon('stop', 15)}</button>`
-          : `<button type="submit" class="chat-send-btn" aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`}
+          : `<button type="submit" class="chat-send-btn" ${attachment?.kind === 'image' && attachment.ocrStatus === 'pending' ? 'disabled' : ''} aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`}
       </div>
     </form>${inWelcome ? '' : ''}`;
 }
@@ -742,6 +869,7 @@ document.addEventListener('submit', (event) => {
     const input = document.getElementById('chat-composer-input');
     const content = input?.value.trim() || '';
     if (!content && !chatState.composerAttachment) return;
+    if (chatState.composerAttachment?.kind === 'image' && chatState.composerAttachment.ocrStatus === 'pending') return;
     if (input) input.value = '';
     sendChat({ content });
     return;
@@ -775,7 +903,7 @@ document.addEventListener('input', (event) => {
     event.target.style.height = `${Math.min(event.target.scrollHeight, 200)}px`;
     return;
   }
-  if (event.target.id === 'chat-file-input' && event.target.files?.[0]) { attachImageFile(event.target.files[0]); event.target.value = ''; }
+  if (event.target.id === 'chat-file-input' && event.target.files?.[0]) { attachFile(event.target.files[0]); event.target.value = ''; }
 });
 
 document.addEventListener('keydown', (event) => {
@@ -810,7 +938,7 @@ document.addEventListener('drop', (event) => {
   event.preventDefault();
   chatState.dragActive = false;
   const file = event.dataTransfer?.files?.[0];
-  if (file) attachImageFile(file);
+  if (file) attachFile(file);
   else renderNow();
 });
 
