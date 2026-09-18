@@ -37,7 +37,8 @@ function saveQueue() {
 
 const copy = {
   ar: {
-    brand: 'منصة التعلّم', demo: 'بيئة تجريبية • المحتوى غير معتمد', home: 'القاعدة', map: 'خريطة الرحلة', progress: 'معمل التقدّم', shop: 'غرفة المكافآت', chat: 'المرشد الذكي', profile: 'الإعدادات', teacher: 'استوديو المعلّم', admin: 'استوديو المحتوى',
+    brand: 'منصة التعلّم', demo: 'بيئة تجريبية • المحتوى غير معتمد', home: 'القاعدة', map: 'خريطة الرحلة', progress: 'معمل التقدّم', shop: 'غرفة المكافآت', chat: 'المرشد الذكي', profile: 'الإعدادات',
+    homeShort: 'القاعدة', mapShort: 'الخريطة', progressShort: 'التقدّم', shopShort: 'المكافآت', chatShort: 'المرشد', profileShort: 'الإعدادات', teacher: 'استوديو المعلّم', admin: 'استوديو المحتوى',
     greeting: 'أهلًا', ready: 'جاهز لخطوة صغيرة جديدة؟', today: 'مهمتك المقترحة اليوم', continue: 'كمّل الرحلة', minutes: 'دقائق', assignments: 'تكليفاتك', streak: 'إيقاع التعلّم', meaningful: 'كل إجابة صادقة تبني فهمك.',
     evidence: 'تقدّمك مبني على أدلة متنوعة، وليس إجابة واحدة.', insufficient: 'نحتاج أدلة أكثر', reteach: 'لنراجع الفكرة', supported: 'تدريب بمساندة', mixed: 'تطبيق متنوع', mastered: 'إتقان مبدئي',
     lesson: 'الدرس', example: 'مثال محلول', checkpoint: 'نقطة تحقق', submit: 'تحقق من إجابتي', next: 'السؤال التالي', retry: 'جرّب مرة أخرى', correct: 'إجابة موفقة!', incorrect: 'محاولة مفيدة—خلّينا نفهمها.', finish: 'أنهِ الدرس',
@@ -51,7 +52,8 @@ const copy = {
     studyHelper: 'مساعد الدراسة', aiDraftNotice: 'ردود المساعد مسودة من الذكاء الاصطناعي، تحقق دائمًا مع معلّمك.', askPlaceholder: 'اسأل عن الدرس الحالي…', send: 'إرسال', tutorIntro: 'أهلًا! اسألني عن الدرس الحالي وهساعدك تفهمه، من غير ما أديك الإجابة مباشرة.', tutorUnavailableBoss: 'المساعد غير متاح أثناء تحدي الوحدة للحفاظ على نتيجة موثوقة.',
   },
   en: {
-    brand: 'Learning Platform', demo: 'Demo environment • content is not approved', home: 'Home Base', map: 'World Map', progress: 'Progress Lab', shop: 'Reward Room', chat: 'AI Chat', profile: 'Settings', teacher: 'Teacher Studio', admin: 'Content Studio',
+    brand: 'Learning Platform', demo: 'Demo environment • content is not approved', home: 'Home Base', map: 'World Map', progress: 'Progress Lab', shop: 'Reward Room', chat: 'AI Chat', profile: 'Settings',
+    homeShort: 'Home', mapShort: 'Map', progressShort: 'Progress', shopShort: 'Rewards', chatShort: 'AI Chat', profileShort: 'Settings', teacher: 'Teacher Studio', admin: 'Content Studio',
     greeting: 'Welcome', ready: 'Ready for one small step?', today: 'Your recommended task', continue: 'Continue quest', minutes: 'minutes', assignments: 'Your assignments', streak: 'Learning rhythm', meaningful: 'Every honest answer builds understanding.',
     evidence: 'Progress uses varied evidence, not one answer.', insufficient: 'More evidence needed', reteach: 'Review the idea', supported: 'Supported practice', mixed: 'Mixed application', mastered: 'Provisionally mastered',
     lesson: 'Lesson', example: 'Worked example', checkpoint: 'Checkpoint', submit: 'Check my answer', next: 'Next question', retry: 'Try again', correct: 'Nice reasoning!', incorrect: 'Useful attempt—let’s unpack it.', finish: 'Finish lesson',
@@ -184,7 +186,7 @@ function shell(content, title = '') {
   const wallet = state.data.wallet;
   const pending = state.offlineQueue.length;
   return `
-    <div class="app-shell">
+    <div class="app-shell ${state.view === 'chat' ? 'is-chat' : ''}">
       <aside class="sidebar">
         <div class="brand"><div class="brand-mark">ل</div><span class="brand-name">${t('brand')}</span></div>
         <nav class="sidebar-nav" aria-label="${lang() === 'en' ? 'Main navigation' : 'التنقل الرئيسي'}">${nav.map(navButton).join('')}</nav>
@@ -194,12 +196,17 @@ function shell(content, title = '') {
         <header class="topbar"><span class="topbar-title">${esc(title || t(state.view))}</span><div class="top-actions">${pending ? `<span class="stat-pill pending-pill" title="${t('pendingSync')}">⏳<b>${pending}</b></span>` : ''}${wallet ? `<span class="stat-pill xp-pill" title="${t('xp')}">★<b>${wallet.xp}</b></span><span class="stat-pill"><i class="coin-dot">✦</i><b>${wallet.coins}</b><span>${t('coins')}</span></span>` : ''}<button class="icon-button" data-action="logout" aria-label="${t('logout')}">↪</button></div></header>
         <main id="main" class="content">${content}</main>
       </div>
-      <nav class="mobile-nav" aria-label="${lang() === 'en' ? 'Mobile navigation' : 'التنقل على الهاتف'}">${nav.map(navButton).join('')}</nav>
+      <nav class="mobile-nav" aria-label="${lang() === 'en' ? 'Mobile navigation' : 'التنقل على الهاتف'}">${nav.map((item) => navButton(item, true)).join('')}</nav>
     </div>`;
 }
 
-function navButton([view, icon, key]) {
-  return `<button class="nav-button ${state.view === view ? 'active' : ''}" data-view="${view}"><span class="nav-icon" aria-hidden="true">${icon}</span><span>${t(key)}</span></button>`;
+function navButton([view, icon, key], compact = false) {
+  const active = state.view === view;
+  // The bottom bar gets short labels: six full Arabic destination names cannot fit a ~64px cell without
+  // shrinking to an unreadable size, and truncating them is worse than naming them concisely.
+  const shortKey = `${key}Short`;
+  const label = compact && t(shortKey) !== shortKey ? t(shortKey) : t(key);
+  return `<button class="nav-button ${active ? 'active' : ''}" data-view="${view}" ${active ? 'aria-current="page"' : ''} title="${t(key)}"><span class="nav-icon" aria-hidden="true">${icon}</span><span class="nav-label">${label}</span></button>`;
 }
 
 function renderTutorWidget() {
@@ -227,6 +234,25 @@ function renderCelebration() {
   return `<div class="modal-backdrop celebration-backdrop"><section class="modal celebration-modal" role="dialog" aria-modal="true" aria-labelledby="celebrate-title"><div class="confetti" aria-hidden="true">${'🎉✨🏆✦🌟'.split('').map((e, i) => `<i style="--i:${i}">${e}</i>`).join('')}</div><div class="celebration-icon">${isBoss ? '🏆' : '🎓'}</div><h2 id="celebrate-title">${isBoss ? (lang() === 'en' ? 'Unit Boss complete!' : 'أكملت تحدي الوحدة!') : (lang() === 'en' ? 'Lesson complete!' : 'أكملت الدرس!')}</h2><p>${isBoss ? (lang() === 'en' ? 'A one-time reward was recorded on your ledger.' : 'اتسجلت مكافأة الإكمال لمرة واحدة في سجلك.') : (lang() === 'en' ? '25 coins and 15 XP were recorded once.' : 'اتسجلت 25 عملة و15 نقطة خبرة لمرة واحدة.')}</p><button class="btn btn-primary btn-block" data-action="dismiss-celebration">${lang() === 'en' ? 'Keep going' : 'كمّل رحلتك'}</button></section></div>`;
 }
 
+// Publishes the bottom navigation's REAL height as --nav-h. Every full-height mobile layout (the chat
+// page most of all) sizes itself against it, so label/scale/safe-area changes can never again leave a
+// dead gap or an overlap the way a hard-coded rem value did.
+let navResizeObserver = null;
+function syncNavHeight() {
+  const nav = document.querySelector('.mobile-nav');
+  if (!nav) return;
+  const apply = () => {
+    const h = nav.getBoundingClientRect().height;
+    if (h > 0) document.documentElement.style.setProperty('--nav-h', `${Math.round(h)}px`);
+  };
+  apply();
+  if (typeof ResizeObserver === 'function') {
+    navResizeObserver?.disconnect();
+    navResizeObserver = new ResizeObserver(apply);
+    navResizeObserver.observe(nav);
+  }
+}
+
 function render() {
   if (!state.data) return renderLogin();
   const role = state.data.user.role;
@@ -236,6 +262,7 @@ function render() {
     const views = { home: renderHome, map: renderMap, lesson: renderLesson, progress: renderProgress, shop: renderShop, chat: renderChatPage, profile: renderProfile, boss: renderBoss };
     app.innerHTML = shell((views[state.view] || renderHome)(), state.view === 'lesson' ? t('lesson') : t(state.view));
   }
+  syncNavHeight();
   app.insertAdjacentHTML('beforeend', renderCelebration());
   if (state.celebrate && !document.activeElement?.closest('.celebration-modal')) app.querySelector('.celebration-modal [data-action="dismiss-celebration"]')?.focus();
   app.insertAdjacentHTML('beforeend', renderTutorWidget());

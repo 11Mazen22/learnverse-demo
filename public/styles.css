@@ -58,7 +58,20 @@
   --lh-tight: 1.35; --lh-normal: 1.65; --lh-relaxed: 1.85;
   --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-heavy: 800;
   --paragraph-gap: .85em;
+
+  /* Shared UI tokens — one place to change, instead of arbitrary values per component. */
+  --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem; --space-5: 1.5rem; --space-6: 2rem;
+  --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 24px; --r-pill: 999px;
+  --touch: 44px;
+  --ring: 0 0 0 3px color-mix(in srgb, var(--primary) 35%, transparent);
+  --ease: cubic-bezier(.4, 0, .2, 1);
+  --dur-fast: .12s; --dur: .2s;
+  --nav-h: 3.75rem;   /* fallback only — app.js republishes the measured height (see syncNavHeight) */
+  --chat-kb: 0px;
 }
+
+/* One visible, consistent focus ring everywhere, instead of per-component guesswork. */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-sm); }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -401,28 +414,35 @@ html[dir="ltr"] .chat-conversation-title { padding: .6rem .7rem .6rem 2.7rem; }
    won't shrink below its own content's height — it grows the whole column taller instead of letting
    .chat-messages below scroll internally, so content gets clipped by .chat-page's overflow:hidden
    instead of being scrollable, and mid-stream text is invisible until a later layout pass reveals it. */
-.chat-main { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--chat-bg); color: var(--chat-ink); }
+/* header / scrolling body / composer. The composer is its own grid row rather than content inside the
+   scroller, so it stays anchored in BOTH the welcome and conversation states. */
+.chat-main { position: relative; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--chat-bg); color: var(--chat-ink); }
 .chat-menu-toggle { display: none; position: absolute; top: .7rem; inset-inline-start: .7rem; z-index: 5; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-ink); cursor: pointer; align-items: center; justify-content: center; }
 
-.chat-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: .5rem; padding: 1.5rem; max-width: 640px; margin: 0 auto; width: 100%; }
+.chat-welcome { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; padding: var(--space-5) var(--space-4); }
+.chat-welcome-inner { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: .5rem; max-width: 640px; margin: 0 auto; width: 100%; }
 .chat-welcome-mark { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 18px; background: linear-gradient(135deg, #6c5bd8, #9b7ef0); color: white; margin-bottom: .4rem; box-shadow: 0 8px 20px rgba(108,91,216,.35); }
 .chat-welcome h1 { margin: 0; font-size: clamp(1.4rem, 3vw, 1.9rem); }
 .chat-welcome p { margin: 0; color: var(--chat-muted); line-height: 1.7; max-width: 420px; }
-.chat-unavailable-chip { margin: .3rem 0 0; padding: .5rem .8rem; border-radius: 10px; background: #fff2d2; color: #745000; font-size: .75rem; }
+.chat-unavailable-chip { display: inline-flex; align-items: center; gap: .4rem; margin: .3rem 0 0; padding: .5rem .8rem; border-radius: var(--r-sm); background: #fff2d2; color: #745000; font-size: .75rem; }
 .chat-page[data-theme="dark"] .chat-unavailable-chip { background: #3a3116; color: #ecd28f; }
-.chat-suggestions { display: grid; gap: .55rem; width: 100%; margin: 1rem 0; }
-.chat-suggestion { display: flex; align-items: center; justify-content: space-between; gap: .6rem; border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-ink); border-radius: 14px; padding: .75rem .9rem; text-align: start; cursor: pointer; font-size: .82rem; transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease; }
-.chat-suggestion::after { content: ''; flex: 0 0 auto; width: 14px; height: 14px; opacity: 0; transform: translateX(-3px); transition: opacity .15s ease, transform .15s ease; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12h13M13 6l6 6-6 6' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12h13M13 6l6 6-6 6' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; color: var(--chat-accent); }
-html[dir="rtl"] .chat-suggestion::after { transform: translateX(3px) scaleX(-1); }
-.chat-suggestion:hover { border-color: var(--chat-accent); transform: translateY(-1px); box-shadow: 0 6px 16px color-mix(in srgb, var(--chat-accent) 12%, transparent); }
-.chat-suggestion:hover::after { opacity: 1; transform: translateX(0); }
-html[dir="rtl"] .chat-suggestion:hover::after { transform: translateX(0) scaleX(-1); }
-.chat-welcome .chat-composer { width: 100%; margin-top: .5rem; }
+.chat-suggestions { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .55rem; width: 100%; margin: 1rem 0 0; }
+.chat-suggestion { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .6rem; min-height: var(--touch); border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-ink); border-radius: var(--r-md); padding: .75rem .9rem; text-align: start; cursor: pointer; font-size: .82rem; line-height: 1.5; transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease); }
+.chat-suggestion-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--chat-accent) 12%, transparent); color: var(--chat-accent); }
+.chat-suggestion-text { min-width: 0; overflow-wrap: anywhere; }
+.chat-suggestion-go { color: var(--chat-muted); opacity: .55; transform: rotate(90deg); transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease), color var(--dur) var(--ease); }
+html[dir="ltr"] .chat-suggestion-go { transform: rotate(-90deg); }
+.chat-suggestion:hover .chat-suggestion-go { transform: rotate(90deg) translateY(2px); }
+html[dir="ltr"] .chat-suggestion:hover .chat-suggestion-go { transform: rotate(-90deg) translateY(2px); }
+.chat-suggestion:active { transform: scale(.985); background: var(--chat-surface-2); }
+html[dir="rtl"] .chat-suggestion:hover { border-color: var(--chat-accent); transform: translateY(-1px); box-shadow: 0 6px 16px color-mix(in srgb, var(--chat-accent) 12%, transparent); }
+.chat-suggestion:hover .chat-suggestion-go { opacity: 1; color: var(--chat-accent); }
 
-.chat-messages { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 3rem 1.4rem 1rem; display: flex; flex-direction: column; gap: 1rem; scroll-behavior: smooth; }
+.chat-messages { min-height: 0; overflow-y: auto; overflow-x: hidden; padding: var(--space-4) var(--space-4) var(--space-2); scroll-behavior: smooth; overscroll-behavior-y: contain; }
+.chat-messages-inner { display: flex; flex-direction: column; gap: 1rem; max-width: 820px; margin-inline: auto; width: 100%; }
 .chat-context-divider { display: flex; align-items: center; gap: .7rem; margin: .4rem 0; color: var(--chat-muted); font-size: .68rem; }
 .chat-context-divider::before, .chat-context-divider::after { content: ''; flex: 1; height: 1px; background: var(--chat-line); }
-.chat-scroll-bottom { position: absolute; bottom: 6.2rem; inset-inline-end: 50%; display: flex; align-items: center; gap: .4rem; transform: translateX(50%) translateY(8px); opacity: 0; pointer-events: none; border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-ink); border-radius: 999px; padding: .45rem .9rem; font-size: .72rem; font-weight: 700; cursor: pointer; box-shadow: var(--chat-shadow); transition: opacity .15s ease, transform .15s ease; }
+.chat-scroll-bottom { position: absolute; z-index: 4; bottom: calc(var(--composer-h, 5.2rem) + .5rem); inset-inline-end: 50%; display: flex; align-items: center; gap: .4rem; transform: translateX(50%) translateY(8px); opacity: 0; pointer-events: none; border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-ink); border-radius: 999px; padding: .45rem .9rem; font-size: .72rem; font-weight: 700; cursor: pointer; box-shadow: var(--chat-shadow); transition: opacity .15s ease, transform .15s ease; }
 html[dir="ltr"] .chat-scroll-bottom { transform: translateX(-50%) translateY(8px); }
 .chat-scroll-bottom.visible { opacity: 1; pointer-events: auto; transform: translateX(50%) translateY(0); }
 html[dir="ltr"] .chat-scroll-bottom.visible { transform: translateX(-50%) translateY(0); }
@@ -481,8 +501,14 @@ html[dir="ltr"] .chat-scroll-bottom.visible { transform: translateX(-50%) transl
    and this app's own content) rather than shifting to Arabic-Indic digits mid-sentence, which would be
    jarring next to code/dates elsewhere in the same reply. */
 .chat-msg.lang-ar .chat-msg-text, .chat-msg.lang-ar .chat-reasoning-text { font-variant-numeric: normal; }
-.chat-msg-actions { display: flex; flex-direction: column; gap: .2rem; opacity: 0; transition: opacity .12s ease; align-self: center; }
-.chat-msg:hover .chat-msg-actions { opacity: 1; }
+.chat-msg-actions { display: flex; flex-direction: column; gap: .2rem; opacity: 0; transition: opacity var(--dur-fast) var(--ease); align-self: center; }
+.chat-msg:hover .chat-msg-actions, .chat-msg:focus-within .chat-msg-actions { opacity: 1; }
+/* Touch devices have no hover, so hover-only reveal made copy/regenerate/continue unreachable on a
+   phone. Below, they are simply always visible (dimmed), which is the only honest option. */
+@media (hover: none), (pointer: coarse) {
+  .chat-msg-actions { opacity: .75; }
+  .chat-msg-newest .chat-msg-actions { opacity: 1; }
+}
 .chat-msg-flag { display: flex; align-items: center; gap: .35rem; margin: .5rem 0 0; font-size: .72rem; opacity: .85; }
 .chat-ai-disclosure { margin: .4rem 0 0; font-size: .66rem; color: var(--chat-muted); }
 .chat-msg-attachment img { max-width: 220px; max-height: 220px; border-radius: 10px; display: block; margin-bottom: .5rem; }
@@ -528,7 +554,7 @@ html[dir="ltr"] .chat-scroll-bottom.visible { transform: translateX(-50%) transl
 /* Composer: a self-contained card. The Thinking toggle is its own strip above the input row (not
    crammed between the textarea and send button), and the send/stop control is a circular icon button
    matching modern chat products, replacing the earlier text-label pill. */
-.chat-composer { position: relative; display: flex; flex-direction: column; gap: .45rem; margin: .6rem 1.1rem 1rem; border: 1.5px solid color-mix(in srgb, var(--chat-ink) 14%, var(--chat-line)); border-radius: 20px; background: var(--chat-surface); box-shadow: 0 2px 10px rgba(30,25,60,.07), var(--chat-shadow); padding: .65rem .65rem .65rem .85rem; transition: border-color .15s ease, box-shadow .15s ease; }
+.chat-composer { position: relative; z-index: 3; display: flex; flex-direction: column; gap: .45rem; margin: .6rem auto 1rem; width: min(100% - 2.2rem, 820px); border: 1.5px solid color-mix(in srgb, var(--chat-ink) 14%, var(--chat-line)); border-radius: 20px; background: var(--chat-surface); box-shadow: 0 2px 10px rgba(30,25,60,.07), var(--chat-shadow); padding: .65rem .65rem .65rem .85rem; transition: border-color .15s ease, box-shadow .15s ease; }
 html[dir="ltr"] .chat-composer { padding: .65rem .85rem .65rem .65rem; }
 .chat-composer:focus-within { border-color: var(--chat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--chat-accent) 16%, transparent), var(--chat-shadow); }
 .chat-composer.drag-active { border-color: var(--chat-accent); }
@@ -574,32 +600,6 @@ html[dir="rtl"] .chat-send-btn .chat-icon { transform: scaleX(-1); }
 .chat-edit-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .4rem; }
 .chat-messages-loading { flex: 1; padding: 1.4rem; display: grid; gap: .8rem; align-content: start; }
 
-@media (max-width: 900px) {
-  /* The fixed-position .mobile-nav overlays whatever sits behind it rather than pushing content up —
-     without reserving its height here too, the composer at the bottom of .chat-page ends up physically
-     hidden underneath the nav bar instead of sitting above it. Same clearance value already used for
-     the tutor FAB against this same nav bar, for consistency. */
-  .chat-page { grid-template-columns: 1fr; height: calc(100vh - 66px - 1.5rem - 4.6rem - env(safe-area-inset-bottom)); border-radius: 16px; }
-  .chat-sidebar { position: absolute; inset-block: 0; inset-inline-start: 0; width: min(300px, 84vw); z-index: 8; transform: translateX(100%); transition: transform .2s ease; box-shadow: 18px 0 30px rgba(0,0,0,.12); }
-  html[dir="ltr"] .chat-sidebar { transform: translateX(-100%); }
-  .chat-sidebar.open { transform: translateX(0); }
-  .chat-sidebar-close { display: inline-flex; align-items: center; justify-content: center; margin-inline-start: auto; }
-  .chat-menu-toggle { display: grid; place-items: center; }
-  .chat-messages { padding-top: 3.2rem; }
-  .chat-msg { max-width: 92%; }
-  /* Touch devices have no :hover — always show row actions rather than only on the active row. */
-  .chat-conversation-actions { display: flex; }
-  /* A fixed near-black overlay reads clearly against both the light and dark chat themes (a
-     theme-token-based tint would nearly vanish against its own dark-mode background). */
-  .chat-sidebar-backdrop.visible { display: block; position: absolute; inset: 0; z-index: 7; background: rgba(0,0,0,.5); backdrop-filter: blur(1px); }
-}
-@media (max-width: 600px) {
-  .content:has(.chat-page) { padding-block: .6rem; }
-  .chat-page { height: calc(100vh - 66px - .8rem - 4.6rem - env(safe-area-inset-bottom)); border-radius: 12px; }
-  .chat-welcome { padding: 1rem; }
-  .chat-composer { margin: .5rem .6rem .8rem; }
-  .chat-messages { padding-inline: .8rem; }
-}
 
 /* 2026 chat workspace refresh: denser navigation, a persistent context header, clearer
    system state, touch-safe controls, and readable line lengths from 320px phones to wide screens. */
@@ -668,17 +668,25 @@ html[dir="ltr"] .chat-conversation-title { padding: .62rem 2.3rem .62rem .55rem;
 .chat-theme-toggle { width: 36px; height: 36px; margin: 0; padding: 0; border-radius: 10px; }
 .chat-theme-toggle span { display: none; }
 .chat-main { background: radial-gradient(circle at 50% 0, color-mix(in srgb, var(--chat-accent) 5%, transparent), transparent 34%), var(--chat-bg); }
-.chat-main-header { flex: 0 0 auto; min-height: 64px; padding: .65rem 1rem; display: flex; align-items: center; gap: .75rem; border-bottom: 1px solid var(--chat-line); background: color-mix(in srgb, var(--chat-bg) 86%, transparent); backdrop-filter: blur(14px); z-index: 4; }
+.chat-main-header { position: relative; min-height: 60px; padding: .55rem .9rem; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .6rem; border-bottom: 1px solid var(--chat-line); background: color-mix(in srgb, var(--chat-bg) 88%, transparent); backdrop-filter: blur(14px); z-index: 5; padding-top: calc(.55rem + env(safe-area-inset-top)); }
 .chat-header-copy { min-width: 0; }
-.chat-header-copy strong, .chat-header-copy span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.chat-header-copy strong { font-size: .82rem; color: var(--chat-ink); }
-.chat-header-copy span { max-width: min(62vw, 560px); margin-top: .15rem; font-size: .62rem; color: var(--chat-muted); }
-.chat-ai-status { margin-inline-start: auto; display: flex; align-items: center; gap: .45rem; padding: .42rem .65rem; border: 1px solid var(--chat-line); border-radius: 999px; background: var(--chat-surface); color: var(--chat-muted); font-size: .62rem; font-weight: 700; }
+.chat-header-copy strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: .86rem; font-weight: var(--fw-bold); color: var(--chat-ink); }
+.chat-header-sub { display: flex; align-items: center; gap: .32rem; margin-top: .1rem; font-size: .66rem; color: var(--chat-muted); white-space: nowrap; overflow: hidden; }
+.chat-header-sub b { opacity: .5; font-weight: 400; }
+.chat-status-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: #a6aabd; box-shadow: 0 0 0 3px color-mix(in srgb, #a6aabd 16%, transparent); }
+.chat-status-dot.online { background: #2fba7b; box-shadow: 0 0 0 3px rgba(47,186,123,.15); animation: chat-pulse-dot 2.4s var(--ease) infinite; }
+@keyframes chat-pulse-dot { 0%, 100% { box-shadow: 0 0 0 3px rgba(47,186,123,.15); } 50% { box-shadow: 0 0 0 5px rgba(47,186,123,.05); } }
+.chat-header-actions { display: flex; align-items: center; gap: .3rem; }
+.chat-header-menu-wrap { position: relative; }
+.chat-header-btn { width: 38px; height: 38px; display: grid; place-items: center; border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; color: var(--chat-muted); cursor: pointer; transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+.chat-header-btn:hover { background: var(--chat-surface-2); color: var(--chat-ink); }
+.chat-header-btn:active { transform: scale(.94); }
+.chat-header-dropdown { top: calc(100% + .35rem); inset-inline-end: 0; }
 .chat-menu-toggle { position: static; flex: 0 0 auto; }
 .chat-welcome { padding: clamp(1.2rem, 4vh, 2.5rem) clamp(1rem, 4vw, 3rem); max-width: 720px; }
 .chat-welcome-mark { width: 60px; height: 60px; border-radius: 20px; background: linear-gradient(145deg, var(--chat-accent), var(--chat-accent-2)); }
 .chat-suggestions { grid-template-columns: repeat(3, minmax(0,1fr)); align-items: stretch; }
-.chat-suggestion { min-height: 88px; align-items: flex-start; border-radius: 16px; line-height: 1.55; }
+.chat-suggestion { border-radius: var(--r-md); line-height: 1.55; }
 .chat-welcome .chat-composer { max-width: none; }
 .chat-messages { padding: 1.5rem max(1.15rem, calc((100% - 900px) / 2)) 1rem; }
 .chat-msg { max-width: min(82%, 760px); }
@@ -723,40 +731,110 @@ html[dir="ltr"] .chat-conversation-title { padding: .62rem 2.3rem .62rem .55rem;
   .chat-suggestions { grid-template-columns: 1fr; }
   .chat-suggestion { min-height: 0; }
 }
+/* =========================================================================
+   Mobile (<=900px): the chat becomes a full-bleed, single-header destination
+   rather than a desktop page squeezed into a card. Heights derive from one
+   token chain (dvh - nav - keyboard) instead of stacked magic numbers.
+   ========================================================================= */
 @media (max-width: 900px) {
-  .content:has(.chat-page) { width: min(100% - .8rem, 1540px); padding-top: .4rem; }
-  .chat-page { grid-template-columns: 1fr; height: calc(100dvh - 66px - 5.35rem - env(safe-area-inset-bottom)); border-radius: 18px; }
-  .chat-sidebar { width: min(330px, 90vw); padding: .85rem; }
-  .chat-main-header { min-height: 58px; padding: .55rem .7rem; }
-  .chat-menu-toggle { display: grid; }
-  .chat-messages { padding-top: 1rem; }
-  .chat-welcome { min-height: 0; justify-content: flex-start; overflow-y: auto; }
-  .chat-suggestions { grid-template-columns: repeat(3, minmax(180px, 1fr)); overflow-x: auto; overscroll-behavior-inline: contain; padding-bottom: .25rem; scrollbar-width: thin; }
-  .chat-suggestions::-webkit-scrollbar { display: none; }
-  .chat-suggestions { scrollbar-width: none; }
-  .chat-suggestion { min-height: 64px; }
-  .chat-composer { width: calc(100% - 1.2rem); margin-bottom: .7rem; }
-  .chat-conversation-actions { display: none; }
-  .chat-conversation-item.active .chat-conversation-actions, .chat-conversation-item.menu-open .chat-conversation-actions { display: flex; }
+  /* One header, not two: the app topbar duplicated the chat header's job and cost 66px of a ~700px
+     viewport. The bottom nav still provides navigation, so nothing becomes unreachable. */
+  .app-shell.is-chat .topbar { display: none; }
+  .app-shell.is-chat .content { width: 100%; max-width: none; padding: 0; }
+  .content:has(.chat-page) { width: 100%; max-width: none; padding: 0; }
+
+  .chat-page {
+    grid-template-columns: 1fr;
+    height: calc(100dvh - var(--nav-h) - env(safe-area-inset-bottom) - var(--chat-kb));
+    max-height: none; min-height: 0;
+    border: 0; border-radius: 0; box-shadow: none;
+  }
+  /* With the keyboard up, the bottom bar is dead weight and the composer needs the room. */
+  html.kb-open .mobile-nav { transform: translateY(110%); pointer-events: none; }
+  html.kb-open .chat-page { height: calc(100dvh - var(--chat-kb)); }
+
+  .chat-menu-toggle { display: grid; position: static; width: var(--touch); height: var(--touch); border: 0; background: transparent; color: var(--chat-muted); }
+  .chat-header-btn { width: var(--touch); height: var(--touch); }
+  .chat-menu-toggle:hover { background: var(--chat-surface-2); color: var(--chat-ink); }
+
+  /* History becomes an overlay drawer, not a column that steals width from the conversation. */
+  .chat-sidebar {
+    position: absolute; inset-block: 0; inset-inline-start: 0; z-index: 8;
+    width: min(330px, 86vw); padding: .85rem; padding-top: calc(.85rem + env(safe-area-inset-top));
+    transform: translateX(100%); transition: transform var(--dur) var(--ease);
+    box-shadow: -18px 0 40px rgba(20,16,45,.18);
+  }
+  html[dir="ltr"] .chat-sidebar { transform: translateX(-100%); box-shadow: 18px 0 40px rgba(20,16,45,.18); }
+  .chat-sidebar.open { transform: translateX(0); }
+  .chat-sidebar-close { display: inline-flex; align-items: center; justify-content: center; margin-inline-start: auto; }
+  .chat-sidebar-backdrop.visible { display: block; position: absolute; inset: 0; z-index: 7; background: rgba(12,9,30,.52); backdrop-filter: blur(2px); animation: chat-fade-in var(--dur) var(--ease); }
+
+  .chat-messages { padding: var(--space-3) var(--space-3) var(--space-1); }
+  .chat-messages-inner { gap: .85rem; }
+  .chat-composer { width: calc(100% - 1.5rem); margin: .5rem auto calc(.5rem + env(safe-area-inset-bottom) * .35); }
+  .chat-welcome { padding: var(--space-4) var(--space-4) var(--space-2); }
+  .chat-conversation-actions { display: flex; }
+  /* Dense per-item actions (pin, kebab, copy, regenerate) get a real thumb-sized hit area on touch —
+     Material's dense-UI guidance (32-36px with spacing) rather than forcing every small icon to 44px,
+     which would look bulky next to the text it sits beside. */
+  .icon-button-sm { width: 34px; height: 34px; border-radius: 10px; }
+  .chat-msg-actions { gap: .3rem; }
+
+  /* Bottom navigation: real touch targets and labels that can actually be read. */
+  .mobile-nav { padding: .3rem .25rem calc(.3rem + env(safe-area-inset-bottom)); gap: .1rem; transition: transform var(--dur) var(--ease); }
+  .mobile-nav .nav-button { flex: 1 1 0; min-width: 0; min-height: var(--touch); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .12rem; padding: .4rem .15rem; border-radius: var(--r-md); font-size: .66rem; font-weight: var(--fw-semibold); }
+  .mobile-nav .nav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-nav .nav-icon { font-size: 1.15rem; line-height: 1; }
+  .mobile-nav .nav-button.active { box-shadow: none; background: rgba(255,255,255,.14); color: #fff; }
+  .mobile-nav .nav-button.active .nav-icon { transform: translateY(-1px); }
 }
-@media (max-width: 520px) {
-  .chat-page { height: calc(100dvh - 66px - 5rem - env(safe-area-inset-bottom)); border-radius: 14px; }
-  .chat-header-copy span, .chat-ai-status span { display: none; }
-  .chat-ai-status { width: 34px; height: 34px; justify-content: center; padding: 0; }
-  .chat-welcome { justify-content: flex-start; overflow-y: auto; padding: 1.2rem .75rem; }
-  .chat-welcome-mark { width: 48px; height: 48px; border-radius: 16px; }
-  .chat-welcome h1 { font-size: 1.28rem; }
-  .chat-welcome p { font-size: .8rem; }
-  .chat-suggestions { margin: .7rem 0; gap: .42rem; grid-template-columns: repeat(3, minmax(170px, 1fr)); }
-  .chat-suggestion { padding: .62rem .72rem; font-size: .75rem; }
-  .chat-msg { max-width: 96%; }
+
+/* Tall-enough phones: let the welcome breathe; short ones keep it compact and scrollable. */
+@media (max-width: 900px) and (max-height: 700px) {
+  .chat-welcome { justify-content: flex-start; }
+  .chat-welcome-mark { width: 46px; height: 46px; border-radius: 15px; }
+  .chat-welcome h1 { font-size: 1.22rem; }
+}
+
+@media (max-width: 560px) {
+  .chat-main-header { min-height: 56px; padding-inline: .6rem; gap: .35rem; }
+  .chat-header-copy strong { font-size: .82rem; }
+  .chat-header-new { display: none; }         /* still available in the overflow menu */
+  .chat-welcome-mark { width: 50px; height: 50px; border-radius: 16px; }
+  .chat-welcome h1 { font-size: 1.3rem; }
+  .chat-welcome p { font-size: .82rem; }
+  .chat-suggestions { grid-template-columns: 1fr; gap: .45rem; }
+  .chat-suggestion { padding: .68rem .75rem; font-size: .78rem; }
+  .chat-msg { max-width: 100%; }
   .chat-msg-avatar { width: 26px; height: 26px; border-radius: 8px; }
-  .chat-msg-bubble { padding: .68rem .78rem; font-size: .8rem; }
-  .chat-response-metrics { gap: .3rem .5rem; }
-  .chat-composer { width: calc(100% - .8rem); margin: .45rem auto .5rem; padding: .5rem; }
-  .chat-attach-button, .chat-thinking-btn { width: 32px; height: 32px; }
-  .chat-send-btn { width: 34px; height: 34px; }
+  .chat-msg-bubble { padding: .7rem .8rem; font-size: .82rem; }
+  .chat-composer { width: calc(100% - 1rem); padding: .45rem .5rem .45rem .7rem; border-radius: var(--r-lg); }
+  html[dir="ltr"] .chat-composer { padding: .45rem .7rem .45rem .5rem; }
+  .chat-attach-button, .chat-thinking-btn { width: var(--touch); height: var(--touch); }
+  .chat-send-btn { width: var(--touch); height: var(--touch); }
+  .chat-response-metrics { gap: .25rem .45rem; font-size: .6rem; }
+  .chat-response-metrics span:not(.chat-speed-rating) { display: none; }
 }
+
+/* 320px: nothing may overflow, and the composer keeps priority over every optional control. */
+@media (max-width: 360px) {
+  .mobile-nav .nav-button { font-size: .6rem; padding-inline: .1rem; }
+  .chat-header-sub span:last-child, .chat-header-sub b { display: none; }
+  .chat-msg-bubble { padding: .6rem .7rem; }
+  .chat-composer { width: calc(100% - .7rem); }
+  .chat-thinking-btn { display: none; }        /* thinking stays reachable from the composer row on wider phones */
+  .chat-suggestion { grid-template-columns: minmax(0, 1fr) auto; }
+  .chat-suggestion-icon { display: none; }
+}
+
+/* Rich content must never widen the page: every scrollable block is contained, not the viewport. */
+.chat-msg-bubble, .chat-msg-text, .chat-msg, .chat-messages-inner { min-width: 0; }
+.md-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
+.md-code-block { max-width: 100%; }
+.md-code-block pre { max-width: 100%; overscroll-behavior-inline: contain; }
+.chat-msg-text a { overflow-wrap: anywhere; word-break: break-word; }
+.chat-msg-text img, .chat-msg-attachment img { max-width: 100%; height: auto; }
+
 
 html.force-reduce-motion .chat-page, html.force-reduce-motion .page-fade-out { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; }
 @media (prefers-reduced-motion: reduce) { .chat-page, .page-fade-out { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; } }

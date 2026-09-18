@@ -25,6 +25,7 @@ const copy = {
     ocrExtracting: 'جارٍ استخراج النص من الصورة…', ocrDone: 'تم استخراج النص من الصورة', ocrEmpty: 'لم يُعثر على نص مقروء في الصورة', ocrError: 'تعذّر استخراج النص من الصورة', ocrLoadFailed: 'تعذّر تحميل محرك قراءة النصوص',
     lightMode: 'وضع فاتح', darkMode: 'وضع داكن', you: 'أنت', assistant: 'المساعد', unavailableChip: 'الدردشة الذكية غير مفعّلة على هذه النسخة بعد.',
     dropHint: 'أفلت الصورة هنا', newMessages: 'رسائل جديدة',
+    moreActions: 'إجراءات أخرى', suggestionsLabel: 'أفكار للبدء', continueShort: 'متابعة', jumpToLatest: 'أحدث رسالة', conversationLog: 'سجل الرسائل',
     assistantOnline: 'المساعد جاهز', assistantOffline: 'المساعد غير متاح', history: 'السجل', archived: 'المؤرشفة',
     activeChats: 'النشطة', noArchived: 'لا توجد محادثات مؤرشفة', today: 'اليوم', yesterday: 'أمس', older: 'أقدم',
     responseTime: 'زمن الاستجابة', firstToken: 'أول كلمة', totalTime: 'الكلي', goodSpeed: 'سريع', fairSpeed: 'جيد', slowSpeed: 'بطيء',
@@ -43,6 +44,7 @@ const copy = {
     ocrExtracting: 'Extracting text from image…', ocrDone: 'Text extracted from image', ocrEmpty: 'No readable text found in the image', ocrError: 'Could not extract text from the image', ocrLoadFailed: 'Could not load the text-reading engine',
     lightMode: 'Light mode', darkMode: 'Dark mode', you: 'You', assistant: 'Assistant', unavailableChip: 'AI Chat is not set up on this deployment yet.',
     dropHint: 'Drop image here', newMessages: 'New messages',
+    moreActions: 'More actions', suggestionsLabel: 'Ideas to start with', continueShort: 'Continue', jumpToLatest: 'Jump to latest', conversationLog: 'Message log',
     assistantOnline: 'AI ready', assistantOffline: 'AI unavailable', history: 'History', archived: 'Archived',
     activeChats: 'Active', noArchived: 'No archived conversations', today: 'Today', yesterday: 'Yesterday', older: 'Older',
     responseTime: 'Response', firstToken: 'first token', totalTime: 'total', goodSpeed: 'Fast', fairSpeed: 'Okay', slowSpeed: 'Slow',
@@ -117,7 +119,7 @@ const chatState = {
   search: '', sidebarOpen: window.innerWidth > 900, showArchived: false,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
   streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamLanguage: 'ar', streamContent: '', streamThinking: '',
-  editingMessageId: null, renamingId: null, confirmDeleteId: null, openMenuId: null, dragActive: false,
+  editingMessageId: null, renamingId: null, confirmDeleteId: null, openMenuId: null, headerMenuOpen: false, dragActive: false,
   theme: loadChatTheme(), scrolledUp: false,
 };
 
@@ -705,6 +707,25 @@ function appendStreamCursor(el) {
 // Scroll handling: auto-scroll to new content unless the user has deliberately scrolled up.
 // ---------------------------------------------------------------------------
 
+// Mobile keyboards do not shrink the layout viewport on every browser, so 100dvh alone is not enough:
+// the composer can end up underneath the keyboard. visualViewport reports what is actually visible, and
+// the difference is published as --chat-kb for the layout to subtract. Everything degrades cleanly to
+// plain dvh where visualViewport is unavailable.
+function syncViewportInsets() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  const keyboardOpen = covered > 120;
+  document.documentElement.style.setProperty('--chat-kb', `${Math.round(covered)}px`);
+  document.documentElement.classList.toggle('kb-open', keyboardOpen);
+  if (keyboardOpen && state.view === 'chat' && !chatState.scrolledUp) scrollMessagesToBottom();
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', syncViewportInsets);
+  window.visualViewport.addEventListener('scroll', syncViewportInsets);
+}
+
 function scrollMessagesToBottom() {
   const el = document.getElementById('chat-messages');
   if (el) el.scrollTop = el.scrollHeight;
@@ -721,11 +742,29 @@ function renderNow() {
   if (state.view === 'chat') render();
 }
 
+// Swaps ONLY the middle (scrolling) row. The composer keeps its live DOM node — which is what keeps a
+// half-typed draft, the caret, and an open mobile keyboard alive across a welcome -> conversation
+// transition instead of collapsing the keyboard and losing focus on the first message of every chat.
+function refreshChatBodyDOM() {
+  if (state.view !== 'chat') return false;
+  const main = document.querySelector('.chat-main');
+  const current = main?.querySelector('.chat-messages, .chat-welcome');
+  if (!main || !current) return false;
+  const template = document.createElement('template');
+  template.innerHTML = renderChatBody().trim();
+  main.querySelector('.chat-scroll-bottom')?.remove();
+  current.replaceWith(template.content);
+  hydrateChatMessages();
+  if (chatState.streaming) updateStreamingBubbleDOM();
+  if (!chatState.scrolledUp) scrollMessagesToBottom();
+  return true;
+}
+
 function refreshChatMainDOM({ focusInput = false } = {}) {
   if (state.view !== 'chat') return;
   const main = document.querySelector('.chat-main');
   if (!main) return;
-  main.innerHTML = `${renderChatHeader()}${chatState.activeConversation?.messages.length ? renderConversationBody() : renderChatWelcome()}`;
+  main.innerHTML = `${renderChatHeader()}${renderChatBody()}${renderComposer()}`;
   hydrateChatMessages();
   if (chatState.streaming) updateStreamingBubbleDOM();
   if (!chatState.scrolledUp) scrollMessagesToBottom();
@@ -738,9 +777,8 @@ function refreshComposerDOM({ preserveText = true, focus = false } = {}) {
   const oldInput = current.querySelector('#chat-composer-input');
   const value = preserveText ? (oldInput?.value || '') : '';
   const wasFocused = document.activeElement === oldInput;
-  const inWelcome = Boolean(current.closest('.chat-welcome'));
   const template = document.createElement('template');
-  template.innerHTML = renderComposer(inWelcome).trim();
+  template.innerHTML = renderComposer().trim();
   const next = template.content.querySelector('#chat-composer-form');
   if (!next) return;
   current.replaceWith(next);
@@ -776,19 +814,39 @@ function remapMessageDomId(oldId, newId) {
 
 function mountPendingTurn({ regenerate = false, editFromMessageId = null } = {}) {
   const conversation = chatState.activeConversation;
-  const messagesEl = document.getElementById('chat-messages');
-  if (!conversation || !messagesEl || regenerate || editFromMessageId) {
-    refreshChatMainDOM();
+  const list = document.querySelector('#chat-messages .chat-messages-inner');
+  if (!conversation || regenerate || editFromMessageId || !list) {
+    // Welcome -> conversation (or a truncating edit/regenerate): rebuild just the scrolling row, so the
+    // composer node — and with it the focus and the on-screen keyboard — survives the transition.
+    if (!refreshChatBodyDOM()) refreshChatMainDOM();
+    clearComposerInput();
+    updateChatHeaderDOM();
+    scrollMessagesToBottom();
     return;
   }
-  messagesEl.querySelector('[data-chat-action="regenerate"]')?.remove();
+  list.querySelector('[data-chat-action="regenerate"]')?.remove();
   const pending = conversation.messages.slice(-2);
   const template = document.createElement('template');
   template.innerHTML = pending.map((message) => renderMessage(message, conversation)).join('');
-  messagesEl.append(template.content);
-  refreshComposerDOM({ preserveText: false });
+  list.append(template.content);
+  clearComposerInput();
   updateChatHeaderDOM();
   scrollMessagesToBottom();
+}
+
+// Clearing the textarea in place (instead of re-rendering the whole composer) keeps focus and the
+// mobile keyboard exactly where they were, so a student can fire off consecutive questions without the
+// keyboard closing and the layout jumping between every one.
+function clearComposerInput() {
+  const input = document.getElementById('chat-composer-input');
+  if (input) {
+    input.value = '';
+    input.style.height = 'auto';
+  }
+  document.querySelector('.chat-composer-attachment')?.remove();
+  document.querySelector('.chat-ocr-status')?.remove();
+  document.querySelector('.chat-attachment-error')?.remove();
+  syncComposerPrimaryButton();
 }
 
 function finalizeStreamingTurn(domId) {
@@ -808,7 +866,7 @@ function finalizeStreamingTurn(domId) {
     const contentEl = document.getElementById(`chat-msg-content-${message.id}`);
     if (contentEl && message.content) contentEl.replaceChildren(renderMarkdownToDOM(message.content));
   }
-  refreshComposerDOM({ preserveText: false, focus: true });
+  syncComposerPrimaryButton();
   updateChatHeaderDOM();
   refreshSidebarDOM();
   if (!chatState.scrolledUp) scrollMessagesToBottom();
@@ -874,7 +932,8 @@ function renderChatPage() {
       <div class="chat-sidebar-backdrop ${chatState.sidebarOpen ? 'visible' : ''}" data-chat-action="close-sidebar"></div>
       <div class="chat-main">
         ${renderChatHeader()}
-        ${chatState.activeConversation && chatState.activeConversation.messages.length > 0 ? renderConversationBody() : renderChatWelcome()}
+        ${renderChatBody()}
+        ${renderComposer()}
       </div>
     </div>`;
   queueMicrotask(() => {
@@ -888,17 +947,49 @@ function renderChatPage() {
   return html;
 }
 
+// One header, not two. On mobile the app's own topbar is hidden for this view (see styles.css's
+// .app-shell.is-chat rule), so this bar carries everything: history, identity, live model state, and
+// an overflow menu holding the secondary actions that used to need their own always-visible controls.
 function renderChatHeader() {
   const conversation = chatState.activeConversation;
   const title = conversation?.title || ct('chatWorkspace');
   const count = conversation?.messages?.length || 0;
   const available = chatState.aiCapabilities.chatAvailable;
+  const menuOpen = chatState.headerMenuOpen;
   return `
     <header class="chat-main-header">
-      <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${ct('conversations')}">${icon('menu', 18)}</button>
-      <div class="chat-header-copy"><strong>${esc(title)}</strong><span>${conversation ? `${count} ${ct('messagesLabel')}` : ct('welcomeBody')}</span></div>
-      <div class="chat-ai-status ${available ? 'online' : 'offline'}"><i aria-hidden="true"></i><span>${available ? ct('assistantOnline') : ct('assistantOffline')}</span></div>
+      <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${ct('conversations')}" title="${ct('conversations')}">${icon('menu', 18)}</button>
+      <div class="chat-header-copy">
+        <strong dir="auto">${esc(title)}</strong>
+        <span class="chat-header-sub">
+          <i class="chat-status-dot ${available ? 'online' : 'offline'}" aria-hidden="true"></i>
+          <span class="chat-status-label">${available ? ct('assistantOnline') : ct('assistantOffline')}</span>
+          ${conversation && count ? `<b aria-hidden="true">·</b><span>${count} ${ct('messagesLabel')}</span>` : ''}
+        </span>
+      </div>
+      <div class="chat-header-actions">
+        <button class="chat-header-btn chat-header-new" data-chat-action="new-chat" aria-label="${ct('newChat')}" title="${ct('newChat')}">${icon('plus', 17)}</button>
+        <div class="chat-header-menu-wrap">
+          <button class="chat-header-btn" data-chat-action="toggle-header-menu" aria-label="${ct('moreActions')}" title="${ct('moreActions')}" aria-haspopup="menu" aria-expanded="${menuOpen}">${icon('dots', 17)}</button>
+          ${menuOpen ? `
+            <div class="chat-menu-dropdown chat-header-dropdown" role="menu">
+              <button role="menuitem" data-chat-action="new-chat">${icon('plus', 15)}<span>${ct('newChat')}</span></button>
+              <button role="menuitem" data-chat-action="open-sidebar">${icon('menu', 15)}<span>${ct('history')}</span></button>
+              <button role="menuitem" data-chat-action="toggle-theme">${chatState.theme === 'dark' ? icon('sun', 15) : icon('moon', 15)}<span>${chatState.theme === 'dark' ? ct('lightMode') : ct('darkMode')}</span></button>
+            </div>` : ''}
+        </div>
+      </div>
     </header>`;
+}
+
+// The body is whichever scrolling region belongs in the middle grid row. The composer is deliberately
+// NOT part of it: it is a sibling row of .chat-main, so it stays anchored above the navigation in both
+// the welcome and conversation states instead of scrolling away with the content (the single biggest
+// reason the mobile layout previously read as a squeezed desktop page).
+function renderChatBody() {
+  return chatState.activeConversation && chatState.activeConversation.messages.length > 0
+    ? renderConversationBody()
+    : renderChatWelcome();
 }
 
 // renderMessage() emits an empty content element for each assistant message (Markdown produces real
@@ -998,20 +1089,30 @@ function renderDeleteConfirm() {
     </section></div>`;
 }
 
+const WELCOME_SUGGESTIONS = [
+  { key: 'suggestion1', icon: 'spark' },
+  { key: 'suggestion2', icon: 'node' },
+  { key: 'suggestion3', icon: 'refresh' },
+];
+
 function renderChatWelcome() {
   const available = chatState.aiCapabilities.chatAvailable;
   return `
-    <div class="chat-welcome">
-      <div class="chat-welcome-mark">${icon('spark', 26)}</div>
-      <h1>${ct('welcomeTitle')}</h1>
-      <p>${ct('welcomeBody')}</p>
-      ${!available ? `<p class="chat-unavailable-chip">${ct('unavailableChip')}</p>` : ''}
-      <div class="chat-suggestions">
-        <button class="chat-suggestion" data-chat-suggest="${esc(ct('suggestion1'))}">${ct('suggestion1')}</button>
-        <button class="chat-suggestion" data-chat-suggest="${esc(ct('suggestion2'))}">${ct('suggestion2')}</button>
-        <button class="chat-suggestion" data-chat-suggest="${esc(ct('suggestion3'))}">${ct('suggestion3')}</button>
+    <div class="chat-welcome" id="chat-welcome">
+      <div class="chat-welcome-inner">
+        <div class="chat-welcome-mark" aria-hidden="true">${icon('spark', 26)}</div>
+        <h1>${ct('welcomeTitle')}</h1>
+        <p>${ct('welcomeBody')}</p>
+        ${!available ? `<p class="chat-unavailable-chip">${icon('warning', 13)}<span>${ct('unavailableChip')}</span></p>` : ''}
+        <div class="chat-suggestions" role="list" aria-label="${ct('suggestionsLabel')}">
+          ${WELCOME_SUGGESTIONS.map((item) => `
+            <button role="listitem" class="chat-suggestion" data-chat-suggest="${esc(ct(item.key))}">
+              <span class="chat-suggestion-icon" aria-hidden="true">${icon(item.icon, 15)}</span>
+              <span class="chat-suggestion-text">${ct(item.key)}</span>
+              <span class="chat-suggestion-go" aria-hidden="true">${icon('arrowDown', 13)}</span>
+            </button>`).join('')}
+        </div>
       </div>
-      ${renderComposer(true)}
     </div>`;
 }
 
@@ -1022,11 +1123,12 @@ function renderConversationBody() {
   }
   const dividerIndex = contextDividerIndexFor(conversation);
   return `
-    <div class="chat-messages" id="chat-messages">
-      ${conversation.messages.map((message, index) => `${index === dividerIndex ? `<div class="chat-context-divider"><span>${ct('contextDivider')}</span></div>` : ''}${renderMessage(message, conversation)}`).join('')}
+    <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="${ct('conversationLog')}">
+      <div class="chat-messages-inner">
+        ${conversation.messages.map((message, index) => `${index === dividerIndex ? `<div class="chat-context-divider"><span>${ct('contextDivider')}</span></div>` : ''}${renderMessage(message, conversation)}`).join('')}
+      </div>
     </div>
-    <button class="chat-scroll-bottom ${chatState.scrolledUp ? 'visible' : ''}" data-chat-action="scroll-bottom">${icon('arrowDown', 13)}<span>${ct('newMessages')}</span></button>
-    ${renderComposer(false)}`;
+    <button class="chat-scroll-bottom ${chatState.scrolledUp ? 'visible' : ''}" data-chat-action="scroll-bottom">${icon('arrowDown', 13)}<span>${ct('newMessages')}</span></button>`;
 }
 
 function renderMessage(message, conversation) {
@@ -1111,11 +1213,36 @@ function renderMessage(message, conversation) {
     </div>`;
 }
 
-function renderComposer(inWelcome) {
+// The one primary action, in its three genuinely different states. Kept separate from renderComposer so
+// the hot paths (send start, stream end, stop) can swap just this button — rebuilding the whole form
+// would drop focus and dismiss the mobile keyboard mid-conversation.
+function renderComposerPrimaryButton() {
   const attachment = chatState.composerAttachment;
-  const canThink = chatState.aiCapabilities.thinkingSupported;
   const lastMessage = chatState.activeConversation?.messages?.at(-1);
   const canContinue = Boolean(lastMessage?.role === 'assistant' && ['stopped', 'failed'].includes(lastMessage.status) && lastMessage.content);
+  if (chatState.streaming) {
+    return `<button type="button" class="chat-send-btn is-stop" data-chat-action="stop" aria-label="${ct('stop')}" title="${ct('stop')}">${icon('stop', 15)}<span class="chat-btn-label">${ct('stop')}</span></button>`;
+  }
+  if (canContinue) {
+    const label = lastMessage.status === 'failed' ? ct('retryContinue') : ct('continueResponse');
+    return `<button type="button" class="chat-send-btn is-continue" data-chat-action="continue" data-chat-id="${lastMessage.id}" aria-label="${label}" title="${label}">${icon('continue', 16)}<span class="chat-btn-label">${ct('continueShort')}</span></button>`;
+  }
+  const blocked = attachment?.kind === 'image' && attachment.ocrStatus === 'pending';
+  return `<button type="submit" class="chat-send-btn" ${blocked ? 'disabled' : ''} aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`;
+}
+
+function syncComposerPrimaryButton() {
+  const current = document.querySelector('#chat-composer-form .chat-send-btn');
+  if (!current) return;
+  const template = document.createElement('template');
+  template.innerHTML = renderComposerPrimaryButton().trim();
+  const next = template.content.firstElementChild;
+  if (next) current.replaceWith(next);
+}
+
+function renderComposer() {
+  const attachment = chatState.composerAttachment;
+  const canThink = chatState.aiCapabilities.thinkingSupported;
   return `
     <form class="chat-composer ${chatState.dragActive ? 'drag-active' : ''}" id="chat-composer-form">
       ${chatState.dragActive ? `<div class="chat-drop-overlay">${icon('image', 20)}<span>${ct('dropHint')}</span></div>` : ''}
@@ -1138,13 +1265,9 @@ function renderComposer(inWelcome) {
             ${icon('node', 17)}<i class="chat-thinking-dot" aria-hidden="true"></i>
           </button>` : ''}
         <textarea id="chat-composer-input" class="chat-composer-input" dir="auto" placeholder="${canThink && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder')}" rows="1" maxlength="4000"></textarea>
-        ${chatState.streaming
-          ? `<button type="button" class="chat-send-btn is-stop" data-chat-action="stop" aria-label="${ct('stop')}" title="${ct('stop')}">${icon('stop', 15)}</button>`
-          : canContinue
-            ? `<button type="button" class="chat-send-btn is-continue" data-chat-action="continue" data-chat-id="${lastMessage.id}" aria-label="${lastMessage.status === 'failed' ? ct('retryContinue') : ct('continueResponse')}" title="${lastMessage.status === 'failed' ? ct('retryContinue') : ct('continueResponse')}">${icon('continue', 16)}</button>`
-          : `<button type="submit" class="chat-send-btn" ${attachment?.kind === 'image' && attachment.ocrStatus === 'pending' ? 'disabled' : ''} aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`}
+        ${renderComposerPrimaryButton()}
       </div>
-    </form>${inWelcome ? '' : ''}`;
+    </form>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1154,6 +1277,11 @@ function renderComposer(inWelcome) {
 
 document.addEventListener('click', async (event) => {
   if (state.view !== 'chat' && !event.target.closest('.chat-page')) return;
+
+  if (chatState.headerMenuOpen && !event.target.closest('.chat-header-menu-wrap')) {
+    chatState.headerMenuOpen = false;
+    updateChatHeaderDOM();
+  }
 
   if (chatState.openMenuId && !event.target.closest('.chat-kebab-wrap')) {
     chatState.openMenuId = null;
@@ -1192,7 +1320,8 @@ document.addEventListener('click', async (event) => {
     return;
   }
 
-  if (action === 'new-chat') return createConversation();
+  if (action === 'toggle-header-menu') { chatState.headerMenuOpen = !chatState.headerMenuOpen; updateChatHeaderDOM(); return; }
+  if (action === 'new-chat') { chatState.headerMenuOpen = false; return createConversation(); }
   if (action === 'show-active' || action === 'show-archived') {
     chatState.showArchived = action === 'show-archived';
     chatState.openMenuId = null;
@@ -1214,6 +1343,8 @@ document.addEventListener('click', async (event) => {
   if (action === 'toggle-theme') {
     chatState.theme = chatState.theme === 'dark' ? 'light' : 'dark';
     saveChatTheme(chatState.theme);
+    chatState.headerMenuOpen = false;
+    updateChatHeaderDOM();
     document.querySelector('.chat-page')?.setAttribute('data-theme', chatState.theme);
     const themeBtn = document.querySelector('.chat-theme-toggle');
     if (themeBtn) {
@@ -1331,6 +1462,8 @@ document.addEventListener('input', (event) => {
   if (event.target.id === 'chat-file-input' && event.target.files?.[0]) { attachFile(event.target.files[0]); event.target.value = ''; }
 });
 
+window.addEventListener('orientationchange', () => { setTimeout(syncViewportInsets, 250); });
+
 document.addEventListener('keydown', (event) => {
   if (event.target.id === 'chat-composer-input' && event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
@@ -1341,6 +1474,7 @@ document.addEventListener('keydown', (event) => {
   // a later unrelated re-render.
   if (event.key === 'Escape' && chatState.confirmDeleteId) { chatState.confirmDeleteId = null; syncDeleteModalDOM(); }
   if (event.key === 'Escape' && chatState.openMenuId) { chatState.openMenuId = null; refreshSidebarDOM(); }
+  if (event.key === 'Escape' && chatState.headerMenuOpen) { chatState.headerMenuOpen = false; updateChatHeaderDOM(); }
   if (event.key === 'Escape' && chatState.sidebarOpen && window.innerWidth <= 900) {
     chatState.sidebarOpen = false;
     document.querySelector('.chat-sidebar')?.classList.remove('open');
