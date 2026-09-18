@@ -26,6 +26,7 @@ const copy = {
     lightMode: 'وضع فاتح', darkMode: 'وضع داكن', you: 'أنت', assistant: 'المساعد', unavailableChip: 'الدردشة الذكية غير مفعّلة على هذه النسخة بعد.',
     dropHint: 'أفلت الصورة هنا', newMessages: 'رسائل جديدة',
     moreActions: 'إجراءات أخرى', suggestionsLabel: 'أفكار للبدء', continueShort: 'متابعة', jumpToLatest: 'أحدث رسالة', conversationLog: 'سجل الرسائل',
+    showSidebar: 'إظهار الشريط الجانبي', hideSidebar: 'إخفاء الشريط الجانبي',
     assistantOnline: 'المساعد جاهز', assistantOffline: 'المساعد غير متاح', history: 'السجل', archived: 'المؤرشفة',
     activeChats: 'النشطة', noArchived: 'لا توجد محادثات مؤرشفة', today: 'اليوم', yesterday: 'أمس', older: 'أقدم',
     responseTime: 'زمن الاستجابة', firstToken: 'أول كلمة', totalTime: 'الكلي', goodSpeed: 'سريع', fairSpeed: 'جيد', slowSpeed: 'بطيء',
@@ -45,6 +46,7 @@ const copy = {
     lightMode: 'Light mode', darkMode: 'Dark mode', you: 'You', assistant: 'Assistant', unavailableChip: 'AI Chat is not set up on this deployment yet.',
     dropHint: 'Drop image here', newMessages: 'New messages',
     moreActions: 'More actions', suggestionsLabel: 'Ideas to start with', continueShort: 'Continue', jumpToLatest: 'Jump to latest', conversationLog: 'Message log',
+    showSidebar: 'Show sidebar', hideSidebar: 'Hide sidebar',
     assistantOnline: 'AI ready', assistantOffline: 'AI unavailable', history: 'History', archived: 'Archived',
     activeChats: 'Active', noArchived: 'No archived conversations', today: 'Today', yesterday: 'Yesterday', older: 'Older',
     responseTime: 'Response', firstToken: 'first token', totalTime: 'total', goodSpeed: 'Fast', fairSpeed: 'Okay', slowSpeed: 'Slow',
@@ -83,6 +85,7 @@ const ICONS = {
   dots: '<circle cx="4" cy="10" r="1.6" fill="currentColor"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/>',
   node: '<circle cx="12" cy="6" r="2.1" stroke="currentColor" stroke-width="1.6"/><circle cx="5.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/><circle cx="18.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/><path d="M12 8.1V12M12 12l-5.3 3.3M12 12l5.3 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   arrowDown: '<path d="M12 4v14.5M6 13l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+  panelToggle: '<rect x="3.5" y="4.5" width="17" height="15" rx="3.5" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 4.5v15" stroke="currentColor" stroke-width="1.6"/><path d="M6 10.2l1.8 1.8-1.8 1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
 };
 function icon(name, size = 16) {
   return `<svg class="chat-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -113,10 +116,21 @@ function saveChatTheme(theme) {
   try { localStorage.setItem('lp-chat-theme', theme); } catch { /* private mode: preference won't persist */ }
 }
 
+// Desktop sidebar collapse is a distinct, persisted preference from the mobile drawer's open/closed
+// state (chatState.sidebarOpen) — collapsing to reclaim reading width is a "how I like my workspace"
+// choice that should survive a reload, the way the theme does; the mobile drawer is a momentary
+// interaction that should always start closed on a fresh small-screen visit.
+function loadSidebarCollapsed() {
+  try { return localStorage.getItem('lp-chat-sidebar-collapsed') === '1'; } catch { return false; }
+}
+function saveSidebarCollapsed(collapsed) {
+  try { localStorage.setItem('lp-chat-sidebar-collapsed', collapsed ? '1' : '0'); } catch { /* private mode: preference won't persist */ }
+}
+
 const chatState = {
   initialized: false, loadingList: false, conversations: [], aiCapabilities: { chatAvailable: false, thinkingSupported: false },
   activeId: null, activeConversation: null, loadingConversation: false, creatingConversation: null, openRequestVersion: 0,
-  search: '', sidebarOpen: window.innerWidth > 900, showArchived: false,
+  search: '', sidebarOpen: window.innerWidth > 900, sidebarCollapsed: loadSidebarCollapsed(), showArchived: false,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
   streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamLanguage: 'ar', streamContent: '', streamThinking: '',
   editingMessageId: null, renamingId: null, confirmDeleteId: null, openMenuId: null, headerMenuOpen: false, dragActive: false,
@@ -927,7 +941,7 @@ function refreshSidebarDOM({ refocusSearch = false } = {}) {
 function renderChatPage() {
   if (!chatState.initialized && !chatState.loadingList) loadConversations().then(renderNow);
   const html = `
-    <div class="chat-page" data-theme="${chatState.theme}" data-ai-available="${chatState.aiCapabilities.chatAvailable}">
+    <div class="chat-page ${chatState.sidebarCollapsed ? 'sidebar-collapsed' : ''}" data-theme="${chatState.theme}" data-ai-available="${chatState.aiCapabilities.chatAvailable}">
       ${renderSidebar()}
       <div class="chat-sidebar-backdrop ${chatState.sidebarOpen ? 'visible' : ''}" data-chat-action="close-sidebar"></div>
       <div class="chat-main">
@@ -958,7 +972,7 @@ function renderChatHeader() {
   const menuOpen = chatState.headerMenuOpen;
   return `
     <header class="chat-main-header">
-      <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${ct('conversations')}" title="${ct('conversations')}">${icon('menu', 18)}</button>
+      <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${ct('showSidebar')}" title="${ct('showSidebar')}">${icon('panelToggle', 18)}</button>
       <div class="chat-header-copy">
         <strong dir="auto">${esc(title)}</strong>
         <span class="chat-header-sub">
@@ -1019,7 +1033,7 @@ function renderSidebar() {
     <aside class="chat-sidebar ${chatState.sidebarOpen ? 'open' : ''}" aria-label="${ct('history')}">
       <div class="chat-sidebar-head">
         <div class="chat-sidebar-brand"><span class="chat-sidebar-logo">${icon('spark', 17)}</span><span><strong>${ct('assistant')}</strong><small>${ct('chatWorkspace')}</small></span></div>
-        <button class="icon-button chat-sidebar-close" data-chat-action="close-sidebar" aria-label="${lang() === 'en' ? 'Close' : 'إغلاق'}">${icon('close')}</button>
+        <button class="icon-button chat-sidebar-close" data-chat-action="close-sidebar" aria-label="${ct('hideSidebar')}" title="${ct('hideSidebar')}">${icon('panelToggle', 17)}</button>
       </div>
       <button class="btn btn-primary btn-block chat-new-btn" data-chat-action="new-chat">${icon('plus', 15)}<span>${ct('newChat')}</span></button>
       <div class="chat-list-tabs" role="tablist" aria-label="${ct('history')}">
@@ -1335,9 +1349,19 @@ document.addEventListener('click', async (event) => {
   // and visibly flashing the entire page) and, before the renderMessage fix above, could silently break
   // the rest of the live response. Mutating the DOM directly here touches nothing but the toggle itself.
   if (action === 'open-sidebar' || action === 'close-sidebar') {
-    chatState.sidebarOpen = action === 'open-sidebar';
-    document.querySelector('.chat-sidebar')?.classList.toggle('open', chatState.sidebarOpen);
-    document.querySelector('.chat-sidebar-backdrop')?.classList.toggle('visible', chatState.sidebarOpen);
+    // The SAME button/action pair serves two genuinely different jobs depending on viewport: below the
+    // 900px breakpoint the sidebar is a mobile overlay drawer (sidebarOpen, momentary, always starts
+    // closed); at or above it, it's a persistent panel with its own collapse preference (sidebarCollapsed,
+    // saved like the theme). One action name, context-appropriate behavior — not two parallel features.
+    if (window.innerWidth > 900) {
+      chatState.sidebarCollapsed = action === 'close-sidebar';
+      saveSidebarCollapsed(chatState.sidebarCollapsed);
+      document.querySelector('.chat-page')?.classList.toggle('sidebar-collapsed', chatState.sidebarCollapsed);
+    } else {
+      chatState.sidebarOpen = action === 'open-sidebar';
+      document.querySelector('.chat-sidebar')?.classList.toggle('open', chatState.sidebarOpen);
+      document.querySelector('.chat-sidebar-backdrop')?.classList.toggle('visible', chatState.sidebarOpen);
+    }
     return;
   }
   if (action === 'toggle-theme') {
