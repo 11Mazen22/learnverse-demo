@@ -105,15 +105,23 @@ function chatSystemPrompt(language, think) {
     think
       ? 'Reason through the problem as thoroughly as you need to, then give a clear, well-organized final answer.'
       : 'Keep your answer tight and efficient: get straight to the point in a few clear sentences or a short structured list, with one worked example only if it genuinely helps — avoid restating the question, padding, or unnecessary preamble.',
-    // This must cover the thinking/reasoning channel explicitly, not only the final answer — a
-    // model can be instructed to answer in Arabic and still default to reasoning in English
-    // internally (a common pattern, since reasoning ability is often strongest in a model's most-
-    // trained language). Without naming "your thinking" directly, that internal channel tends to
-    // ignore an answer-only language instruction.
     language === 'en'
-      ? 'Respond in English by default, including your internal thinking/reasoning steps, not only your final answer. If the student writes their question in Arabic instead, switch entirely to Arabic for both your thinking and your answer. Never mix languages within your thinking or within your answer.'
-      : 'فكّر وأجب باللغة العربية الفصحى المبسطة افتراضيًا — يشمل ذلك خطوات تفكيرك الداخلي (reasoning)، وليس فقط إجابتك النهائية. إذا كتب الطالب سؤاله بلغة أخرى مثل الإنجليزية، فاستخدم تلك اللغة نفسها في تفكيرك وإجابتك معًا بدلاً من العربية. لا تخلط بين لغتين، لا في تفكيرك ولا في إجابتك.',
+      ? 'Respond in English by default, including your internal thinking/reasoning steps, not only your final answer. If the student writes their question in Arabic instead, switch entirely to Arabic for both your thinking and your answer.'
+      : 'فكّر وأجب باللغة العربية الفصحى المبسطة افتراضيًا — يشمل ذلك خطوات تفكيرك الداخلي، وليس فقط إجابتك النهائية. إذا كتب الطالب سؤاله بلغة أخرى مثل الإنجليزية، فاستخدم تلك اللغة نفسها بدلاً من العربية.',
   ];
+  // Reasoning models (this one included) have a strong learned default toward thinking in English
+  // inside their <think> block regardless of an answer-language instruction stated earlier — put a
+  // second, maximally explicit instruction naming that block directly as the LAST line for the
+  // strongest recency weight, since this is the one channel most resistant to steering. Not
+  // guaranteed to be fully obeyed (an inherent model bias, not something a prompt can force with
+  // certainty), but this is the strongest available lever without a model swap.
+  if (think) {
+    lines.push(
+      language === 'en'
+        ? 'IMPORTANT: write everything inside your <think> block in English too — do not let your reasoning default to any other language even if it feels more natural there.'
+        : 'مهم جدًا: اكتب كل ما بداخل خانة تفكيرك <think> باللغة العربية فقط، وليس بالإنجليزية. حتى تفكيرك الداخلي الخاص يجب أن يكون بالعربية الفصحى، لا يوجد أي استثناء لهذا ما لم يكتب الطالب سؤاله بلغة أخرى.',
+    );
+  }
   return lines.join('\n');
 }
 
