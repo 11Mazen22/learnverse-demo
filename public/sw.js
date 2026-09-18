@@ -1,5 +1,5 @@
-const CACHE = 'learning-platform-static-v1';
-const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest'];
+const CACHE = 'learning-platform-static-v2';
+const STATIC = ['/', '/index.html', '/styles.css', '/app.js', '/chat.js', '/markdown.js', '/manifest.webmanifest'];
 self.addEventListener('install', (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(STATIC))));
 self.addEventListener('activate', (event) => event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))));
 self.addEventListener('fetch', (event) => {

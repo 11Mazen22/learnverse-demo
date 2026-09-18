@@ -1,15 +1,19 @@
 import http from 'node:http';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { mkdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
+import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveChatTitle, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
+import { releaseGenerationLock, tryAcquireGenerationLock } from './lib/generationLock.mjs';
 import { JsonStore } from './lib/store.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(ROOT, 'public');
 const PORT = Number(process.env.PORT || 3000);
 const store = new JsonStore(process.env.DATA_FILE || path.join(ROOT, 'data', 'app.json'));
+const CHAT_ATTACHMENTS_DIR = process.env.DATA_FILE
+  ? path.join(path.dirname(process.env.DATA_FILE), 'chat-attachments')
+  : path.join(ROOT, 'data', 'chat-attachments');
 const sessions = new Map();
 
 const rateBuckets = new Map();
@@ -29,6 +33,130 @@ function rateLimited(key, limit, windowMs) {
 const OLLAMA_URL = process.env.OLLAMA_URL || '';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:3b';
 const TUTOR_TIMEOUT_MS = 70_000;
+
+// AI Chat page: a separate, general-purpose multi-conversation study assistant (see docs/DECISIONS.md).
+// Shares the same Ollama instance and the same generation lock as the tutor widget above, but is not
+// grounded to one lesson and is student-only.
+const CHAT_MESSAGE_BODY_MAX = 8_000_000; // accommodates a client-resized (~1600px, JPEG) image plus JSON overhead
+const CHAT_ATTACHMENT_MAX_BASE64 = 6_000_000; // defense-in-depth backstop; the client resize is the primary control
+const CHAT_HISTORY_WINDOW = 12; // last N stored messages sent to Ollama per generation — a latency control on
+// CPU-only inference, not a model context-window limit (the model's real window is far larger)
+const CHAT_NUM_PREDICT = 600; // fuller answers than the tutor widget's 200 (tuned for 1-3-sentence hints)
+
+// Cached at boot by probeThinkingSupport(): whether the deployed model/Ollama build genuinely keeps
+// reasoning in a separate `message.thinking` field instead of leaking it into `message.content`. The
+// Chat page's Thinking/Normal toggle only renders when this is true — self-detecting, never hardcoded.
+const aiCapabilities = { thinkingSupported: false };
+
+async function probeThinkingSupport() {
+  if (!OLLAMA_URL) return;
+  const log = (message) => { if (process.env.NODE_ENV !== 'test') console.log(message); };
+  try {
+    const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: OLLAMA_MODEL, stream: false, think: true, options: { num_predict: 300 },
+        messages: [{ role: 'user', content: 'What is 17 plus 26? Answer with just the number.' }],
+      }),
+    });
+    if (!response.ok) { log(`Thinking-mode probe failed: HTTP ${response.status}`); return; }
+    const payload = await response.json();
+    const thinking = payload?.message?.thinking || '';
+    const content = payload?.message?.content || '';
+    const leaked = /<think|<\/think>|^\s*(okay|let me|first,? i|i need to)/i.test(content);
+    aiCapabilities.thinkingSupported = thinking.length > 0 && !leaked;
+    log(`Thinking-mode probe: ${aiCapabilities.thinkingSupported ? 'supported (clean separation)' : 'not supported (leaked or empty)'}`);
+  } catch (error) {
+    log(`Thinking-mode probe failed: ${error.message}`);
+  }
+}
+
+// Flips any assistant message a prior process left mid-generation (e.g. a Railway restart) to a
+// clearly-labelled stopped state, so a conversation never shows a phantom "generating…" forever.
+// Safe to run unconditionally at boot: a fresh process's generation lock is always empty at this
+// point, so nothing can genuinely still be mid-generation when this runs.
+async function sweepStaleGeneratingMessages() {
+  try {
+    await store.transact((draft) => {
+      draft.chatConversations ||= [];
+      for (const conversation of draft.chatConversations) {
+        for (const message of conversation.messages) {
+          if (message.status === 'generating') { message.status = 'stopped'; message.stopped = true; message.unavailable = true; }
+        }
+      }
+    });
+  } catch { /* best-effort */ }
+}
+
+function chatSystemPrompt(language) {
+  const lines = [
+    'You are the AI study assistant inside a demonstration Arabic-first learning app for secondary-level students.',
+    'Help the student understand ideas, work through problems, and study effectively. You may discuss any study topic they ask about, not only one specific lesson.',
+    'Be encouraging, clear, and age-appropriate. Never claim to be a human teacher, and never claim to have graded or scored anything.',
+    'If asked to simply do a student\'s graded assignment for them, offer to explain the underlying concept instead of just giving the final answer.',
+    language === 'en'
+      ? 'Respond only in English. Do not mix in Arabic or any other script.'
+      : 'أجب فقط باللغة العربية الفصحى المبسطة. لا تخلط أي حروف صينية أو إنجليزية أو أي لغة أخرى في ردك.',
+  ];
+  return lines.join('\n');
+}
+
+// Builds the Ollama messages array for one generation: the system prompt plus the last
+// CHAT_HISTORY_WINDOW stored messages (a latency control, see above). Any in-window user message
+// with a persisted image attachment is re-read from disk and re-attached — images age out of context
+// naturally once their message scrolls out of the window, rather than being resent forever.
+async function buildChatOllamaMessages(conversation, user) {
+  const recent = conversation.messages.slice(-CHAT_HISTORY_WINDOW).filter((message) => message.status !== 'generating');
+  const messages = [{ role: 'system', content: chatSystemPrompt(user.language) }];
+  for (const message of recent) {
+    if (message.role === 'user') {
+      const entry = { role: 'user', content: message.content };
+      if (message.attachment?.attachmentId) {
+        try {
+          const bytes = await readFile(path.join(CHAT_ATTACHMENTS_DIR, `${message.attachment.attachmentId}.jpg`));
+          entry.images = [bytes.toString('base64')];
+        } catch { /* file missing or unreadable: fall back to the text-only turn */ }
+      }
+      messages.push(entry);
+    } else if (message.role === 'assistant' && message.content) {
+      messages.push({ role: 'assistant', content: message.content });
+    }
+  }
+  return messages;
+}
+
+// Real token streaming: parses Ollama's own newline-delimited JSON as it arrives and re-emits each
+// content/thinking delta immediately via onDelta — no artificial batching or pacing.
+async function streamOllamaChat({ messages, think }, { signal, onDelta }) {
+  const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think, options: { num_predict: CHAT_NUM_PREDICT }, messages }),
+    signal,
+  });
+  if (!response.ok || !response.body) throw new Error(`Ollama HTTP ${response.status}`);
+  let content = '';
+  let thinking = '';
+  let buffer = '';
+  for await (const chunk of response.body) {
+    buffer += Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk;
+    let newlineIndex;
+    while ((newlineIndex = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, newlineIndex).trim();
+      buffer = buffer.slice(newlineIndex + 1);
+      if (!line) continue;
+      let parsed;
+      try { parsed = JSON.parse(line); } catch { continue; }
+      const deltaContent = parsed?.message?.content || '';
+      const deltaThinking = parsed?.message?.thinking || '';
+      if (deltaContent) { content += deltaContent; onDelta({ kind: 'content', text: deltaContent }); }
+      if (deltaThinking) { thinking += deltaThinking; onDelta({ kind: 'thinking', text: deltaThinking }); }
+      if (parsed?.done) return { content, thinking };
+    }
+  }
+  return { content, thinking };
+}
 
 function tutorSystemPrompt(lesson, question, language) {
   const lines = [
@@ -100,11 +228,11 @@ const json = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 const fail = (res, status, message, code = 'REQUEST_FAILED') => json(res, status, { error: { code, message } });
-const readBody = async (req) => {
+const readBody = async (req, maxLength = 100_000) => {
   let raw = '';
   for await (const chunk of req) {
     raw += chunk;
-    if (raw.length > 100_000) throw new Error('Request body is too large');
+    if (raw.length > maxLength) throw new Error('Request body is too large');
   }
   if (!raw) return {};
   try { return JSON.parse(raw); } catch { throw new Error('Invalid JSON'); }
@@ -400,12 +528,288 @@ async function handleApi(req, res, url) {
     if (!OLLAMA_URL) return json(res, 200, { reply: user.language === 'en' ? 'The study helper is not set up on this deployment yet.' : 'المساعد الدراسي غير مفعّل على هذه النسخة بعد.', aiGenerated: false, unavailable: true });
     const lesson = body.lessonId ? data.curriculum.units.flatMap((unit) => unit.lessons).find((item) => item.id === body.lessonId) : null;
     const question = body.questionId ? findQuestion(data, body.questionId) : null;
-    const reply = await askTutor(tutorSystemPrompt(lesson, question, user.language), message);
-    if (reply) return json(res, 200, { reply, aiGenerated: true });
+    // Shares one generation slot with the AI Chat page's endpoint below (same CPU-only Ollama
+    // instance) — if it's busy, this keeps its existing 200-plus-labelled-fallback contract exactly
+    // as before, so the widget's client code needs zero changes.
+    if (!tryAcquireGenerationLock()) {
+      return json(res, 200, {
+        reply: user.language === 'en' ? 'The study helper is busy right now — try again in a moment.' : 'المساعد مشغول دلوقتي — جرّب تاني بعد لحظات.',
+        aiGenerated: false, unavailable: true,
+      });
+    }
+    try {
+      const reply = await askTutor(tutorSystemPrompt(lesson, question, user.language), message);
+      if (reply) return json(res, 200, { reply, aiGenerated: true });
+      return json(res, 200, {
+        reply: user.language === 'en' ? 'The study helper is warming up or busy right now — try again in a moment, or ask your teacher.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات، أو اسأل معلمك.',
+        aiGenerated: false, unavailable: true,
+      });
+    } finally {
+      releaseGenerationLock();
+    }
+  }
+
+  // ---- AI Chat page: a separate, general-purpose multi-conversation study assistant. ----
+  // Student-only. Shares the tutor widget's Ollama instance and generation lock (see above), but is
+  // not grounded to one lesson. See docs/DECISIONS.md for the streaming/persistence design.
+
+  const chatOwnedConversation = (userId, conversationId) =>
+    (data.chatConversations || []).find((item) => item.id === conversationId && item.userId === userId) || null;
+
+  const chatConversationSummary = (conversation) => {
+    const last = conversation.messages[conversation.messages.length - 1];
+    return {
+      id: conversation.id, title: conversation.title, pinned: conversation.pinned, archived: conversation.archived,
+      createdAt: conversation.createdAt, updatedAt: conversation.updatedAt,
+      preview: last ? String(last.content || '').slice(0, 120) : '',
+    };
+  };
+
+  if (req.method === 'GET' && url.pathname === '/api/chat/conversations') {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const conversations = (data.chatConversations || [])
+      .filter((item) => item.userId === user.id)
+      .sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || b.updatedAt.localeCompare(a.updatedAt))
+      .map(chatConversationSummary);
     return json(res, 200, {
-      reply: user.language === 'en' ? 'The study helper is warming up or busy right now — try again in a moment, or ask your teacher.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات، أو اسأل معلمك.',
-      aiGenerated: false, unavailable: true,
+      conversations,
+      aiCapabilities: { chatAvailable: Boolean(OLLAMA_URL), thinkingSupported: aiCapabilities.thinkingSupported },
     });
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/chat/conversations') {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const conversation = await store.transact((draft) => {
+      draft.chatConversations ||= [];
+      const created = {
+        id: crypto.randomUUID(), userId: user.id, title: null, pinned: false, archived: false,
+        messages: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      };
+      draft.chatConversations.push(created);
+      return created;
+    });
+    return json(res, 201, { conversation });
+  }
+
+  const chatConvoMatch = url.pathname.match(/^\/api\/chat\/conversations\/([^/]+)$/);
+  if (req.method === 'GET' && chatConvoMatch) {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const conversation = chatOwnedConversation(user.id, chatConvoMatch[1]);
+    if (!conversation) return fail(res, 404, 'Conversation is unavailable.', 'NOT_FOUND');
+    return json(res, 200, { conversation });
+  }
+
+  if (req.method === 'PATCH' && chatConvoMatch) {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    if (!chatOwnedConversation(user.id, chatConvoMatch[1])) return fail(res, 404, 'Conversation is unavailable.', 'NOT_FOUND');
+    const body = await readBody(req);
+    const conversation = await store.transact((draft) => {
+      const target = (draft.chatConversations || []).find((item) => item.id === chatConvoMatch[1] && item.userId === user.id);
+      if (!target) throw new Error('Conversation is unavailable');
+      if (typeof body.title === 'string' && body.title.trim()) target.title = body.title.trim().slice(0, 80);
+      if (typeof body.pinned === 'boolean') target.pinned = body.pinned;
+      if (typeof body.archived === 'boolean') target.archived = body.archived;
+      target.updatedAt = new Date().toISOString();
+      return target;
+    });
+    return json(res, 200, { conversation });
+  }
+
+  if (req.method === 'DELETE' && chatConvoMatch) {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const existing = chatOwnedConversation(user.id, chatConvoMatch[1]);
+    if (!existing) return fail(res, 404, 'Conversation is unavailable.', 'NOT_FOUND');
+    await store.transact((draft) => {
+      draft.chatConversations = (draft.chatConversations || []).filter((item) => !(item.id === chatConvoMatch[1] && item.userId === user.id));
+    });
+    for (const message of existing.messages) {
+      if (message.attachment?.attachmentId) unlink(path.join(CHAT_ATTACHMENTS_DIR, `${message.attachment.attachmentId}.jpg`)).catch(() => {});
+    }
+    return json(res, 200, { ok: true });
+  }
+
+  const chatAttachmentMatch = url.pathname.match(/^\/api\/chat\/attachments\/([0-9a-f-]{36})$/i);
+  if (req.method === 'GET' && chatAttachmentMatch) {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    const attachmentId = chatAttachmentMatch[1];
+    const owns = (data.chatConversations || []).some((conversation) =>
+      conversation.userId === user.id && conversation.messages.some((message) => message.attachment?.attachmentId === attachmentId));
+    if (!owns) return fail(res, 404, 'Attachment is unavailable.', 'NOT_FOUND');
+    const filePath = path.join(CHAT_ATTACHMENTS_DIR, `${attachmentId}.jpg`);
+    try {
+      await stat(filePath);
+    } catch {
+      return fail(res, 404, 'Attachment is unavailable.', 'NOT_FOUND');
+    }
+    res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+    createReadStream(filePath).pipe(res);
+    return;
+  }
+
+  const chatMessagesMatch = url.pathname.match(/^\/api\/chat\/conversations\/([^/]+)\/messages$/);
+  if (req.method === 'POST' && chatMessagesMatch) {
+    const user = requireRole(req, res, data, ['student']);
+    if (!user) return;
+    if (rateLimited(`chat:${user.id}`, 20, 10 * 60_000)) return fail(res, 429, 'You have sent a lot of messages — take a short break and try again soon.', 'RATE_LIMITED');
+    const conversationId = chatMessagesMatch[1];
+    if (!chatOwnedConversation(user.id, conversationId)) return fail(res, 404, 'Conversation is unavailable.', 'NOT_FOUND');
+
+    const body = await readBody(req, CHAT_MESSAGE_BODY_MAX);
+    const idempotencyKey = String(body.idempotencyKey || '');
+    if (!idempotencyKey) return fail(res, 400, 'A request key is required.', 'VALIDATION');
+    const content = String(body.content || '').trim().slice(0, 4000);
+    const isRegenerate = Boolean(body.regenerate);
+    const editFromMessageId = body.editFromMessageId ? String(body.editFromMessageId) : null;
+
+    let attachment = null;
+    if (body.attachment) {
+      const { name, type, dataBase64 } = body.attachment;
+      if (typeof type !== 'string' || !type.startsWith('image/')) return fail(res, 413, 'Only image attachments are supported.', 'ATTACHMENT_UNSUPPORTED');
+      if (typeof dataBase64 !== 'string' || !dataBase64 || dataBase64.length > CHAT_ATTACHMENT_MAX_BASE64) return fail(res, 413, 'The image is too large.', 'ATTACHMENT_TOO_LARGE');
+      attachment = { name: String(name || 'image').slice(0, 120), type, size: Math.round(dataBase64.length * 0.75), dataBase64 };
+    }
+    if (!isRegenerate && !content && !attachment) return fail(res, 400, 'Write a message first.', 'VALIDATION');
+
+    if (!tryAcquireGenerationLock()) return fail(res, 429, 'The assistant is busy with another request — try again in a moment.', 'ASSISTANT_BUSY');
+    let released = false;
+    const release = () => { if (!released) { released = true; releaseGenerationLock(); } };
+
+    // Phase 1 — fast transact: compute the message-array prefix (append / truncate-at-edit /
+    // drop-last-assistant-for-regenerate), append the new turn(s), persist a "generating" placeholder
+    // so a crash here leaves durable evidence (see sweepStaleGeneratingMessages at boot).
+    let phase1;
+    try {
+      phase1 = await store.transact((draft) => {
+        draft.chatConversations ||= [];
+        const conversation = draft.chatConversations.find((item) => item.id === conversationId && item.userId === user.id);
+        if (!conversation) throw new Error('Conversation is unavailable');
+
+        const duplicateAssistant = conversation.messages.find((message) => message.role === 'assistant' && message.replyToIdempotencyKey === idempotencyKey);
+        if (duplicateAssistant) return { conversation, duplicate: true, assistantMessage: duplicateAssistant };
+
+        if (editFromMessageId) {
+          const cutIndex = conversation.messages.findIndex((message) => message.id === editFromMessageId);
+          if (cutIndex < 0) throw new Error('Message is unavailable');
+          conversation.messages = conversation.messages.slice(0, cutIndex);
+        } else if (isRegenerate) {
+          const lastIndex = conversation.messages.length - 1;
+          if (lastIndex >= 0 && conversation.messages[lastIndex].role === 'assistant') conversation.messages = conversation.messages.slice(0, lastIndex);
+        }
+
+        let userMessage = null;
+        if (!isRegenerate) {
+          userMessage = {
+            id: crypto.randomUUID(), role: 'user', content, idempotencyKey,
+            attachment: attachment ? { name: attachment.name, type: attachment.type, size: attachment.size, attachmentId: crypto.randomUUID() } : null,
+            createdAt: new Date().toISOString(),
+          };
+          conversation.messages.push(userMessage);
+          if (!conversation.title) conversation.title = deriveChatTitle(content) || (attachment ? (user.language === 'en' ? 'Image' : 'صورة') : null);
+        }
+
+        const assistantMessage = {
+          id: crypto.randomUUID(), role: 'assistant', content: '', thinking: '', status: 'generating',
+          aiGenerated: false, unavailable: false, stopped: false, replyToIdempotencyKey: idempotencyKey,
+          createdAt: new Date().toISOString(),
+        };
+        conversation.messages.push(assistantMessage);
+        conversation.updatedAt = new Date().toISOString();
+        return { conversation, duplicate: false, userMessage, assistantMessage };
+      });
+    } catch {
+      release();
+      return fail(res, 404, 'Conversation is unavailable.', 'NOT_FOUND');
+    }
+
+    // From here on, the request is accepted: headers switch to streaming NDJSON, and any later
+    // failure must be absorbed inside this handler (never rethrown to the top-level catch-all in
+    // createServer, which would try to writeHead again and crash with ERR_HTTP_HEADERS_SENT).
+    res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+    const writeLine = (payload) => { try { res.write(`${JSON.stringify(payload)}\n`); } catch { /* client already gone */ } };
+
+    if (phase1.duplicate) {
+      writeLine({ type: 'meta', conversationId, userMessageId: null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title });
+      writeLine({ type: 'delta', kind: 'content', text: phase1.assistantMessage.content || '' });
+      writeLine({ type: 'done', aiGenerated: Boolean(phase1.assistantMessage.aiGenerated), unavailable: Boolean(phase1.assistantMessage.unavailable), stopped: Boolean(phase1.assistantMessage.stopped) });
+      res.end();
+      release();
+      return;
+    }
+
+    writeLine({ type: 'meta', conversationId, userMessageId: phase1.userMessage?.id || null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title });
+
+    if (attachment && phase1.userMessage?.attachment?.attachmentId) {
+      try {
+        await mkdir(CHAT_ATTACHMENTS_DIR, { recursive: true });
+        await writeFile(path.join(CHAT_ATTACHMENTS_DIR, `${phase1.userMessage.attachment.attachmentId}.jpg`), Buffer.from(attachment.dataBase64, 'base64'));
+      } catch { /* non-fatal: the turn still works, just without a redisplayable image later */ }
+    }
+
+    // Phase 2 — outside any store.transact, so one user's slow generation never blocks the
+    // server-wide write queue that every other request (including every other student) shares.
+    let finalContent = '', finalThinking = '', stopped = false, aiGenerated = false, unavailable = false;
+    if (!OLLAMA_URL) {
+      finalContent = user.language === 'en' ? 'The AI Chat assistant is not set up on this deployment yet.' : 'مساعد الدردشة الذكي غير مفعّل على هذه النسخة بعد.';
+      unavailable = true;
+      writeLine({ type: 'delta', kind: 'content', text: finalContent });
+    } else {
+      const upstreamController = new AbortController();
+      const timer = setTimeout(() => upstreamController.abort(), TUTOR_TIMEOUT_MS);
+      let clientClosed = false;
+      const onClose = () => { clientClosed = true; upstreamController.abort(); };
+      res.on('close', onClose);
+      try {
+        const messages = await buildChatOllamaMessages(phase1.conversation, user);
+        const result = await streamOllamaChat(
+          { messages, think: Boolean(body.thinking) && aiCapabilities.thinkingSupported },
+          { signal: upstreamController.signal, onDelta: (delta) => writeLine({ type: 'delta', kind: delta.kind, text: delta.text }) },
+        );
+        finalContent = result.content;
+        finalThinking = result.thinking;
+        aiGenerated = finalContent.length > 0;
+        unavailable = !aiGenerated;
+        if (!aiGenerated) {
+          finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
+          writeLine({ type: 'delta', kind: 'content', text: finalContent });
+        }
+      } catch {
+        if (clientClosed) {
+          stopped = true;
+        } else {
+          unavailable = true;
+          finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
+          writeLine({ type: 'delta', kind: 'content', text: finalContent });
+        }
+      } finally {
+        clearTimeout(timer);
+        res.removeListener('close', onClose);
+      }
+    }
+
+    // Phase 3 — fast transact, always runs: persist whatever text was produced, however the
+    // generation ended (completed, stopped, timed out, or the model was unavailable).
+    await store.transact((draft) => {
+      const conversation = (draft.chatConversations || []).find((item) => item.id === conversationId && item.userId === user.id);
+      const assistantMessage = conversation?.messages.find((message) => message.id === phase1.assistantMessage.id);
+      if (!assistantMessage) return;
+      assistantMessage.content = finalContent;
+      assistantMessage.thinking = finalThinking;
+      assistantMessage.status = stopped ? 'stopped' : 'complete';
+      assistantMessage.aiGenerated = aiGenerated;
+      assistantMessage.unavailable = unavailable;
+      assistantMessage.stopped = stopped;
+      conversation.updatedAt = new Date().toISOString();
+    }).catch(() => {});
+
+    release();
+    if (!stopped) { writeLine({ type: 'done', aiGenerated, unavailable, stopped }); res.end(); }
+    return;
   }
 
   if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, schemaVersion: data.meta.schemaVersion });
@@ -432,7 +836,9 @@ async function serveStatic(req, res, url) {
 
 export async function createServer(options = {}) {
   await store.init({ reset: options.reset });
-  ensureTutorModelPulled();
+  await sweepStaleGeneratingMessages();
+  await mkdir(CHAT_ATTACHMENTS_DIR, { recursive: true }).catch(() => {});
+  ensureTutorModelPulled().then(() => probeThinkingSupport());
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     try {

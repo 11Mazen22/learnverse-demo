@@ -1,3 +1,5 @@
+import { renderChatPage } from './chat.js';
+
 const app = document.querySelector('#app');
 const toastRegion = document.querySelector('#toast-region');
 
@@ -35,7 +37,7 @@ function saveQueue() {
 
 const copy = {
   ar: {
-    brand: 'منصة التعلّم', demo: 'بيئة تجريبية • المحتوى غير معتمد', home: 'القاعدة', map: 'خريطة الرحلة', progress: 'معمل التقدّم', shop: 'غرفة المكافآت', profile: 'الإعدادات', teacher: 'استوديو المعلّم', admin: 'استوديو المحتوى',
+    brand: 'منصة التعلّم', demo: 'بيئة تجريبية • المحتوى غير معتمد', home: 'القاعدة', map: 'خريطة الرحلة', progress: 'معمل التقدّم', shop: 'غرفة المكافآت', chat: 'المرشد الذكي', profile: 'الإعدادات', teacher: 'استوديو المعلّم', admin: 'استوديو المحتوى',
     greeting: 'أهلًا', ready: 'جاهز لخطوة صغيرة جديدة؟', today: 'مهمتك المقترحة اليوم', continue: 'كمّل الرحلة', minutes: 'دقائق', assignments: 'تكليفاتك', streak: 'إيقاع التعلّم', meaningful: 'كل إجابة صادقة تبني فهمك.',
     evidence: 'تقدّمك مبني على أدلة متنوعة، وليس إجابة واحدة.', insufficient: 'نحتاج أدلة أكثر', reteach: 'لنراجع الفكرة', supported: 'تدريب بمساندة', mixed: 'تطبيق متنوع', mastered: 'إتقان مبدئي',
     lesson: 'الدرس', example: 'مثال محلول', checkpoint: 'نقطة تحقق', submit: 'تحقق من إجابتي', next: 'السؤال التالي', retry: 'جرّب مرة أخرى', correct: 'إجابة موفقة!', incorrect: 'محاولة مفيدة—خلّينا نفهمها.', finish: 'أنهِ الدرس',
@@ -49,7 +51,7 @@ const copy = {
     studyHelper: 'مساعد الدراسة', aiDraftNotice: 'ردود المساعد مسودة من الذكاء الاصطناعي، تحقق دائمًا مع معلّمك.', askPlaceholder: 'اسأل عن الدرس الحالي…', send: 'إرسال', tutorIntro: 'أهلًا! اسألني عن الدرس الحالي وهساعدك تفهمه، من غير ما أديك الإجابة مباشرة.', tutorUnavailableBoss: 'المساعد غير متاح أثناء تحدي الوحدة للحفاظ على نتيجة موثوقة.',
   },
   en: {
-    brand: 'Learning Platform', demo: 'Demo environment • content is not approved', home: 'Home Base', map: 'World Map', progress: 'Progress Lab', shop: 'Reward Room', profile: 'Settings', teacher: 'Teacher Studio', admin: 'Content Studio',
+    brand: 'Learning Platform', demo: 'Demo environment • content is not approved', home: 'Home Base', map: 'World Map', progress: 'Progress Lab', shop: 'Reward Room', chat: 'AI Chat', profile: 'Settings', teacher: 'Teacher Studio', admin: 'Content Studio',
     greeting: 'Welcome', ready: 'Ready for one small step?', today: 'Your recommended task', continue: 'Continue quest', minutes: 'minutes', assignments: 'Your assignments', streak: 'Learning rhythm', meaningful: 'Every honest answer builds understanding.',
     evidence: 'Progress uses varied evidence, not one answer.', insufficient: 'More evidence needed', reteach: 'Review the idea', supported: 'Supported practice', mixed: 'Mixed application', mastered: 'Provisionally mastered',
     lesson: 'Lesson', example: 'Worked example', checkpoint: 'Checkpoint', submit: 'Check my answer', next: 'Next question', retry: 'Try again', correct: 'Nice reasoning!', incorrect: 'Useful attempt—let’s unpack it.', finish: 'Finish lesson',
@@ -168,7 +170,7 @@ async function bootstrap() {
 }
 
 const studentNav = [
-  ['home', '⌂', 'home'], ['map', '🗺', 'map'], ['progress', '◔', 'progress'], ['shop', '✦', 'shop'], ['profile', '⚙', 'profile'],
+  ['home', '⌂', 'home'], ['map', '🗺', 'map'], ['progress', '◔', 'progress'], ['shop', '✦', 'shop'], ['chat', '✧', 'chat'], ['profile', '⚙', 'profile'],
 ];
 
 function equippedIcon(user) {
@@ -228,7 +230,7 @@ function render() {
   if (role === 'teacher') app.innerHTML = shell(renderTeacher(), t('teacher'));
   else if (role === 'admin') app.innerHTML = shell(renderAdmin(), t('admin'));
   else {
-    const views = { home: renderHome, map: renderMap, lesson: renderLesson, progress: renderProgress, shop: renderShop, profile: renderProfile, boss: renderBoss };
+    const views = { home: renderHome, map: renderMap, lesson: renderLesson, progress: renderProgress, shop: renderShop, chat: renderChatPage, profile: renderProfile, boss: renderBoss };
     app.innerHTML = shell((views[state.view] || renderHome)(), state.view === 'lesson' ? t('lesson') : t(state.view));
   }
   app.insertAdjacentHTML('beforeend', renderCelebration());
@@ -236,6 +238,23 @@ function render() {
   app.insertAdjacentHTML('beforeend', renderTutorWidget());
   const tutorMessages = document.querySelector('#tutor-messages');
   if (tutorMessages) tutorMessages.scrollTop = tutorMessages.scrollHeight;
+}
+
+// Generic page-transition helper — not chat-specific, even though only the Chat page opts into a
+// visible fade today. A fade only plays when entering or leaving Chat specifically, and never when
+// reduced motion is on (an instant swap, not just a faster animation). Every other page-to-page
+// navigation is unaffected — the same instant swap as before this existed.
+function navigateTo(nextView) {
+  const swap = () => { state.view = nextView; state.feedback = null; render(); window.scrollTo(0, 0); };
+  const crossesChatBoundary = (state.view === 'chat') !== (nextView === 'chat');
+  if (state.reduceMotion || !crossesChatBoundary || state.view === nextView) return swap();
+  const current = app.querySelector('.content');
+  if (!current) return swap();
+  current.classList.add('page-fade-out');
+  let settled = false;
+  const finish = () => { if (settled) return; settled = true; swap(); };
+  current.addEventListener('transitionend', finish, { once: true });
+  setTimeout(finish, 220);
 }
 
 function firstAvailableLesson() {
@@ -526,7 +545,7 @@ document.addEventListener('click', async (event) => {
   const demo = event.target.closest('[data-demo]');
   if (demo) return login(demo.dataset.demo);
   const view = event.target.closest('[data-view]');
-  if (view) { state.view = view.dataset.view; state.feedback = null; render(); window.scrollTo(0, 0); return; }
+  if (view) { navigateTo(view.dataset.view); return; }
   const lessonButton = event.target.closest('[data-open-lesson]');
   if (lessonButton) { state.activeLessonId = lessonButton.dataset.openLesson; state.questionIndex = 0; state.selectedAnswer = null; state.feedback = null; state.view = 'lesson'; render(); window.scrollTo(0,0); return; }
   const answer = event.target.closest('[data-answer]');
@@ -647,3 +666,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 
 applyReduceMotion();
 bootstrap().then(() => { if (navigator.onLine) syncOfflineQueue(); });
+
+// Shared utilities re-exported for public/chat.js (the AI Chat page lives in its own module rather
+// than growing this file further — see docs/DECISIONS.md). Safe as a circular import: chat.js only
+// ever uses these inside function bodies invoked later at runtime, never at its own module top level.
+export { state, api, esc, t, lang, local, id, toast, render };
