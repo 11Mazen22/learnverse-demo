@@ -624,6 +624,28 @@ html[dir="ltr"] .chat-conversation-title { padding: .62rem 2.3rem .62rem .55rem;
 .chat-speed-rating.slow i { background: #d95c67; }
 .chat-composer { width: min(900px, calc(100% - 2.2rem)); margin: .65rem auto 1rem; border-radius: 18px; box-shadow: 0 10px 30px rgba(35,31,78,.11); }
 
+/* Calm live-response canvas: no growing loader box or glow pulse. The answer itself uses the paced
+   character reveal from chat.js, with progressive Markdown and an inline caret. */
+.chat-msg-assistant .chat-msg-bubble,
+.chat-page[data-theme="dark"] .chat-msg-assistant .chat-msg-bubble {
+  min-height: 30px; padding: .22rem .15rem; border: 0; border-radius: 0; background: transparent;
+  box-shadow: none;
+}
+.chat-msg-assistant.is-streaming .chat-msg-bubble,
+.chat-msg-assistant.is-streaming.is-answering .chat-msg-bubble { animation: none; transform: none; box-shadow: none; }
+.chat-msg-assistant.is-streaming:not(.has-stream-text) .chat-msg-bubble { display: flex; align-items: center; }
+.chat-msg-assistant .chat-typing { min-width: 42px; height: 28px; padding: 0 .15rem; gap: .32rem; }
+.chat-msg-assistant .chat-typing span { width: 5px; height: 5px; background: var(--chat-muted); opacity: .35; animation: chat-stream-wait 1.2s infinite ease-in-out; }
+.chat-msg-assistant .chat-typing span:nth-child(2) { animation-delay: .14s; }
+.chat-msg-assistant .chat-typing span:nth-child(3) { animation-delay: .28s; }
+@keyframes chat-stream-wait { 0%, 60%, 100% { transform: translateY(0); opacity: .3; } 30% { transform: translateY(-3px); opacity: .85; } }
+.chat-stream-cursor { width: 2px; height: .95em; margin-inline-start: 2px; vertical-align: -.08em; border-radius: 2px; background: currentColor; animation: chat-cursor-blink .85s steps(1, end) infinite; }
+.chat-char-in { display: inline-block; animation: chat-char-in .18s ease-out both; }
+.chat-msg-assistant .chat-msg-actions { flex-direction: row; align-self: flex-end; }
+.chat-msg-assistant .chat-response-metrics { max-width: 520px; }
+.chat-main, .chat-sidebar, .chat-composer, .chat-msg-bubble { contain: layout style; }
+.chat-messages { overflow-anchor: none; }
+
 @media (max-width: 1100px) and (min-width: 901px) {
   .chat-page { grid-template-columns: 280px minmax(0,1fr); }
   .chat-suggestions { grid-template-columns: 1fr; }
@@ -636,8 +658,11 @@ html[dir="ltr"] .chat-conversation-title { padding: .62rem 2.3rem .62rem .55rem;
   .chat-main-header { min-height: 58px; padding: .55rem .7rem; }
   .chat-menu-toggle { display: grid; }
   .chat-messages { padding-top: 1rem; }
-  .chat-suggestions { grid-template-columns: 1fr; }
-  .chat-suggestion { min-height: 0; }
+  .chat-welcome { min-height: 0; justify-content: flex-start; overflow-y: auto; }
+  .chat-suggestions { grid-template-columns: repeat(3, minmax(180px, 1fr)); overflow-x: auto; overscroll-behavior-inline: contain; padding-bottom: .25rem; scrollbar-width: thin; }
+  .chat-suggestions::-webkit-scrollbar { display: none; }
+  .chat-suggestions { scrollbar-width: none; }
+  .chat-suggestion { min-height: 64px; }
   .chat-composer { width: calc(100% - 1.2rem); margin-bottom: .7rem; }
   .chat-conversation-actions { display: none; }
   .chat-conversation-item.active .chat-conversation-actions, .chat-conversation-item.menu-open .chat-conversation-actions { display: flex; }
@@ -650,7 +675,7 @@ html[dir="ltr"] .chat-conversation-title { padding: .62rem 2.3rem .62rem .55rem;
   .chat-welcome-mark { width: 48px; height: 48px; border-radius: 16px; }
   .chat-welcome h1 { font-size: 1.28rem; }
   .chat-welcome p { font-size: .8rem; }
-  .chat-suggestions { margin: .7rem 0; gap: .42rem; }
+  .chat-suggestions { margin: .7rem 0; gap: .42rem; grid-template-columns: repeat(3, minmax(170px, 1fr)); }
   .chat-suggestion { padding: .62rem .72rem; font-size: .75rem; }
   .chat-msg { max-width: 96%; }
   .chat-msg-avatar { width: 26px; height: 26px; border-radius: 8px; }

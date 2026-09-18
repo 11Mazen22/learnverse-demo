@@ -93,7 +93,7 @@ function saveChatTheme(theme) {
 
 const chatState = {
   initialized: false, loadingList: false, conversations: [], aiCapabilities: { chatAvailable: false, thinkingSupported: false },
-  activeId: null, activeConversation: null, loadingConversation: false,
+  activeId: null, activeConversation: null, loadingConversation: false, creatingConversation: null,
   search: '', sidebarOpen: window.innerWidth > 900, showArchived: false,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
   streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamContent: '', streamThinking: '',
@@ -147,7 +147,7 @@ async function openConversation(conversationId) {
   chatState.activeId = conversationId;
   chatState.loadingConversation = true;
   chatState.activeConversation = null;
-  renderNow();
+  refreshSidebarDOM();
   try {
     const result = await api(`/api/chat/conversations/${conversationId}`);
     chatState.activeConversation = result.conversation;
@@ -156,22 +156,33 @@ async function openConversation(conversationId) {
     chatState.activeId = null;
   } finally {
     chatState.loadingConversation = false;
-    renderNow();
+    refreshChatMainDOM({ focusInput: true });
+    refreshSidebarDOM();
   }
 }
 
-async function createConversation() {
-  try {
+async function createConversation({ renderResult = true, focusInput = true } = {}) {
+  if (chatState.creatingConversation) return chatState.creatingConversation;
+  chatState.creatingConversation = (async () => {
     const result = await api('/api/chat/conversations', { method: 'POST', body: JSON.stringify({}) });
     chatState.conversations.unshift({ id: result.conversation.id, title: null, pinned: false, archived: false, createdAt: result.conversation.createdAt, updatedAt: result.conversation.updatedAt, preview: '' });
     chatState.activeId = result.conversation.id;
     chatState.activeConversation = result.conversation;
     chatState.search = '';
     chatState.sidebarOpen = window.innerWidth > 900;
-    renderNow();
-    focusComposer();
+    if (renderResult) {
+      refreshChatMainDOM({ focusInput });
+      refreshSidebarDOM();
+    }
+    return result.conversation;
+  })();
+  try {
+    return await chatState.creatingConversation;
   } catch (error) {
     toast(error.message, 'error');
+    return null;
+  } finally {
+    chatState.creatingConversation = null;
   }
 }
 
@@ -187,7 +198,8 @@ async function patchConversation(conversationId, patch) {
     if (patch.archived === true && !chatState.showArchived && chatState.activeId === conversationId) {
       chatState.activeId = null;
       chatState.activeConversation = null;
-      renderNow();
+      refreshChatMainDOM({ focusInput: true });
+      refreshSidebarDOM();
     } else {
       refreshSidebarDOM();
     }
@@ -204,7 +216,9 @@ async function deleteConversation(conversationId) {
     chatState.conversations = chatState.conversations.filter((item) => item.id !== conversationId);
     if (chatState.activeId === conversationId) { chatState.activeId = null; chatState.activeConversation = null; }
     chatState.confirmDeleteId = null;
-    renderNow();
+    refreshChatMainDOM({ focusInput: true });
+    refreshSidebarDOM();
+    syncDeleteModalDOM();
     toast(lang() === 'en' ? 'Conversation deleted.' : 'تم حذف المحادثة.');
   } catch (error) {
     toast(error.message, 'error');
@@ -257,7 +271,7 @@ function isTextFile(file) {
 
 async function attachTextFile(file) {
   chatState.attachmentError = null;
-  if (file.size > 2_000_000) { chatState.attachmentError = ct('fileTooLarge'); renderNow(); return; }
+  if (file.size > 2_000_000) { chatState.attachmentError = ct('fileTooLarge'); refreshComposerDOM(); return; }
   try {
     let text = await file.text();
     let truncated = false;
@@ -266,30 +280,30 @@ async function attachTextFile(file) {
   } catch {
     chatState.attachmentError = ct('fileReadFailed');
   }
-  renderNow();
+  refreshComposerDOM();
 }
 
 async function attachFile(file) {
   if (isTextFile(file)) return attachTextFile(file);
   if (file.type.startsWith('image/')) return attachImageFile(file);
   chatState.attachmentError = ct('fileTypeRejected');
-  renderNow();
+  refreshComposerDOM();
 }
 
 async function attachImageFile(file) {
   chatState.attachmentError = null;
-  if (file.size > MAX_ATTACHMENT_BYTES * 4) { chatState.attachmentError = ct('imageTooLarge'); renderNow(); return; }
+  if (file.size > MAX_ATTACHMENT_BYTES * 4) { chatState.attachmentError = ct('imageTooLarge'); refreshComposerDOM(); return; }
   try {
     const resized = await resizeImageFile(file);
     resized.ocrStatus = 'pending';
     resized.ocrProgress = 0;
     resized.ocrText = '';
     chatState.composerAttachment = resized;
-    renderNow();
+    refreshComposerDOM();
     runOcr(resized);
   } catch {
     chatState.attachmentError = ct('imageTooLarge');
-    renderNow();
+    refreshComposerDOM();
   }
 }
 
@@ -359,7 +373,7 @@ async function runOcr(attachment) {
     if (chatState.composerAttachment !== attachment) return;
     attachment.ocrStatus = 'error';
   }
-  renderNow();
+  updateOcrStatusDOM(attachment);
 }
 
 // Tesseract's progress callback fires many times a second while recognizing — routing every tick
@@ -370,11 +384,14 @@ async function runOcr(attachment) {
 // error, which also enables the send button) still goes through a normal renderNow() at the end.
 function updateOcrStatusDOM(attachment) {
   const el = document.querySelector('.chat-ocr-status');
-  if (!el) { renderNow(); return; }
+  if (!el) { refreshComposerDOM(); return; }
   el.className = `chat-ocr-status chat-ocr-${attachment.ocrStatus}`;
   el.innerHTML = attachment.ocrStatus === 'pending'
     ? `<i class="chat-ocr-spinner" aria-hidden="true"></i><span>${ct('ocrExtracting')} ${attachment.ocrProgress || 0}%</span>`
-    : '';
+    : attachment.ocrStatus === 'done'
+      ? `${icon('check', 13)}<span>${attachment.ocrText ? ct('ocrDone') : ct('ocrEmpty')}</span>`
+      : `${icon('warning', 13)}<span>${ct('ocrError')}</span>`;
+  document.querySelector('.chat-send-btn')?.toggleAttribute('disabled', attachment.ocrStatus === 'pending');
 }
 
 // ---------------------------------------------------------------------------
@@ -386,7 +403,14 @@ function contextDividerIndexFor(conversation) {
 }
 
 async function sendChat({ content = '', regenerate = false, editFromMessageId = null } = {}) {
-  if (chatState.streaming || !chatState.activeConversation) return;
+  if (chatState.streaming) return;
+  // The welcome screen is a ready-to-use draft. Persist its conversation on first submit so the
+  // user never has to press "New chat" before Enter or Send can work.
+  if (!chatState.activeConversation) {
+    const created = await createConversation({ renderResult: false, focusInput: false });
+    if (!created) return;
+    if (chatState.streaming) return;
+  }
   const conversation = chatState.activeConversation;
   const attachment = chatState.composerAttachment;
   // Images are only ever handed to the assistant as OCR'd text (see runOcr) — sending before that
@@ -421,9 +445,9 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
   chatState.streamDomId = placeholderId;
   chatState.streamContent = '';
   chatState.streamThinking = '';
+  resetStreamReveal();
   chatState.scrolledUp = false;
-  renderNow();
-  scrollMessagesToBottom();
+  mountPendingTurn({ regenerate, editFromMessageId });
 
   const controller = new AbortController();
   chatState.streamAbort = controller;
@@ -470,10 +494,16 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
           if (assistantMessage) assistantMessage.id = realAssistantId;
           if (realUserId && !regenerate) {
             const pendingUser = conversation.messages.find((message) => message.id === `pending-${idempotencyKey}`);
-            if (pendingUser) pendingUser.id = realUserId;
+            if (pendingUser) {
+              remapMessageDomId(pendingUser.id, realUserId);
+              pendingUser.id = realUserId;
+            }
           }
           chatState.streamAssistantId = realAssistantId;
-          if (!conversation.title && parsed.title) conversation.title = parsed.title;
+          if (!conversation.title && parsed.title) {
+            conversation.title = parsed.title;
+            updateChatHeaderDOM();
+          }
         } else if (parsed.type === 'delta') {
           if (firstVisibleResponseAt === null) firstVisibleResponseAt = performance.now();
           if (parsed.kind === 'thinking') chatState.streamThinking += parsed.text;
@@ -511,15 +541,16 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
       };
     }
   } finally {
+    const finalDomId = chatState.streamDomId;
     chatState.streaming = false;
     chatState.streamAbort = null;
-    chatState.streamAssistantId = null;
-    chatState.streamDomId = null;
     const summary = chatState.conversations.find((item) => item.id === conversation.id);
     const lastMessage = conversation.messages[conversation.messages.length - 1];
     if (summary) { summary.updatedAt = new Date().toISOString(); summary.title = conversation.title; summary.preview = String(lastMessage?.content || '').slice(0, 120); }
     reorderConversationSummaries();
-    renderNow();
+    finalizeStreamingTurn(finalDomId);
+    chatState.streamAssistantId = null;
+    chatState.streamDomId = null;
   }
 }
 
@@ -531,126 +562,85 @@ function stopStreaming() {
   chatState.streamAbort?.abort();
 }
 
-// Hot-loop DOM update: plain text on EVERY delta the instant it arrives (cheap, always correct, never
-// throttled — this is what makes the reply visibly start "talking" the moment the model responds,
-// not after it finishes). Full Markdown formatting re-renders at most every ~140ms on top of that, so
-// code blocks/bold/lists appear progressively without re-parsing on every single character.
-let lastMarkdownRenderAt = 0;
+// A paced reveal decouples the visual cadence from arbitrary network chunk sizes. The visible prefix
+// is rendered as Markdown on every paint, so bold, lists, code, and headings stay formatted while the
+// answer grows. An adaptive rate catches up after a burst without dumping a whole chunk at once.
+let streamPaintFrame = 0;
+let streamVisibleLength = 0;
+let streamRevealBudget = 0;
+let streamLastFrameAt = 0;
+let streamLastRenderedLength = -1;
+
+function resetStreamReveal() {
+  if (streamPaintFrame) cancelAnimationFrame(streamPaintFrame);
+  streamPaintFrame = 0;
+  streamVisibleLength = 0;
+  streamRevealBudget = 0;
+  streamLastFrameAt = 0;
+  streamLastRenderedLength = -1;
+}
+
 function updateStreamingBubbleDOM() {
-  // Deliberately the DOM id captured at send-time (streamDomId), NOT streamAssistantId — the latter
-  // gets reassigned to the server's real message id once the `meta` line arrives, but the rendered
-  // DOM element still carries the original placeholder id from the send-start render. Looking it up
-  // by streamAssistantId after that point would silently find nothing for the rest of the stream
-  // (this was the actual bug behind "the reply only appears once it's completely finished" — the
-  // text was accumulating in state the whole time, just never reaching the DOM until the next full
-  // re-render at stream-end happened to use the now-correct id).
+  if (streamPaintFrame) return;
+  streamPaintFrame = requestAnimationFrame(paintStreamingFrame);
+}
+
+function paintStreamingFrame(now) {
+  streamPaintFrame = 0;
   const msgId = chatState.streamDomId;
+  if (!msgId) return;
+  const remaining = Math.max(0, chatState.streamContent.length - streamVisibleLength);
+  if (remaining) {
+    const elapsed = streamLastFrameAt ? Math.min(80, now - streamLastFrameAt) : 16;
+    const charactersPerSecond = Math.min(240, 52 + remaining * 1.4);
+    streamRevealBudget += (elapsed / 1000) * charactersPerSecond;
+    const revealCount = Math.min(remaining, Math.floor(streamRevealBudget));
+    if (revealCount > 0) {
+      streamVisibleLength += revealCount;
+      streamRevealBudget -= revealCount;
+    }
+  }
+  streamLastFrameAt = now;
+
   const contentEl = document.getElementById(`chat-msg-content-${msgId}`);
-  if (contentEl) { paintStreamingText(contentEl, chatState.streamContent); appendStreamCursor(contentEl); }
   const thinkingEl = document.getElementById(`chat-msg-thinking-${msgId}`);
-  if (thinkingEl) thinkingEl.textContent = chatState.streamThinking;
-
-  // The typing indicator and the reasoning panel's "thinking…" live indicator are static placeholders
-  // from the last full render — hide them here as real text starts arriving, since the hot loop never
-  // re-runs renderMessage() to recompute that itself. The reasoning panel ITSELF is already visible
-  // from the first render whenever thinking was requested (see renderMessage/showReasoningBlock) —
-  // this only needs to swap its live indicator for the real streamed text.
-  if (chatState.streamContent || chatState.streamThinking) {
-    const typingEl = document.getElementById(`chat-msg-typing-${msgId}`);
-    if (typingEl) typingEl.style.display = 'none';
-  }
-  if (chatState.streamThinking) {
-    const liveEl = document.getElementById(`chat-reasoning-live-${msgId}`);
-    if (liveEl) liveEl.style.display = 'none';
-  }
-  // Swap the ambient bubble animation from the cooler "thinking" breathe to the warmer "answering"
-  // one the moment real answer text (not just reasoning) starts arriving.
-  if (chatState.streamContent) {
-    const wrapperEl = document.querySelector(`[data-chat-msg="${msgId}"]`);
-    if (wrapperEl && !wrapperEl.classList.contains('is-answering')) wrapperEl.classList.add('is-answering');
-  }
-
-  const now = performance.now();
-  if (contentEl && now - lastMarkdownRenderAt > 140) {
-    lastMarkdownRenderAt = now;
-    contentEl.replaceChildren(renderMarkdownToDOM(chatState.streamContent));
-    // Everything up to this point is now shown via real Markdown nodes rather than the raw-text char
-    // spans below — mark it all "painted" so the next delta's paintStreamingText only animates in
-    // whatever arrives after this snapshot, instead of re-animating text already on screen.
-    contentEl.dataset.painted = String(chatState.streamContent.length);
+  if (contentEl && (streamLastRenderedLength !== streamVisibleLength || !contentEl.childNodes.length)) {
+    const visibleContent = chatState.streamContent.slice(0, streamVisibleLength);
+    contentEl.replaceChildren(renderMarkdownToDOM(visibleContent));
+    animateStreamTail(contentEl);
     appendStreamCursor(contentEl);
+    streamLastRenderedLength = streamVisibleLength;
   }
+  if (thinkingEl) thinkingEl.textContent = chatState.streamThinking;
+  if (chatState.streamContent || chatState.streamThinking) document.getElementById(`chat-msg-typing-${msgId}`)?.remove();
+  if (chatState.streamThinking) document.getElementById(`chat-reasoning-live-${msgId}`)?.remove();
+  document.querySelector(`[data-chat-msg="${msgId}"]`)?.classList.toggle('has-stream-text', Boolean(chatState.streamContent));
   if (!chatState.scrolledUp) scrollMessagesToBottom();
+  if (streamVisibleLength < chatState.streamContent.length) updateStreamingBubbleDOM();
 }
 
-// Reveals new text one character at a time, ChatGPT-style, instead of jumping in by whatever chunk
-// size the network happened to deliver. `el.dataset.painted` tracks how much of `fullText` this exact
-// element has already shown — it lives on the element (not in chatState) so a brand-new element from a
-// mid-stream full re-render (see renderMessage's stream-aware domId) naturally starts over at 0 without
-// any extra bookkeeping, and a genuinely new delta on the same element just continues where it left off.
-function paintStreamingText(el, fullText) {
-  const paintedLen = Number(el.dataset.painted || 0);
-  if (paintedLen >= fullText.length) return;
-  // The cursor (if present) is always the current last child — detach it first so the text-node-merge
-  // logic below operates on the real trailing text, not on the cursor span. The caller re-appends it.
-  el.querySelector(':scope > .chat-stream-cursor')?.remove();
-  settleCharSpans(el);
-  const newChars = fullText.slice(paintedLen);
-  const ANIMATE_TAIL = 24;
-  if (newChars.length > ANIMATE_TAIL) {
-    // A jump this large in one paint means this element has no rendering history of its own (freshly
-    // (re)minted mid-stream) rather than one ordinary network delta — settle the bulk instantly as
-    // plain text and animate only the trailing slice, so resuming a long reply never mass-animates
-    // hundreds of characters at once.
-    appendSettledText(el, newChars.slice(0, newChars.length - ANIMATE_TAIL));
-    appendCharSpans(el, newChars.slice(newChars.length - ANIMATE_TAIL));
-  } else {
-    appendCharSpans(el, newChars);
-  }
-  el.dataset.painted = String(fullText.length);
+function animateStreamTail(el) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let lastText = null;
+  while (walker.nextNode()) if (walker.currentNode.data) lastText = walker.currentNode;
+  if (!lastText?.data) return;
+  const value = lastText.data;
+  const newest = document.createElement('span');
+  newest.className = 'chat-char-in';
+  newest.textContent = value.slice(-1);
+  lastText.replaceWith(document.createTextNode(value.slice(0, -1)), newest);
 }
 
-function appendSettledText(el, text) {
-  if (!text) return;
-  const last = el.lastChild;
-  if (last && last.nodeType === Node.TEXT_NODE) last.data += text;
-  else el.appendChild(document.createTextNode(text));
-}
-
-function appendCharSpans(el, chars) {
-  const frag = document.createDocumentFragment();
-  for (const ch of chars) {
-    const span = document.createElement('span');
-    span.className = 'chat-char-in';
-    span.textContent = ch;
-    frag.appendChild(span);
-  }
-  el.appendChild(frag);
-}
-
-// Folds the previous delta's animated character spans into a plain trailing text node once a new delta
-// arrives — by then their entrance animation (~180ms) has long finished, and a real chat reply streams
-// in every 100-300ms+ per network delta, so this never visibly interrupts anything. Keeps the DOM from
-// accumulating one permanent <span> per character over a whole reply.
-function settleCharSpans(el) {
-  const spans = el.querySelectorAll(':scope > span.chat-char-in');
-  if (!spans.length) return;
-  let text = '';
-  spans.forEach((span) => { text += span.textContent; span.remove(); });
-  appendSettledText(el, text);
-}
-
-// A blinking caret at the exact end of the live text — the clearest, most standard signal that a
-// reply is actively being written (not stalled), sitting inline wherever the text currently wraps to
-// rather than pinned to the bubble's corner. Recreated (not just moved) on every update so its blink
-// animation restarts each time: like a real text cursor, it stays solid while tokens keep arriving
-// faster than one blink cycle, and only visibly starts blinking once generation genuinely pauses.
+// Keep the caret inside the final rendered block. Appending it to the root puts it beside a <p>,
+// which is exactly what caused the detached-cursor box/line shown in the reported screenshot.
 function appendStreamCursor(el) {
-  el.querySelector(':scope > .chat-stream-cursor')?.remove();
+  el.querySelector('.chat-stream-cursor')?.remove();
   const cursor = document.createElement('span');
   cursor.className = 'chat-stream-cursor';
   cursor.setAttribute('aria-hidden', 'true');
-  el.appendChild(cursor);
+  const tails = el.querySelectorAll('p, h1, h2, h3, li, blockquote, td, th, .md-code-block code');
+  const tail = tails[tails.length - 1] || el;
+  tail.appendChild(cursor);
 }
 
 // ---------------------------------------------------------------------------
@@ -671,6 +661,129 @@ function focusComposer() {
 // user has already navigated away while a background request was in flight).
 function renderNow() {
   if (state.view === 'chat') render();
+}
+
+function refreshChatMainDOM({ focusInput = false } = {}) {
+  if (state.view !== 'chat') return;
+  const main = document.querySelector('.chat-main');
+  if (!main) return;
+  main.innerHTML = `${renderChatHeader()}${chatState.activeConversation?.messages.length ? renderConversationBody() : renderChatWelcome()}`;
+  hydrateChatMessages();
+  if (chatState.streaming) updateStreamingBubbleDOM();
+  if (!chatState.scrolledUp) scrollMessagesToBottom();
+  if (focusInput) focusComposer();
+}
+
+function refreshComposerDOM({ preserveText = true, focus = false } = {}) {
+  const current = document.getElementById('chat-composer-form');
+  if (!current) return;
+  const oldInput = current.querySelector('#chat-composer-input');
+  const value = preserveText ? (oldInput?.value || '') : '';
+  const wasFocused = document.activeElement === oldInput;
+  const inWelcome = Boolean(current.closest('.chat-welcome'));
+  const template = document.createElement('template');
+  template.innerHTML = renderComposer(inWelcome).trim();
+  const next = template.content.querySelector('#chat-composer-form');
+  if (!next) return;
+  current.replaceWith(next);
+  const input = next.querySelector('#chat-composer-input');
+  if (input) {
+    input.value = value;
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
+    if (focus || wasFocused) {
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    }
+  }
+}
+
+function updateChatHeaderDOM() {
+  const current = document.querySelector('.chat-main-header');
+  if (!current) return;
+  const template = document.createElement('template');
+  template.innerHTML = renderChatHeader().trim();
+  const next = template.content.firstElementChild;
+  if (next) current.replaceWith(next);
+}
+
+function remapMessageDomId(oldId, newId) {
+  if (!oldId || !newId || oldId === newId) return;
+  const wrapper = document.querySelector(`[data-chat-msg="${oldId}"]`);
+  if (!wrapper) return;
+  wrapper.dataset.chatMsg = newId;
+  wrapper.querySelectorAll('[data-chat-id]').forEach((node) => { if (node.dataset.chatId === oldId) node.dataset.chatId = newId; });
+  wrapper.querySelectorAll('[data-chat-copy]').forEach((node) => { if (node.dataset.chatCopy === oldId) node.dataset.chatCopy = newId; });
+}
+
+function mountPendingTurn({ regenerate = false, editFromMessageId = null } = {}) {
+  const conversation = chatState.activeConversation;
+  const messagesEl = document.getElementById('chat-messages');
+  if (!conversation || !messagesEl || regenerate || editFromMessageId) {
+    refreshChatMainDOM();
+    return;
+  }
+  messagesEl.querySelector('[data-chat-action="regenerate"]')?.remove();
+  const pending = conversation.messages.slice(-2);
+  const template = document.createElement('template');
+  template.innerHTML = pending.map((message) => renderMessage(message, conversation)).join('');
+  messagesEl.append(template.content);
+  refreshComposerDOM({ preserveText: false });
+  updateChatHeaderDOM();
+  scrollMessagesToBottom();
+}
+
+function finalizeStreamingTurn(domId) {
+  resetStreamReveal();
+  const conversation = chatState.activeConversation;
+  const message = conversation?.messages.find((item) => item.id === chatState.streamAssistantId);
+  const current = domId ? document.querySelector(`[data-chat-msg="${domId}"]`) : null;
+  if (!conversation || !message || !current) {
+    refreshChatMainDOM();
+    return;
+  }
+  const template = document.createElement('template');
+  template.innerHTML = renderMessage(message, conversation).trim();
+  const next = template.content.firstElementChild;
+  if (next) {
+    current.replaceWith(next);
+    const contentEl = document.getElementById(`chat-msg-content-${message.id}`);
+    if (contentEl && message.content) contentEl.replaceChildren(renderMarkdownToDOM(message.content));
+  }
+  refreshComposerDOM({ preserveText: false, focus: true });
+  updateChatHeaderDOM();
+  refreshSidebarDOM();
+  if (!chatState.scrolledUp) scrollMessagesToBottom();
+}
+
+function replaceMessageDOM(messageId) {
+  const conversation = chatState.activeConversation;
+  const message = conversation?.messages.find((item) => item.id === messageId);
+  const current = document.querySelector(`[data-chat-msg="${messageId}"]`);
+  if (!conversation || !message || !current) return;
+  const template = document.createElement('template');
+  template.innerHTML = renderMessage(message, conversation).trim();
+  const next = template.content.firstElementChild;
+  if (!next) return;
+  current.replaceWith(next);
+  if (message.role === 'assistant' && message.content) document.getElementById(`chat-msg-content-${message.id}`)?.replaceChildren(renderMarkdownToDOM(message.content));
+}
+
+function syncDeleteModalDOM() {
+  document.querySelector('.modal-backdrop:has(#chat-delete-title)')?.remove();
+  if (!chatState.confirmDeleteId) return;
+  const template = document.createElement('template');
+  template.innerHTML = renderDeleteConfirm().trim();
+  document.querySelector('.chat-page')?.append(template.content);
+}
+
+function setComposerDragState(active) {
+  chatState.dragActive = active;
+  const composer = document.getElementById('chat-composer-form');
+  if (!composer) return;
+  composer.classList.toggle('drag-active', active);
+  composer.querySelector('.chat-drop-overlay')?.remove();
+  if (active) composer.insertAdjacentHTML('afterbegin', `<div class="chat-drop-overlay">${icon('image', 20)}<span>${ct('dropHint')}</span></div>`);
 }
 
 // Sidebar-only state changes must not reconstruct the message thread or composer. Besides avoiding
@@ -990,7 +1103,7 @@ document.addEventListener('click', async (event) => {
   // regardless of which of the two listeners happens to run first.
   if (event.target.classList.contains('modal-backdrop') && chatState.confirmDeleteId) {
     chatState.confirmDeleteId = null;
-    renderNow();
+    syncDeleteModalDOM();
     return;
   }
 
@@ -1003,7 +1116,7 @@ document.addEventListener('click', async (event) => {
 
   if (!action) {
     const openItem = event.target.closest('[data-chat-open]');
-    if (openItem) { openConversation(openItem.dataset.chatOpen); chatState.sidebarOpen = window.innerWidth > 900; renderNow(); return; }
+    if (openItem) { openConversation(openItem.dataset.chatOpen); chatState.sidebarOpen = window.innerWidth > 900; return; }
 
     const suggestBtn = event.target.closest('[data-chat-suggest]');
     if (suggestBtn) {
@@ -1062,22 +1175,22 @@ document.addEventListener('click', async (event) => {
     return patchConversation(actionId, { archived: item.archived !== true });
   }
   if (action === 'rename') { chatState.openMenuId = null; chatState.renamingId = actionId; refreshSidebarDOM(); document.getElementById('chat-rename-input')?.focus(); return; }
-  if (action === 'delete') { chatState.openMenuId = null; chatState.confirmDeleteId = actionId; renderNow(); return; }
-  if (action === 'cancel-delete') { chatState.confirmDeleteId = null; renderNow(); return; }
+  if (action === 'delete') { chatState.openMenuId = null; chatState.confirmDeleteId = actionId; refreshSidebarDOM(); syncDeleteModalDOM(); return; }
+  if (action === 'cancel-delete') { chatState.confirmDeleteId = null; syncDeleteModalDOM(); return; }
   if (action === 'confirm-delete') return deleteConversation(actionId);
-  if (action === 'remove-attachment') { chatState.composerAttachment = null; chatState.attachmentError = null; renderNow(); return; }
+  if (action === 'remove-attachment') { chatState.composerAttachment = null; chatState.attachmentError = null; refreshComposerDOM({ focus: true }); return; }
   if (action === 'stop') return stopStreaming();
-  if (action === 'scroll-bottom') { chatState.scrolledUp = false; scrollMessagesToBottom(); renderNow(); return; }
+  if (action === 'scroll-bottom') { chatState.scrolledUp = false; scrollMessagesToBottom(); event.target.closest('.chat-scroll-bottom')?.classList.remove('visible'); return; }
   if (action === 'regenerate') return sendChat({ regenerate: true });
   if (action === 'edit-message') {
     const message = chatState.activeConversation?.messages.find((item) => item.id === actionId);
     chatState.editingMessageId = actionId;
-    renderNow();
+    replaceMessageDOM(actionId);
     const textarea = document.getElementById('chat-edit-textarea');
     if (textarea) { textarea.focus(); textarea.setSelectionRange(textarea.value.length, textarea.value.length); }
     return;
   }
-  if (action === 'cancel-edit') { chatState.editingMessageId = null; renderNow(); return; }
+  if (action === 'cancel-edit') { const id = chatState.editingMessageId; chatState.editingMessageId = null; if (id) replaceMessageDOM(id); return; }
   if (action === 'copy') {
     const copyId = event.target.closest('[data-chat-copy]')?.dataset.chatCopy;
     const message = chatState.activeConversation?.messages.find((item) => item.id === copyId);
@@ -1120,7 +1233,7 @@ document.addEventListener('submit', (event) => {
     const newTitle = renameForm.querySelector('input')?.value.trim();
     chatState.renamingId = null;
     if (newTitle) patchConversation(conversationId, { title: newTitle });
-    else renderNow();
+    else refreshSidebarDOM();
     return;
   }
   const editForm = event.target.closest('[data-chat-edit-form]');
@@ -1130,7 +1243,7 @@ document.addEventListener('submit', (event) => {
     const newText = editForm.querySelector('textarea')?.value.trim();
     chatState.editingMessageId = null;
     if (newText) sendChat({ content: newText, editFromMessageId: messageId });
-    else renderNow();
+    else replaceMessageDOM(messageId);
     return;
   }
 });
@@ -1153,8 +1266,8 @@ document.addEventListener('keydown', (event) => {
   // app.js's own generic keydown listener already closes any .modal-backdrop on Escape (DOM only) —
   // this clears the matching chat.js state so the delete-confirm dialog cannot silently reappear on
   // a later unrelated re-render.
-  if (event.key === 'Escape' && chatState.confirmDeleteId) chatState.confirmDeleteId = null;
-  if (event.key === 'Escape' && chatState.openMenuId) { chatState.openMenuId = null; renderNow(); }
+  if (event.key === 'Escape' && chatState.confirmDeleteId) { chatState.confirmDeleteId = null; syncDeleteModalDOM(); }
+  if (event.key === 'Escape' && chatState.openMenuId) { chatState.openMenuId = null; refreshSidebarDOM(); }
   if (event.key === 'Escape' && chatState.sidebarOpen && window.innerWidth <= 900) {
     chatState.sidebarOpen = false;
     document.querySelector('.chat-sidebar')?.classList.remove('open');
@@ -1181,20 +1294,18 @@ document.addEventListener('scroll', (event) => {
 document.addEventListener('dragover', (event) => {
   if (!event.target.closest('.chat-composer')) return;
   event.preventDefault();
-  if (!chatState.dragActive) { chatState.dragActive = true; renderNow(); }
+  if (!chatState.dragActive) setComposerDragState(true);
 });
 document.addEventListener('dragleave', (event) => {
   if (!event.target.closest('.chat-composer')) return;
-  chatState.dragActive = false;
-  renderNow();
+  setComposerDragState(false);
 });
 document.addEventListener('drop', (event) => {
   if (!event.target.closest('.chat-composer')) return;
   event.preventDefault();
-  chatState.dragActive = false;
+  setComposerDragState(false);
   const file = event.dataTransfer?.files?.[0];
   if (file) attachFile(file);
-  else renderNow();
 });
 
 export { renderChatPage };
