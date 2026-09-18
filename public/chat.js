@@ -22,7 +22,7 @@ const copy = {
     edit: 'تعديل', save: 'حفظ', aiDraft: 'مسودة ذكاء اصطناعي', stopped: 'تم الإيقاف', unavailable: 'المساعد غير متاح الآن',
     imageRejected: 'الملفات غير الصورية غير مدعومة.', imageTooLarge: 'حجم الصورة كبير جدًا.', contextDivider: 'الرسائل الأقدم غير متاحة لذاكرة المساعد في هذا الرد.',
     lightMode: 'وضع فاتح', darkMode: 'وضع داكن', you: 'أنت', assistant: 'المساعد', unavailableChip: 'الدردشة الذكية غير مفعّلة على هذه النسخة بعد.',
-    dropHint: 'أفلت الصورة هنا', newMessages: 'رسائل جديدة ↓',
+    dropHint: 'أفلت الصورة هنا', newMessages: 'رسائل جديدة',
   },
   en: {
     newChat: 'New chat', search: 'Search conversations…', pinned: 'Pinned', conversations: 'Conversations',
@@ -35,10 +35,42 @@ const copy = {
     edit: 'Edit', save: 'Save', aiDraft: 'AI draft', stopped: 'Stopped', unavailable: 'The assistant is unavailable right now',
     imageRejected: 'Non-image files are not supported.', imageTooLarge: 'That image is too large.', contextDivider: 'Earlier messages aren’t included in the assistant’s memory for this reply.',
     lightMode: 'Light mode', darkMode: 'Dark mode', you: 'You', assistant: 'Assistant', unavailableChip: 'AI Chat is not set up on this deployment yet.',
-    dropHint: 'Drop image here', newMessages: 'New messages ↓',
+    dropHint: 'Drop image here', newMessages: 'New messages',
   },
 };
 const ct = (key) => copy[lang()]?.[key] || copy.ar[key] || key;
+
+// A small custom line-icon set (original paths, not copied from any icon library) — the Chat page's
+// own visual identity uses no emoji at all, unlike the rest of the app's Unicode-glyph icon system,
+// since emoji render inconsistently across platforms and fonts. Every icon is a plain inline SVG,
+// colored via currentColor so it inherits the button's text color/state automatically.
+const ICONS = {
+  close: '<path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  sun: '<circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v3M12 18.5v3M4.4 4.4l2.1 2.1M17.5 17.5l2.1 2.1M2.5 12h3M18.5 12h3M4.4 19.6l2.1-2.1M17.5 6.5l2.1-2.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  moon: '<path d="M20 14.3A8.4 8.4 0 1 1 9.7 4a7 7 0 0 0 10.3 10.3Z" fill="currentColor"/>',
+  pin: '<path d="M12 2.5l1.85 5.7H20l-4.9 3.55L17 17.5 12 13.9 7 17.5l1.9-5.75L4 8.2h6.15Z" fill="currentColor"/>',
+  pinOutline: '<path d="M12 2.5l1.85 5.7H20l-4.9 3.55L17 17.5 12 13.9 7 17.5l1.9-5.75L4 8.2h6.15Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>',
+  edit: '<path d="M4 20l.9-4 11-11 3.1 3.1-11 11L4 20Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+  archive: '<rect x="3" y="4.5" width="18" height="3.6" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 9.3V18a1.3 1.3 0 0 0 1.3 1.3h11.4A1.3 1.3 0 0 0 19 18V9.3M10 13.2h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>',
+  trash: '<path d="M5 7h14M9.5 7V5.2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V7m-7.3 0 .95 12.1a1 1 0 0 0 1 .9h5.7a1 1 0 0 0 1-.9L17.8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  spark: '<path d="M12 2.2c.7 4.1 2.7 6.1 6.8 6.8-4.1.7-6.1 2.7-6.8 6.8-.7-4.1-2.7-6.1-6.8-6.8 4.1-.7 6.1-2.7 6.8-6.8Z" fill="currentColor"/>',
+  image: '<rect x="3" y="4.5" width="18" height="15" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8.7" cy="10" r="1.5" fill="currentColor"/><path d="M21 15.5l-5.4-5.3L6.5 19.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>',
+  warning: '<path d="M12 3.3 21.3 19.5H2.7L12 3.3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M12 9.8v4M12 16.7h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  refresh: '<path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5M19.5 12a7.5 7.5 0 0 1-12.6 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/><path d="M17.3 3.2v4h-4M6.7 20.8v-4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+  attach: '<path d="M8 12.8V6.8a4 4 0 0 1 8 0v9.4a2.6 2.6 0 0 1-5.2 0V8.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>',
+  copy: '<rect x="4" y="4" width="12" height="12" rx="1.6" stroke="currentColor" stroke-width="1.5"/><path d="M9 20h7.4a1.6 1.6 0 0 0 1.6-1.6V9" stroke="currentColor" stroke-width="1.5" fill="none"/>',
+  plus: '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  send: '<path d="M3.2 11.3 19.7 4.3l-6.4 15.4-2.3-7-8-1.4Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>',
+  stop: '<rect x="7" y="7" width="10" height="10" rx="2.2" fill="currentColor"/>',
+  search: '<circle cx="10.3" cy="10.3" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14.8 14.8 19.5 19.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  dots: '<circle cx="4" cy="10" r="1.6" fill="currentColor"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/>',
+  node: '<circle cx="12" cy="6" r="2.1" stroke="currentColor" stroke-width="1.6"/><circle cx="5.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/><circle cx="18.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/><path d="M12 8.1V12M12 12l-5.3 3.3M12 12l5.3 3.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  arrowDown: '<path d="M12 4v14.5M6 13l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+};
+function icon(name, size = 16) {
+  return `<svg class="chat-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+}
 
 function loadChatTheme() {
   try { return localStorage.getItem('lp-chat-theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
@@ -207,8 +239,9 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
     const lastIndex = conversation.messages.length - 1;
     if (lastIndex >= 0 && conversation.messages[lastIndex].role === 'assistant') conversation.messages = conversation.messages.slice(0, lastIndex);
   }
+  const willUseThinking = chatState.thinkingMode && chatState.aiCapabilities.thinkingSupported;
   const placeholderId = `pending-assistant-${idempotencyKey}`;
-  conversation.messages.push({ id: placeholderId, role: 'assistant', content: '', thinking: '', status: 'generating' });
+  conversation.messages.push({ id: placeholderId, role: 'assistant', content: '', thinking: '', status: 'generating', thinkingRequested: willUseThinking });
 
   chatState.composerAttachment = null;
   chatState.attachmentError = null;
@@ -226,7 +259,7 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
   const body = { idempotencyKey, regenerate, editFromMessageId };
   if (!regenerate) body.content = content;
   if (attachment) body.attachment = { name: attachment.name, type: attachment.type, dataBase64: attachment.dataBase64 };
-  if (chatState.thinkingMode && chatState.aiCapabilities.thinkingSupported) body.thinking = true;
+  if (willUseThinking) body.thinking = true;
 
   try {
     const headers = { 'Content-Type': 'application/json' };
@@ -316,22 +349,24 @@ function stopStreaming() {
 // code blocks/bold/lists appear progressively without re-parsing on every single character.
 let lastMarkdownRenderAt = 0;
 function updateStreamingBubbleDOM() {
-  const id = chatState.streamAssistantId;
-  const contentEl = document.getElementById(`chat-msg-content-${id}`);
+  const msgId = chatState.streamAssistantId;
+  const contentEl = document.getElementById(`chat-msg-content-${msgId}`);
   if (contentEl) contentEl.textContent = chatState.streamContent;
-  const thinkingEl = document.getElementById(`chat-msg-thinking-${id}`);
+  const thinkingEl = document.getElementById(`chat-msg-thinking-${msgId}`);
   if (thinkingEl) thinkingEl.textContent = chatState.streamThinking;
 
-  // The typing indicator and the (initially-empty, initially-hidden) reasoning section are static
-  // placeholders from the last full render — reveal/hide them here as real text starts arriving,
-  // since the hot loop never re-runs renderMessage() to recompute that itself.
+  // The typing indicator and the reasoning panel's "thinking…" live indicator are static placeholders
+  // from the last full render — hide them here as real text starts arriving, since the hot loop never
+  // re-runs renderMessage() to recompute that itself. The reasoning panel ITSELF is already visible
+  // from the first render whenever thinking was requested (see renderMessage/showReasoningBlock) —
+  // this only needs to swap its live indicator for the real streamed text.
   if (chatState.streamContent || chatState.streamThinking) {
-    const typingEl = document.getElementById(`chat-msg-typing-${id}`);
+    const typingEl = document.getElementById(`chat-msg-typing-${msgId}`);
     if (typingEl) typingEl.style.display = 'none';
   }
   if (chatState.streamThinking) {
-    const reasoningEl = document.getElementById(`chat-reasoning-${id}`);
-    if (reasoningEl && reasoningEl.style.display === 'none') { reasoningEl.style.display = ''; reasoningEl.open = true; }
+    const liveEl = document.getElementById(`chat-reasoning-live-${msgId}`);
+    if (liveEl) liveEl.style.display = 'none';
   }
 
   const now = performance.now();
@@ -403,10 +438,10 @@ function renderSidebar() {
   return `
     <aside class="chat-sidebar ${chatState.sidebarOpen ? 'open' : ''}">
       <div class="chat-sidebar-head">
-        <button class="btn btn-primary btn-block" data-chat-action="new-chat">+ ${ct('newChat')}</button>
-        <button class="icon-button chat-sidebar-close" data-chat-action="close-sidebar" aria-label="${lang() === 'en' ? 'Close' : 'إغلاق'}">✕</button>
+        <button class="btn btn-primary btn-block chat-new-btn" data-chat-action="new-chat">${icon('plus', 15)}<span>${ct('newChat')}</span></button>
+        <button class="icon-button chat-sidebar-close" data-chat-action="close-sidebar" aria-label="${lang() === 'en' ? 'Close' : 'إغلاق'}">${icon('close')}</button>
       </div>
-      <div class="chat-search"><input type="search" id="chat-search-input" placeholder="${ct('search')}" value="${esc(chatState.search)}" aria-label="${ct('search')}"></div>
+      <div class="chat-search">${icon('search', 15)}<input type="search" id="chat-search-input" placeholder="${ct('search')}" value="${esc(chatState.search)}" aria-label="${ct('search')}"></div>
       <nav class="chat-conversation-list" aria-label="${ct('conversations')}">
         ${chatState.loadingList ? `<div class="chat-list-skeleton"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>` : ''}
         ${!chatState.loadingList && !visible.length ? `<p class="chat-empty-list">${query ? ct('noResults') : ct('noConversations')}</p>` : ''}
@@ -414,7 +449,7 @@ function renderSidebar() {
         ${rest.length ? `${pinned.length ? `<p class="chat-list-group">${ct('conversations')}</p>` : ''}${rest.map(renderConversationListItem).join('')}` : ''}
       </nav>
       <button class="chat-theme-toggle" data-chat-action="toggle-theme" aria-pressed="${chatState.theme === 'dark'}">
-        ${chatState.theme === 'dark' ? `☀ ${ct('lightMode')}` : `☾ ${ct('darkMode')}`}
+        ${chatState.theme === 'dark' ? icon('sun', 15) : icon('moon', 15)}<span>${chatState.theme === 'dark' ? ct('lightMode') : ct('darkMode')}</span>
       </button>
     </aside>
     ${chatState.confirmDeleteId ? renderDeleteConfirm() : ''}`;
@@ -433,19 +468,19 @@ function renderConversationListItem(item) {
   return `
     <div class="chat-conversation-item ${active ? 'active' : ''} ${menuOpen ? 'menu-open' : ''}" data-chat-open="${item.id}">
       <button class="chat-conversation-title" data-chat-open="${item.id}">
-        ${item.pinned ? '<i class="chat-pin-mark" aria-hidden="true">★</i>' : ''}<span>${esc(title)}</span>
+        ${item.pinned ? `<i class="chat-pin-mark" aria-hidden="true">${icon('pin', 11)}</i>` : ''}<span>${esc(title)}</span>
       </button>
       <div class="chat-conversation-actions">
-        <button class="icon-button icon-button-sm" data-chat-action="pin" data-chat-id="${item.id}" aria-label="${item.pinned ? ct('unpin') : ct('pin')}" title="${item.pinned ? ct('unpin') : ct('pin')}">${item.pinned ? '★' : '☆'}</button>
+        <button class="icon-button icon-button-sm" data-chat-action="pin" data-chat-id="${item.id}" aria-label="${item.pinned ? ct('unpin') : ct('pin')}" title="${item.pinned ? ct('unpin') : ct('pin')}">${item.pinned ? icon('pin', 14) : icon('pinOutline', 14)}</button>
         <div class="chat-kebab-wrap">
           <button class="icon-button icon-button-sm chat-kebab-btn" data-chat-action="toggle-menu" data-chat-id="${item.id}" aria-label="${lang() === 'en' ? 'More' : 'المزيد'}" aria-haspopup="true" aria-expanded="${menuOpen}">
-            <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><circle cx="4" cy="10" r="1.6" fill="currentColor"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/></svg>
+            ${icon('dots', 14)}
           </button>
           ${menuOpen ? `
             <div class="chat-menu-dropdown" role="menu">
-              <button role="menuitem" data-chat-action="rename" data-chat-id="${item.id}">✎ ${ct('rename')}</button>
-              <button role="menuitem" data-chat-action="archive" data-chat-id="${item.id}">🗃 ${item.archived ? ct('unarchive') : ct('archive')}</button>
-              <button role="menuitem" class="chat-menu-danger" data-chat-action="delete" data-chat-id="${item.id}">🗑 ${ct('delete')}</button>
+              <button role="menuitem" data-chat-action="rename" data-chat-id="${item.id}">${icon('edit', 14)}<span>${ct('rename')}</span></button>
+              <button role="menuitem" data-chat-action="archive" data-chat-id="${item.id}">${icon('archive', 14)}<span>${item.archived ? ct('unarchive') : ct('archive')}</span></button>
+              <button role="menuitem" class="chat-menu-danger" data-chat-action="delete" data-chat-id="${item.id}">${icon('trash', 14)}<span>${ct('delete')}</span></button>
             </div>` : ''}
         </div>
       </div>
@@ -467,9 +502,9 @@ function renderDeleteConfirm() {
 function renderChatWelcome() {
   const available = chatState.aiCapabilities.chatAvailable;
   return `
-    <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${lang() === 'en' ? 'Conversations' : 'المحادثات'}">☰</button>
+    <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${lang() === 'en' ? 'Conversations' : 'المحادثات'}">${icon('menu', 18)}</button>
     <div class="chat-welcome">
-      <div class="chat-welcome-mark">✧</div>
+      <div class="chat-welcome-mark">${icon('spark', 26)}</div>
       <h1>${ct('welcomeTitle')}</h1>
       <p>${ct('welcomeBody')}</p>
       ${!available ? `<p class="chat-unavailable-chip">${ct('unavailableChip')}</p>` : ''}
@@ -489,11 +524,11 @@ function renderConversationBody() {
   }
   const dividerIndex = contextDividerIndexFor(conversation);
   return `
-    <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${lang() === 'en' ? 'Conversations' : 'المحادثات'}">☰</button>
+    <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${lang() === 'en' ? 'Conversations' : 'المحادثات'}">${icon('menu', 18)}</button>
     <div class="chat-messages" id="chat-messages">
       ${conversation.messages.map((message, index) => `${index === dividerIndex ? `<div class="chat-context-divider"><span>${ct('contextDivider')}</span></div>` : ''}${renderMessage(message, conversation)}`).join('')}
     </div>
-    <button class="chat-scroll-bottom ${chatState.scrolledUp ? 'visible' : ''}" data-chat-action="scroll-bottom">${ct('newMessages')}</button>
+    <button class="chat-scroll-bottom ${chatState.scrolledUp ? 'visible' : ''}" data-chat-action="scroll-bottom">${icon('arrowDown', 13)}<span>${ct('newMessages')}</span></button>
     ${renderComposer(false)}`;
 }
 
@@ -511,12 +546,12 @@ function renderMessage(message, conversation) {
     return `
       <div class="chat-msg chat-msg-user" data-chat-msg="${message.id}">
         <div class="chat-msg-bubble">
-          ${message.attachment ? `<div class="chat-msg-attachment">${message.attachment.previewUrl ? `<img src="${esc(message.attachment.previewUrl)}" alt="${esc(message.attachment.name)}">` : message.attachment.attachmentId ? `<img src="/api/chat/attachments/${message.attachment.attachmentId}" alt="${esc(message.attachment.name)}">` : `<div class="chat-attachment-chip">🖼 ${esc(message.attachment.name)}</div>`}</div>` : ''}
+          ${message.attachment ? `<div class="chat-msg-attachment">${message.attachment.previewUrl ? `<img src="${esc(message.attachment.previewUrl)}" alt="${esc(message.attachment.name)}">` : message.attachment.attachmentId ? `<img src="/api/chat/attachments/${message.attachment.attachmentId}" alt="${esc(message.attachment.name)}">` : `<div class="chat-attachment-chip">${icon('image', 14)}<span>${esc(message.attachment.name)}</span></div>`}</div>` : ''}
           <div class="chat-msg-text">${esc(message.content)}</div>
         </div>
         <div class="chat-msg-actions">
-          <button class="icon-button icon-button-sm" data-chat-action="edit-message" data-chat-id="${message.id}" aria-label="${ct('edit')}" title="${ct('edit')}">✎</button>
-          <button class="icon-button icon-button-sm" data-chat-action="copy" data-chat-copy="${message.id}" aria-label="${ct('copy')}" title="${ct('copy')}">⧉</button>
+          <button class="icon-button icon-button-sm" data-chat-action="edit-message" data-chat-id="${message.id}" aria-label="${ct('edit')}" title="${ct('edit')}">${icon('edit', 14)}</button>
+          <button class="icon-button icon-button-sm" data-chat-action="copy" data-chat-copy="${message.id}" aria-label="${ct('copy')}" title="${ct('copy')}">${icon('copy', 14)}</button>
         </div>
       </div>`;
   }
@@ -524,33 +559,36 @@ function renderMessage(message, conversation) {
   const isStreamingThis = chatState.streaming && message.id === chatState.streamAssistantId;
   const isGenerating = message.status === 'generating' || isStreamingThis;
   const hasThinking = Boolean(message.thinking && message.thinking.length);
+  // A message generated with Thinking mode on shows its reasoning panel from the very first render —
+  // OPEN, with a live "thinking…" indicator in the summary — not only once actual reasoning text has
+  // streamed in. thinkingRequested is set at message-creation time (see sendChat), before this first
+  // render happens, specifically so the panel is already in the DOM ready to receive the hot loop's
+  // surgical text updates the instant they arrive, instead of appearing only after some delay.
+  const willThink = Boolean(message.thinkingRequested) || hasThinking;
+  const showReasoningBlock = isGenerating ? willThink : hasThinking;
+  const showThinkingPlaceholder = isGenerating && willThink && !hasThinking;
+  const showTyping = isGenerating && !message.content && !willThink;
   const isLast = conversation.messages[conversation.messages.length - 1]?.id === message.id;
-  // While generating, the content/reasoning containers are ALWAYS present in the DOM (even empty) —
-  // the streaming hot loop (updateStreamingBubbleDOM) writes into them by id and never re-renders
-  // this template, so if they didn't exist yet when the first delta arrived, that text would have
-  // nowhere to go. The typing indicator is a sibling toggled by JS once real text starts arriving,
-  // not a mutually-exclusive alternative decided once at render time.
-  const showTyping = isGenerating && !message.content && !message.thinking;
   return `
     <div class="chat-msg chat-msg-assistant" data-chat-msg="${message.id}">
-      <div class="chat-msg-avatar" aria-hidden="true">✧</div>
+      <div class="chat-msg-avatar" aria-hidden="true">${icon('spark', 15)}</div>
       <div class="chat-msg-bubble">
-        ${isGenerating || hasThinking ? `
-          <details class="chat-reasoning" id="chat-reasoning-${message.id}" ${isStreamingThis ? 'open' : ''} style="${hasThinking ? '' : 'display:none'}">
-            <summary>${ct('reasoning')}</summary>
+        ${showReasoningBlock ? `
+          <details class="chat-reasoning" id="chat-reasoning-${message.id}" ${isStreamingThis ? 'open' : ''}>
+            <summary>${icon('node', 13)}<span>${ct('reasoning')}</span><span class="chat-reasoning-live" id="chat-reasoning-live-${message.id}" style="${showThinkingPlaceholder ? '' : 'display:none'}"><i></i><i></i><i></i></span></summary>
             <p class="chat-reasoning-hint">${ct('reasoningHint')}</p>
-            <div class="chat-reasoning-text" id="chat-msg-thinking-${message.id}">${esc(message.thinking)}</div>
+            <div class="chat-reasoning-text" id="chat-msg-thinking-${message.id}">${esc(message.thinking || '')}</div>
           </details>` : ''}
         <div class="chat-typing" id="chat-msg-typing-${message.id}" style="${showTyping ? '' : 'display:none'}"><span></span><span></span><span></span></div>
         <div class="chat-msg-text" id="chat-msg-content-${message.id}"></div>
-        ${message.unavailable ? `<p class="chat-msg-flag">⚠ ${ct('unavailable')}</p>` : ''}
+        ${message.unavailable ? `<p class="chat-msg-flag">${icon('warning', 13)}<span>${ct('unavailable')}</span></p>` : ''}
         ${message.stopped ? `<p class="chat-msg-flag">${ct('stopped')}</p>` : ''}
         ${message.aiGenerated ? `<p class="chat-ai-disclosure">${ct('aiDraft')}</p>` : ''}
       </div>
       ${!isGenerating ? `
         <div class="chat-msg-actions">
-          <button class="icon-button icon-button-sm" data-chat-action="copy" data-chat-copy="${message.id}" aria-label="${ct('copy')}" title="${ct('copy')}">⧉</button>
-          ${isLast ? `<button class="icon-button icon-button-sm" data-chat-action="regenerate" aria-label="${ct('regenerate')}" title="${ct('regenerate')}">↻</button>` : ''}
+          <button class="icon-button icon-button-sm" data-chat-action="copy" data-chat-copy="${message.id}" aria-label="${ct('copy')}" title="${ct('copy')}">${icon('copy', 14)}</button>
+          ${isLast ? `<button class="icon-button icon-button-sm" data-chat-action="regenerate" aria-label="${ct('regenerate')}" title="${ct('regenerate')}">${icon('refresh', 14)}</button>` : ''}
         </div>` : ''}
     </div>`;
 }
@@ -560,24 +598,20 @@ function renderComposer(inWelcome) {
   const canThink = chatState.aiCapabilities.thinkingSupported;
   return `
     <form class="chat-composer ${chatState.dragActive ? 'drag-active' : ''}" id="chat-composer-form">
-      ${chatState.dragActive ? `<div class="chat-drop-overlay">${ct('dropHint')}</div>` : ''}
-      ${attachment ? `<div class="chat-composer-attachment"><img src="${esc(attachment.previewUrl)}" alt=""><button type="button" class="icon-button icon-button-sm" data-chat-action="remove-attachment" aria-label="${ct('remove')}">✕</button></div>` : ''}
-      ${chatState.attachmentError ? `<p class="chat-attachment-error">${esc(chatState.attachmentError)}</p>` : ''}
+      ${chatState.dragActive ? `<div class="chat-drop-overlay">${icon('image', 20)}<span>${ct('dropHint')}</span></div>` : ''}
+      ${attachment ? `<div class="chat-composer-attachment"><img src="${esc(attachment.previewUrl)}" alt=""><button type="button" class="chat-attachment-remove" data-chat-action="remove-attachment" aria-label="${ct('remove')}">${icon('close', 12)}</button></div>` : ''}
+      ${chatState.attachmentError ? `<p class="chat-attachment-error">${icon('warning', 13)}<span>${esc(chatState.attachmentError)}</span></p>` : ''}
+      ${canThink ? `
+        <button type="button" class="chat-thinking-toggle ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" role="switch" aria-checked="${chatState.thinkingMode}" title="${ct('thinking')}">
+          ${icon('node', 15)}<span class="chat-thinking-label">${ct('thinking')}</span>
+          <span class="chat-thinking-track"><span class="chat-thinking-thumb"></span></span>
+        </button>` : ''}
       <div class="chat-composer-row">
-        <label class="icon-button chat-attach-button" title="${ct('attach')}"><input type="file" accept="image/*" id="chat-file-input" hidden>📎</label>
+        <label class="chat-attach-button" title="${ct('attach')}"><input type="file" accept="image/*" id="chat-file-input" hidden>${icon('attach', 18)}</label>
         <textarea id="chat-composer-input" class="chat-composer-input" placeholder="${ct('placeholder')}" rows="1" maxlength="4000"></textarea>
-        ${canThink ? `
-          <button type="button" class="chat-thinking-toggle ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" role="switch" aria-checked="${chatState.thinkingMode}" title="${ct('thinking')}">
-            <svg class="chat-thinking-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none">
-              <circle cx="12" cy="6" r="2.1" stroke="currentColor" stroke-width="1.6"/>
-              <circle cx="5.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/>
-              <circle cx="18.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/>
-              <path d="M12 8.1V12M12 12L6.7 15.3M12 12L17.3 15.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            <span class="chat-thinking-label">${ct('thinking')}</span>
-            <span class="chat-thinking-track"><span class="chat-thinking-thumb"></span></span>
-          </button>` : ''}
-        ${chatState.streaming ? `<button type="button" class="btn btn-primary chat-send-btn" data-chat-action="stop">${ct('stop')}</button>` : `<button type="submit" class="btn btn-primary chat-send-btn">${ct('send')}</button>`}
+        ${chatState.streaming
+          ? `<button type="button" class="chat-send-btn is-stop" data-chat-action="stop" aria-label="${ct('stop')}" title="${ct('stop')}">${icon('stop', 15)}</button>`
+          : `<button type="submit" class="chat-send-btn" aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`}
       </div>
     </form>${inWelcome ? '' : ''}`;
 }

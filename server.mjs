@@ -93,12 +93,18 @@ async function sweepStaleGeneratingMessages() {
   } catch { /* best-effort */ }
 }
 
-function chatSystemPrompt(language) {
+function chatSystemPrompt(language, think) {
   const lines = [
     'You are the AI study assistant inside a demonstration Arabic-first learning app for secondary-level students.',
     'Help the student understand ideas, work through problems, and study effectively. You may discuss any study topic they ask about, not only one specific lesson.',
     'Be encouraging, clear, and age-appropriate. Never claim to be a human teacher, and never claim to have graded or scored anything.',
     'If asked to simply do a student\'s graded assignment for them, offer to explain the underlying concept instead of just giving the final answer.',
+    // This runs on CPU-only inference, where every extra sentence is real, felt latency — brevity is
+    // a genuine performance lever here, not just a style preference. Thinking mode is the deliberate
+    // slow/thorough path (see CHAT_NUM_PREDICT_THINKING), so this constraint is relaxed there.
+    think
+      ? 'Reason through the problem as thoroughly as you need to, then give a clear, well-organized final answer.'
+      : 'Keep your answer tight and efficient: get straight to the point in a few clear sentences or a short structured list, with one worked example only if it genuinely helps — avoid restating the question, padding, or unnecessary preamble.',
     language === 'en'
       ? 'Respond only in English. Do not mix in Arabic or any other script.'
       : 'أجب فقط باللغة العربية الفصحى المبسطة. لا تخلط أي حروف صينية أو إنجليزية أو أي لغة أخرى في ردك.',
@@ -110,9 +116,9 @@ function chatSystemPrompt(language) {
 // CHAT_HISTORY_WINDOW stored messages (a latency control, see above). Any in-window user message
 // with a persisted image attachment is re-read from disk and re-attached — images age out of context
 // naturally once their message scrolls out of the window, rather than being resent forever.
-async function buildChatOllamaMessages(conversation, user) {
+async function buildChatOllamaMessages(conversation, user, think) {
   const recent = conversation.messages.slice(-CHAT_HISTORY_WINDOW).filter((message) => message.status !== 'generating');
-  const messages = [{ role: 'system', content: chatSystemPrompt(user.language) }];
+  const messages = [{ role: 'system', content: chatSystemPrompt(user.language, think) }];
   for (const message of recent) {
     if (message.role === 'user') {
       const entry = { role: 'user', content: message.content };
@@ -778,7 +784,7 @@ async function handleApi(req, res, url) {
       const onClose = () => { clientClosed = true; upstreamController.abort(); };
       res.on('close', onClose);
       try {
-        const messages = await buildChatOllamaMessages(phase1.conversation, user);
+        const messages = await buildChatOllamaMessages(phase1.conversation, user, think);
         const result = await streamOllamaChat(
           { messages, think },
           { signal: upstreamController.signal, onDelta: (delta) => writeLine({ type: 'delta', kind: delta.kind, text: delta.text }) },
