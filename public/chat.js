@@ -310,8 +310,10 @@ function stopStreaming() {
   chatState.streamAbort?.abort();
 }
 
-// Hot-loop DOM update: plain text on every token (cheap, always correct), a full Markdown re-render
-// at most every ~250ms so formatting appears progressively without re-parsing on every character.
+// Hot-loop DOM update: plain text on EVERY delta the instant it arrives (cheap, always correct, never
+// throttled — this is what makes the reply visibly start "talking" the moment the model responds,
+// not after it finishes). Full Markdown formatting re-renders at most every ~140ms on top of that, so
+// code blocks/bold/lists appear progressively without re-parsing on every single character.
 let lastMarkdownRenderAt = 0;
 function updateStreamingBubbleDOM() {
   const id = chatState.streamAssistantId;
@@ -333,7 +335,7 @@ function updateStreamingBubbleDOM() {
   }
 
   const now = performance.now();
-  if (contentEl && now - lastMarkdownRenderAt > 250) {
+  if (contentEl && now - lastMarkdownRenderAt > 140) {
     lastMarkdownRenderAt = now;
     contentEl.replaceChildren(renderMarkdownToDOM(chatState.streamContent));
   }
@@ -422,15 +424,23 @@ function renderConversationListItem(item) {
   const active = item.id === chatState.activeId;
   const title = item.title || ct('newChat');
   const menuOpen = chatState.openMenuId === item.id;
+  if (chatState.renamingId === item.id) {
+    return `
+      <div class="chat-conversation-item is-renaming">
+        <form class="chat-rename-form" data-chat-rename-form="${item.id}"><input type="text" value="${esc(title)}" maxlength="80" autofocus id="chat-rename-input"></form>
+      </div>`;
+  }
   return `
-    <div class="chat-conversation-item ${active ? 'active' : ''}" data-chat-open="${item.id}">
-      ${chatState.renamingId === item.id
-        ? `<form class="chat-rename-form" data-chat-rename-form="${item.id}"><input type="text" value="${esc(title)}" maxlength="80" autofocus id="chat-rename-input"></form>`
-        : `<button class="chat-conversation-title" data-chat-open="${item.id}">${item.pinned ? '<i class="chat-pin-mark" aria-hidden="true">★</i>' : ''}<span>${esc(title)}</span></button>`}
+    <div class="chat-conversation-item ${active ? 'active' : ''} ${menuOpen ? 'menu-open' : ''}" data-chat-open="${item.id}">
+      <button class="chat-conversation-title" data-chat-open="${item.id}">
+        ${item.pinned ? '<i class="chat-pin-mark" aria-hidden="true">★</i>' : ''}<span>${esc(title)}</span>
+      </button>
       <div class="chat-conversation-actions">
         <button class="icon-button icon-button-sm" data-chat-action="pin" data-chat-id="${item.id}" aria-label="${item.pinned ? ct('unpin') : ct('pin')}" title="${item.pinned ? ct('unpin') : ct('pin')}">${item.pinned ? '★' : '☆'}</button>
         <div class="chat-kebab-wrap">
-          <button class="icon-button icon-button-sm chat-kebab-btn" data-chat-action="toggle-menu" data-chat-id="${item.id}" aria-label="${lang() === 'en' ? 'More' : 'المزيد'}" aria-haspopup="true" aria-expanded="${menuOpen}">⋯</button>
+          <button class="icon-button icon-button-sm chat-kebab-btn" data-chat-action="toggle-menu" data-chat-id="${item.id}" aria-label="${lang() === 'en' ? 'More' : 'المزيد'}" aria-haspopup="true" aria-expanded="${menuOpen}">
+            <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true"><circle cx="4" cy="10" r="1.6" fill="currentColor"/><circle cx="10" cy="10" r="1.6" fill="currentColor"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/></svg>
+          </button>
           ${menuOpen ? `
             <div class="chat-menu-dropdown" role="menu">
               <button role="menuitem" data-chat-action="rename" data-chat-id="${item.id}">✎ ${ct('rename')}</button>
@@ -556,7 +566,17 @@ function renderComposer(inWelcome) {
       <div class="chat-composer-row">
         <label class="icon-button chat-attach-button" title="${ct('attach')}"><input type="file" accept="image/*" id="chat-file-input" hidden>📎</label>
         <textarea id="chat-composer-input" class="chat-composer-input" placeholder="${ct('placeholder')}" rows="1" maxlength="4000"></textarea>
-        ${canThink ? `<button type="button" class="chat-thinking-toggle ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" aria-pressed="${chatState.thinkingMode}" title="${ct('thinking')}">🧠</button>` : ''}
+        ${canThink ? `
+          <button type="button" class="chat-thinking-toggle ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" role="switch" aria-checked="${chatState.thinkingMode}" title="${ct('thinking')}">
+            <svg class="chat-thinking-icon" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none">
+              <circle cx="12" cy="6" r="2.1" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="5.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="18.5" cy="17" r="2.1" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M12 8.1V12M12 12L6.7 15.3M12 12L17.3 15.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="chat-thinking-label">${ct('thinking')}</span>
+            <span class="chat-thinking-track"><span class="chat-thinking-thumb"></span></span>
+          </button>` : ''}
         ${chatState.streaming ? `<button type="button" class="btn btn-primary chat-send-btn" data-chat-action="stop">${ct('stop')}</button>` : `<button type="submit" class="btn btn-primary chat-send-btn">${ct('send')}</button>`}
       </div>
     </form>${inWelcome ? '' : ''}`;
