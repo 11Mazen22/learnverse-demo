@@ -140,7 +140,10 @@ async function streamOllamaChat({ messages, think }, { signal, onDelta }) {
   let thinking = '';
   let buffer = '';
   for await (const chunk of response.body) {
-    buffer += Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk;
+    // response.body yields Uint8Array chunks (not Node Buffer) from the built-in fetch — Buffer.from
+    // correctly decodes either; a bare Buffer.isBuffer(chunk) check would be false for a Uint8Array
+    // and silently fall through to string-concatenating raw bytes into garbage.
+    buffer += Buffer.from(chunk).toString('utf8');
     let newlineIndex;
     while ((newlineIndex = buffer.indexOf('\n')) >= 0) {
       const line = buffer.slice(0, newlineIndex).trim();
@@ -778,11 +781,12 @@ async function handleApi(req, res, url) {
           finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
           writeLine({ type: 'delta', kind: 'content', text: finalContent });
         }
-      } catch {
+      } catch (streamError) {
         if (clientClosed) {
           stopped = true;
         } else {
           unavailable = true;
+          if (process.env.NODE_ENV !== 'test') console.error(`AI Chat generation failed: ${streamError.message}`);
           finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
           writeLine({ type: 'delta', kind: 'content', text: finalContent });
         }

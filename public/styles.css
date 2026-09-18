@@ -232,7 +232,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 .tutor-input-row { display: flex; gap: .5rem; padding: .8rem; border-top: 1px solid var(--line); }
 .tutor-input-row input { flex: 1; min-width: 0; border: 1.5px solid var(--line); border-radius: 12px; padding: .6rem .8rem; font-size: .82rem; }
 .tutor-input-row input:focus { border-color: var(--primary); }
-@media (max-width: 600px) { .tutor-fab, .tutor-panel { inset-inline-end: .85rem; bottom: calc(4.6rem + env(safe-area-inset-bottom)); } .tutor-panel { max-height: min(60vh, 520px); } }
+@media (max-width: 600px) { .tutor-panel { max-height: min(60vh, 520px); } }
 .mobile-nav { display: none; }
 .modal-backdrop { position: fixed; z-index: 90; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgba(30,25,55,.55); backdrop-filter: blur(4px); }.modal { width: min(100%, 470px); padding: 1.4rem; background: white; border-radius: 22px; box-shadow: 0 30px 80px rgba(20,16,48,.3); }.modal h2 { margin: 0 0 .6rem; }.modal p { color: var(--muted); line-height: 1.7; font-size: .82rem; }.modal-actions { display: flex; justify-content: flex-end; gap: .7rem; margin-top: 1rem; }
 
@@ -257,6 +257,10 @@ html.force-reduce-motion .confetti { display: none; }
   .login-page { grid-template-columns: 1fr; }.login-visual { min-height: 330px; padding: 2rem; }.orbit { display: none; }.hero-copy h1 { font-size: 2.5rem; }.login-panel { padding: 2.5rem 1.2rem; }
   .app-shell { grid-template-columns: 1fr; }.sidebar { display: none; }.topbar { height: 66px; }.content { padding-top: 1.25rem; padding-bottom: 6.5rem; }
   .mobile-nav { position: fixed; z-index: 30; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; padding: .45rem .35rem calc(.45rem + env(safe-area-inset-bottom)); background: rgba(39,34,63,.96); backdrop-filter: blur(12px); }.mobile-nav .nav-button { width: auto; flex-direction: column; gap: .15rem; padding: .45rem .7rem; font-size: .57rem; }.mobile-nav .nav-icon { font-size: 1.05rem; }
+  /* The mobile nav bar only exists below this same breakpoint, so the FAB must be lifted clear of it
+     starting here too — not at a narrower breakpoint, which previously left a gap where both were
+     visible and overlapping. */
+  .tutor-fab, .tutor-panel { inset-inline-end: .85rem; bottom: calc(4.6rem + env(safe-area-inset-bottom)); }
   .dashboard-grid, .lesson-layout, .staff-grid { grid-template-columns: 1fr; }.lesson-aside { position: static; order: -1; }.assignment-list { grid-template-columns: 1fr; }.shop-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
@@ -311,9 +315,18 @@ html.force-reduce-motion .confetti { display: none; }
 .chat-conversation-item { position: relative; display: flex; align-items: center; gap: .3rem; border-radius: 12px; padding: .15rem; }
 .chat-conversation-item:hover, .chat-conversation-item.active { background: var(--chat-surface); }
 .chat-conversation-title { flex: 1; min-width: 0; text-align: start; background: transparent; border: 0; padding: .55rem .6rem; cursor: pointer; color: var(--chat-ink); font-size: .8rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chat-conversation-actions { display: none; align-items: center; gap: .1rem; padding-inline-end: .2rem; }
+.chat-conversation-title { display: flex; align-items: center; gap: .35rem; }
+.chat-pin-mark { font-style: normal; color: #d99a2b; font-size: .68rem; flex: 0 0 auto; }
+.chat-conversation-actions { display: none; align-items: center; gap: .1rem; padding-inline-end: .2rem; flex: 0 0 auto; }
 .chat-conversation-item:hover .chat-conversation-actions, .chat-conversation-item.active .chat-conversation-actions { display: flex; }
-.icon-button-sm { width: 28px; height: 28px; border-radius: 9px; background: transparent; border: 0; font-size: .75rem; color: var(--chat-muted); cursor: pointer; }
+.icon-button-sm { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 9px; background: transparent; border: 0; font-size: .75rem; color: var(--chat-muted); cursor: pointer; }
+.chat-kebab-wrap { position: relative; }
+.chat-kebab-btn { font-weight: 900; font-size: .95rem; }
+.chat-menu-dropdown { position: absolute; z-index: 12; top: calc(100% + 4px); inset-inline-end: 0; min-width: 170px; display: flex; flex-direction: column; padding: .35rem; background: var(--chat-surface); border: 1px solid var(--chat-line); border-radius: 12px; box-shadow: var(--chat-shadow); }
+.chat-menu-dropdown button { display: flex; align-items: center; gap: .5rem; border: 0; background: transparent; color: var(--chat-ink); border-radius: 8px; padding: .5rem .6rem; text-align: start; cursor: pointer; font-size: .8rem; }
+.chat-menu-dropdown button:hover { background: var(--chat-surface-2); }
+.chat-menu-dropdown .chat-menu-danger { color: var(--red); }
+.chat-sidebar-backdrop { display: none; }
 .icon-button-sm:hover { background: var(--chat-line); color: var(--chat-ink); }
 .chat-rename-form { flex: 1; padding: .15rem .3rem; }
 .chat-rename-form input { width: 100%; border: 1.5px solid var(--chat-accent); border-radius: 8px; padding: .4rem .5rem; font-size: .8rem; background: var(--chat-surface); color: var(--chat-ink); }
@@ -425,6 +438,9 @@ html[dir="ltr"] .chat-scroll-bottom.visible { transform: translateX(-50%) transl
   .chat-menu-toggle { display: grid; place-items: center; }
   .chat-messages { padding-top: 3.2rem; }
   .chat-msg { max-width: 92%; }
+  /* Touch devices have no :hover — always show row actions rather than only on the active row. */
+  .chat-conversation-actions { display: flex; }
+  .chat-sidebar-backdrop.visible { display: block; position: absolute; inset: 0; z-index: 7; background: rgba(15,12,30,.4); }
 }
 @media (max-width: 600px) {
   .content:has(.chat-page) { padding-block: .6rem; }

@@ -204,6 +204,9 @@ function navButton([view, icon, key]) {
 
 function renderTutorWidget() {
   if (state.data.user.role !== 'student') return '';
+  // The full AI Chat page is its own, richer destination — showing the small contextual FAB on top
+  // of it would be redundant clutter, not a second option worth keeping visible.
+  if (state.view === 'chat') return '';
   if (state.view === 'boss') {
     return state.tutor.open ? `<div class="tutor-panel"><div class="tutor-head"><strong>🤖 ${t('studyHelper')}</strong><button class="icon-button" data-action="tutor-toggle" aria-label="close">✕</button></div><p class="tutor-empty">${t('tutorUnavailableBoss')}</p></div>` : `<button class="tutor-fab" data-action="tutor-toggle" aria-label="${t('studyHelper')}">🤖</button>`;
   }

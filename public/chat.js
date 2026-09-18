@@ -53,7 +53,7 @@ const chatState = {
   search: '', sidebarOpen: window.innerWidth > 900,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
   streaming: false, streamAbort: null, streamAssistantId: null, streamContent: '', streamThinking: '',
-  editingMessageId: null, renamingId: null, confirmDeleteId: null, dragActive: false,
+  editingMessageId: null, renamingId: null, confirmDeleteId: null, openMenuId: null, dragActive: false,
   theme: loadChatTheme(), scrolledUp: false,
 };
 
@@ -355,6 +355,7 @@ function renderChatPage() {
   const html = `
     <div class="chat-page" data-theme="${chatState.theme}">
       ${renderSidebar()}
+      <div class="chat-sidebar-backdrop ${chatState.sidebarOpen ? 'visible' : ''}" data-chat-action="close-sidebar"></div>
       <div class="chat-main">
         ${chatState.activeConversation ? renderConversationBody() : renderChatWelcome()}
       </div>
@@ -406,16 +407,23 @@ function renderSidebar() {
 function renderConversationListItem(item) {
   const active = item.id === chatState.activeId;
   const title = item.title || ct('newChat');
+  const menuOpen = chatState.openMenuId === item.id;
   return `
     <div class="chat-conversation-item ${active ? 'active' : ''}" data-chat-open="${item.id}">
       ${chatState.renamingId === item.id
         ? `<form class="chat-rename-form" data-chat-rename-form="${item.id}"><input type="text" value="${esc(title)}" maxlength="80" autofocus id="chat-rename-input"></form>`
-        : `<button class="chat-conversation-title" data-chat-open="${item.id}">${esc(title)}</button>`}
+        : `<button class="chat-conversation-title" data-chat-open="${item.id}">${item.pinned ? '<i class="chat-pin-mark" aria-hidden="true">★</i>' : ''}<span>${esc(title)}</span></button>`}
       <div class="chat-conversation-actions">
         <button class="icon-button icon-button-sm" data-chat-action="pin" data-chat-id="${item.id}" aria-label="${item.pinned ? ct('unpin') : ct('pin')}" title="${item.pinned ? ct('unpin') : ct('pin')}">${item.pinned ? '★' : '☆'}</button>
-        <button class="icon-button icon-button-sm" data-chat-action="rename" data-chat-id="${item.id}" aria-label="${ct('rename')}" title="${ct('rename')}">✎</button>
-        <button class="icon-button icon-button-sm" data-chat-action="archive" data-chat-id="${item.id}" aria-label="${item.archived ? ct('unarchive') : ct('archive')}" title="${item.archived ? ct('unarchive') : ct('archive')}">🗃</button>
-        <button class="icon-button icon-button-sm" data-chat-action="delete" data-chat-id="${item.id}" aria-label="${ct('delete')}" title="${ct('delete')}">🗑</button>
+        <div class="chat-kebab-wrap">
+          <button class="icon-button icon-button-sm chat-kebab-btn" data-chat-action="toggle-menu" data-chat-id="${item.id}" aria-label="${lang() === 'en' ? 'More' : 'المزيد'}" aria-haspopup="true" aria-expanded="${menuOpen}">⋯</button>
+          ${menuOpen ? `
+            <div class="chat-menu-dropdown" role="menu">
+              <button role="menuitem" data-chat-action="rename" data-chat-id="${item.id}">✎ ${ct('rename')}</button>
+              <button role="menuitem" data-chat-action="archive" data-chat-id="${item.id}">🗃 ${item.archived ? ct('unarchive') : ct('archive')}</button>
+              <button role="menuitem" class="chat-menu-danger" data-chat-action="delete" data-chat-id="${item.id}">🗑 ${ct('delete')}</button>
+            </div>` : ''}
+        </div>
       </div>
     </div>`;
 }
@@ -541,6 +549,12 @@ function renderComposer(inWelcome) {
 document.addEventListener('click', async (event) => {
   if (state.view !== 'chat' && !event.target.closest('.chat-page')) return;
 
+  if (chatState.openMenuId && !event.target.closest('.chat-kebab-wrap')) {
+    chatState.openMenuId = null;
+    renderNow();
+    // fall through: this same click may still need normal handling (e.g. it opened a different row)
+  }
+
   // app.js's own generic backdrop-click handler already removes the .modal-backdrop DOM node (it
   // doesn't know about chat.js state) — checking classList directly here (not .closest(), which can
   // break once that removal has already detached the node from the tree) keeps chatState in sync
@@ -576,10 +590,11 @@ document.addEventListener('click', async (event) => {
   if (action === 'close-sidebar') { chatState.sidebarOpen = false; renderNow(); return; }
   if (action === 'toggle-theme') { chatState.theme = chatState.theme === 'dark' ? 'light' : 'dark'; saveChatTheme(chatState.theme); renderNow(); return; }
   if (action === 'toggle-thinking') { chatState.thinkingMode = !chatState.thinkingMode; renderNow(); return; }
+  if (action === 'toggle-menu') { chatState.openMenuId = chatState.openMenuId === actionId ? null : actionId; renderNow(); return; }
   if (action === 'pin') return patchConversation(actionId, { pinned: !chatState.conversations.find((item) => item.id === actionId)?.pinned });
-  if (action === 'archive') return patchConversation(actionId, { archived: !chatState.conversations.find((item) => item.id === actionId)?.archived });
-  if (action === 'rename') { chatState.renamingId = actionId; renderNow(); document.getElementById('chat-rename-input')?.focus(); return; }
-  if (action === 'delete') { chatState.confirmDeleteId = actionId; renderNow(); return; }
+  if (action === 'archive') { chatState.openMenuId = null; return patchConversation(actionId, { archived: !chatState.conversations.find((item) => item.id === actionId)?.archived }); }
+  if (action === 'rename') { chatState.openMenuId = null; chatState.renamingId = actionId; renderNow(); document.getElementById('chat-rename-input')?.focus(); return; }
+  if (action === 'delete') { chatState.openMenuId = null; chatState.confirmDeleteId = actionId; renderNow(); return; }
   if (action === 'cancel-delete') { chatState.confirmDeleteId = null; renderNow(); return; }
   if (action === 'confirm-delete') return deleteConversation(actionId);
   if (action === 'remove-attachment') { chatState.composerAttachment = null; chatState.attachmentError = null; renderNow(); return; }
