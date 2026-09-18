@@ -314,10 +314,24 @@ function stopStreaming() {
 // at most every ~250ms so formatting appears progressively without re-parsing on every character.
 let lastMarkdownRenderAt = 0;
 function updateStreamingBubbleDOM() {
-  const contentEl = document.getElementById(`chat-msg-content-${chatState.streamAssistantId}`);
+  const id = chatState.streamAssistantId;
+  const contentEl = document.getElementById(`chat-msg-content-${id}`);
   if (contentEl) contentEl.textContent = chatState.streamContent;
-  const thinkingEl = document.getElementById(`chat-msg-thinking-${chatState.streamAssistantId}`);
+  const thinkingEl = document.getElementById(`chat-msg-thinking-${id}`);
   if (thinkingEl) thinkingEl.textContent = chatState.streamThinking;
+
+  // The typing indicator and the (initially-empty, initially-hidden) reasoning section are static
+  // placeholders from the last full render — reveal/hide them here as real text starts arriving,
+  // since the hot loop never re-runs renderMessage() to recompute that itself.
+  if (chatState.streamContent || chatState.streamThinking) {
+    const typingEl = document.getElementById(`chat-msg-typing-${id}`);
+    if (typingEl) typingEl.style.display = 'none';
+  }
+  if (chatState.streamThinking) {
+    const reasoningEl = document.getElementById(`chat-reasoning-${id}`);
+    if (reasoningEl && reasoningEl.style.display === 'none') { reasoningEl.style.display = ''; reasoningEl.open = true; }
+  }
+
   const now = performance.now();
   if (contentEl && now - lastMarkdownRenderAt > 250) {
     lastMarkdownRenderAt = now;
@@ -501,17 +515,24 @@ function renderMessage(message, conversation) {
   const isGenerating = message.status === 'generating' || isStreamingThis;
   const hasThinking = Boolean(message.thinking && message.thinking.length);
   const isLast = conversation.messages[conversation.messages.length - 1]?.id === message.id;
+  // While generating, the content/reasoning containers are ALWAYS present in the DOM (even empty) —
+  // the streaming hot loop (updateStreamingBubbleDOM) writes into them by id and never re-renders
+  // this template, so if they didn't exist yet when the first delta arrived, that text would have
+  // nowhere to go. The typing indicator is a sibling toggled by JS once real text starts arriving,
+  // not a mutually-exclusive alternative decided once at render time.
+  const showTyping = isGenerating && !message.content && !message.thinking;
   return `
     <div class="chat-msg chat-msg-assistant" data-chat-msg="${message.id}">
       <div class="chat-msg-avatar" aria-hidden="true">✧</div>
       <div class="chat-msg-bubble">
-        ${hasThinking ? `
-          <details class="chat-reasoning" ${isStreamingThis ? 'open' : ''}>
+        ${isGenerating || hasThinking ? `
+          <details class="chat-reasoning" id="chat-reasoning-${message.id}" ${isStreamingThis ? 'open' : ''} style="${hasThinking ? '' : 'display:none'}">
             <summary>${ct('reasoning')}</summary>
             <p class="chat-reasoning-hint">${ct('reasoningHint')}</p>
             <div class="chat-reasoning-text" id="chat-msg-thinking-${message.id}">${esc(message.thinking)}</div>
           </details>` : ''}
-        ${isGenerating && !message.content ? `<div class="chat-typing"><span></span><span></span><span></span></div>` : `<div class="chat-msg-text" id="chat-msg-content-${message.id}"></div>`}
+        <div class="chat-typing" id="chat-msg-typing-${message.id}" style="${showTyping ? '' : 'display:none'}"><span></span><span></span><span></span></div>
+        <div class="chat-msg-text" id="chat-msg-content-${message.id}"></div>
         ${message.unavailable ? `<p class="chat-msg-flag">⚠ ${ct('unavailable')}</p>` : ''}
         ${message.stopped ? `<p class="chat-msg-flag">${ct('stopped')}</p>` : ''}
         ${message.aiGenerated ? `<p class="chat-ai-disclosure">${ct('aiDraft')}</p>` : ''}
