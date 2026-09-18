@@ -299,7 +299,7 @@ html.force-reduce-motion .confetti { display: none; }
 
 .chat-sidebar {
   display: flex; flex-direction: column; background: var(--chat-surface-2); border-inline-end: 1px solid var(--chat-line);
-  min-width: 0; color: var(--chat-ink);
+  min-width: 0; min-height: 0; color: var(--chat-ink);
 }
 .chat-sidebar-head { display: flex; align-items: center; gap: .5rem; padding: .9rem .9rem .6rem; }
 .chat-sidebar-head .btn { background: var(--chat-accent); color: var(--chat-accent-ink); }
@@ -310,7 +310,7 @@ html.force-reduce-motion .confetti { display: none; }
 html[dir="ltr"] .chat-search input { padding: .55rem 2.3rem .55rem .8rem; }
 html[dir="ltr"] .chat-search .chat-icon { inset-inline-start: auto; inset-inline-end: 1.55rem; }
 .chat-search input:focus-visible { border-color: var(--chat-accent); }
-.chat-conversation-list { flex: 1; overflow-y: auto; padding: 0 .55rem .6rem; display: flex; flex-direction: column; gap: .15rem; }
+.chat-conversation-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 .55rem .6rem; display: flex; flex-direction: column; gap: .15rem; }
 .chat-list-group { margin: .6rem .4rem .3rem; font-size: .65rem; font-weight: 800; letter-spacing: .04em; color: var(--chat-muted); text-transform: uppercase; }
 .chat-empty-list { padding: 1.2rem .6rem; text-align: center; color: var(--chat-muted); font-size: .78rem; }
 .chat-list-skeleton { display: grid; gap: .5rem; padding: .3rem; }
@@ -343,7 +343,11 @@ html[dir="ltr"] .chat-conversation-title { padding: .6rem .7rem .6rem 2.7rem; }
 .chat-theme-toggle { margin: .5rem .8rem .8rem; display: flex; align-items: center; justify-content: center; gap: .45rem; border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-muted); border-radius: 12px; padding: .55rem; cursor: pointer; font-size: .75rem; font-weight: 700; }
 .chat-theme-toggle:hover { color: var(--chat-ink); }
 
-.chat-main { position: relative; display: flex; flex-direction: column; min-width: 0; background: var(--chat-bg); color: var(--chat-ink); }
+/* min-height:0 is load-bearing here: a grid/flex item defaults to min-height:auto, which means it
+   won't shrink below its own content's height — it grows the whole column taller instead of letting
+   .chat-messages below scroll internally, so content gets clipped by .chat-page's overflow:hidden
+   instead of being scrollable, and mid-stream text is invisible until a later layout pass reveals it. */
+.chat-main { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--chat-bg); color: var(--chat-ink); }
 .chat-menu-toggle { display: none; position: absolute; top: .7rem; inset-inline-start: .7rem; z-index: 5; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-ink); cursor: pointer; align-items: center; justify-content: center; }
 
 .chat-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: .5rem; padding: 1.5rem; max-width: 640px; margin: 0 auto; width: 100%; }
@@ -357,7 +361,7 @@ html[dir="ltr"] .chat-conversation-title { padding: .6rem .7rem .6rem 2.7rem; }
 .chat-suggestion:hover { border-color: var(--chat-accent); transform: translateY(-1px); }
 .chat-welcome .chat-composer { width: 100%; margin-top: .5rem; }
 
-.chat-messages { flex: 1; overflow-y: auto; padding: 3rem 1.4rem 1rem; display: flex; flex-direction: column; gap: 1rem; scroll-behavior: smooth; }
+.chat-messages { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 3rem 1.4rem 1rem; display: flex; flex-direction: column; gap: 1rem; scroll-behavior: smooth; }
 .chat-context-divider { display: flex; align-items: center; gap: .7rem; margin: .4rem 0; color: var(--chat-muted); font-size: .68rem; }
 .chat-context-divider::before, .chat-context-divider::after { content: ''; flex: 1; height: 1px; background: var(--chat-line); }
 .chat-scroll-bottom { position: absolute; bottom: 6.2rem; inset-inline-end: 50%; display: flex; align-items: center; gap: .4rem; transform: translateX(50%) translateY(8px); opacity: 0; pointer-events: none; border: 1px solid var(--chat-line); background: var(--chat-surface); color: var(--chat-ink); border-radius: 999px; padding: .45rem .9rem; font-size: .72rem; font-weight: 700; cursor: pointer; box-shadow: var(--chat-shadow); transition: opacity .15s ease, transform .15s ease; }
