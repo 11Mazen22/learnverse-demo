@@ -46,6 +46,9 @@ const MAX_TEXT_ATTACHMENT_CHARS = 20_000; // matches the client-side truncation 
 const CHAT_HISTORY_WINDOW = 12; // last N stored messages sent to Ollama per generation — a latency control on
 // CPU-only inference, not a model context-window limit (the model's real window is far larger)
 const CHAT_NUM_PREDICT = 600; // fuller answers than the tutor widget's 200 (tuned for 1-3-sentence hints)
+const CHAT_NUM_PREDICT_CONTINUE = 280; // finishing an already-substantial answer, not writing a new one —
+// a smaller ceiling than a fresh message both caps worst-case continuation latency and nudges the model
+// toward actually wrapping up instead of drifting into a second full answer's worth of new material.
 const CHAT_NUM_PREDICT_THINKING = 1600; // reasoning + answer share this budget — a verbose reasoning
 // pass can otherwise eat the whole cap and leave zero room for the actual final answer
 const CHAT_TIMEOUT_MS_THINKING = 110_000; // thinking mode is a deliberate slow path on CPU-only
@@ -140,54 +143,66 @@ function chatSystemPrompt(language, think) {
   return lines.join('\n');
 }
 
+// The deployed model has no vision capability, so image attachments are never sent as image bytes to
+// Ollama — instead, the client runs real OCR (Tesseract.js) on the image before sending, and the
+// extracted text is folded into the user turn's content here, clearly labelled as OCR output rather
+// than the student's own words. Text-file attachments (py/txt/json/etc.) are folded in the same way.
+function userTurnContent(message, detectedLanguage) {
+  let content = message.content || '';
+  const attachment = message.attachment;
+  if (attachment?.kind === 'text' && attachment.content) {
+    const label = detectedLanguage === 'en' ? `Attached file "${attachment.name}":` : `الملف المرفق "${attachment.name}":`;
+    content = `${content}\n\n${label}\n${attachment.content}`.trim();
+  } else if (attachment?.kind === 'image' && attachment.ocrText) {
+    const label = detectedLanguage === 'en' ? `Text extracted via OCR from an attached image ("${attachment.name}"):` : `نص مستخرج بتقنية OCR من صورة مرفقة ("${attachment.name}"):`;
+    content = `${content}\n\n${label}\n${attachment.ocrText}`.trim();
+  } else if (attachment?.kind === 'image') {
+    const note = detectedLanguage === 'en' ? '[The student attached an image, but no readable text was found in it.]' : '[أرفق الطالب صورة، لكن لم يُعثر على نص مقروء بداخلها.]';
+    content = `${content}\n\n${note}`.trim();
+  }
+  return content;
+}
+
 // Builds the Ollama messages array for one generation: the system prompt plus the last
-// CHAT_HISTORY_WINDOW stored messages (a latency control, see above). The deployed model has no
-// vision capability, so image attachments are never sent as image bytes to Ollama — instead, the
-// client runs real OCR (Tesseract.js) on the image before sending, and the extracted text is folded
-// into the user turn's content here, clearly labelled as OCR output rather than the student's own
-// words. Text-file attachments (py/txt/json/etc.) are folded in the same way. Attachments age out of
-// context naturally once their message scrolls out of the CHAT_HISTORY_WINDOW, like any other turn.
+// CHAT_HISTORY_WINDOW stored messages (a latency control, see above). Attachments age out of context
+// naturally once their message scrolls out of that window, like any other turn.
 function buildChatOllamaMessages(conversation, detectedLanguage, think) {
   const recent = conversation.messages.slice(-CHAT_HISTORY_WINDOW).filter((message) => message.status !== 'generating');
   const messages = [{ role: 'system', content: chatSystemPrompt(detectedLanguage, think) }];
   for (const message of recent) {
-    if (message.role === 'user') {
-      let content = message.content || '';
-      const attachment = message.attachment;
-      if (attachment?.kind === 'text' && attachment.content) {
-        const label = detectedLanguage === 'en' ? `Attached file "${attachment.name}":` : `الملف المرفق "${attachment.name}":`;
-        content = `${content}\n\n${label}\n${attachment.content}`.trim();
-      } else if (attachment?.kind === 'image' && attachment.ocrText) {
-        const label = detectedLanguage === 'en' ? `Text extracted via OCR from an attached image ("${attachment.name}"):` : `نص مستخرج بتقنية OCR من صورة مرفقة ("${attachment.name}"):`;
-        content = `${content}\n\n${label}\n${attachment.ocrText}`.trim();
-      } else if (attachment?.kind === 'image') {
-        const note = detectedLanguage === 'en' ? '[The student attached an image, but no readable text was found in it.]' : '[أرفق الطالب صورة، لكن لم يُعثر على نص مقروء بداخلها.]';
-        content = `${content}\n\n${note}`.trim();
-      }
-      messages.push({ role: 'user', content });
-    } else if (message.role === 'assistant' && message.content) {
-      messages.push({ role: 'assistant', content: message.content });
-    }
+    if (message.role === 'user') messages.push({ role: 'user', content: userTurnContent(message, detectedLanguage) });
+    else if (message.role === 'assistant' && message.content) messages.push({ role: 'assistant', content: message.content });
   }
   return messages;
 }
 
+// Continuation gets a deliberately MINIMAL prompt — system + the one question this reply is actually
+// answering + the partial answer itself + the "keep going" instruction — not the full CHAT_HISTORY_WINDOW
+// of unrelated turns that buildChatOllamaMessages sends for a fresh message. On CPU-only inference,
+// prompt prefill time scales with token count: re-sending 10+ older turns just to append a few more
+// sentences to an existing answer was pure wasted latency on every single continuation, since a
+// continuation's job is narrowly "finish this one answer," not "re-synthesize the whole conversation."
+// This was the dominant, measurable cost — cutting it is a real speed win, not a shortcut on quality.
 function buildContinuationMessages(conversation, assistantMessage, detectedLanguage) {
   const targetIndex = conversation.messages.indexOf(assistantMessage);
-  const throughTarget = { ...conversation, messages: conversation.messages.slice(0, targetIndex + 1) };
-  const messages = buildChatOllamaMessages(throughTarget, detectedLanguage, false);
+  let userIndex = targetIndex - 1;
+  while (userIndex >= 0 && conversation.messages[userIndex].role !== 'user') userIndex -= 1;
+  const originatingUser = userIndex >= 0 ? conversation.messages[userIndex] : null;
+  const messages = [{ role: 'system', content: chatSystemPrompt(detectedLanguage, false) }];
+  if (originatingUser) messages.push({ role: 'user', content: userTurnContent(originatingUser, detectedLanguage) });
+  messages.push({ role: 'assistant', content: assistantMessage.content });
   messages.push({ role: 'user', content: continuationInstruction(detectedLanguage, assistantMessage.content) });
   return messages;
 }
 
 // Real token streaming: parses Ollama's own newline-delimited JSON as it arrives and re-emits each
 // content/thinking delta immediately via onDelta — no artificial batching or pacing.
-async function streamOllamaChat({ messages, think, language = 'ar' }, { signal, onDelta }) {
+async function streamOllamaChat({ messages, think, language = 'ar', continuation = false }, { signal, onDelta }) {
   // Thinking mode needs materially more budget than the plain-answer case: num_predict caps the
   // COMBINED reasoning-plus-answer token count, and a verbose reasoning pass can otherwise consume
   // the entire budget before any final-answer content is produced at all — the model then technically
   // "succeeds" but content comes back empty, which reads as a false "unavailable" fallback.
-  const numPredict = think ? CHAT_NUM_PREDICT_THINKING : CHAT_NUM_PREDICT;
+  const numPredict = think ? CHAT_NUM_PREDICT_THINKING : continuation ? CHAT_NUM_PREDICT_CONTINUE : CHAT_NUM_PREDICT;
   const reasoningRouter = think ? createVisibleReasoningRouter(onDelta) : null;
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
@@ -939,7 +954,7 @@ async function handleApi(req, res, url) {
           ? buildContinuationMessages(phase1.conversation, phase1.assistantMessage, phase1.detectedLanguage)
           : buildChatOllamaMessages(phase1.conversation, phase1.detectedLanguage, think);
         const result = await streamOllamaChat(
-          { messages, think, language: phase1.detectedLanguage },
+          { messages, think, language: phase1.detectedLanguage, continuation: Boolean(phase1.continuation) },
           { signal: upstreamController.signal, onDelta: writeModelDelta },
         );
         flushContinuationPrefix();
