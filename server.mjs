@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveChatTitle, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
 import { releaseGenerationLock, tryAcquireGenerationLock } from './lib/generationLock.mjs';
 import { JsonStore } from './lib/store.mjs';
+import { detectConversationLanguage } from './public/langdetect.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(ROOT, 'public');
@@ -94,35 +95,44 @@ async function sweepStaleGeneratingMessages() {
   } catch { /* best-effort */ }
 }
 
+// The whole prompt is written entirely in the target language (not just the language directive) —
+// reasoning models anchor their output language to the DOMINANT language of their context at least as
+// much as to an explicit instruction, so a mostly-English system prompt with one Arabic sentence at
+// the end pulls against itself. This was verified empirically: an all-Arabic version of this prompt,
+// including an explicit <think>-block-targeted directive as the last line, was tested live against the
+// deployed model (qwen3:4b-q4_K_M) and still did not reliably move the <think> block itself to Arabic
+// (the final answer does follow the instruction correctly). That's a genuine, confirmed limitation of
+// this model's reasoning trace — not something a prompt can fully force — so this remains best-effort
+// for the <think> content specifically, while being fully reliable for the final visible answer.
 function chatSystemPrompt(language, think) {
+  if (language === 'en') {
+    const lines = [
+      'You are the AI study assistant inside a demonstration Arabic-first learning app for secondary-level students.',
+      'Help the student understand ideas, work through problems, and study effectively. You may discuss any study topic they ask about, not only one specific lesson.',
+      'Be encouraging, clear, and age-appropriate. Never claim to be a human teacher, and never claim to have graded or scored anything.',
+      'If asked to simply do a student\'s graded assignment for them, offer to explain the underlying concept instead of just giving the final answer.',
+      think
+        ? 'Reason through the problem as thoroughly as you need to, then give a clear, well-organized final answer.'
+        : 'Keep your answer tight and efficient: get straight to the point in a few clear sentences or a short structured list, with one worked example only if it genuinely helps — avoid restating the question, padding, or unnecessary preamble.',
+      'Respond in English, including your internal thinking/reasoning steps, not only your final answer — the student is writing in English. Preserve code, commands, technical identifiers, and established terminology as-is rather than translating them.',
+    ];
+    if (think) lines.push('IMPORTANT: write everything inside your <think> block in English too — do not let your reasoning drift into any other language.');
+    return lines.join('\n');
+  }
   const lines = [
-    'You are the AI study assistant inside a demonstration Arabic-first learning app for secondary-level students.',
-    'Help the student understand ideas, work through problems, and study effectively. You may discuss any study topic they ask about, not only one specific lesson.',
-    'Be encouraging, clear, and age-appropriate. Never claim to be a human teacher, and never claim to have graded or scored anything.',
-    'If asked to simply do a student\'s graded assignment for them, offer to explain the underlying concept instead of just giving the final answer.',
-    // This runs on CPU-only inference, where every extra sentence is real, felt latency — brevity is
-    // a genuine performance lever here, not just a style preference. Thinking mode is the deliberate
+    'أنت المساعد الدراسي الذكي داخل تطبيق تعليمي عربي تجريبي لطلاب المرحلة الثانوية.',
+    'ساعد الطالب على فهم الأفكار، وحل المسائل خطوة بخطوة، والمذاكرة بفعالية. يمكنك مناقشة أي موضوع دراسي يسأل عنه، وليس فقط درسًا واحدًا محددًا.',
+    'كن مشجّعًا وواضحًا ومناسبًا لعمر الطالب. لا تدّعِ أبدًا أنك معلّم بشري، ولا تدّعِ أنك صححت أو قيّمت أي شيء.',
+    'إذا طلب الطالب منك حل واجب مدرسي بالكامل نيابة عنه، اعرض عليه شرح الفكرة الأساسية بدلًا من إعطائه الإجابة النهائية مباشرة.',
+    // CPU-only inference makes every extra sentence real, felt latency — brevity is a genuine
+    // performance lever here, not just a style preference. Thinking mode is the deliberate
     // slow/thorough path (see CHAT_NUM_PREDICT_THINKING), so this constraint is relaxed there.
     think
-      ? 'Reason through the problem as thoroughly as you need to, then give a clear, well-organized final answer.'
-      : 'Keep your answer tight and efficient: get straight to the point in a few clear sentences or a short structured list, with one worked example only if it genuinely helps — avoid restating the question, padding, or unnecessary preamble.',
-    language === 'en'
-      ? 'Respond in English by default, including your internal thinking/reasoning steps, not only your final answer. If the student writes their question in Arabic instead, switch entirely to Arabic for both your thinking and your answer.'
-      : 'فكّر وأجب باللغة العربية الفصحى المبسطة افتراضيًا — يشمل ذلك خطوات تفكيرك الداخلي، وليس فقط إجابتك النهائية. إذا كتب الطالب سؤاله بلغة أخرى مثل الإنجليزية، فاستخدم تلك اللغة نفسها بدلاً من العربية.',
+      ? 'فكّر في المسألة بالعمق الذي تحتاجه، ثم قدّم إجابة نهائية واضحة ومنظمة.'
+      : 'اجعل إجابتك مختصرة ومباشرة: اذهب إلى صلب الموضوع في جمل واضحة قليلة أو قائمة منظمة قصيرة، مع مثال محلول واحد فقط إذا كان مفيدًا حقًا — تجنّب إعادة صياغة السؤال أو الحشو أو المقدمات غير الضرورية.',
+    'فكّر وأجب باللغة العربية الفصحى المبسطة، لأن الطالب يكتب بالعربية — ويشمل ذلك خطوات تفكيرك الداخلي، وليس فقط إجابتك النهائية. حافظ على الأكواد والأوامر والمصطلحات التقنية وأسماء المنتجات كما هي دون ترجمتها إذا كانت الترجمة تقلل من الوضوح.',
   ];
-  // Reasoning models (this one included) have a strong learned default toward thinking in English
-  // inside their <think> block regardless of an answer-language instruction stated earlier — put a
-  // second, maximally explicit instruction naming that block directly as the LAST line for the
-  // strongest recency weight, since this is the one channel most resistant to steering. Not
-  // guaranteed to be fully obeyed (an inherent model bias, not something a prompt can force with
-  // certainty), but this is the strongest available lever without a model swap.
-  if (think) {
-    lines.push(
-      language === 'en'
-        ? 'IMPORTANT: write everything inside your <think> block in English too — do not let your reasoning default to any other language even if it feels more natural there.'
-        : 'مهم جدًا: اكتب كل ما بداخل خانة تفكيرك <think> باللغة العربية فقط، وليس بالإنجليزية. حتى تفكيرك الداخلي الخاص يجب أن يكون بالعربية الفصحى، لا يوجد أي استثناء لهذا ما لم يكتب الطالب سؤاله بلغة أخرى.',
-    );
-  }
+  if (think) lines.push('مهم جدًا: اكتب كل ما بداخل خانة تفكيرك <think> باللغة العربية الفصحى فقط، وليس بالإنجليزية — حتى تفكيرك الداخلي الخاص يجب أن يكون بالعربية، بلا أي استثناء.');
   return lines.join('\n');
 }
 
@@ -133,21 +143,21 @@ function chatSystemPrompt(language, think) {
 // into the user turn's content here, clearly labelled as OCR output rather than the student's own
 // words. Text-file attachments (py/txt/json/etc.) are folded in the same way. Attachments age out of
 // context naturally once their message scrolls out of the CHAT_HISTORY_WINDOW, like any other turn.
-function buildChatOllamaMessages(conversation, user, think) {
+function buildChatOllamaMessages(conversation, detectedLanguage, think) {
   const recent = conversation.messages.slice(-CHAT_HISTORY_WINDOW).filter((message) => message.status !== 'generating');
-  const messages = [{ role: 'system', content: chatSystemPrompt(user.language, think) }];
+  const messages = [{ role: 'system', content: chatSystemPrompt(detectedLanguage, think) }];
   for (const message of recent) {
     if (message.role === 'user') {
       let content = message.content || '';
       const attachment = message.attachment;
       if (attachment?.kind === 'text' && attachment.content) {
-        const label = user.language === 'en' ? `Attached file "${attachment.name}":` : `الملف المرفق "${attachment.name}":`;
+        const label = detectedLanguage === 'en' ? `Attached file "${attachment.name}":` : `الملف المرفق "${attachment.name}":`;
         content = `${content}\n\n${label}\n${attachment.content}`.trim();
       } else if (attachment?.kind === 'image' && attachment.ocrText) {
-        const label = user.language === 'en' ? `Text extracted via OCR from an attached image ("${attachment.name}"):` : `نص مستخرج بتقنية OCR من صورة مرفقة ("${attachment.name}"):`;
+        const label = detectedLanguage === 'en' ? `Text extracted via OCR from an attached image ("${attachment.name}"):` : `نص مستخرج بتقنية OCR من صورة مرفقة ("${attachment.name}"):`;
         content = `${content}\n\n${label}\n${attachment.ocrText}`.trim();
       } else if (attachment?.kind === 'image') {
-        const note = user.language === 'en' ? '[The student attached an image, but no readable text was found in it.]' : '[أرفق الطالب صورة، لكن لم يُعثر على نص مقروء بداخلها.]';
+        const note = detectedLanguage === 'en' ? '[The student attached an image, but no readable text was found in it.]' : '[أرفق الطالب صورة، لكن لم يُعثر على نص مقروء بداخلها.]';
         content = `${content}\n\n${note}`.trim();
       }
       messages.push({ role: 'user', content });
@@ -262,7 +272,7 @@ async function askTutor(system, message) {
   }
 }
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.json': 'application/json; charset=utf-8', '.webmanifest': 'application/manifest+json', '.wasm': 'application/wasm', '.woff2': 'font/woff2' };
 const json = (res, status, body) => {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
   res.end(JSON.stringify(body));
@@ -769,20 +779,33 @@ async function handleApi(req, res, url) {
             createdAt: new Date().toISOString(),
           };
           conversation.messages.push(userMessage);
-          if (!conversation.title) {
-            const attachmentTitle = attachment && (attachment.kind === 'text' ? (user.language === 'en' ? 'File' : 'ملف') : (user.language === 'en' ? 'Image' : 'صورة'));
-            conversation.title = deriveChatTitle(content) || attachmentTitle || null;
-          }
+        }
+
+        // Per-message language detection drives both the model's instructed language (see
+        // chatSystemPrompt) and the client's immediate RTL/LTR + typography choice for this turn — see
+        // public/langdetect.js. Walking the conversation's own user messages (not the account's static
+        // language setting) is what makes a language switch mid-conversation actually take effect, and
+        // what makes a fresh/ambiguous conversation default to Arabic per the product requirement.
+        const detectedLanguage = detectConversationLanguage(
+          conversation.messages.filter((message) => message.role === 'user').slice(-CHAT_HISTORY_WINDOW).map((message) => message.content),
+          'ar',
+        );
+        if (userMessage) userMessage.language = detectedLanguage;
+
+        if (!isRegenerate && !conversation.title) {
+          const attachmentTitle = attachment && (attachment.kind === 'text' ? (detectedLanguage === 'en' ? 'File' : 'ملف') : (detectedLanguage === 'en' ? 'Image' : 'صورة'));
+          conversation.title = deriveChatTitle(content) || attachmentTitle || null;
         }
 
         const assistantMessage = {
           id: crypto.randomUUID(), role: 'assistant', content: '', thinking: '', status: 'generating',
           aiGenerated: false, unavailable: false, stopped: false, replyToIdempotencyKey: idempotencyKey,
+          language: detectedLanguage,
           createdAt: new Date().toISOString(),
         };
         conversation.messages.push(assistantMessage);
         conversation.updatedAt = new Date().toISOString();
-        return { conversation, duplicate: false, userMessage, assistantMessage };
+        return { conversation, duplicate: false, userMessage, assistantMessage, detectedLanguage };
       });
     } catch {
       release();
@@ -808,7 +831,7 @@ async function handleApi(req, res, url) {
     };
 
     if (phase1.duplicate) {
-      writeLine({ type: 'meta', conversationId, userMessageId: null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title });
+      writeLine({ type: 'meta', conversationId, userMessageId: null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title, language: phase1.assistantMessage.language || 'ar' });
       writeDelta({ kind: 'content', text: phase1.assistantMessage.content || '' });
       writeLine({ type: 'done', aiGenerated: Boolean(phase1.assistantMessage.aiGenerated), unavailable: Boolean(phase1.assistantMessage.unavailable), stopped: Boolean(phase1.assistantMessage.stopped), timing: phase1.assistantMessage.timing || null });
       res.end();
@@ -816,7 +839,12 @@ async function handleApi(req, res, url) {
       return;
     }
 
-    writeLine({ type: 'meta', conversationId, userMessageId: phase1.userMessage?.id || null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title });
+    // The server's detection is authoritative (echoed here so the client never has to guess for a
+    // regenerate, where there's no new user message of its own to detect from) — but the client also
+    // runs the exact same detectConversationLanguage on its own copy of the conversation at send-time,
+    // so the placeholder bubble's direction/typography is already correct before this line ever
+    // arrives. This is what keeps a language switch flicker-free instead of just fast.
+    writeLine({ type: 'meta', conversationId, userMessageId: phase1.userMessage?.id || null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title, language: phase1.detectedLanguage });
 
     if (attachment && attachment.kind === 'image' && phase1.userMessage?.attachment?.attachmentId) {
       try {
@@ -829,7 +857,7 @@ async function handleApi(req, res, url) {
     // server-wide write queue that every other request (including every other student) shares.
     let finalContent = '', finalThinking = '', stopped = false, aiGenerated = false, unavailable = false;
     if (!OLLAMA_URL) {
-      finalContent = user.language === 'en' ? 'The AI Chat assistant is not set up on this deployment yet.' : 'مساعد الدردشة الذكي غير مفعّل على هذه النسخة بعد.';
+      finalContent = phase1.detectedLanguage === 'en' ? 'The AI Chat assistant is not set up on this deployment yet.' : 'مساعد الدردشة الذكي غير مفعّل على هذه النسخة بعد.';
       unavailable = true;
       writeDelta({ kind: 'content', text: finalContent });
     } else {
@@ -840,7 +868,7 @@ async function handleApi(req, res, url) {
       const onClose = () => { clientClosed = true; upstreamController.abort(); };
       res.on('close', onClose);
       try {
-        const messages = await buildChatOllamaMessages(phase1.conversation, user, think);
+        const messages = buildChatOllamaMessages(phase1.conversation, phase1.detectedLanguage, think);
         const result = await streamOllamaChat(
           { messages, think },
           { signal: upstreamController.signal, onDelta: writeDelta },
@@ -850,7 +878,7 @@ async function handleApi(req, res, url) {
         aiGenerated = finalContent.length > 0;
         unavailable = !aiGenerated;
         if (!aiGenerated) {
-          finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
+          finalContent = phase1.detectedLanguage === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
           writeDelta({ kind: 'content', text: finalContent });
         }
       } catch (streamError) {
@@ -859,7 +887,7 @@ async function handleApi(req, res, url) {
         } else {
           unavailable = true;
           if (process.env.NODE_ENV !== 'test') console.error(`AI Chat generation failed: ${streamError.message}`);
-          finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
+          finalContent = phase1.detectedLanguage === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
           writeDelta({ kind: 'content', text: finalContent });
         }
       } finally {
@@ -911,8 +939,11 @@ async function serveStatic(req, res, url) {
     // client-side OCR engine (Tesseract.js, vendored under /vendor/tesseract): it wraps its worker
     // script in a blob: URL before instantiating the Worker, and that worker in turn fetches its WASM
     // core via blob:/data: URIs it constructs itself — each was confirmed necessary via a live CSP
-    // violation report (worker-src, then connect-src) rather than assumed upfront.
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' blob: data:" });
+    // violation report (worker-src, then connect-src) rather than assumed upfront. font-src/style-src no
+    // longer need any Google Fonts allowance now that the Cairo type system is fully self-hosted under
+    // /vendor/fonts (see index.html/styles.css) — this is a strictly tighter CSP than before, not a
+    // side effect of something else.
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(resolved)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self' blob: data:" });
     createReadStream(resolved).pipe(res);
   } catch {
     if (!path.extname(requested)) return serveStatic(req, res, new URL('/index.html', url));

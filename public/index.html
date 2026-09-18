@@ -7,10 +7,13 @@
   <meta name="description" content="منصة تعلّم عربية تجريبية للرحلات التعليمية والمراجعة المتكيفة" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800;900&display=swap" />
-  <link rel="stylesheet" href="/styles.css?v=3" />
+  <!-- Cairo is self-hosted under /vendor/fonts/cairo (see styles.css's @font-face block) — no Google
+       Fonts CDN, so the app never depends on external network access for its type system, including
+       offline via the service worker cache. Preloading the Arabic subset (this app's default script)
+       avoids a flash of fallback-font text on first paint without blocking the page on the Latin
+       subset most first loads won't need yet. -->
+  <link rel="preload" href="/vendor/fonts/cairo/cairo-arabic.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/styles.css?v=4" />
   <title>منصة التعلّم</title>
 </head>
 <body>

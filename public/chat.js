@@ -5,6 +5,7 @@
 // design, client-side image resize, on-disk attachment persistence).
 import { api, esc, id, lang, local, render, state, t, toast } from './app.js';
 import { renderMarkdownToDOM } from './markdown.js';
+import { detectConversationLanguage } from './langdetect.js';
 
 const CHAT_HISTORY_WINDOW = 12;
 const MAX_IMAGE_EDGE = 1600;
@@ -84,6 +85,27 @@ function icon(name, size = 16) {
   return `<svg class="chat-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 }
 
+// Per-message language, detected once at send-time (see sendChat/public/langdetect.js), drives the
+// message bubble's overall layout direction (avatar side, action-button order, bubble-tail corner) and
+// a typography class (Arabic tracking/line-height vs Latin). The actual text-rendering elements inside
+// (.chat-msg-text, .chat-reasoning-text) instead use dir="auto" so each independently resolves its own
+// direction from its own Unicode content — necessary because the model reliably follows the requested
+// language for its final answer, but its internal <think> reasoning does not always (a confirmed model
+// limitation, not a UI bug); forcing rtl onto genuinely English reasoning text would render it backwards.
+function msgDir(language) {
+  return language === 'en' ? 'ltr' : 'rtl';
+}
+function msgLangClass(language) {
+  return language === 'en' ? 'lang-en' : 'lang-ar';
+}
+function applyMessageLanguageDOM(domId, language) {
+  const wrapper = document.querySelector(`[data-chat-msg="${domId}"]`);
+  if (!wrapper) return;
+  wrapper.setAttribute('dir', msgDir(language));
+  wrapper.classList.remove('lang-ar', 'lang-en');
+  wrapper.classList.add(msgLangClass(language));
+}
+
 function loadChatTheme() {
   try { return localStorage.getItem('lp-chat-theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
 }
@@ -96,7 +118,7 @@ const chatState = {
   activeId: null, activeConversation: null, loadingConversation: false, creatingConversation: null,
   search: '', sidebarOpen: window.innerWidth > 900, showArchived: false,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
-  streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamContent: '', streamThinking: '',
+  streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamLanguage: 'ar', streamContent: '', streamThinking: '',
   editingMessageId: null, renamingId: null, confirmDeleteId: null, openMenuId: null, dragActive: false,
   theme: loadChatTheme(), scrolledUp: false,
 };
@@ -434,15 +456,25 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
     const lastIndex = conversation.messages.length - 1;
     if (lastIndex >= 0 && conversation.messages[lastIndex].role === 'assistant') conversation.messages = conversation.messages.slice(0, lastIndex);
   }
+  // Detected once, here, from the exact same conversation state the server will independently compute
+  // it from (see server.mjs's identical use of detectConversationLanguage) — not awaited from the
+  // network. That is what lets the placeholder bubble render with correct RTL/LTR direction and
+  // typography from the very first frame, with nothing to flip once the real response starts arriving.
+  const detectedLanguage = detectConversationLanguage(
+    conversation.messages.filter((message) => message.role === 'user').slice(-CHAT_HISTORY_WINDOW).map((message) => message.content),
+    'ar',
+  );
+  if (!regenerate) conversation.messages[conversation.messages.length - 1].language = detectedLanguage;
   const willUseThinking = chatState.thinkingMode && chatState.aiCapabilities.thinkingSupported;
   const placeholderId = `pending-assistant-${idempotencyKey}`;
-  conversation.messages.push({ id: placeholderId, role: 'assistant', content: '', thinking: '', status: 'generating', thinkingRequested: willUseThinking });
+  conversation.messages.push({ id: placeholderId, role: 'assistant', content: '', thinking: '', status: 'generating', thinkingRequested: willUseThinking, language: detectedLanguage });
 
   chatState.composerAttachment = null;
   chatState.attachmentError = null;
   chatState.streaming = true;
   chatState.streamAssistantId = placeholderId;
   chatState.streamDomId = placeholderId;
+  chatState.streamLanguage = detectedLanguage;
   chatState.streamContent = '';
   chatState.streamThinking = '';
   resetStreamReveal();
@@ -500,6 +532,14 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
             }
           }
           chatState.streamAssistantId = realAssistantId;
+          // The server's detection is authoritative — this should already match what was computed
+          // locally at send-time (same function, same input), so in practice this is a no-op
+          // confirmation, not a source of visible change.
+          if (parsed.language && parsed.language !== chatState.streamLanguage) {
+            chatState.streamLanguage = parsed.language;
+            if (assistantMessage) assistantMessage.language = parsed.language;
+            applyMessageLanguageDOM(chatState.streamDomId, parsed.language);
+          }
           if (!conversation.title && parsed.title) {
             conversation.title = parsed.title;
             updateChatHeaderDOM();
@@ -901,14 +941,14 @@ function renderConversationListItem(item) {
   if (chatState.renamingId === item.id) {
     return `
       <div class="chat-conversation-item is-renaming">
-        <form class="chat-rename-form" data-chat-rename-form="${item.id}"><input type="text" value="${esc(title)}" maxlength="80" autofocus id="chat-rename-input"></form>
+        <form class="chat-rename-form" data-chat-rename-form="${item.id}"><input type="text" dir="auto" value="${esc(title)}" maxlength="80" autofocus id="chat-rename-input"></form>
       </div>`;
   }
   return `
     <div class="chat-conversation-item ${active ? 'active' : ''} ${menuOpen ? 'menu-open' : ''}" data-chat-open="${item.id}">
       <button class="chat-conversation-title" data-chat-open="${item.id}">
         <span class="chat-conversation-icon">${icon(item.archived ? 'archive' : 'spark', 14)}</span>
-        <span class="chat-conversation-copy"><strong>${item.pinned ? `<i class="chat-pin-mark" aria-hidden="true">${icon('pin', 10)}</i>` : ''}${esc(title)}</strong><small>${esc(item.preview || ct('startHint'))}</small></span>
+        <span class="chat-conversation-copy" dir="auto"><strong>${item.pinned ? `<i class="chat-pin-mark" aria-hidden="true">${icon('pin', 10)}</i>` : ''}${esc(title)}</strong><small>${esc(item.preview || ct('startHint'))}</small></span>
         <time datetime="${esc(item.updatedAt)}">${relativeConversationDate(item.updatedAt)}</time>
       </button>
       <div class="chat-conversation-actions">
@@ -979,16 +1019,16 @@ function renderMessage(message, conversation) {
       return `
         <div class="chat-msg chat-msg-user chat-msg-editing" data-chat-msg="${message.id}">
           <form class="chat-edit-form" data-chat-edit-form="${message.id}">
-            <textarea id="chat-edit-textarea" maxlength="4000">${esc(message.content)}</textarea>
+            <textarea id="chat-edit-textarea" dir="auto" maxlength="4000">${esc(message.content)}</textarea>
             <div class="chat-edit-actions"><button type="button" class="btn btn-ghost btn-sm" data-chat-action="cancel-edit">${ct('cancel')}</button><button type="submit" class="btn btn-primary btn-sm">${ct('save')}</button></div>
           </form>
         </div>`;
     }
     return `
-      <div class="chat-msg chat-msg-user ${newestClass}" data-chat-msg="${message.id}">
+      <div class="chat-msg chat-msg-user ${msgLangClass(message.language)} ${newestClass}" data-chat-msg="${message.id}" dir="${msgDir(message.language)}">
         <div class="chat-msg-bubble">
           ${message.attachment ? `<div class="chat-msg-attachment">${message.attachment.previewUrl ? `<img src="${esc(message.attachment.previewUrl)}" alt="${esc(message.attachment.name)}">` : message.attachment.attachmentId ? `<img src="/api/chat/attachments/${message.attachment.attachmentId}" alt="${esc(message.attachment.name)}">` : `<div class="chat-attachment-chip">${icon(message.attachment.kind === 'text' ? 'file' : 'image', 14)}<span>${esc(message.attachment.name)}</span></div>`}</div>` : ''}
-          <div class="chat-msg-text">${esc(message.content)}</div>
+          <div class="chat-msg-text" dir="auto">${esc(message.content)}</div>
         </div>
         <div class="chat-msg-actions">
           <button class="icon-button icon-button-sm" data-chat-action="edit-message" data-chat-id="${message.id}" aria-label="${ct('edit')}" title="${ct('edit')}">${icon('edit', 14)}</button>
@@ -1022,18 +1062,19 @@ function renderMessage(message, conversation) {
   const showTyping = isGenerating && !liveContent && !willThink;
   const timing = message.timing;
   const rating = timing ? speedRating(timing.firstResponseMs) : null;
+  const liveLanguage = isStreamingThis ? chatState.streamLanguage : (message.language || 'ar');
   return `
-    <div class="chat-msg chat-msg-assistant ${isStreamingThis ? 'is-streaming' : ''} ${newestClass}" data-chat-msg="${domId}">
+    <div class="chat-msg chat-msg-assistant ${msgLangClass(liveLanguage)} ${isStreamingThis ? 'is-streaming' : ''} ${newestClass}" data-chat-msg="${domId}" dir="${msgDir(liveLanguage)}">
       <div class="chat-msg-avatar" aria-hidden="true">${icon('spark', 15)}</div>
       <div class="chat-msg-bubble">
         ${showReasoningBlock ? `
           <details class="chat-reasoning" id="chat-reasoning-${domId}" ${isStreamingThis ? 'open' : ''}>
             <summary>${icon('node', 13)}<span>${ct('reasoning')}</span><span class="chat-reasoning-live" id="chat-reasoning-live-${domId}" style="${showThinkingPlaceholder ? '' : 'display:none'}"><i></i><i></i><i></i></span></summary>
             <p class="chat-reasoning-hint">${ct('reasoningHint')}</p>
-            <div class="chat-reasoning-text" id="chat-msg-thinking-${domId}">${esc(liveThinking || '')}</div>
+            <div class="chat-reasoning-text" id="chat-msg-thinking-${domId}" dir="auto">${esc(liveThinking || '')}</div>
           </details>` : ''}
         <div class="chat-typing" id="chat-msg-typing-${domId}" style="${showTyping ? '' : 'display:none'}"><span></span><span></span><span></span></div>
-        <div class="chat-msg-text" id="chat-msg-content-${domId}"></div>
+        <div class="chat-msg-text" id="chat-msg-content-${domId}" dir="auto"></div>
         ${message.unavailable ? `<p class="chat-msg-flag">${icon('warning', 13)}<span>${ct('unavailable')}</span></p>` : ''}
         ${message.stopped ? `<p class="chat-msg-flag">${ct('stopped')}</p>` : ''}
         ${message.aiGenerated ? `<p class="chat-ai-disclosure">${ct('aiDraft')}</p>` : ''}
@@ -1075,7 +1116,7 @@ function renderComposer(inWelcome) {
           <button type="button" class="chat-thinking-btn ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" role="switch" aria-checked="${chatState.thinkingMode}" aria-label="${ct('thinking')}" title="${ct('thinking')}">
             ${icon('node', 17)}<i class="chat-thinking-dot" aria-hidden="true"></i>
           </button>` : ''}
-        <textarea id="chat-composer-input" class="chat-composer-input" placeholder="${canThink && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder')}" rows="1" maxlength="4000"></textarea>
+        <textarea id="chat-composer-input" class="chat-composer-input" dir="auto" placeholder="${canThink && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder')}" rows="1" maxlength="4000"></textarea>
         ${chatState.streaming
           ? `<button type="button" class="chat-send-btn is-stop" data-chat-action="stop" aria-label="${ct('stop')}" title="${ct('stop')}">${icon('stop', 15)}</button>`
           : `<button type="submit" class="chat-send-btn" ${attachment?.kind === 'image' && attachment.ocrStatus === 'pending' ? 'disabled' : ''} aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`}
