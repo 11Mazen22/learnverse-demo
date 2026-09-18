@@ -1,56 +1,87 @@
-// Shared, dependency-free language detection between Arabic and the app's secondary language
-// (English) for the AI Chat page. Pure JS with no DOM/Node-only APIs, so it is imported verbatim by
-// both the server (system-prompt construction — see server.mjs's chatSystemPrompt/buildChatOllamaMessages)
-// and the browser client (immediate, no-round-trip direction/typography selection — see chat.js).
-// Both sides always agree because they run the exact same function on the exact same text, not
-// because either one waits on or trusts the other.
+// Shared Arabic/English conversation-language detection for both the server and browser.
+// It intentionally scores conversational words, not raw bytes: code, filenames, product names,
+// commands, and identifiers must not overpower the language the student is actually speaking.
 
-const ARABIC_SCRIPT_RE = /[؀-ۿݐ-ݿࡰ-࢟ࢠ-ࣿﭐ-﷿ﹰ-﻿]/g;
-const LATIN_LETTER_RE = /[A-Za-z]/g;
+const ARABIC_WORD_RE = /[؀-ۿݐ-ݿࡰ-࢟ࢠ-ࣿﭐ-﷿ﹰ-﻿]+/g;
+const LATIN_WORD_RE = /[A-Za-z]+(?:['’][A-Za-z]+)*/g;
+const ARABIC_CHARS_RE = /[؀-ۿݐ-ݿࡰ-࢟ࢠ-ࣿﭐ-﷿ﹰ-﻿]/g;
+const LATIN_CHARS_RE = /[A-Za-z]/g;
 
-const MIN_SIGNAL_CHARS = 3;
-const ARABIC_DOMINANT_RATIO = 0.6;
-const LATIN_DOMINANT_RATIO = 0.35;
+const TECHNICAL_TERMS = new Set([
+  'ai', 'api', 'css', 'csv', 'docker', 'git', 'github', 'html', 'http', 'https', 'javascript',
+  'json', 'jsx', 'llm', 'node', 'npm', 'ollama', 'openai', 'python', 'qwen', 'railway', 'react',
+  'sql', 'supabase', 'typescript', 'tsx', 'ui', 'url', 'ux', 'xml', 'yaml',
+]);
 
-// Strips the parts of a message that carry no real conversational-language signal — fenced/inline
-// code, URLs, emails, and bare filenames — so a short Arabic question that merely mentions "React.js"
-// or "main.py" isn't misread as English just because those tokens are Latin script.
+const ARABIC_SWITCH_RE = /(?:بالعربية|باللغة\s+العربية|اكتب\s+بالعربية|أجب\s+بالعربية|تكلم\s+بالعربية|العربي(?:ة)?\s+من\s+فضلك)/i;
+const ENGLISH_SWITCH_RE = /(?:\bin\s+english\b|\benglish\s+please\b|\banswer\s+in\s+english\b|\brespond\s+in\s+english\b|\bspeak\s+english\b)/i;
+
 function stripNonProse(text) {
   return String(text || '')
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`[^`]*`/g, ' ')
-    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/https?:\/\/\S+/gi, ' ')
     .replace(/[\w-]{2,}@[\w.-]+/g, ' ')
-    .replace(/[\w.-]+\.(js|jsx|ts|tsx|py|json|txt|md|html?|css|c|cpp|h|hpp|java|rb|go|rs|sql|sh|ya?ml|log|csv|xml|ipynb)\b/gi, ' ');
+    .replace(/(?:^|\s)(?:--?[\w-]+|\/[\w./-]+|[\w@-]+\/[\w@./-]+)(?=\s|$)/g, ' ')
+    .replace(/[\w.-]+\.(?:js|jsx|ts|tsx|py|json|txt|md|html?|css|c|cpp|h|hpp|java|rb|go|rs|sql|sh|ya?ml|log|csv|xml|ipynb)\b/gi, ' ');
 }
 
-// Returns 'ar' | 'en' | null. null means this text alone doesn't carry enough or clear enough
-// signal to decide (too short, mostly code/identifiers, or genuinely mixed with neither script
-// dominant) — the caller should fall back to recent conversation context, then finally to the app's
-// Arabic default, rather than treating null as "assume English."
-function detectTextLanguage(text) {
-  const prose = stripNonProse(text);
-  const arabic = (prose.match(ARABIC_SCRIPT_RE) || []).length;
-  const latin = (prose.match(LATIN_LETTER_RE) || []).length;
-  const total = arabic + latin;
-  if (total < MIN_SIGNAL_CHARS) return null;
-  const arabicRatio = arabic / total;
-  if (arabicRatio >= ARABIC_DOMINANT_RATIO) return 'ar';
-  if (arabicRatio <= LATIN_DOMINANT_RATIO) return 'en';
+function languageSignal(text) {
+  const source = String(text || '');
+  if (ARABIC_SWITCH_RE.test(source)) return { language: 'ar', explicit: true, words: 4, strength: 1 };
+  if (ENGLISH_SWITCH_RE.test(source)) return { language: 'en', explicit: true, words: 4, strength: 1 };
+
+  const prose = stripNonProse(source);
+  const arabicWords = prose.match(ARABIC_WORD_RE) || [];
+  const latinWords = (prose.match(LATIN_WORD_RE) || []).filter((word) => {
+    const normalized = word.toLowerCase();
+    return !TECHNICAL_TERMS.has(normalized) && !(word.length > 1 && word === word.toUpperCase());
+  });
+  const arabicChars = (arabicWords.join('').match(ARABIC_CHARS_RE) || []).length;
+  const latinChars = (latinWords.join('').match(LATIN_CHARS_RE) || []).length;
+  const words = arabicWords.length + latinWords.length;
+  const chars = arabicChars + latinChars;
+  if (chars < 3 || words === 0) return null;
+
+  if (!latinWords.length) return { language: 'ar', explicit: false, words, strength: 1 };
+  if (!arabicWords.length) {
+    if (latinChars < 4) return null;
+    return { language: 'en', explicit: false, words, strength: 1 };
+  }
+
+  // Combining word and character shares prevents one long foreign term from outweighing several
+  // conversational words in the other script, while still handling genuinely dominant mixed text.
+  const arabicWordShare = arabicWords.length / words;
+  const arabicCharShare = arabicChars / chars;
+  const arabicStrength = (arabicWordShare * 0.65) + (arabicCharShare * 0.35);
+  if (arabicStrength >= 0.64) return { language: 'ar', explicit: false, words, strength: arabicStrength };
+  if (arabicStrength <= 0.36) return { language: 'en', explicit: false, words, strength: 1 - arabicStrength };
   return null;
 }
 
-// Walks the most recent user messages, newest first, returning the first confident detection. This
-// is what lets a short reply like "ok" or a lone filename inherit the conversation's already-
-// established language instead of bouncing back to the app default on every low-signal turn, while a
-// clear language switch (a whole new message confidently in the other script) still wins immediately
-// since it's checked first.
+// Returns 'ar' | 'en' | null for one message in isolation.
+function detectTextLanguage(text) {
+  return languageSignal(text)?.language || null;
+}
+
+// The latest meaningful turn is primary. If it is ambiguous, code-only, or merely a short foreign
+// phrase, inherit the nearest confident recent user turn. A clear/explicit switch wins immediately.
 function detectConversationLanguage(recentUserTexts, fallback = 'ar') {
-  for (let i = recentUserTexts.length - 1; i >= 0; i--) {
-    const lang = detectTextLanguage(recentUserTexts[i]);
-    if (lang) return lang;
+  const signals = recentUserTexts.map(languageSignal);
+  let priorLanguage = null;
+  for (let i = signals.length - 2; i >= 0; i--) {
+    if (signals[i]) { priorLanguage = signals[i].language; break; }
   }
-  return fallback;
+
+  const latest = signals[signals.length - 1];
+  if (latest) {
+    if (!priorLanguage || latest.language === priorLanguage) return latest.language;
+    const clearSwitch = latest.explicit || latest.words >= 3;
+    return clearSwitch ? latest.language : priorLanguage;
+  }
+
+  if (priorLanguage) return priorLanguage;
+  return fallback === 'en' ? 'en' : 'ar';
 }
 
 export { detectTextLanguage, detectConversationLanguage };

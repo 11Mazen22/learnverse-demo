@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveChatTitle, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
 import { releaseGenerationLock, tryAcquireGenerationLock } from './lib/generationLock.mjs';
+import { createVisibleReasoningRouter } from './lib/chat-reasoning.mjs';
 import { JsonStore } from './lib/store.mjs';
 import { detectConversationLanguage } from './public/langdetect.js';
 
@@ -95,15 +96,10 @@ async function sweepStaleGeneratingMessages() {
   } catch { /* best-effort */ }
 }
 
-// The whole prompt is written entirely in the target language (not just the language directive) —
-// reasoning models anchor their output language to the DOMINANT language of their context at least as
-// much as to an explicit instruction, so a mostly-English system prompt with one Arabic sentence at
-// the end pulls against itself. This was verified empirically: an all-Arabic version of this prompt,
-// including an explicit <think>-block-targeted directive as the last line, was tested live against the
-// deployed model (qwen3:4b-q4_K_M) and still did not reliably move the <think> block itself to Arabic
-// (the final answer does follow the instruction correctly). That's a genuine, confirmed limitation of
-// this model's reasoning trace — not something a prompt can fully force — so this remains best-effort
-// for the <think> content specifically, while being fully reliable for the final visible answer.
+// The whole prompt is written in the detected conversational language. In Thinking mode we request a
+// concise, user-facing reasoning explanation through explicit tags instead of exposing the model's
+// native private trace, whose language is model-controlled and can drift into English. The server
+// removes those tags and routes the two sections into the existing reasoning/content stream channels.
 function chatSystemPrompt(language, think) {
   if (language === 'en') {
     const lines = [
@@ -112,11 +108,11 @@ function chatSystemPrompt(language, think) {
       'Be encouraging, clear, and age-appropriate. Never claim to be a human teacher, and never claim to have graded or scored anything.',
       'If asked to simply do a student\'s graded assignment for them, offer to explain the underlying concept instead of just giving the final answer.',
       think
-        ? 'Reason through the problem as thoroughly as you need to, then give a clear, well-organized final answer.'
+        ? 'Work through the problem carefully. Give the student a concise, useful reasoning summary followed by a clear, well-organized final answer.'
         : 'Keep your answer tight and efficient: get straight to the point in a few clear sentences or a short structured list, with one worked example only if it genuinely helps — avoid restating the question, padding, or unnecessary preamble.',
-      'Respond in English, including your internal thinking/reasoning steps, not only your final answer — the student is writing in English. Preserve code, commands, technical identifiers, and established terminology as-is rather than translating them.',
+      'Respond in natural, clear English. Preserve code, commands, model names, technical identifiers, and established terminology as-is rather than translating them.',
     ];
-    if (think) lines.push('IMPORTANT: write everything inside your <think> block in English too — do not let your reasoning drift into any other language.');
+    if (think) lines.push('Return exactly two sections with no preamble and no Markdown fence around the tags: <reasoning>A concise student-facing reasoning summary in English.</reasoning><answer>The final answer in English.</answer> Never expose private chain-of-thought; provide only the useful summarized rationale.');
     return lines.join('\n');
   }
   const lines = [
@@ -128,11 +124,11 @@ function chatSystemPrompt(language, think) {
     // performance lever here, not just a style preference. Thinking mode is the deliberate
     // slow/thorough path (see CHAT_NUM_PREDICT_THINKING), so this constraint is relaxed there.
     think
-      ? 'فكّر في المسألة بالعمق الذي تحتاجه، ثم قدّم إجابة نهائية واضحة ومنظمة.'
+      ? 'حلّل المسألة بعناية، ثم قدّم للطالب ملخصًا موجزًا ومفيدًا لطريقة الاستدلال، وبعده إجابة نهائية واضحة ومنظمة.'
       : 'اجعل إجابتك مختصرة ومباشرة: اذهب إلى صلب الموضوع في جمل واضحة قليلة أو قائمة منظمة قصيرة، مع مثال محلول واحد فقط إذا كان مفيدًا حقًا — تجنّب إعادة صياغة السؤال أو الحشو أو المقدمات غير الضرورية.',
-    'فكّر وأجب باللغة العربية الفصحى المبسطة، لأن الطالب يكتب بالعربية — ويشمل ذلك خطوات تفكيرك الداخلي، وليس فقط إجابتك النهائية. حافظ على الأكواد والأوامر والمصطلحات التقنية وأسماء المنتجات كما هي دون ترجمتها إذا كانت الترجمة تقلل من الوضوح.',
+    'اكتب بالعربية الفصحى الطبيعية والواضحة. حافظ على الأكواد والأوامر وأسماء النماذج والمعرّفات والمصطلحات التقنية الراسخة كما هي إذا كانت ترجمتها تقلل من الوضوح.',
   ];
-  if (think) lines.push('مهم جدًا: اكتب كل ما بداخل خانة تفكيرك <think> باللغة العربية الفصحى فقط، وليس بالإنجليزية — حتى تفكيرك الداخلي الخاص يجب أن يكون بالعربية، بلا أي استثناء.');
+  if (think) lines.push('أخرج قسمين فقط بهذا الشكل الحرفي، بلا مقدمة وبلا سياج Markdown حول الوسوم: <reasoning>ملخص موجز لطريقة الاستدلال وموجّه للطالب باللغة العربية الفصحى.</reasoning><answer>الإجابة النهائية باللغة العربية الفصحى.</answer> لا تعرض سلسلة التفكير الخاصة؛ اعرض فقط خلاصة الاستدلال المفيدة للطالب.');
   return lines.join('\n');
 }
 
@@ -176,10 +172,14 @@ async function streamOllamaChat({ messages, think }, { signal, onDelta }) {
   // the entire budget before any final-answer content is produced at all — the model then technically
   // "succeeds" but content comes back empty, which reads as a false "unavailable" fallback.
   const numPredict = think ? CHAT_NUM_PREDICT_THINKING : CHAT_NUM_PREDICT;
+  const visibleReasoningRouter = think ? createVisibleReasoningRouter(onDelta) : null;
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think, options: { num_predict: numPredict }, messages }),
+    // Native `thinking` is deliberately disabled here. Its trace language is controlled by the model
+    // and may ignore the requested locale; Thinking mode instead uses the localized, visible reasoning
+    // contract in chatSystemPrompt and the streaming router above.
+    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think: false, options: { num_predict: numPredict }, messages }),
     signal,
   });
   if (!response.ok || !response.body) throw new Error(`Ollama HTTP ${response.status}`);
@@ -200,12 +200,17 @@ async function streamOllamaChat({ messages, think }, { signal, onDelta }) {
       try { parsed = JSON.parse(line); } catch { continue; }
       const deltaContent = parsed?.message?.content || '';
       const deltaThinking = parsed?.message?.thinking || '';
-      if (deltaContent) { content += deltaContent; onDelta({ kind: 'content', text: deltaContent }); }
-      if (deltaThinking) { thinking += deltaThinking; onDelta({ kind: 'thinking', text: deltaThinking }); }
-      if (parsed?.done) return { content, thinking };
+      if (deltaContent) {
+        if (visibleReasoningRouter) visibleReasoningRouter.push(deltaContent);
+        else { content += deltaContent; onDelta({ kind: 'content', text: deltaContent }); }
+      }
+      // Defensive only: with think:false this should stay empty. Never expose an uncontrolled native
+      // trace because doing so can leak the wrong language before the localized stream begins.
+      if (deltaThinking && !visibleReasoningRouter) { thinking += deltaThinking; onDelta({ kind: 'thinking', text: deltaThinking }); }
+      if (parsed?.done) return visibleReasoningRouter ? visibleReasoningRouter.finish() : { content, thinking };
     }
   }
-  return { content, thinking };
+  return visibleReasoningRouter ? visibleReasoningRouter.finish() : { content, thinking };
 }
 
 function tutorSystemPrompt(lesson, question, language) {
@@ -800,7 +805,7 @@ async function handleApi(req, res, url) {
         const assistantMessage = {
           id: crypto.randomUUID(), role: 'assistant', content: '', thinking: '', status: 'generating',
           aiGenerated: false, unavailable: false, stopped: false, replyToIdempotencyKey: idempotencyKey,
-          language: detectedLanguage,
+          language: detectedLanguage, thinkingRequested: Boolean(body.thinking) && aiCapabilities.thinkingSupported,
           createdAt: new Date().toISOString(),
         };
         conversation.messages.push(assistantMessage);
@@ -832,6 +837,7 @@ async function handleApi(req, res, url) {
 
     if (phase1.duplicate) {
       writeLine({ type: 'meta', conversationId, userMessageId: null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title, language: phase1.assistantMessage.language || 'ar' });
+      if (phase1.assistantMessage.thinking) writeDelta({ kind: 'thinking', text: phase1.assistantMessage.thinking });
       writeDelta({ kind: 'content', text: phase1.assistantMessage.content || '' });
       writeLine({ type: 'done', aiGenerated: Boolean(phase1.assistantMessage.aiGenerated), unavailable: Boolean(phase1.assistantMessage.unavailable), stopped: Boolean(phase1.assistantMessage.stopped), timing: phase1.assistantMessage.timing || null });
       res.end();
@@ -861,7 +867,7 @@ async function handleApi(req, res, url) {
       unavailable = true;
       writeDelta({ kind: 'content', text: finalContent });
     } else {
-      const think = Boolean(body.thinking) && aiCapabilities.thinkingSupported;
+      const think = Boolean(phase1.assistantMessage.thinkingRequested);
       const upstreamController = new AbortController();
       const timer = setTimeout(() => upstreamController.abort(), think ? CHAT_TIMEOUT_MS_THINKING : TUTOR_TIMEOUT_MS);
       let clientClosed = false;

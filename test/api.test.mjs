@@ -264,6 +264,43 @@ test('AI Chat: full conversation CRUD, streaming fallback shape, and rename/pin/
   assert.equal(afterDelete.status, 404);
 });
 
+test('AI Chat: language selection persists across switches, ambiguity, regeneration, and reload', async () => {
+  const token = await login('student2@demo.local');
+  const created = await request('/api/chat/conversations', { token, body: {} });
+  const conversationId = created.body.conversation.id;
+
+  const arabic = await requestStream(`/api/chat/conversations/${conversationId}/messages`, {
+    token, body: { idempotencyKey: 'lang:ar', content: 'اشرح لي دورة الماء بطريقة بسيطة' },
+  });
+  assert.equal(arabic.lines[0].language, 'ar');
+  assert.match(arabic.lines[1].text, /[؀-ۿ]/);
+
+  const english = await requestStream(`/api/chat/conversations/${conversationId}/messages`, {
+    token, body: { idempotencyKey: 'lang:en', content: 'Now explain the same idea in English please' },
+  });
+  assert.equal(english.lines[0].language, 'en');
+  assert.match(english.lines[1].text, /The AI Chat assistant/);
+
+  const ambiguous = await requestStream(`/api/chat/conversations/${conversationId}/messages`, {
+    token, body: { idempotencyKey: 'lang:ambiguous', content: 'main.py' },
+  });
+  assert.equal(ambiguous.lines[0].language, 'en', 'technical-only latest turn inherits recent conversation language');
+
+  const regenerated = await requestStream(`/api/chat/conversations/${conversationId}/messages`, {
+    token, body: { idempotencyKey: 'lang:regen', regenerate: true },
+  });
+  assert.equal(regenerated.lines[0].language, 'en', 'regeneration reuses the latest meaningful user language');
+
+  const reloaded = await request(`/api/chat/conversations/${conversationId}`, { token });
+  assert.equal(reloaded.body.conversation.messages.at(-1).language, 'en');
+
+  const fresh = await request('/api/chat/conversations', { token, body: {} });
+  const freshAmbiguous = await requestStream(`/api/chat/conversations/${fresh.body.conversation.id}/messages`, {
+    token, body: { idempotencyKey: 'lang:fresh', content: 'Qwen API main.py' },
+  });
+  assert.equal(freshAmbiguous.lines[0].language, 'ar', 'new ambiguous conversations default to Arabic');
+});
+
 test('AI Chat: ownership isolation between two different students', async () => {
   const tokenA = await login('student@demo.local');
   const tokenB = await login('student2@demo.local');

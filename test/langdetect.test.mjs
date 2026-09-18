@@ -14,6 +14,11 @@ test('Arabic prose mentioning a Latin filename or library name still detects as 
   assert.equal(detectTextLanguage('عندي خطأ في ملف main.py وأستخدم React.js، ممكن تساعدني أفهم السبب؟'), 'ar');
 });
 
+test('Arabic conversational framing wins over preserved technical product and model names', () => {
+  assert.equal(detectTextLanguage('اشرح إعداد Ollama وQwen وRailway بطريقة واضحة'), 'ar');
+  assert.equal(detectTextLanguage('كيف أوصل Supabase API مع React؟'), 'ar');
+});
+
 test('Arabic prose containing a fenced code block of Latin code still detects as Arabic', () => {
   const text = 'ليه الكود ده مش شغال؟\n```js\nfunction add(a, b) { return a + b; }\n```\nمحتاج أفهم الغلط فين.';
   assert.equal(detectTextLanguage(text), 'ar');
@@ -44,4 +49,19 @@ test('conversation fallback defaults to Arabic when nothing in recent history is
 test('a clear language switch in the latest message wins immediately over older history', () => {
   const recent = ['اشرح لي معنى التسارع من فضلك', 'Actually can you explain this in English instead?'];
   assert.equal(detectConversationLanguage(recent, 'ar'), 'en');
+});
+
+test('a short isolated foreign phrase does not flip an established conversation', () => {
+  assert.equal(detectConversationLanguage(['اشرح لي دورة الماء ببساطة', 'thank you'], 'ar'), 'ar');
+  assert.equal(detectConversationLanguage(['Please explain the water cycle clearly', 'شكرا'], 'ar'), 'en');
+});
+
+test('an explicit short language switch overrides conversation history', () => {
+  assert.equal(detectConversationLanguage(['اشرح لي دورة الماء ببساطة', 'English please'], 'ar'), 'en');
+  assert.equal(detectConversationLanguage(['Explain the water cycle clearly', 'أجب بالعربية'], 'en'), 'ar');
+});
+
+test('a new ambiguous or technical-only conversation defaults to Arabic', () => {
+  assert.equal(detectConversationLanguage(['Qwen API main.py'], 'ar'), 'ar');
+  assert.equal(detectConversationLanguage(['hello مرحبا'], 'ar'), 'ar');
 });

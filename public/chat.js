@@ -85,13 +85,9 @@ function icon(name, size = 16) {
   return `<svg class="chat-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 }
 
-// Per-message language, detected once at send-time (see sendChat/public/langdetect.js), drives the
-// message bubble's overall layout direction (avatar side, action-button order, bubble-tail corner) and
-// a typography class (Arabic tracking/line-height vs Latin). The actual text-rendering elements inside
-// (.chat-msg-text, .chat-reasoning-text) instead use dir="auto" so each independently resolves its own
-// direction from its own Unicode content — necessary because the model reliably follows the requested
-// language for its final answer, but its internal <think> reasoning does not always (a confirmed model
-// limitation, not a UI bug); forcing rtl onto genuinely English reasoning text would render it backwards.
+// Per-message language is detected before the placeholder is mounted. It drives layout, typography,
+// and both reasoning/answer text direction from the first frame; the server uses the same detector and
+// streams a localized user-facing rationale rather than the model's uncontrolled native trace.
 function msgDir(language) {
   return language === 'en' ? 'ltr' : 'rtl';
 }
@@ -104,6 +100,7 @@ function applyMessageLanguageDOM(domId, language) {
   wrapper.setAttribute('dir', msgDir(language));
   wrapper.classList.remove('lang-ar', 'lang-en');
   wrapper.classList.add(msgLangClass(language));
+  wrapper.querySelectorAll('.chat-msg-text, .chat-reasoning-text').forEach((node) => node.setAttribute('dir', msgDir(language)));
 }
 
 function loadChatTheme() {
@@ -1071,10 +1068,10 @@ function renderMessage(message, conversation) {
           <details class="chat-reasoning" id="chat-reasoning-${domId}" ${isStreamingThis ? 'open' : ''}>
             <summary>${icon('node', 13)}<span>${ct('reasoning')}</span><span class="chat-reasoning-live" id="chat-reasoning-live-${domId}" style="${showThinkingPlaceholder ? '' : 'display:none'}"><i></i><i></i><i></i></span></summary>
             <p class="chat-reasoning-hint">${ct('reasoningHint')}</p>
-            <div class="chat-reasoning-text" id="chat-msg-thinking-${domId}" dir="auto">${esc(liveThinking || '')}</div>
+            <div class="chat-reasoning-text" id="chat-msg-thinking-${domId}" dir="${msgDir(liveLanguage)}">${esc(liveThinking || '')}</div>
           </details>` : ''}
         <div class="chat-typing" id="chat-msg-typing-${domId}" style="${showTyping ? '' : 'display:none'}"><span></span><span></span><span></span></div>
-        <div class="chat-msg-text" id="chat-msg-content-${domId}" dir="auto"></div>
+        <div class="chat-msg-text" id="chat-msg-content-${domId}" dir="${msgDir(liveLanguage)}"></div>
         ${message.unavailable ? `<p class="chat-msg-flag">${icon('warning', 13)}<span>${ct('unavailable')}</span></p>` : ''}
         ${message.stopped ? `<p class="chat-msg-flag">${ct('stopped')}</p>` : ''}
         ${message.aiGenerated ? `<p class="chat-ai-disclosure">${ct('aiDraft')}</p>` : ''}

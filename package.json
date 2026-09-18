@@ -7,7 +7,7 @@
     "start": "node server.mjs",
     "dev": "node --watch server.mjs",
     "test": "node --test --test-isolation=none",
-    "check": "node --check server.mjs && node --check public/app.js && node --check public/chat.js && node --check public/markdown.js && node --check public/langdetect.js && node --test --test-isolation=none"
+    "check": "node --check server.mjs && node --check lib/chat-reasoning.mjs && node --check public/app.js && node --check public/chat.js && node --check public/markdown.js && node --check public/langdetect.js && node --test --test-isolation=none"
   },
   "engines": {
     "node": ">=22"
