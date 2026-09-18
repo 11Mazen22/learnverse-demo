@@ -710,6 +710,7 @@ async function handleApi(req, res, url) {
     const content = String(body.content || '').trim().slice(0, 4000);
     const isRegenerate = Boolean(body.regenerate);
     const editFromMessageId = body.editFromMessageId ? String(body.editFromMessageId) : null;
+    const requestStartedAt = Date.now();
 
     let attachment = null;
     if (body.attachment) {
@@ -800,11 +801,16 @@ async function handleApi(req, res, url) {
     res.socket?.setNoDelay(true);
     res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Accel-Buffering': 'no' });
     const writeLine = (payload) => { try { res.write(`${JSON.stringify(payload)}\n`); } catch { /* client already gone */ } };
+    let firstResponseAt = null;
+    const writeDelta = (delta) => {
+      if (firstResponseAt === null) firstResponseAt = Date.now();
+      writeLine({ type: 'delta', kind: delta.kind, text: delta.text });
+    };
 
     if (phase1.duplicate) {
       writeLine({ type: 'meta', conversationId, userMessageId: null, assistantMessageId: phase1.assistantMessage.id, title: phase1.conversation.title });
-      writeLine({ type: 'delta', kind: 'content', text: phase1.assistantMessage.content || '' });
-      writeLine({ type: 'done', aiGenerated: Boolean(phase1.assistantMessage.aiGenerated), unavailable: Boolean(phase1.assistantMessage.unavailable), stopped: Boolean(phase1.assistantMessage.stopped) });
+      writeDelta({ kind: 'content', text: phase1.assistantMessage.content || '' });
+      writeLine({ type: 'done', aiGenerated: Boolean(phase1.assistantMessage.aiGenerated), unavailable: Boolean(phase1.assistantMessage.unavailable), stopped: Boolean(phase1.assistantMessage.stopped), timing: phase1.assistantMessage.timing || null });
       res.end();
       release();
       return;
@@ -825,7 +831,7 @@ async function handleApi(req, res, url) {
     if (!OLLAMA_URL) {
       finalContent = user.language === 'en' ? 'The AI Chat assistant is not set up on this deployment yet.' : 'مساعد الدردشة الذكي غير مفعّل على هذه النسخة بعد.';
       unavailable = true;
-      writeLine({ type: 'delta', kind: 'content', text: finalContent });
+      writeDelta({ kind: 'content', text: finalContent });
     } else {
       const think = Boolean(body.thinking) && aiCapabilities.thinkingSupported;
       const upstreamController = new AbortController();
@@ -837,7 +843,7 @@ async function handleApi(req, res, url) {
         const messages = await buildChatOllamaMessages(phase1.conversation, user, think);
         const result = await streamOllamaChat(
           { messages, think },
-          { signal: upstreamController.signal, onDelta: (delta) => writeLine({ type: 'delta', kind: delta.kind, text: delta.text }) },
+          { signal: upstreamController.signal, onDelta: writeDelta },
         );
         finalContent = result.content;
         finalThinking = result.thinking;
@@ -845,7 +851,7 @@ async function handleApi(req, res, url) {
         unavailable = !aiGenerated;
         if (!aiGenerated) {
           finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
-          writeLine({ type: 'delta', kind: 'content', text: finalContent });
+          writeDelta({ kind: 'content', text: finalContent });
         }
       } catch (streamError) {
         if (clientClosed) {
@@ -854,7 +860,7 @@ async function handleApi(req, res, url) {
           unavailable = true;
           if (process.env.NODE_ENV !== 'test') console.error(`AI Chat generation failed: ${streamError.message}`);
           finalContent = user.language === 'en' ? 'The assistant is warming up or busy right now — try again in a moment.' : 'المساعد بيجهّز نفسه أو مشغول دلوقتي — جرّب تاني بعد لحظات.';
-          writeLine({ type: 'delta', kind: 'content', text: finalContent });
+          writeDelta({ kind: 'content', text: finalContent });
         }
       } finally {
         clearTimeout(timer);
@@ -864,6 +870,10 @@ async function handleApi(req, res, url) {
 
     // Phase 3 — fast transact, always runs: persist whatever text was produced, however the
     // generation ended (completed, stopped, timed out, or the model was unavailable).
+    const timing = {
+      firstResponseMs: firstResponseAt === null ? null : firstResponseAt - requestStartedAt,
+      totalMs: Date.now() - requestStartedAt,
+    };
     await store.transact((draft) => {
       const conversation = (draft.chatConversations || []).find((item) => item.id === conversationId && item.userId === user.id);
       const assistantMessage = conversation?.messages.find((message) => message.id === phase1.assistantMessage.id);
@@ -874,11 +884,12 @@ async function handleApi(req, res, url) {
       assistantMessage.aiGenerated = aiGenerated;
       assistantMessage.unavailable = unavailable;
       assistantMessage.stopped = stopped;
+      assistantMessage.timing = timing;
       conversation.updatedAt = new Date().toISOString();
     }).catch(() => {});
 
     release();
-    if (!stopped) { writeLine({ type: 'done', aiGenerated, unavailable, stopped }); res.end(); }
+    if (!stopped) { writeLine({ type: 'done', aiGenerated, unavailable, stopped, timing }); res.end(); }
     return;
   }
 

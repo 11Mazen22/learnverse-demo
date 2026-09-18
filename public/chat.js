@@ -24,6 +24,10 @@ const copy = {
     ocrExtracting: 'جارٍ استخراج النص من الصورة…', ocrDone: 'تم استخراج النص من الصورة', ocrEmpty: 'لم يُعثر على نص مقروء في الصورة', ocrError: 'تعذّر استخراج النص من الصورة', ocrLoadFailed: 'تعذّر تحميل محرك قراءة النصوص',
     lightMode: 'وضع فاتح', darkMode: 'وضع داكن', you: 'أنت', assistant: 'المساعد', unavailableChip: 'الدردشة الذكية غير مفعّلة على هذه النسخة بعد.',
     dropHint: 'أفلت الصورة هنا', newMessages: 'رسائل جديدة',
+    assistantOnline: 'المساعد جاهز', assistantOffline: 'المساعد غير متاح', history: 'السجل', archived: 'المؤرشفة',
+    activeChats: 'النشطة', noArchived: 'لا توجد محادثات مؤرشفة', today: 'اليوم', yesterday: 'أمس', older: 'أقدم',
+    responseTime: 'زمن الاستجابة', firstToken: 'أول كلمة', totalTime: 'الكلي', goodSpeed: 'سريع', fairSpeed: 'جيد', slowSpeed: 'بطيء',
+    chatWorkspace: 'مساحة الدراسة الذكية', messagesLabel: 'رسالة', clearSearch: 'مسح البحث',
   },
   en: {
     newChat: 'New chat', search: 'Search conversations…', pinned: 'Pinned', conversations: 'Conversations',
@@ -90,12 +94,36 @@ function saveChatTheme(theme) {
 const chatState = {
   initialized: false, loadingList: false, conversations: [], aiCapabilities: { chatAvailable: false, thinkingSupported: false },
   activeId: null, activeConversation: null, loadingConversation: false,
-  search: '', sidebarOpen: window.innerWidth > 900,
+  search: '', sidebarOpen: window.innerWidth > 900, showArchived: false,
   composerAttachment: null, attachmentError: null, thinkingMode: false,
   streaming: false, streamAbort: null, streamAssistantId: null, streamDomId: null, streamContent: '', streamThinking: '',
   editingMessageId: null, renamingId: null, confirmDeleteId: null, openMenuId: null, dragActive: false,
   theme: loadChatTheme(), scrolledUp: false,
 };
+
+function formatDuration(ms) {
+  if (!Number.isFinite(ms)) return '';
+  return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s`;
+}
+
+function speedRating(ms) {
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 2000) return { label: ct('goodSpeed'), className: 'fast' };
+  if (ms <= 5000) return { label: ct('fairSpeed'), className: 'fair' };
+  return { label: ct('slowSpeed'), className: 'slow' };
+}
+
+function relativeConversationDate(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const days = Math.round((today - target) / 86_400_000);
+  if (days === 0) return date.toLocaleTimeString(lang() === 'en' ? 'en' : 'ar', { hour: 'numeric', minute: '2-digit' });
+  if (days === 1) return ct('yesterday');
+  return date.toLocaleDateString(lang() === 'en' ? 'en' : 'ar', { month: 'short', day: 'numeric' });
+}
 
 // ---------------------------------------------------------------------------
 // Networking
@@ -148,13 +176,24 @@ async function createConversation() {
 }
 
 async function patchConversation(conversationId, patch) {
+  const summary = chatState.conversations.find((item) => item.id === conversationId);
+  const previous = summary ? { ...summary } : null;
+  if (summary) Object.assign(summary, patch, { updatedAt: new Date().toISOString() });
+  refreshSidebarDOM();
   try {
     const result = await api(`/api/chat/conversations/${conversationId}`, { method: 'PATCH', body: JSON.stringify(patch) });
-    const summary = chatState.conversations.find((item) => item.id === conversationId);
     if (summary) Object.assign(summary, { title: result.conversation.title, pinned: result.conversation.pinned, archived: result.conversation.archived, updatedAt: result.conversation.updatedAt });
     if (chatState.activeConversation?.id === conversationId) chatState.activeConversation = { ...chatState.activeConversation, ...result.conversation };
-    renderNow();
+    if (patch.archived === true && !chatState.showArchived && chatState.activeId === conversationId) {
+      chatState.activeId = null;
+      chatState.activeConversation = null;
+      renderNow();
+    } else {
+      refreshSidebarDOM();
+    }
   } catch (error) {
+    if (summary && previous) Object.assign(summary, previous);
+    refreshSidebarDOM();
     toast(error.message, 'error');
   }
 }
@@ -388,6 +427,8 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
 
   const controller = new AbortController();
   chatState.streamAbort = controller;
+  const requestStartedAt = performance.now();
+  let firstVisibleResponseAt = null;
 
   const body = { idempotencyKey, regenerate, editFromMessageId };
   if (!regenerate) body.content = content;
@@ -434,6 +475,7 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
           chatState.streamAssistantId = realAssistantId;
           if (!conversation.title && parsed.title) conversation.title = parsed.title;
         } else if (parsed.type === 'delta') {
+          if (firstVisibleResponseAt === null) firstVisibleResponseAt = performance.now();
           if (parsed.kind === 'thinking') chatState.streamThinking += parsed.text;
           else chatState.streamContent += parsed.text;
           updateStreamingBubbleDOM();
@@ -446,6 +488,10 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
             assistantMessage.aiGenerated = parsed.aiGenerated;
             assistantMessage.unavailable = parsed.unavailable;
             assistantMessage.stopped = parsed.stopped;
+            assistantMessage.timing = parsed.timing || {
+              firstResponseMs: firstVisibleResponseAt === null ? null : Math.round(firstVisibleResponseAt - requestStartedAt),
+              totalMs: Math.round(performance.now() - requestStartedAt),
+            };
           }
         }
       }
@@ -459,6 +505,10 @@ async function sendChat({ content = '', regenerate = false, editFromMessageId = 
       assistantMessage.stopped = error.name === 'AbortError';
       assistantMessage.unavailable = error.name !== 'AbortError';
       assistantMessage.aiGenerated = false;
+      assistantMessage.timing = {
+        firstResponseMs: firstVisibleResponseAt === null ? null : Math.round(firstVisibleResponseAt - requestStartedAt),
+        totalMs: Math.round(performance.now() - requestStartedAt),
+      };
     }
   } finally {
     chatState.streaming = false;
@@ -623,6 +673,24 @@ function renderNow() {
   if (state.view === 'chat') render();
 }
 
+// Sidebar-only state changes must not reconstruct the message thread or composer. Besides avoiding
+// a visible flash, this preserves text selection, scroll position, uploads, and an in-flight stream.
+function refreshSidebarDOM({ refocusSearch = false } = {}) {
+  if (state.view !== 'chat') return;
+  const current = document.querySelector('.chat-sidebar');
+  if (!current) return;
+  const template = document.createElement('template');
+  template.innerHTML = renderSidebar().trim();
+  const next = template.content.querySelector('.chat-sidebar');
+  if (!next) return;
+  current.replaceWith(next);
+  if (refocusSearch) {
+    const input = document.getElementById('chat-search-input');
+    input?.focus();
+    input?.setSelectionRange(input.value.length, input.value.length);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
@@ -630,10 +698,11 @@ function renderNow() {
 function renderChatPage() {
   if (!chatState.initialized && !chatState.loadingList) loadConversations().then(renderNow);
   const html = `
-    <div class="chat-page" data-theme="${chatState.theme}">
+    <div class="chat-page" data-theme="${chatState.theme}" data-ai-available="${chatState.aiCapabilities.chatAvailable}">
       ${renderSidebar()}
       <div class="chat-sidebar-backdrop ${chatState.sidebarOpen ? 'visible' : ''}" data-chat-action="close-sidebar"></div>
       <div class="chat-main">
+        ${renderChatHeader()}
         ${chatState.activeConversation && chatState.activeConversation.messages.length > 0 ? renderConversationBody() : renderChatWelcome()}
       </div>
     </div>`;
@@ -646,6 +715,19 @@ function renderChatPage() {
     if (chatState.activeConversation && !chatState.scrolledUp) scrollMessagesToBottom();
   });
   return html;
+}
+
+function renderChatHeader() {
+  const conversation = chatState.activeConversation;
+  const title = conversation?.title || ct('chatWorkspace');
+  const count = conversation?.messages?.length || 0;
+  const available = chatState.aiCapabilities.chatAvailable;
+  return `
+    <header class="chat-main-header">
+      <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${ct('conversations')}">${icon('menu', 18)}</button>
+      <div class="chat-header-copy"><strong>${esc(title)}</strong><span>${conversation ? `${count} ${ct('messagesLabel')}` : ct('welcomeBody')}</span></div>
+      <div class="chat-ai-status ${available ? 'online' : 'offline'}"><i aria-hidden="true"></i><span>${available ? ct('assistantOnline') : ct('assistantOffline')}</span></div>
+    </header>`;
 }
 
 // renderMessage() emits an empty content element for each assistant message (Markdown produces real
@@ -665,25 +747,36 @@ function hydrateChatMessages() {
 
 function renderSidebar() {
   const query = chatState.search.trim().toLowerCase();
-  const visible = chatState.conversations.filter((item) => !item.archived && (!query || (item.title || '').toLowerCase().includes(query) || item.preview.toLowerCase().includes(query)));
+  const visible = chatState.conversations.filter((item) => item.archived === chatState.showArchived && (!query || (item.title || '').toLowerCase().includes(query) || item.preview.toLowerCase().includes(query)));
   const pinned = visible.filter((item) => item.pinned);
   const rest = visible.filter((item) => !item.pinned);
+  const activeCount = chatState.conversations.filter((item) => !item.archived).length;
+  const archivedCount = chatState.conversations.filter((item) => item.archived).length;
+  const available = chatState.aiCapabilities.chatAvailable;
   return `
-    <aside class="chat-sidebar ${chatState.sidebarOpen ? 'open' : ''}">
+    <aside class="chat-sidebar ${chatState.sidebarOpen ? 'open' : ''}" aria-label="${ct('history')}">
       <div class="chat-sidebar-head">
-        <button class="btn btn-primary btn-block chat-new-btn" data-chat-action="new-chat">${icon('plus', 15)}<span>${ct('newChat')}</span></button>
+        <div class="chat-sidebar-brand"><span class="chat-sidebar-logo">${icon('spark', 17)}</span><span><strong>${ct('assistant')}</strong><small>${ct('chatWorkspace')}</small></span></div>
         <button class="icon-button chat-sidebar-close" data-chat-action="close-sidebar" aria-label="${lang() === 'en' ? 'Close' : 'إغلاق'}">${icon('close')}</button>
       </div>
-      <div class="chat-search">${icon('search', 15)}<input type="search" id="chat-search-input" placeholder="${ct('search')}" value="${esc(chatState.search)}" aria-label="${ct('search')}"></div>
+      <button class="btn btn-primary btn-block chat-new-btn" data-chat-action="new-chat">${icon('plus', 15)}<span>${ct('newChat')}</span></button>
+      <div class="chat-list-tabs" role="tablist" aria-label="${ct('history')}">
+        <button role="tab" aria-selected="${!chatState.showArchived}" class="${!chatState.showArchived ? 'active' : ''}" data-chat-action="show-active">${ct('activeChats')}<span>${activeCount}</span></button>
+        <button role="tab" aria-selected="${chatState.showArchived}" class="${chatState.showArchived ? 'active' : ''}" data-chat-action="show-archived">${ct('archived')}<span>${archivedCount}</span></button>
+      </div>
+      <div class="chat-search">${icon('search', 15)}<input type="search" id="chat-search-input" placeholder="${ct('search')}" value="${esc(chatState.search)}" aria-label="${ct('search')}">${chatState.search ? `<button data-chat-action="clear-search" aria-label="${ct('clearSearch')}">${icon('close', 13)}</button>` : ''}</div>
       <nav class="chat-conversation-list" aria-label="${ct('conversations')}">
         ${chatState.loadingList ? `<div class="chat-list-skeleton"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>` : ''}
-        ${!chatState.loadingList && !visible.length ? `<p class="chat-empty-list">${query ? ct('noResults') : ct('noConversations')}</p>` : ''}
+        ${!chatState.loadingList && !visible.length ? `<div class="chat-empty-list">${icon(chatState.showArchived ? 'archive' : 'spark', 22)}<p>${query ? ct('noResults') : (chatState.showArchived ? ct('noArchived') : ct('noConversations'))}</p>${!query && !chatState.showArchived ? `<span>${ct('startHint')}</span>` : ''}</div>` : ''}
         ${pinned.length ? `<p class="chat-list-group">${ct('pinned')}</p>${pinned.map(renderConversationListItem).join('')}` : ''}
         ${rest.length ? `${pinned.length ? `<p class="chat-list-group">${ct('conversations')}</p>` : ''}${rest.map(renderConversationListItem).join('')}` : ''}
       </nav>
-      <button class="chat-theme-toggle" data-chat-action="toggle-theme" aria-pressed="${chatState.theme === 'dark'}">
-        ${chatState.theme === 'dark' ? icon('sun', 15) : icon('moon', 15)}<span>${chatState.theme === 'dark' ? ct('lightMode') : ct('darkMode')}</span>
-      </button>
+      <div class="chat-sidebar-footer">
+        <div class="chat-sidebar-status ${available ? 'online' : 'offline'}"><i aria-hidden="true"></i><span><strong>${available ? ct('assistantOnline') : ct('assistantOffline')}</strong><small>${ct('responseTime')}</small></span></div>
+        <button class="chat-theme-toggle" data-chat-action="toggle-theme" aria-pressed="${chatState.theme === 'dark'}" aria-label="${chatState.theme === 'dark' ? ct('lightMode') : ct('darkMode')}">
+          ${chatState.theme === 'dark' ? icon('sun', 16) : icon('moon', 16)}<span>${chatState.theme === 'dark' ? ct('lightMode') : ct('darkMode')}</span>
+        </button>
+      </div>
     </aside>
     ${chatState.confirmDeleteId ? renderDeleteConfirm() : ''}`;
 }
@@ -701,7 +794,9 @@ function renderConversationListItem(item) {
   return `
     <div class="chat-conversation-item ${active ? 'active' : ''} ${menuOpen ? 'menu-open' : ''}" data-chat-open="${item.id}">
       <button class="chat-conversation-title" data-chat-open="${item.id}">
-        ${item.pinned ? `<i class="chat-pin-mark" aria-hidden="true">${icon('pin', 11)}</i>` : ''}<span>${esc(title)}</span>
+        <span class="chat-conversation-icon">${icon(item.archived ? 'archive' : 'spark', 14)}</span>
+        <span class="chat-conversation-copy"><strong>${item.pinned ? `<i class="chat-pin-mark" aria-hidden="true">${icon('pin', 10)}</i>` : ''}${esc(title)}</strong><small>${esc(item.preview || ct('startHint'))}</small></span>
+        <time datetime="${esc(item.updatedAt)}">${relativeConversationDate(item.updatedAt)}</time>
       </button>
       <div class="chat-conversation-actions">
         <button class="icon-button icon-button-sm" data-chat-action="pin" data-chat-id="${item.id}" aria-label="${item.pinned ? ct('unpin') : ct('pin')}" title="${item.pinned ? ct('unpin') : ct('pin')}">${item.pinned ? icon('pin', 14) : icon('pinOutline', 14)}</button>
@@ -735,7 +830,6 @@ function renderDeleteConfirm() {
 function renderChatWelcome() {
   const available = chatState.aiCapabilities.chatAvailable;
   return `
-    <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${lang() === 'en' ? 'Conversations' : 'المحادثات'}">${icon('menu', 18)}</button>
     <div class="chat-welcome">
       <div class="chat-welcome-mark">${icon('spark', 26)}</div>
       <h1>${ct('welcomeTitle')}</h1>
@@ -757,7 +851,6 @@ function renderConversationBody() {
   }
   const dividerIndex = contextDividerIndexFor(conversation);
   return `
-    <button class="chat-menu-toggle" data-chat-action="open-sidebar" aria-label="${lang() === 'en' ? 'Conversations' : 'المحادثات'}">${icon('menu', 18)}</button>
     <div class="chat-messages" id="chat-messages">
       ${conversation.messages.map((message, index) => `${index === dividerIndex ? `<div class="chat-context-divider"><span>${ct('contextDivider')}</span></div>` : ''}${renderMessage(message, conversation)}`).join('')}
     </div>
@@ -814,6 +907,8 @@ function renderMessage(message, conversation) {
   const showReasoningBlock = isGenerating ? willThink : hasThinking;
   const showThinkingPlaceholder = isGenerating && willThink && !hasThinking;
   const showTyping = isGenerating && !liveContent && !willThink;
+  const timing = message.timing;
+  const rating = timing ? speedRating(timing.firstResponseMs) : null;
   return `
     <div class="chat-msg chat-msg-assistant ${isStreamingThis ? 'is-streaming' : ''} ${newestClass}" data-chat-msg="${domId}">
       <div class="chat-msg-avatar" aria-hidden="true">${icon('spark', 15)}</div>
@@ -829,6 +924,11 @@ function renderMessage(message, conversation) {
         ${message.unavailable ? `<p class="chat-msg-flag">${icon('warning', 13)}<span>${ct('unavailable')}</span></p>` : ''}
         ${message.stopped ? `<p class="chat-msg-flag">${ct('stopped')}</p>` : ''}
         ${message.aiGenerated ? `<p class="chat-ai-disclosure">${ct('aiDraft')}</p>` : ''}
+        ${timing && !isGenerating ? `<div class="chat-response-metrics" title="${ct('responseTime')}">
+          <span class="chat-speed-rating ${rating?.className || ''}"><i></i>${rating?.label || ''}</span>
+          <span>${ct('firstToken')}: <b>${formatDuration(timing.firstResponseMs)}</b></span>
+          <span>${ct('totalTime')}: <b>${formatDuration(timing.totalMs)}</b></span>
+        </div>` : ''}
       </div>
       ${!isGenerating ? `
         <div class="chat-msg-actions">
@@ -880,7 +980,7 @@ document.addEventListener('click', async (event) => {
 
   if (chatState.openMenuId && !event.target.closest('.chat-kebab-wrap')) {
     chatState.openMenuId = null;
-    renderNow();
+    refreshSidebarDOM();
     // fall through: this same click may still need normal handling (e.g. it opened a different row)
   }
 
@@ -897,8 +997,9 @@ document.addEventListener('click', async (event) => {
   // Action buttons (pin/rename/archive/delete/...) live nested inside a conversation row that is
   // itself openable — this check must come first, or every click on those buttons would bubble into
   // the row's own data-chat-open handler below and just re-open the conversation instead.
-  const action = event.target.closest('[data-chat-action]')?.dataset.chatAction;
-  const actionId = event.target.closest('[data-chat-id]')?.dataset.chatId;
+  const actionControl = event.target.closest('[data-chat-action]');
+  const action = actionControl?.dataset.chatAction;
+  const actionId = actionControl?.dataset.chatId || actionControl?.closest('.chat-conversation-item')?.dataset.chatOpen;
 
   if (!action) {
     const openItem = event.target.closest('[data-chat-open]');
@@ -915,6 +1016,13 @@ document.addEventListener('click', async (event) => {
   }
 
   if (action === 'new-chat') return createConversation();
+  if (action === 'show-active' || action === 'show-archived') {
+    chatState.showArchived = action === 'show-archived';
+    chatState.openMenuId = null;
+    refreshSidebarDOM();
+    return;
+  }
+  if (action === 'clear-search') { chatState.search = ''; refreshSidebarDOM({ refocusSearch: true }); return; }
   // These four are purely cosmetic, page-local toggles — routing them through the app's normal full
   // renderNow() (a whole-page innerHTML replace) was overkill even at rest, and actively harmful mid-
   // stream: it re-mints every element (including the streaming bubble's, restarting entrance animations
@@ -945,10 +1053,15 @@ document.addEventListener('click', async (event) => {
     if (composerInput) composerInput.placeholder = chatState.aiCapabilities.thinkingSupported && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder');
     return;
   }
-  if (action === 'toggle-menu') { chatState.openMenuId = chatState.openMenuId === actionId ? null : actionId; renderNow(); return; }
+  if (action === 'toggle-menu') { chatState.openMenuId = chatState.openMenuId === actionId ? null : actionId; refreshSidebarDOM(); return; }
   if (action === 'pin') return patchConversation(actionId, { pinned: !chatState.conversations.find((item) => item.id === actionId)?.pinned });
-  if (action === 'archive') { chatState.openMenuId = null; return patchConversation(actionId, { archived: !chatState.conversations.find((item) => item.id === actionId)?.archived }); }
-  if (action === 'rename') { chatState.openMenuId = null; chatState.renamingId = actionId; renderNow(); document.getElementById('chat-rename-input')?.focus(); return; }
+  if (action === 'archive') {
+    chatState.openMenuId = null;
+    const item = chatState.conversations.find((entry) => entry.id === actionId);
+    if (!item) return;
+    return patchConversation(actionId, { archived: item.archived !== true });
+  }
+  if (action === 'rename') { chatState.openMenuId = null; chatState.renamingId = actionId; refreshSidebarDOM(); document.getElementById('chat-rename-input')?.focus(); return; }
   if (action === 'delete') { chatState.openMenuId = null; chatState.confirmDeleteId = actionId; renderNow(); return; }
   if (action === 'cancel-delete') { chatState.confirmDeleteId = null; renderNow(); return; }
   if (action === 'confirm-delete') return deleteConversation(actionId);
@@ -1023,7 +1136,7 @@ document.addEventListener('submit', (event) => {
 });
 
 document.addEventListener('input', (event) => {
-  if (event.target.id === 'chat-search-input') { chatState.search = event.target.value; renderNow(); return; }
+  if (event.target.id === 'chat-search-input') { chatState.search = event.target.value; refreshSidebarDOM({ refocusSearch: true }); return; }
   if (event.target.id === 'chat-composer-input') {
     event.target.style.height = 'auto';
     event.target.style.height = `${Math.min(event.target.scrollHeight, 200)}px`;
@@ -1041,6 +1154,22 @@ document.addEventListener('keydown', (event) => {
   // this clears the matching chat.js state so the delete-confirm dialog cannot silently reappear on
   // a later unrelated re-render.
   if (event.key === 'Escape' && chatState.confirmDeleteId) chatState.confirmDeleteId = null;
+  if (event.key === 'Escape' && chatState.openMenuId) { chatState.openMenuId = null; renderNow(); }
+  if (event.key === 'Escape' && chatState.sidebarOpen && window.innerWidth <= 900) {
+    chatState.sidebarOpen = false;
+    document.querySelector('.chat-sidebar')?.classList.remove('open');
+    document.querySelector('.chat-sidebar-backdrop')?.classList.remove('visible');
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (state.view !== 'chat') return;
+  const shouldOpen = window.innerWidth > 900;
+  if (shouldOpen !== chatState.sidebarOpen) {
+    chatState.sidebarOpen = shouldOpen;
+    document.querySelector('.chat-sidebar')?.classList.toggle('open', shouldOpen);
+    document.querySelector('.chat-sidebar-backdrop')?.classList.toggle('visible', shouldOpen && window.innerWidth <= 900);
+  }
 });
 
 document.addEventListener('scroll', (event) => {
