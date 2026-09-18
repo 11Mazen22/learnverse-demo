@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { activeBossQuestionIds, appendLedgerEntry, balanceFor, deriveChatTitle, deriveMastery, pickVariant, purchaseItem, recommendationFor, scoreQuestion, transitionQuestion, xpProgress, XP_RULES } from './lib/domain.mjs';
 import { releaseGenerationLock, tryAcquireGenerationLock } from './lib/generationLock.mjs';
 import { canContinueMessage, continuationInstruction, mergeContinuation } from './lib/chat-continuation.mjs';
+import { createVisibleReasoningRouter } from './lib/chat-reasoning.mjs';
 import { JsonStore } from './lib/store.mjs';
 import { detectConversationLanguage } from './public/langdetect.js';
 
@@ -115,6 +116,11 @@ function chatSystemPrompt(language, think) {
       'Produce valid, complete code when requested. Preserve code, commands, model names, identifiers, URLs, and established technical terminology as-is.',
       'Respond in natural English only unless the user explicitly requests another language.',
     ];
+    if (think) lines.push(
+      'Output exactly two tagged sections and nothing outside them: <reasoning>...</reasoning><answer>...</answer>.',
+      'Inside <reasoning>, write a concise question-specific analysis summary of 2–4 short lines covering the user’s goal, the relevant concepts or constraints, the response approach, and any important accuracy check. Do not give the final conclusion, final steps, code, calculations, or a draft answer there. Do not write generic filler such as “I need to answer the user.”',
+      'Inside <answer>, provide the complete final response. Do not repeat the analysis summary or translate the answer into another language.',
+    );
     return lines.join('\n');
   }
   const lines = [
@@ -126,6 +132,11 @@ function chatSystemPrompt(language, think) {
     'اكتب كودًا صحيحًا ومكتملًا عند طلبه. أبقِ الأكواد والأوامر وأسماء النماذج والمعرّفات والروابط والمصطلحات التقنية الراسخة كما هي، وادمجها في جمل عربية سليمة بدل خلط أفعال إنجليزية عشوائية داخل العربية.',
     'اكتب بالعربية الفصحى الطبيعية والواضحة فقط، ما لم يطلب المستخدم لغة أخرى صراحة.',
   ];
+  if (think) lines.push(
+    'أخرج قسمين موسومين فقط، ولا تكتب شيئًا خارجهما: <reasoning>...</reasoning><answer>...</answer>.',
+    'داخل <reasoning> اكتب خلاصة تحليلية موجزة ومخصصة للسؤال في سطرين إلى أربعة أسطر، توضّح هدف المستخدم، والمفاهيم أو القيود المهمة، وطريقة بناء الرد، وفحص الدقة اللازم. لا تضع هناك النتيجة النهائية أو الخطوات النهائية أو الكود أو الحسابات أو مسودة الإجابة، ولا تستخدم حشوًا عامًا مثل «يجب أن أجيب المستخدم».',
+    'داخل <answer> اكتب الإجابة النهائية الكاملة. لا تكرر خلاصة التحليل ولا تترجم الإجابة إلى لغة أخرى.',
+  );
   return lines.join('\n');
 }
 
@@ -177,16 +188,17 @@ async function streamOllamaChat({ messages, think, language = 'ar' }, { signal, 
   // the entire budget before any final-answer content is produced at all — the model then technically
   // "succeeds" but content comes back empty, which reads as a false "unavailable" fallback.
   const numPredict = think ? CHAT_NUM_PREDICT_THINKING : CHAT_NUM_PREDICT;
+  const reasoningRouter = think ? createVisibleReasoningRouter(onDelta) : null;
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think, options: { num_predict: numPredict }, messages }),
+    // The public analysis summary is an explicit content protocol, not raw private chain-of-thought.
+    // Native thinking is disabled here to avoid its 60–100s CPU latency and language drift.
+    body: JSON.stringify({ model: OLLAMA_MODEL, stream: true, think: false, options: { num_predict: numPredict }, messages }),
     signal,
   });
   if (!response.ok || !response.body) throw new Error(`Ollama HTTP ${response.status}`);
   let content = '';
-  let reasoningObserved = false;
-  let progressEmitted = false;
   let buffer = '';
   for await (const chunk of response.body) {
     // response.body yields Uint8Array chunks (not Node Buffer) from the built-in fetch — Buffer.from
@@ -203,32 +215,15 @@ async function streamOllamaChat({ messages, think, language = 'ar' }, { signal, 
       const deltaContent = parsed?.message?.content || '';
       const deltaThinking = parsed?.message?.thinking || '';
       if (deltaContent) {
-        content += deltaContent;
-        onDelta({ kind: 'content', text: deltaContent });
+        if (reasoningRouter) reasoningRouter.push(deltaContent);
+        else { content += deltaContent; onDelta({ kind: 'content', text: deltaContent }); }
       }
-      // The raw trace can contain private chain-of-thought and can drift languages. Record only that
-      // real native reasoning occurred, and expose one localized, truthful progress description.
-      if (deltaThinking) {
-        reasoningObserved = true;
-        if (!progressEmitted) {
-          progressEmitted = true;
-          onDelta({ kind: 'thinking', text: language === 'en'
-            ? 'Analyzing the request, selecting the relevant concepts, and checking the response plan…'
-            : 'جارٍ تحليل الطلب، وتحديد المفاهيم ذات الصلة، ومراجعة خطة الإجابة…' });
-        }
-      }
-      if (parsed?.done) {
-        const thinking = progressEmitted
-          ? (language === 'en' ? 'Analyzed the request, selected the relevant concepts, and checked the response plan.' : 'تم تحليل الطلب، وتحديد المفاهيم ذات الصلة، ومراجعة خطة الإجابة.')
-          : '';
-        return { content, thinking, reasoningObserved };
-      }
+      // Defensive only: think:false should keep this empty. Never expose an uncontrolled native trace.
+      if (deltaThinking && !reasoningRouter) continue;
+      if (parsed?.done) return reasoningRouter ? reasoningRouter.finish() : { content, thinking: '' };
     }
   }
-  const thinking = progressEmitted
-    ? (language === 'en' ? 'Analyzed the request, selected the relevant concepts, and checked the response plan.' : 'تم تحليل الطلب، وتحديد المفاهيم ذات الصلة، ومراجعة خطة الإجابة.')
-    : '';
-  return { content, thinking, reasoningObserved };
+  return reasoningRouter ? reasoningRouter.finish() : { content, thinking: '' };
 }
 
 function tutorSystemPrompt(lesson, question, language) {
