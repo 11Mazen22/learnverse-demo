@@ -105,9 +105,14 @@ function chatSystemPrompt(language, think) {
     think
       ? 'Reason through the problem as thoroughly as you need to, then give a clear, well-organized final answer.'
       : 'Keep your answer tight and efficient: get straight to the point in a few clear sentences or a short structured list, with one worked example only if it genuinely helps — avoid restating the question, padding, or unnecessary preamble.',
+    // This must cover the thinking/reasoning channel explicitly, not only the final answer — a
+    // model can be instructed to answer in Arabic and still default to reasoning in English
+    // internally (a common pattern, since reasoning ability is often strongest in a model's most-
+    // trained language). Without naming "your thinking" directly, that internal channel tends to
+    // ignore an answer-only language instruction.
     language === 'en'
-      ? 'Respond only in English. Do not mix in Arabic or any other script.'
-      : 'أجب فقط باللغة العربية الفصحى المبسطة. لا تخلط أي حروف صينية أو إنجليزية أو أي لغة أخرى في ردك.',
+      ? 'Respond in English by default, including your internal thinking/reasoning steps, not only your final answer. If the student writes their question in Arabic instead, switch entirely to Arabic for both your thinking and your answer. Never mix languages within your thinking or within your answer.'
+      : 'فكّر وأجب باللغة العربية الفصحى المبسطة افتراضيًا — يشمل ذلك خطوات تفكيرك الداخلي (reasoning)، وليس فقط إجابتك النهائية. إذا كتب الطالب سؤاله بلغة أخرى مثل الإنجليزية، فاستخدم تلك اللغة نفسها في تفكيرك وإجابتك معًا بدلاً من العربية. لا تخلط بين لغتين، لا في تفكيرك ولا في إجابتك.',
   ];
   return lines.join('\n');
 }

@@ -16,7 +16,7 @@ const copy = {
     noConversations: 'لا توجد محادثات بعد', noResults: 'لا نتائج مطابقة', startHint: 'ابدأ محادثة جديدة من الأعلى.',
     welcomeTitle: 'أهلًا، بماذا أساعدك اليوم؟', welcomeBody: 'اسأل عن أي فكرة دراسية، اطلب شرحًا، أو ناقش مسألة خطوة بخطوة.',
     suggestion1: 'اشرح لي معنى السرعة المتوسطة بمثال', suggestion2: 'ساعدني أفهم رسم المسافة والزمن', suggestion3: 'كيف أراجع لاختبار الغد بذكاء؟',
-    placeholder: 'اكتب رسالتك…', send: 'إرسال', stop: 'إيقاف', thinking: 'تفكير عميق', reasoning: 'التفكير', reasoningHint: 'خطوات تفكير المساعد — ليست الإجابة النهائية.',
+    placeholder: 'اكتب رسالتك…', placeholderThinking: 'اسأل سؤالاً يحتاج تفكيرًا عميقًا…', send: 'إرسال', stop: 'إيقاف', thinking: 'تفكير عميق', reasoning: 'التفكير', reasoningHint: 'خطوات تفكير المساعد — ليست الإجابة النهائية.',
     attach: 'إرفاق صورة', remove: 'إزالة', rename: 'إعادة تسمية', pin: 'تثبيت', unpin: 'إلغاء التثبيت', archive: 'أرشفة', unarchive: 'إلغاء الأرشفة', delete: 'حذف',
     confirmDeleteTitle: 'حذف المحادثة؟', confirmDeleteBody: 'سيتم حذف هذه المحادثة وكل رسائلها نهائيًا.', cancel: 'إلغاء', regenerate: 'إعادة توليد', copy: 'نسخ', copied: 'تم النسخ',
     edit: 'تعديل', save: 'حفظ', aiDraft: 'مسودة ذكاء اصطناعي', stopped: 'تم الإيقاف', unavailable: 'المساعد غير متاح الآن',
@@ -29,7 +29,7 @@ const copy = {
     noConversations: 'No conversations yet', noResults: 'No matching conversations', startHint: 'Start a new one above.',
     welcomeTitle: 'Hi — what can I help you with?', welcomeBody: 'Ask about any study topic, request an explanation, or work through a problem step by step.',
     suggestion1: 'Explain average speed with a worked example', suggestion2: 'Help me understand distance-time graphs', suggestion3: 'How should I revise for tomorrow’s test?',
-    placeholder: 'Write your message…', send: 'Send', stop: 'Stop', thinking: 'Deep thinking', reasoning: 'Reasoning', reasoningHint: 'The assistant’s thinking steps — not the final answer.',
+    placeholder: 'Write your message…', placeholderThinking: 'Ask something that needs deep thinking…', send: 'Send', stop: 'Stop', thinking: 'Deep thinking', reasoning: 'Reasoning', reasoningHint: 'The assistant’s thinking steps — not the final answer.',
     attach: 'Attach image', remove: 'Remove', rename: 'Rename', pin: 'Pin', unpin: 'Unpin', archive: 'Archive', unarchive: 'Unarchive', delete: 'Delete',
     confirmDeleteTitle: 'Delete this conversation?', confirmDeleteBody: 'This conversation and all its messages will be permanently deleted.', cancel: 'Cancel', regenerate: 'Regenerate', copy: 'Copy', copied: 'Copied',
     edit: 'Edit', save: 'Save', aiDraft: 'AI draft', stopped: 'Stopped', unavailable: 'The assistant is unavailable right now',
@@ -377,6 +377,12 @@ function updateStreamingBubbleDOM() {
     const liveEl = document.getElementById(`chat-reasoning-live-${msgId}`);
     if (liveEl) liveEl.style.display = 'none';
   }
+  // Swap the ambient bubble animation from the cooler "thinking" breathe to the warmer "answering"
+  // one the moment real answer text (not just reasoning) starts arriving.
+  if (chatState.streamContent) {
+    const wrapperEl = document.querySelector(`[data-chat-msg="${msgId}"]`);
+    if (wrapperEl && !wrapperEl.classList.contains('is-answering')) wrapperEl.classList.add('is-answering');
+  }
 
   const now = performance.now();
   if (contentEl && now - lastMarkdownRenderAt > 140) {
@@ -623,14 +629,13 @@ function renderComposer(inWelcome) {
       ${chatState.dragActive ? `<div class="chat-drop-overlay">${icon('image', 20)}<span>${ct('dropHint')}</span></div>` : ''}
       ${attachment ? `<div class="chat-composer-attachment"><img src="${esc(attachment.previewUrl)}" alt=""><button type="button" class="chat-attachment-remove" data-chat-action="remove-attachment" aria-label="${ct('remove')}">${icon('close', 12)}</button></div>` : ''}
       ${chatState.attachmentError ? `<p class="chat-attachment-error">${icon('warning', 13)}<span>${esc(chatState.attachmentError)}</span></p>` : ''}
-      ${canThink ? `
-        <button type="button" class="chat-thinking-toggle ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" role="switch" aria-checked="${chatState.thinkingMode}" title="${ct('thinking')}">
-          ${icon('node', 15)}<span class="chat-thinking-label">${ct('thinking')}</span>
-          <span class="chat-thinking-track"><span class="chat-thinking-thumb"></span></span>
-        </button>` : ''}
       <div class="chat-composer-row">
         <label class="chat-attach-button" title="${ct('attach')}"><input type="file" accept="image/*" id="chat-file-input" hidden>${icon('attach', 18)}</label>
-        <textarea id="chat-composer-input" class="chat-composer-input" placeholder="${ct('placeholder')}" rows="1" maxlength="4000"></textarea>
+        ${canThink ? `
+          <button type="button" class="chat-thinking-btn ${chatState.thinkingMode ? 'on' : ''}" data-chat-action="toggle-thinking" role="switch" aria-checked="${chatState.thinkingMode}" aria-label="${ct('thinking')}" title="${ct('thinking')}">
+            ${icon('node', 17)}<i class="chat-thinking-dot" aria-hidden="true"></i>
+          </button>` : ''}
+        <textarea id="chat-composer-input" class="chat-composer-input" placeholder="${canThink && chatState.thinkingMode ? ct('placeholderThinking') : ct('placeholder')}" rows="1" maxlength="4000"></textarea>
         ${chatState.streaming
           ? `<button type="button" class="chat-send-btn is-stop" data-chat-action="stop" aria-label="${ct('stop')}" title="${ct('stop')}">${icon('stop', 15)}</button>`
           : `<button type="submit" class="chat-send-btn" aria-label="${ct('send')}" title="${ct('send')}">${icon('send', 16)}</button>`}
