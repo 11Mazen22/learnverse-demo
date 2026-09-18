@@ -748,7 +748,14 @@ async function handleApi(req, res, url) {
     // From here on, the request is accepted: headers switch to streaming NDJSON, and any later
     // failure must be absorbed inside this handler (never rethrown to the top-level catch-all in
     // createServer, which would try to writeHead again and crash with ERR_HTTP_HEADERS_SENT).
-    res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+    // X-Accel-Buffering:no asks any reverse proxy in front of this app (Railway's edge included) not
+    // to buffer the response — without it, a proxy can hold the entire chunked body until the stream
+    // ends and deliver it to the browser as one burst, even though Node is genuinely writing it
+    // token-by-token the whole time (confirmed via direct curl, which bypasses browser-side proxying
+    // quirks and always saw real incremental lines). setNoDelay disables Nagle's algorithm on this
+    // socket so small writes go out immediately instead of waiting to coalesce.
+    res.socket?.setNoDelay(true);
+    res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'X-Accel-Buffering': 'no' });
     const writeLine = (payload) => { try { res.write(`${JSON.stringify(payload)}\n`); } catch { /* client already gone */ } };
 
     if (phase1.duplicate) {
