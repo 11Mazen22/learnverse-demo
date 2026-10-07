@@ -79,7 +79,7 @@ export function LearnLive(){
               return <div className="quest" key={lesson.id}>
                 <div className="quest-icon">{completed.has(lesson.id)?"✓":lesson.position}</div>
                 <div><h3>{lesson.title_ar}</h3><p>{row?.completed_at?"مكتمل · أفضل نتيجة "+Math.round(Number(row.best_score))+"%":"جاهز للتعلّم"}</p></div>
-                <a className="btn" style={{background:isLocked?"#eef2f7":"#102b52",color:isLocked?"#8290a4":"#fff"}} href={isLocked?"#":"/missions"}>{completed.has(lesson.id)?"راجع":"ابدأ"}</a>
+                <a className="btn" style={{background:isLocked?"#eef2f7":"#102b52",color:isLocked?"#8290a4":"#fff"}} href={isLocked?"#":"/lesson/"+lesson.id}>{completed.has(lesson.id)?"راجع":"ابدأ"}</a>
               </div>;
             })}
             {!unitLessons.length&&<div style={{color:"#7c8ca3",fontSize:12}}>المحتوى تحت المراجعة.</div>}
