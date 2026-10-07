@@ -2,6 +2,7 @@ import {UserMenu} from "@/components/auth/user-menu";
 import {ThemeControl} from "@/components/preferences/theme-control";
 import {NotificationBell} from "@/components/notifications/notification-bell";
 import {MobileNav} from "@/components/mobile-nav";
+import {StaffNav} from "@/components/auth/staff-nav";
 
 const primary=[
   ["Overview","/","◈"],
@@ -16,12 +17,6 @@ const primary=[
 ];
 
 export function AppShell({children,active,role="student"}:{children:React.ReactNode;active:string;role?:"student"|"teacher"|"admin"}){
-  const staff=role==="admin"
-    ?[["Teacher","/teacher","◫"],["Studio","/admin","▣"]]
-    :role==="teacher"
-      ?[["Teacher","/teacher","◫"]]
-      :[];
-
   return <main className="noata-shell">
     <aside className="noata-sidebar">
       <div className="brand">
@@ -34,10 +29,7 @@ export function AppShell({children,active,role="student"}:{children:React.ReactN
         {primary.map(([label,href,icon])=><a className={"nav-link "+(active===href?"active":"")} href={href} key={href}><span>{icon}</span>{label}</a>)}
       </div>
 
-      {staff.length>0&&<div className="nav-group">
-        <div className="nav-title">Workspace</div>
-        {staff.map(([label,href,icon])=><a className={"nav-link "+(active===href?"active":"")} href={href} key={href}><span>{icon}</span>{label}</a>)}
-      </div>}
+      <StaffNav active={active}/>
 
       <div className="nav-group" style={{marginTop:"auto"}}>
         <a className={"nav-link "+(active==="/settings"?"active":"")} href="/settings"><span>⚙</span>Settings</a>
