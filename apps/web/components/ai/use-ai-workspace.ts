@@ -8,6 +8,7 @@ import {
   type FormEvent,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { createVoiceGenerationGuard } from "@/lib/ai/voice-generation";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
 import {
   AI_FUNCTION,
@@ -64,7 +65,7 @@ export function useAIWorkspace() {
   const media = useRef<MediaRecorder | null>(null),
     cancelRecording = useRef(false),
     openSequence = useRef(0),
-    voiceSequence = useRef(0),
+    voiceGeneration = useRef(createVoiceGenerationGuard()),
     audioElement = useRef<HTMLAudioElement | null>(null);
   const failedTool = useRef<string | undefined>(undefined);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
@@ -114,7 +115,7 @@ export function useAIWorkspace() {
     return () => {
       alive = false;
       abort.current?.abort();
-      ++voiceSequence.current;
+      voiceGeneration.current.invalidate();
       audioElement.current?.pause();
       cancelRecording.current = true;
       if (media.current?.state === "recording") media.current.stop();
@@ -144,7 +145,7 @@ export function useAIWorkspace() {
     if (recording && elapsed >= 120) media.current?.stop();
   }, [recording, elapsed]);
   function stopVoice() {
-    ++voiceSequence.current;
+    voiceGeneration.current.invalidate();
     if (audioElement.current) {
       audioElement.current.pause();
       audioElement.current.removeAttribute("src");
@@ -722,7 +723,7 @@ export function useAIWorkspace() {
     // A voice response belongs to a specific message. Discard async results
     // from a different chat, an edited message, or a closed player.
     stopVoice();
-    const sequence = voiceSequence.current;
+    const sequence = voiceGeneration.current.begin();
     const conversationId = activeId;
     setVoiceBusy(true);
     setVoiceRequestMessageId(messageId);
@@ -739,7 +740,7 @@ export function useAIWorkspace() {
         },
         timeout: 180000,
       });
-      if (sequence !== voiceSequence.current) return;
+      if (!voiceGeneration.current.isCurrent(sequence)) return;
       if (error || data?.error) throw error ?? Error(String(data.error));
       if (typeof data?.asset?.signedUrl !== "string") throw Error("No audio");
       setAudioPlayback({
@@ -748,9 +749,9 @@ export function useAIWorkspace() {
         url: data.asset.signedUrl,
       });
     } catch (e) {
-      if (sequence === voiceSequence.current) setError(friendlyError(e));
+      if (voiceGeneration.current.isCurrent(sequence)) setError(friendlyError(e));
     } finally {
-      if (sequence === voiceSequence.current) {
+      if (voiceGeneration.current.isCurrent(sequence)) {
         setVoiceBusy(false);
         setVoiceRequestMessageId(null);
       }
