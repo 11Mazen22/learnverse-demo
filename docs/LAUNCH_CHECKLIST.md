@@ -1,6 +1,6 @@
 # Noata launch checklist
 
-Production application URL: https://enterpriseworkhub.online
+Production application URL: https://noata.noata.enterpriseworkhub.online
 
 ## Current automated state
 
@@ -35,9 +35,9 @@ Supabase Dashboard -> Authentication -> URL Configuration
 
 Set:
 
-- Site URL: https://enterpriseworkhub.online
-- Redirect URL: https://enterpriseworkhub.online/**
-- Add https://www.enterpriseworkhub.online/** only if the www hostname will also be served.
+- Site URL: https://noata.noata.enterpriseworkhub.online
+- Redirect URL: https://noata.noata.enterpriseworkhub.online/**
+- Add https://noata.noata.enterpriseworkhub.online/** only if the www hostname will also be served.
 
 Keep localhost redirect URLs only for development.
 
@@ -51,7 +51,7 @@ Recommended monorepo build contract:
 - Build: pnpm --filter @noata/web build
 - Application: apps/web
 - Node: 24
-- Production domain: enterpriseworkhub.online
+- Production domain: noata.enterpriseworkhub.online
 
 The browser-safe Supabase URL/publishable key are already bound in the source as safe fallbacks. No service-role or Fanar secret belongs in frontend hosting.
 
@@ -59,8 +59,8 @@ The browser-safe Supabase URL/publishable key are already bound in the source as
 
 At the frontend hosting provider:
 
-1. Add enterpriseworkhub.online
-2. Add www.enterpriseworkhub.online if wanted
+1. Add noata.enterpriseworkhub.online
+2. Add www.noata.enterpriseworkhub.online if wanted
 3. Copy the DNS records the provider gives you into the domain DNS manager
 4. Pick one canonical hostname and redirect the other to it
 5. Wait for SSL to become active
