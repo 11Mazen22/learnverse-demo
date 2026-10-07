@@ -3040,3 +3040,69 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Noata Aura | Voice is attached to a message, never a detached global player. */
+.owui-inline-player {
+  width: min(100%, 520px);
+  max-width: 100%;
+  margin-block: 12px 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface-soft);
+  display: grid;
+  gap: 8px;
+  overflow: hidden;
+}
+.owui-inline-player-head {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  color: var(--ink);
+  font-size: 13px;
+}
+.owui-inline-player-head strong { flex: 1; font-size: 13px; font-weight: 600; }
+.owui-inline-player-head button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--surface);
+  cursor: pointer;
+}
+.owui-inline-player-head button:focus-visible,
+.owui-voice-pending button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.owui-inline-player audio {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 40px;
+  min-width: 0;
+}
+.owui-voice-pending {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  margin-block: 8px;
+}
+.owui-voice-pending button {
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 6px 12px;
+}
+@media (max-width: 520px) {
+  .owui-inline-player { width: 100%; padding: 8px; }
+}
