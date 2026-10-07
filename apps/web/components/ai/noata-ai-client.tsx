@@ -174,7 +174,7 @@ export function NoataAIClient(){
   }
 
   async function invokeChat(history:{role:string;content:string}[],attachmentPath?:string){
-    const selected=model==="auto"?"Fanar":model;
+    const selected=model;
     const {data,error}=await supabase.functions.invoke("noata-ai",{
       body:{action:"chat",model:selected,messages:history,attachmentPath}
     });
