@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import {PwaRegister} from "@/components/pwa-register";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://noata.enterpriseworkhub.online"),
@@ -9,13 +10,15 @@ export const metadata: Metadata = {
   },
   description: "Learn. Grow. Achieve — an AI-native gamified learning platform.",
   applicationName: "Noata",
-  manifest: "/manifest.webmanifest"
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  appleWebApp: { capable: true, title: "Noata", statusBarStyle: "black-translucent" }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body>{children}</body>
+      <body><PwaRegister/>{children}</body>
     </html>
   );
 }
