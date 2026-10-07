@@ -1,72 +1,126 @@
-# Implementation status
+# Noata v1 implementation status
 
-Evidence labels: **AUTOMATED TEST VERIFIED**, **MANUAL WORKFLOW VERIFIED**, **IMPLEMENTED, NOT VERIFIED**, and **DEFERRED**.
+Last production engineering pass: 2026-10-07.
 
-## Phase 0 — establish
+Evidence labels used here:
 
-- Arabic-first neutral product identity: **AUTOMATED TEST VERIFIED** (server/UI smoke and syntax)
-- Versioned labeled demo curriculum and provenance: **IMPLEMENTED, NOT VERIFIED** by a curriculum reviewer
-- Modular server, persistence, decision and operations docs: **AUTOMATED TEST VERIFIED**
+- **LIVE + VERIFIED** — applied to the real Supabase project or passed automated CI.
+- **IMPLEMENTED + BUILD VERIFIED** — production code exists and passes the build/type gates, but still needs public-browser QA.
+- **HUMAN QA REQUIRED** — cannot be truthfully certified from repository/Supabase automation alone.
 
-## Phase 1 — learning vertical slice
+## Platform foundation
 
-- Login → curriculum → lesson → three questions → explanations → saved attempts → progress: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** end to end in the browser (Arabic and English)
-- Multiple choice and tolerant numeric scoring: **AUTOMATED TEST VERIFIED**
-- Retry state and question-version capture: **AUTOMATED TEST VERIFIED**
-- RTL/LTR responsive interface: **MANUAL WORKFLOW VERIFIED** in desktop and 375×812 mobile emulation, both directions, including true `dir`/`lang` attribute switching; physical-device and assistive-technology verification remains open
+- Next.js/React/TypeScript production application: **LIVE + VERIFIED**
+- Supabase production schema and migrations: **LIVE + VERIFIED**
+- Row Level Security across product data: **LIVE + VERIFIED**
+- Supabase Security Advisor: **LIVE + VERIFIED — zero security findings**
+- JWT-protected Noata AI Edge Function: **LIVE + VERIFIED**
+- private Fanar secret boundary: **LIVE + VERIFIED**
+- Arabic RTL / English LTR experience layer: **IMPLEMENTED + BUILD VERIFIED**
+- light/dark/system theme and reduced-motion preferences: **IMPLEMENTED + BUILD VERIFIED**
+- PWA manifest, service worker and offline shell: **IMPLEMENTED + BUILD VERIFIED**
 
-## Phase 2 — adaptive learning
+## Student learning
 
-- Explainable skill evidence states, distinct-question minimum, assistance discount, 1/3/7-day review: **AUTOMATED TEST VERIFIED**
-- Three-question escalating Unit Boss with recovery outcomes: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** (3/3 completion, one-time reward)
-- Reviewed parallel-pool retry: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED**. A wrong lesson-question answer now offers a distinct reviewed variant on retry instead of literally repeating the same question (`lib/domain.mjs:pickVariant`); a Unit Boss retried after an imperfect score rotates to its reviewed variant set and returns to the primary set once mastered (`lib/domain.mjs:activeBossQuestionIds`). Currently one variant per question/Boss slot; a deeper pool is a future content-authoring task, not an architecture gap.
+- sign up / sign in / password recovery / session handling: **IMPLEMENTED + BUILD VERIFIED**
+- profile/settings: **IMPLEMENTED + BUILD VERIFIED**
+- dashboard backed by real Supabase progress/economy data: **IMPLEMENTED + BUILD VERIFIED**
+- curriculum map: **IMPLEMENTED + BUILD VERIFIED**
+- lesson player: **IMPLEMENTED + BUILD VERIFIED**
+- adaptive three-stage Mission: **IMPLEMENTED + BUILD VERIFIED**
+- server-side grading with private answer keys: **LIVE + VERIFIED**
+- reviewed parallel retry variants: **LIVE + VERIFIED**
+- explainable mastery evidence: **LIVE + VERIFIED**
+- spaced Review Queue: **IMPLEMENTED + BUILD VERIFIED**
+- Unit Boss and one-time rewards: **LIVE + VERIFIED**
+- Mystery Box claim flow: **LIVE + VERIFIED**
+- XP and Coins separation: **LIVE + VERIFIED**
+- shop purchasing and cosmetic ownership: **LIVE + VERIFIED**
+- inventory/equip: **IMPLEMENTED + BUILD VERIFIED**
+- assignments and notifications: **IMPLEMENTED + BUILD VERIFIED**
 
-## Phase 3 — rewards
+## Teacher and administrator
 
-- Append-only ledger, one-time lesson/Boss grants, idempotency, no-negative-balance rule: **AUTOMATED TEST VERIFIED**
-- Atomic purchase and inventory grant, duplicate concurrent request handling: **AUTOMATED TEST VERIFIED**
-- Cosmetic collection and balance-aware Shop: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** (purchase confirmation dialog, balance-gated disabled state, atomic deduction)
-- XP and Levels: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED**. XP is a separate, non-spendable ledger currency (`currency: 'XP'`) awarded once per question on first-ever correct attempt, plus one-time lesson/Boss completion bonuses; level is `floor(xp / 100) + 1` (rule `xp-mvp-1`, thresholds are a configurable hypothesis, not validated).
-- Character equip/collection: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED**. Students equip owned cosmetics per slot (avatar/outfit/companion/background) from a "My collection" panel; the server validates ownership and item-type match before equipping.
+- role-scoped teacher/admin access enforced in RLS: **LIVE + VERIFIED**
+- class membership model: **LIVE + VERIFIED**
+- teacher class/evidence workspace: **IMPLEMENTED + BUILD VERIFIED**
+- assignment authoring and student submission workflows: **IMPLEMENTED + BUILD VERIFIED**
+- grade notifications: **LIVE + VERIFIED**
+- Admin Content Studio: **IMPLEMENTED + BUILD VERIFIED**
+- curriculum/course/unit/lesson/skill authoring policies: **LIVE + VERIFIED**
+- question draft creation with hidden answer key: **LIVE + VERIFIED**
+- draft -> review -> approve -> publish -> retire lifecycle: **LIVE + VERIFIED**
+- admin user role changes with audit events: **LIVE + VERIFIED**
 
-## Phase 4 — staff workflows
+## Noata AI
 
-- Teacher-scoped class roster, evidence summary, assignment creation: **AUTOMATED TEST VERIFIED**
-- Admin content/provenance and audit view: **MANUAL WORKFLOW VERIFIED**
-- Draft → review → approve → publish → retire content workflow: **AUTOMATED TEST VERIFIED** and **MANUAL WORKFLOW VERIFIED** end to end in the Content Studio, including role enforcement (only `admin` may transition state), invalid-transition rejection, and audit logging of every step (`PATCH /api/admin/questions/:id/status`).
+- persistent conversation history: **IMPLEMENTED + BUILD VERIFIED**
+- rename, pin, archive and delete conversations: **IMPLEMENTED + BUILD VERIFIED**
+- edit/regenerate/continue: **IMPLEMENTED + BUILD VERIFIED**
+- default model + memory preferences: **IMPLEMENTED + BUILD VERIFIED**
+- automatic Fanar routing: **LIVE + VERIFIED by regression tests**
+- Fanar response sanitizer: **LIVE + VERIFIED by regression tests**
+- safe Markdown/GFM response rendering: **IMPLEMENTED + BUILD VERIFIED**
+- image upload / vision: **IMPLEMENTED + BUILD VERIFIED**
+- STT: **IMPLEMENTED + BUILD VERIFIED**
+- TTS: **IMPLEMENTED + BUILD VERIFIED**
+- Oryx image generation: **IMPLEMENTED + BUILD VERIFIED**
+- Shaheen translation: **IMPLEMENTED + BUILD VERIFIED**
+- Guard moderation: **IMPLEMENTED + BUILD VERIFIED**
+- Diwan poetry: **IMPLEMENTED + BUILD VERIFIED**
+- Sadiq validation and deep research: **IMPLEMENTED + BUILD VERIFIED**
+- provider quota accounting: **LIVE + VERIFIED**
 
-## Phase 5 — pilot readiness
+## Security checks already performed
 
-- Static-asset-only service worker and offline warning: **IMPLEMENTED, NOT VERIFIED** under real network throttling (only simulated via `navigator.onLine` override)
-- Idempotent offline submission queue with pending/synced/failed states: **MANUAL WORKFLOW VERIFIED**. Lesson-question attempts made while offline are queued client-side (localStorage-backed) with a visible "waiting for connection" state that makes no correctness claim; on reconnect they replay through the same idempotent `/api/attempts` endpoint and the real outcome (correct/incorrect, explanation, retry variant) is then shown. Unit Boss and Shop purchases are intentionally **not** queued — both are blocked outright while offline, since silently queuing an assessment result or a currency-affecting purchase would misrepresent an unvalidated action as complete.
-- Basic rate limiting: **AUTOMATED TEST VERIFIED**. Per-IP fixed-window limits on `/api/auth/login` (20/5min) and all `/api/*` traffic (600/min) as a first line of defense; this is not a substitute for a production WAF/rate-limiting layer.
-- Arabic mistake → explanation → retry and English direction switch: **MANUAL WORKFLOW VERIFIED** in the browser with no console errors
-- Keyboard/focus accessibility: **MANUAL WORKFLOW VERIFIED**. Modals (purchase confirmation, celebration) and the study-helper panel now close on Escape with focus restored to the trigger, trap Tab within themselves while open, and dismiss on backdrop click. Fixed a real dead-control bug along the way: the Settings page's "reduce motion" toggle rendered but had no click handler at all — now it genuinely forces `animation:none`/`transition:none` (persisted per-browser), on top of the existing automatic `prefers-reduced-motion` support. Full screen-reader and physical-keyboard-only walkthroughs remain open.
-- Production authentication, PostgreSQL migrations, backup restore drill, deployment: **DEFERRED**
-- Physical mobile device, screen reader, and formal performance/security review: **DEFERRED**
+- anonymous users can read intended published demo curriculum: **LIVE + VERIFIED**
+- anonymous users cannot read hidden question keys: **LIVE + VERIFIED**
+- draft questions remain hidden from anonymous users: **LIVE + VERIFIED**
+- student-controlled profile updates cannot alter role/XP/Coins: **LIVE + VERIFIED**
+- attempts/economy changes route through protected server operations: **LIVE + VERIFIED**
+- teacher/admin data access is database-scoped, not merely hidden in UI: **LIVE + VERIFIED**
 
-## Phase 6 — AI assistance (brought forward from "later release" at the user's request)
+## Automated quality gate
 
-- Self-hosted AI study helper (Ollama): **MANUAL WORKFLOW VERIFIED** end to end on the live deployment, in both Arabic and English, with properly-encoded test input (an earlier round of "broken Arabic" findings turned out to be partly caused by a flawed test harness — a Windows/Git-Bash `curl` invocation mangling inline Arabic UTF-8 — not the model; retesting with a real UTF-8 file gave materially better results). Grounded to the current lesson/question only; per-user rate limit (15/10min) plus a 70s timeout with a deterministic, clearly-labelled fallback when unavailable; every reply carries `aiGenerated`/`unavailable` flags the UI renders as an explicit "AI draft, verify with your teacher" notice; unavailable during the Unit Boss so it can never assist a formal assessment; structurally unable to touch scores/wallet/mastery since `/api/tutor/ask` never calls `store.transact`. Covered by an automated test for auth/validation/no-side-effects; AI-quality behavior itself can only be verified live, not in the automated suite.
-- **Model: `qwen3:4b-q4_K_M`** (official Ollama library tag). Superseded `qwen3.5:4b` after this specific tag tested faster (~5s vs 14-22s) with comparable quality (5/6 clean replies) and, critically, genuinely clean `think:true`/`think:false` separation — verified both via the app's own `/api/tutor/ask` and directly via `ollama run` in the container. This is a different result from plain `qwen3:4b`, rejected earlier in this same investigation for unsuppressible thinking leakage; the explicit quantization tag/current Ollama template combo handles the split correctly where that earlier attempt didn't. Full trail in the `ollama_model_quality` memory.
+Current CI covers:
 
-## Phase 7 — AI Chat page
+1. TypeScript compilation
+2. modern typed Noata AI/domain regression tests
+3. Deno check for the Supabase Edge Function
+4. Next.js production build
+5. historical MVP regression tests
 
-- Full multi-conversation AI Chat page (6th student nav destination), distinct from the Phase 6 lesson-grounded tutor widget (left untouched, still Boss-locked, still rate-limited exactly as before): **MANUAL WORKFLOW VERIFIED** locally for conversation create/open/rename/pin/archive/delete, the honest Ollama-unconfigured fallback (NDJSON `[meta, delta, done]` shape), regenerate, edit-and-resubmit, the delete-confirmation dialog (including Escape/backdrop-click state consistency), light/dark theme toggle (scoped correctly to the Chat page only), and mobile drawer behavior. **AUTOMATED TEST VERIFIED** for the backend: auth, real peer-to-peer ownership isolation, CRUD round-trips, regenerate/edit truncation semantics, duplicate-idempotency replay, attachment type/size rejection, and the streaming endpoint's fallback shape (21 new tests across `test/api.test.mjs`, `test/generationLock.test.mjs`, `test/markdown.test.mjs`).
-- Real token streaming end-to-end verification against a live model (not just the local fallback path), image-attachment round-trip (attach → model sees it → survives a reload), and the Thinking-mode toggle's live behavior are **DEFERRED to the Railway deployment** — they require the actual Ollama instance and can't be exercised against the local dev server, which runs without `OLLAMA_URL` set.
-- Markdown/code rendering safety is structural, not just tested: `public/markdown.js` never uses `innerHTML`/`insertAdjacentHTML` anywhere — it builds real DOM nodes via `createElement`/`textContent` only, so untrusted model output can never be interpreted as markup. Covered by a dedicated XSS test battery (`test/markdown.test.mjs`), not just manual spot-checks.
+The branch is not considered ready for handoff if any of these are red.
 
-## Fixes made during this pass (not features, but load-bearing corrections)
+## Content status
 
-- **Critical**: `lib/store.mjs`'s transaction queue permanently wedged the entire server's write path after any single failed transaction (e.g., a student clicking "buy" without enough coins) — every subsequent request from every user would silently inherit that one stale rejection until restart. Root-caused and fixed; regression-covered by the full test suite (any failing test after a business-rule error would now surface this).
-- Static assets (`app.js`, `styles.css`) were served with `Cache-Control: public, max-age=3600`, meaning an already-open browser tab would keep running old client code for up to an hour after any deploy. Changed to `no-cache` plus a version query string on the asset references in `index.html`; bump that version string on every deploy until a real build/content-hash pipeline exists.
-- Boss sub-questions were not awarding the same per-question XP that lesson questions award on first correct attempt (only the milestone completion bonus fired) — now consistent between the two entry points.
+The seeded Science course is **demo/reference content only**.
 
-## Prioritized next steps
+It includes:
+- 2 units
+- 2 lessons
+- 2 skills
+- reviewed published demo questions
+- hidden answer keys
+- parallel retry variants
+- Unit Boss questions
+- an unpublished draft demonstrating Content Studio workflow
+- starter cosmetics
 
-1. Continue monitoring the study helper's real-world reliability now that `qwen3.5:4b` is live (see Phase 6) — it resolved the earlier Arabic-quality/latency trade-off, but has less field testing than the models tried before it.
-2. Move persistence to PostgreSQL with migrations, row ownership constraints, password hashing, and expiring server sessions.
-3. Author a second (and third) reviewed variant per question so the parallel pool doesn't exhaust after one retry.
-4. Run physical-device, screen-reader, slow-network throttling, and account-switch QA (keyboard/focus itself is now handled; device-level assistive tech is not).
-5. Complete threat modeling, a production-grade rate-limit/WAF layer, a recovery drill, and authorized pilot content review.
-6. Build the "revise" step of content lifecycle (new version of a published question) — currently only draft→review→approve→publish→retire exists; revision requires deliberate versioning so past attempts keep meaning.
+Real school curriculum must be imported/reviewed separately before Noata is presented as curriculum-complete.
+
+## Human QA still required at the final handoff
+
+The user asked to test at the end, so these are intentionally left for the final public deployment pass rather than claiming false automated certainty:
+
+- real-browser signup and email confirmation
+- account recovery email round trip
+- real Fanar responses using the production secret
+- image/vision/STT/TTS on an actual browser/device
+- final desktop/mobile visual pass
+- physical touch keyboard/screen-reader testing
+- DNS/SSL on `noata.enterpriseworkhub.online`
+- end-to-end teacher/admin workflows with real accounts
+- domain-level performance measurements
+
+Everything above this section is either live-verified or build-verified; nothing in this document should be read as a claim that unperformed human QA has already happened.
