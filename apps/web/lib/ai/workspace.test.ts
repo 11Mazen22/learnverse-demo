@@ -4,6 +4,7 @@ import {
   parseStreamFrames,
   validateAttachment,
   safeHref,
+  safeStorageLink,
   titleFrom,
 } from "./workspace.ts";
 import { sanitizeFanarText } from "./sanitize.ts";
@@ -55,4 +56,13 @@ test("sanitizer removes reasoning and tool payloads including unfinished chunks"
 test("conversation titles are bounded and normalize whitespace", () => {
   assert.equal(titleFrom("  one\n two "), "one two");
   assert.ok(titleFrom("a".repeat(100)).length <= 49);
+});
+
+test("image-preview links must target our private Supabase upload bucket", () => {
+  const origin = "https://example.supabase.co";
+  assert.equal(safeStorageLink("javascript:alert(1)", origin), null);
+  assert.equal(safeStorageLink("https://untrusted.test/file.png", origin), null);
+  assert.equal(safeStorageLink("https://example.supabase.co/storage/v1/object/public/other/a.png", origin), null);
+  const signed = origin + "/storage/v1/object/sign/noata-uploads/user/chat/picture.png?token=opaque";
+  assert.equal(safeStorageLink(signed, origin), signed);
 });
