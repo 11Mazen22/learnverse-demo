@@ -21,7 +21,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm typecheck
+      - run: deno check supabase/functions/noata-ai/index.ts
       - run: pnpm build
       - run: npm run legacy:check
