@@ -117,7 +117,7 @@ export function AdminLive(){
       p_prompt_en:promptEn.trim(),
       p_choices_ar:questionType==="multiple-choice"?arChoices:[],
       p_choices_en:questionType==="multiple-choice"?enChoices:[],
-      p_answer_spec:answerSpec,
+      p_answer_spec:answerSpec as Json,
       p_explanation_ar:explanationAr.trim(),
       p_explanation_en:explanationEn.trim(),
       p_difficulty:1,
