@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {deriveMastery,MASTERY_RULES} from "./mastery.ts";
 import {balanceFor,xpProgress} from "./economy.ts";
 import {transitionContent} from "./content.ts";
+import type {ReviewableContent} from "./content.ts";
 
 const now=new Date("2026-10-07T00:00:00Z");
 
@@ -48,9 +49,9 @@ test("level and ledger helpers preserve XP and Coin semantics",()=>{
 });
 
 test("content lifecycle enforces review before publish",()=>{
-  const draft={
-    reviewStatus:"draft" as const,
-    publicationStatus:"draft" as const
+  const draft:ReviewableContent={
+    reviewStatus:"draft",
+    publicationStatus:"draft"
   };
   assert.throws(()=>transitionContent(draft,"publish","admin"));
   const review=transitionContent(draft,"submit_review","teacher","2026-10-07T00:00:00Z");
