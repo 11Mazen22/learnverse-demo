@@ -510,6 +510,7 @@ export type Database = {
           description_ar: string
           description_en: string
           id: string
+          metadata: Json
           slug: string
           title_ar: string
           title_en: string
@@ -520,6 +521,7 @@ export type Database = {
           description_ar?: string
           description_en?: string
           id?: string
+          metadata?: Json
           slug: string
           title_ar: string
           title_en: string
@@ -530,6 +532,7 @@ export type Database = {
           description_ar?: string
           description_en?: string
           id?: string
+          metadata?: Json
           slug?: string
           title_ar?: string
           title_en?: string
@@ -955,42 +958,60 @@ export type Database = {
       }
       questions: {
         Row: {
+          choices_ar: Json
+          choices_en: Json
           created_at: string
           created_by: string | null
           difficulty: number
           id: string
           lesson_id: string | null
+          metadata: Json
+          position: number | null
           prompt_ar: string
           prompt_en: string
           publication_status: Database["public"]["Enums"]["question_publication_status"]
+          question_type: string
           review_status: Database["public"]["Enums"]["question_review_status"]
           skill_id: string | null
+          unit_id: string | null
           variant_of: string | null
         }
         Insert: {
+          choices_ar?: Json
+          choices_en?: Json
           created_at?: string
           created_by?: string | null
           difficulty?: number
           id?: string
           lesson_id?: string | null
+          metadata?: Json
+          position?: number | null
           prompt_ar: string
           prompt_en: string
           publication_status?: Database["public"]["Enums"]["question_publication_status"]
+          question_type?: string
           review_status?: Database["public"]["Enums"]["question_review_status"]
           skill_id?: string | null
+          unit_id?: string | null
           variant_of?: string | null
         }
         Update: {
+          choices_ar?: Json
+          choices_en?: Json
           created_at?: string
           created_by?: string | null
           difficulty?: number
           id?: string
           lesson_id?: string | null
+          metadata?: Json
+          position?: number | null
           prompt_ar?: string
           prompt_en?: string
           publication_status?: Database["public"]["Enums"]["question_publication_status"]
+          question_type?: string
           review_status?: Database["public"]["Enums"]["question_review_status"]
           skill_id?: string | null
+          unit_id?: string | null
           variant_of?: string | null
         }
         Relationships: [
@@ -1013,6 +1034,13 @@ export type Database = {
             columns: ["skill_id"]
             isOneToOne: false
             referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
             referencedColumns: ["id"]
           },
           {
@@ -1215,7 +1243,10 @@ export type Database = {
         Row: {
           boss_enabled: boolean
           course_id: string
+          description_ar: string
+          description_en: string
           id: string
+          metadata: Json
           position: number
           title_ar: string
           title_en: string
@@ -1223,7 +1254,10 @@ export type Database = {
         Insert: {
           boss_enabled?: boolean
           course_id: string
+          description_ar?: string
+          description_en?: string
           id?: string
+          metadata?: Json
           position: number
           title_ar: string
           title_en: string
@@ -1231,7 +1265,10 @@ export type Database = {
         Update: {
           boss_enabled?: boolean
           course_id?: string
+          description_ar?: string
+          description_en?: string
           id?: string
+          metadata?: Json
           position?: number
           title_ar?: string
           title_en?: string
