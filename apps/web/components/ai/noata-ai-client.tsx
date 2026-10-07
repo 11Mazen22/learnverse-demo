@@ -57,10 +57,13 @@ export function NoataAIClient() {
     setDialog,
     setEditValue,
     voiceBusy,
+    voiceRequestMessageId,
     readAloud,
+    stopVoice,
+    audioElement,
     send,
     pendingText,
-    audioUrl,
+    audioPlayback,
     error,
     attachment,
     preview,
@@ -420,7 +423,7 @@ export function NoataAIClient() {
                           <button
                             type="button"
                             disabled={voiceBusy}
-                            onClick={() => void readAloud(m.content)}
+                            onClick={() => void readAloud(m.content, m.id)}
                             title="استماع"
                             aria-label="الاستماع للرد"
                           >
@@ -449,6 +452,40 @@ export function NoataAIClient() {
                         </>
                       )}
                     </div>
+                    {voiceBusy && voiceRequestMessageId === m.id && (
+                      <p className="owui-voice-pending" role="status">
+                        بنجهّز التسجيل الصوتي لهذا الرد…
+                        <button type="button" onClick={stopVoice}>إلغاء</button>
+                      </p>
+                    )}
+                    {audioPlayback?.messageId === m.id && (
+                      <div className="owui-inline-player" role="group" aria-label="مشغل صوت الرد">
+                        <div className="owui-inline-player-head">
+                          <Icon name="volume" size={16} />
+                          <strong>استمع إلى رد Noata</strong>
+                          <button
+                            type="button"
+                            onClick={stopVoice}
+                            title="إيقاف وإغلاق الرد الصوتي"
+                            aria-label="إيقاف وإغلاق الرد الصوتي"
+                          >
+                            <Icon name="close" size={15} />
+                          </button>
+                        </div>
+                        <audio
+                          key={audioPlayback.url}
+                          ref={audioElement}
+                          controls
+                          preload="metadata"
+                          src={audioPlayback.url}
+                          aria-label="تشغيل الرد الصوتي لهذه الرسالة"
+                          onError={() => {
+                            stopVoice();
+                            setNotice("تعذّر تشغيل الصوت. جرّب توليده مرة تانية.");
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </article>
               ))}
@@ -481,18 +518,6 @@ export function NoataAIClient() {
                 <em>{notice || "Noata بتفكر…"}</em>
               </div>
             )}
-
-            {audioUrl && (
-              <div className="owui-audio-card">
-                <Icon name="volume" />
-                <div>
-                  <strong>الرد الصوتي</strong>
-                  <audio controls src={audioUrl} aria-label="الاستماع للرد" />
-                </div>
-              </div>
-            )}
-
-            {voiceBusy && <p className="owui-inline-status" role="status">بنجهّز النسخة الصوتية…</p>}
 
             {error && (
               <div className="owui-error" role="alert">
