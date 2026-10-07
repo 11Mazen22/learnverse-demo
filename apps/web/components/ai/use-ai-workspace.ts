@@ -443,9 +443,14 @@ export function useAIWorkspace() {
           const extracted = await extractTextDocument(attachment);
           documentExcerpt = extracted.excerpt;
           documentTruncated = extracted.truncated;
+          // Private upload bucket currently only accepts image/audio.
+          // Preserve a bounded, RLS-protected text excerpt in message metadata;
+          // never mislabel it as a stored original file.
+          setNotice("بنجهّز النص للمحادثة…");
+        } else {
+          setNotice("بنرفع الملف…");
+          path = await upload(attachment, conversationId);
         }
-        setNotice("بنرفع الملف…");
-        path = await upload(attachment, conversationId);
         setNotice("");
       }
       if (mode === "send" || mode === "continue") {
@@ -454,9 +459,9 @@ export function useAIWorkspace() {
           conversation_id: conversationId,
           role: "user",
           content: text,
-          metadata: path && attachment
+          metadata: attachment
             ? {
-                attachmentPath: path,
+                ...(path ? { attachmentPath: path } : {}),
                 attachmentName: attachment.name,
                 attachmentMime: attachment.type || "text/plain",
                 ...(documentExcerpt ? {documentExcerpt,documentTruncated}:{}),
