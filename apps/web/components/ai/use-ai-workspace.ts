@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createVoiceGenerationGuard } from "@/lib/ai/voice-generation";
+import { isTextDocument, extractTextDocument, appendDocumentContext } from "@/lib/ai/document-text";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
 import {
   AI_FUNCTION,
@@ -276,7 +277,7 @@ export function useAIWorkspace() {
       user.id + "/" + conversationId + "/" + crypto.randomUUID() + "-" + safe;
     const { error } = await supabase.storage
       .from("noata-uploads")
-      .upload(path, file, { contentType: file.type, upsert: false });
+      .upload(path, file, { contentType: file.type || "text/plain", upsert: false });
     if (error) throw error;
     const record = await supabase.from("ai_attachments").insert({
       user_id: user.id,
@@ -320,7 +321,7 @@ export function useAIWorkspace() {
           model,
           messages: history
             .filter((m) => m.role !== "system")
-            .map((m) => ({ role: m.role, content: m.content })),
+            .map((m) => ({ role: m.role, content: appendDocumentContext(m.content, m.metadata) })),
           attachmentPath,
           stream: true,
           requestId: crypto.randomUUID(),
@@ -411,7 +412,7 @@ export function useAIWorkspace() {
         ? "كمّل شرحك من النقطة اللي وقفت عندها."
         : mode === "retry"
           ? (messages.at(-1)?.content ?? "")
-          : input.trim() || (attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
+          : input.trim() || (attachment && isTextDocument(attachment) ? "اقرأ المستند المرفق وقدم لي شرحًا واضحًا لمحتواه." : attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
@@ -434,8 +435,15 @@ export function useAIWorkspace() {
         history = messages.slice(0, -1);
       }
       let path: string | undefined;
+      let documentExcerpt: string | undefined;
+      let documentTruncated = false;
       if (attachment) {
-        // Upload and record the real file before reporting a sent message.
+        if (isTextDocument(attachment)) {
+          setNotice("بنقرأ محتوى المستند النصي…");
+          const extracted = await extractTextDocument(attachment);
+          documentExcerpt = extracted.excerpt;
+          documentTruncated = extracted.truncated;
+        }
         setNotice("بنرفع الملف…");
         path = await upload(attachment, conversationId);
         setNotice("");
@@ -450,7 +458,8 @@ export function useAIWorkspace() {
             ? {
                 attachmentPath: path,
                 attachmentName: attachment.name,
-                attachmentMime: attachment.type,
+                attachmentMime: attachment.type || "text/plain",
+                ...(documentExcerpt ? {documentExcerpt,documentTruncated}:{}),
               }
             : {},
           model: null,
@@ -501,7 +510,7 @@ export function useAIWorkspace() {
               );
         if (!content) throw Error("No output");
         result = { content, model: tool };
-      } else result = await chat(history, path);
+      } else result = await chat(history, attachment && isTextDocument(attachment) ? undefined : path);
       assistant = {
         id: crypto.randomUUID(),
         conversation_id: conversationId,
