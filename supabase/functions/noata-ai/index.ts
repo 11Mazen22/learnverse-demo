@@ -5,8 +5,10 @@ const FANAR_BASE=Deno.env.get("FANAR_BASE_URL")??"https://api.fanar.qa/v1";
 const FANAR_ORIGIN=FANAR_BASE.replace(/\/v1\/?$/,"");
 const FANAR_KEY=Deno.env.get("FANAR_API_KEY")??"";
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")??"";
-const SUPABASE_ANON_KEY=Deno.env.get("SUPABASE_ANON_KEY")??"";
-const SUPABASE_SERVICE_ROLE_KEY=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"";
+const PUBLISHABLE_KEYS=JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS")??"{}") as Record<string,string>;
+const SECRET_KEYS=JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")??"{}") as Record<string,string>;
+const SUPABASE_PUBLISHABLE_KEY=PUBLISHABLE_KEYS.default??Deno.env.get("SUPABASE_ANON_KEY")??"";
+const SUPABASE_SECRET_KEY=SECRET_KEYS.default??Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??"";
 
 const cors={
   "Access-Control-Allow-Origin":"*",
@@ -68,12 +70,12 @@ function json(data:unknown,status=200,headers:HeadersInit={}){
 
 async function authUser(req:Request){
   const auth=req.headers.get("Authorization")??"";
-  const client=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{global:{headers:{Authorization:auth}}});
+  const client=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{global:{headers:{Authorization:auth}}});
   const {data:{user}}=await client.auth.getUser();
   return user;
 }
 
-const admin=createClient(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
+const admin=createClient(SUPABASE_URL,SUPABASE_SECRET_KEY,{auth:{persistSession:false}});
 
 function bytesToBase64(bytes:Uint8Array){
   let binary="";
