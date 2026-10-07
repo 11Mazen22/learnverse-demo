@@ -1,0 +1,11 @@
+{
+  "name":"Noata",
+  "short_name":"Noata",
+  "description":"Learn. Grow. Achieve.",
+  "start_url":"/",
+  "display":"standalone",
+  "background_color":"#06111f",
+  "theme_color":"#06111f",
+  "lang":"ar",
+  "dir":"rtl"
+}
