@@ -29,4 +29,31 @@ jobs:
       - run: pnpm modern:test
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
       - run: pnpm build
+      - name: Production HTTP smoke
+        shell: bash
+        run: |
+          pnpm --filter @noata/web start > /tmp/noata-next.log 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
+
+          ready=0
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/health | grep -q '"ok":true'; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/noata-next.log
+            exit 1
+          fi
+
+          for path in / /learn /ai /login /privacy /terms; do
+            curl -fsS -o /dev/null "http://127.0.0.1:3000$path"
+          done
+
+          curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-frame-options: DENY'
+          curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-content-type-options: nosniff'
       - run: pnpm legacy:check
