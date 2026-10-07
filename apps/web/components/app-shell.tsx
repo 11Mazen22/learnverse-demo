@@ -35,7 +35,7 @@ export function AppShell({children,active,role="student"}:{children:React.ReactN
         <a className={"nav-link "+(active==="/settings"?"active":"")} href="/settings"><span>⚙</span>Settings</a>
       </div>
 
-      <div className="sidebar-foot">Noata v1<br/>AI-native learning system</div>
+      <div className="sidebar-foot">Noata v1<br/>AI-native learning system<br/><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></div>
     </aside>
 
     <section className="noata-main">
