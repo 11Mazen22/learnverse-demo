@@ -43,13 +43,22 @@ export function MissionLive(){
 
   useEffect(()=>{
     void (async()=>{
-      const [{data:{user}},{data:lessonRows}]=await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from("lessons").select("id,title_ar").order("position").limit(1)
-      ]);
+      const {data:{user}}=await supabase.auth.getUser();
       setSignedIn(Boolean(user));
-      const lesson=lessonRows?.[0];
+
+      const requested=new URLSearchParams(window.location.search).get("lesson");
+      let lesson:{id:string;title_ar:string}|null=null;
+
+      if(requested){
+        const {data}=await supabase.from("lessons").select("id,title_ar").eq("id",requested).maybeSingle();
+        lesson=data;
+      }
+      if(!lesson){
+        const {data}=await supabase.from("lessons").select("id,title_ar").order("position").limit(1);
+        lesson=data?.[0]??null;
+      }
       if(!lesson)return;
+
       setLessonId(lesson.id);setLessonTitle(lesson.title_ar);
       const {data}=await supabase.from("questions")
         .select("id,lesson_id,position,question_type,prompt_ar,choices_ar,metadata")
@@ -155,7 +164,7 @@ export function MissionLive(){
 
         <form onSubmit={gradeCurrent}>
           {current.question_type==="multiple-choice"
-            ?<div style={{display:"grid",gap:10}}>{opts.map((option,i)=><button type="button" key={option} onClick={()=>!grade&&setAnswer(String(i))} style={{textAlign:"start",padding:"15px 16px",borderRadius:14,border:"1px solid "+(answer===String(i)?"#2f7cff":"#dce6f3"),background:answer===String(i)?"#edf4ff":"white",fontWeight:700}}>{String.fromCharCode(65+i)}. {option}</button>)}</div>
+            ?<div style={{display:"grid",gap:10}}>{opts.map((option,i)=><button type="button" key={option} onClick={()=>!grade&&setAnswer(String(i))} style={{textAlign:"start",padding:"15px 16px",borderRadius:14,border:"1px solid "+(answer===String(i)?"#2f7cff":"#dce6f3"),background:answer===String(i)?"rgba(47,124,255,.08)":"var(--surface)",color:"var(--ink)",fontWeight:700}}>{String.fromCharCode(65+i)}. {option}</button>)}</div>
             :<input className="search" style={{width:"100%"}} inputMode="decimal" value={answer} disabled={Boolean(grade)} onChange={e=>setAnswer(e.target.value)} placeholder="اكتب الإجابة…"/>}
 
           {grade&&<div style={{marginTop:18,padding:16,borderRadius:16,background:grade.correct?"#edf9f3":"#fff4ed",border:"1px solid "+(grade.correct?"#cbeedb":"#f2d6c3")}}>
