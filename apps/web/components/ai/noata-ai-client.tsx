@@ -173,6 +173,68 @@ export function NoataAIClient(){
     }catch(err){setError(err instanceof Error?err.message:"Text-to-speech failed");}
   }
 
+  function textFromToolResult(action:string,data:any){
+    if(action==="translate")return String(data?.result?.translation??data?.result?.text??JSON.stringify(data?.result??{},null,2));
+    if(action==="poem")return String(data?.result?.poem??data?.result?.text??data?.result?.content??JSON.stringify(data?.result??{},null,2));
+    if(action==="moderate")return "### Fanar Guard 2\n\n"+Object.entries(data?.result??{}).map(([key,value])=>"- **"+key+"**: "+String(value)).join("\n");
+    if(action==="image"){
+      const url=String(data?.asset?.signedUrl??data?.result?.data?.[0]?.url??"");
+      return url?"![Noata generated image]("+url+")":"Image generated successfully.";
+    }
+    if(action==="sadiq_validate"||action==="sadiq_research")return "```json\n"+JSON.stringify(data?.result??{},null,2)+"\n```";
+    return JSON.stringify(data?.result??data??{},null,2);
+  }
+
+  async function runTool(action:string){
+    const text=input.trim();
+    if(!text||busy)return;
+    setBusy(true);setError("");
+    try{
+      const conversationId=await ensureConversation();
+      if(!conversationId)throw new Error("Could not create conversation");
+      const {data:{user}}=await supabase.auth.getUser();
+      if(!user)throw new Error("Please sign in first");
+
+      const {data:userRow,error:userError}=await supabase.from("ai_messages").insert({
+        conversation_id:conversationId,role:"user",content:text,status:"complete",metadata:{tool_action:action}
+      }).select("id,conversation_id,role,content,model,status,created_at").single();
+      if(userError)throw userError;
+
+      const payload:any={action};
+      if(action==="translate"){payload.text=text;payload.langpair=/[\u0600-\u06FF]/.test(text)?"ar-en":"en-ar";}
+      else if(action==="poem"||action==="image"){payload.prompt=text;}
+      else if(action==="moderate"){payload.prompt=text;payload.response="";}
+      else{payload.input={query:text,prompt:text};}
+
+      const {data,error}=await supabase.functions.invoke("noata-ai",{body:payload});
+      if(error)throw error;
+      if(data?.error)throw new Error(typeof data.error==="string"?data.error:JSON.stringify(data.error));
+
+      const toolModels:Record<string,string>={
+        translate:"Fanar-Shaheen-MT-1",
+        poem:"Fanar-Diwan",
+        moderate:"Fanar-Guard-2",
+        image:"Fanar-Oryx-IG-2",
+        sadiq_validate:"Fanar-Sadiq-2 (validate)",
+        sadiq_research:"Fanar-Sadiq-2 (deep research)"
+      };
+      const content=textFromToolResult(action,data);
+      const {data:assistantRow,error:assistantError}=await supabase.from("ai_messages").insert({
+        conversation_id:conversationId,role:"assistant",content,model:toolModels[action]??null,status:"complete",
+        metadata:{tool_action:action,quota:data?.quota??null,generated_asset:data?.asset??null}
+      }).select("id,conversation_id,role,content,model,status,created_at").single();
+      if(assistantError)throw assistantError;
+
+      setMessages(current=>[...current,userRow as Message,assistantRow as Message]);
+      setInput("");setShowTools(false);
+      const existing=conversations.find(x=>x.id===conversationId);
+      const patch:{updated_at:string;title?:string}={updated_at:new Date().toISOString()};
+      if(!existing||existing.title==="New chat")patch.title=titleFrom(text);
+      await supabase.from("ai_conversations").update(patch).eq("id",conversationId);
+      await loadConversations();
+    }catch(err){setError(err instanceof Error?err.message:"Noata AI tool failed");}
+    finally{setBusy(false);}
+  }
   async function invokeChat(history:{role:string;content:string}[],attachmentPath?:string){
     const selected=model;
     const {data,error}=await supabase.functions.invoke("noata-ai",{
