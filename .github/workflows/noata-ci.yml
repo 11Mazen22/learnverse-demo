@@ -2,7 +2,7 @@ name: Noata CI
 
 on:
   push:
-    branches: [noata-v1-rebuild]
+    branches: [master, noata-v1-rebuild]
   pull_request:
     branches: [master]
 
