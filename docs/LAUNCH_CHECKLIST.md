@@ -37,8 +37,6 @@ Set:
 
 - Site URL: https://noata.enterpriseworkhub.online
 - Redirect URL: https://noata.enterpriseworkhub.online/**
-- Add https://noata.enterpriseworkhub.online/** only if the www hostname will also be served.
-
 Keep localhost redirect URLs only for development.
 
 ## Frontend deployment
@@ -60,11 +58,9 @@ The browser-safe Supabase URL/publishable key are already bound in the source as
 At the frontend hosting provider:
 
 1. Add noata.enterpriseworkhub.online
-2. Add noata.enterpriseworkhub.online if wanted
-3. Copy the DNS records the provider gives you into the domain DNS manager
-4. Pick one canonical hostname and redirect the other to it
-5. Wait for SSL to become active
-6. Recheck Supabase Auth URL configuration against the final hostname
+2. Copy the DNS records the provider gives you into the domain DNS manager
+3. Wait for SSL to become active
+4. Recheck Supabase Auth URL configuration against the final hostname
 
 ## First real account
 
