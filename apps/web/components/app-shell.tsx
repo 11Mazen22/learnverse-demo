@@ -1,3 +1,5 @@
+import {UserMenu} from "@/components/auth/user-menu";
+
 const links=[
   ["Overview","/","◈"],
   ["Learn","/learn","▤"],
@@ -13,6 +15,7 @@ export function AppShell({children,active,role="student"}:{children:React.ReactN
     :role==="teacher"
       ?[["Teacher","/teacher","◫"]]
       :[];
+
   return <main className="noata-shell">
     <aside className="noata-sidebar">
       <div className="brand"><div className="brand-mark">N</div><div className="brand-copy"><strong>Noata</strong><span>Learn • Grow • Achieve</span></div></div>
@@ -23,6 +26,12 @@ export function AppShell({children,active,role="student"}:{children:React.ReactN
         Noata v1<br/>AI-native learning system
       </div>
     </aside>
-    <section className="noata-main">{children}</section>
+    <section className="noata-main">
+      <header className="topbar">
+        <a href="/learn" style={{fontWeight:900}}>Noata</a>
+        <UserMenu/>
+      </header>
+      {children}
+    </section>
   </main>;
 }
