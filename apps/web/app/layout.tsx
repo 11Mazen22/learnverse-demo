@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://enterpriseworkhub.online"),
+  metadataBase: new URL("https://noata.enterpriseworkhub.online"),
   title: {
     default: "Noata",
     template: "%s · Noata"
