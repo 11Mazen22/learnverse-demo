@@ -71,13 +71,18 @@ create table public.questions (
   difficulty numeric(4,2) not null default 1.0 check (difficulty > 0),
   prompt_ar text not null,
   prompt_en text not null,
-  answer_spec jsonb not null,
-  explanation_ar text not null default '',
-  explanation_en text not null default '',
   review_status public.question_review_status not null default 'draft',
   publication_status public.question_publication_status not null default 'draft',
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now()
+);
+
+create table public.question_keys (
+  question_id uuid primary key references public.questions(id) on delete cascade,
+  answer_spec jsonb not null,
+  explanation_ar text not null default '',
+  explanation_en text not null default '',
+  updated_at timestamptz not null default now()
 );
 
 create table public.attempts (
@@ -218,6 +223,7 @@ alter table public.units enable row level security;
 alter table public.lessons enable row level security;
 alter table public.skills enable row level security;
 alter table public.questions enable row level security;
+alter table public.question_keys enable row level security;
 alter table public.attempts enable row level security;
 alter table public.skill_evidence enable row level security;
 alter table public.lesson_progress enable row level security;
@@ -238,6 +244,7 @@ create policy "lessons read" on public.lessons for select using (true);
 create policy "skills read" on public.skills for select using (true);
 create policy "questions published read" on public.questions for select using (publication_status in ('published_demo','published') or public.is_staff());
 create policy "questions staff write" on public.questions for all using (public.is_staff()) with check (public.is_staff());
+create policy "question keys staff only" on public.question_keys for all using (public.is_staff()) with check (public.is_staff());
 create policy "attempts own read" on public.attempts for select using (user_id=auth.uid() or public.is_staff());
 create policy "attempts own insert" on public.attempts for insert with check (user_id=auth.uid());
 create policy "evidence own read" on public.skill_evidence for select using (user_id=auth.uid() or public.is_staff());
