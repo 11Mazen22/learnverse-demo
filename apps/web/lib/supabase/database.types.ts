@@ -154,6 +154,33 @@ export type Database = {
           },
         ]
       }
+      ai_request_receipts: {
+        Row: {
+          created_at: string
+          payload_hash: string
+          request_id: string
+          response: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          payload_hash: string
+          request_id: string
+          response?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          payload_hash?: string
+          request_id?: string
+          response?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage_events: {
         Row: {
           capability: string
@@ -1329,6 +1356,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_ai_usage_summary: {
+        Args: never
+        Returns: {
+          attempts: number
+          capability: string
+        }[]
+      }
       claim_ai_quota: {
         Args: {
           p_capability: string
@@ -1559,3 +1593,4 @@ export const Constants = {
     },
   },
 } as const
+
