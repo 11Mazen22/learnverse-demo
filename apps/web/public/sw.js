@@ -1,4 +1,4 @@
-const CACHE="noata-shell-v1";
+const CACHE="noata-shell-v2";
 const SHELL=["/","/offline.html","/manifest.webmanifest","/icon.svg"];
 
 self.addEventListener("install",event=>{
