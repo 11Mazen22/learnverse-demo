@@ -4,7 +4,9 @@
 
 Production target: **https://noata.enterpriseworkhub.online**
 
-The historical JSON/Ollama MVP remains on the `master` branch as a reference. The production rewrite lives on `noata-v1-rebuild`.
+The modern production application is `apps/web` on `master`. The Noata 2.0 candidate is on `noata-v2-total-redesign`; production promotion is gated on live verification. The historical JSON/Ollama MVP is retained for regression/reference.
+
+Start with [implementation status](docs/IMPLEMENTATION_STATUS.md), [testing](docs/TESTING.md), [deployment](docs/DEPLOYMENT.md) and [rollback](docs/ROLLBACK.md).
 
 ## Production stack
 
@@ -124,3 +126,4 @@ See:
 - `noata-v1-rebuild`: production Noata
 
 Do not merge production changes into `master` until the public deployment has passed final end-to-end QA.
+

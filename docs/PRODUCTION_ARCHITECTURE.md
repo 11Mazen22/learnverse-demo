@@ -1,3 +1,7 @@
+# Noata 2.0 candidate boundary
+
+The branch uses the separate `noata-ai-v2` candidate, service-only inference receipts and an admin-guarded aggregate RPC. Existing production `noata-ai`, learning rules, RLS and private Storage remain. See AI_ARCHITECTURE.md and IMPLEMENTATION_STATUS.md for current verification limits. The historical architecture below describes foundations, not certification of every UI workflow.
+
 # Noata production architecture
 
 ## Product direction
@@ -84,3 +88,4 @@ Every generated text path removes provider control markers such as quran/hadith 
 ## Migration strategy
 
 The master branch remains the historical demonstration MVP. The noata-v1-rebuild branch is the production rewrite. Domain rules and tests are migrated deliberately; UI/runtime demo shortcuts are not.
+
