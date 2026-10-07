@@ -1,11 +1,38 @@
 {
-  "name":"Noata",
-  "short_name":"Noata",
-  "description":"Learn. Grow. Achieve.",
-  "start_url":"/",
-  "display":"standalone",
-  "background_color":"#06111f",
-  "theme_color":"#06111f",
-  "lang":"ar",
-  "dir":"rtl"
+  "name": "Noata — Learn. Grow. Achieve.",
+  "short_name": "Noata",
+  "description": "AI-native gamified learning platform.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06111f",
+  "theme_color": "#06111f",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Noata AI",
+      "short_name": "AI",
+      "url": "/ai"
+    },
+    {
+      "name": "Review",
+      "short_name": "Review",
+      "url": "/review"
+    },
+    {
+      "name": "Learn",
+      "short_name": "Learn",
+      "url": "/learn"
+    }
+  ]
 }
