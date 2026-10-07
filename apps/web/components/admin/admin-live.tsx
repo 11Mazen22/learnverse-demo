@@ -2,6 +2,7 @@
 
 import {FormEvent,useEffect,useMemo,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
+import {CurriculumManager} from "@/components/admin/curriculum-manager";
 
 type Question={id:string;prompt_ar:string;review_status:string;publication_status:string;question_type:string};
 type Profile={id:string;display_name:string;role:"student"|"teacher"|"admin";xp:number;coins:number};
@@ -13,7 +14,7 @@ type TeacherAccess={class_id:string;teacher_id:string};
 
 export function AdminLive(){
   const supabase=useMemo(()=>createClient(),[]);
-  const [tab,setTab]=useState<"content"|"users"|"classes">("content");
+  const [tab,setTab]=useState<"content"|"curriculum"|"users"|"classes">("content");
   const [questions,setQuestions]=useState<Question[]>([]);
   const [profiles,setProfiles]=useState<Profile[]>([]);
   const [classes,setClasses]=useState<ClassRow[]>([]);
@@ -200,7 +201,7 @@ export function AdminLive(){
     </section>
 
     <div style={{display:"flex",gap:8,marginTop:18,flexWrap:"wrap"}}>
-      {(["content","users","classes"] as const).map(x=><button key={x} onClick={()=>setTab(x)} className="btn" style={{background:tab===x?"#102b52":"var(--surface)",color:tab===x?"white":"var(--ink)",borderColor:"var(--line)"}}>{x[0].toUpperCase()+x.slice(1)}</button>)}
+      {(["content","curriculum","users","classes"] as const).map(x=><button key={x} onClick={()=>setTab(x)} className="btn" style={{background:tab===x?"#102b52":"var(--surface)",color:tab===x?"white":"var(--ink)",borderColor:"var(--line)"}}>{x[0].toUpperCase()+x.slice(1)}</button>)}
     </div>
 
     {status&&<div className="panel" style={{marginTop:14,padding:14,color:status.includes("✓")?"#158456":"var(--muted)"}}>{status}</div>}
@@ -242,6 +243,8 @@ export function AdminLive(){
         </div>
       </section>
     </>}
+
+    {tab==="curriculum"&&<CurriculumManager/>}
 
     {tab==="users"&&<section className="panel" style={{marginTop:18}}>
       <div className="panel-head"><h2>Users & roles</h2><span className="pill">Admin-only RPC</span></div>
