@@ -1,14 +1,14 @@
 {
-  "name": "noata",
-  "version": "1.0.0",
-  "private": true,
-  "packageManager": "pnpm@10.17.1",
-  "scripts": {
-    "dev": "pnpm --filter @noata/web dev",
-    "build": "pnpm --filter @noata/web build",
-    "lint": "pnpm --filter @noata/web lint",
-    "typecheck": "pnpm --filter @noata/web typecheck",
-    "legacy:check": "node --check server.mjs && node --test --test-isolation=none"
+  "name":"noata",
+  "version":"1.0.0",
+  "private":true,
+  "packageManager":"pnpm@10.17.1",
+  "scripts":{
+    "dev":"pnpm --filter @noata/web dev",
+    "build":"pnpm --filter @noata/web build",
+    "typecheck":"pnpm -r --if-present typecheck",
+    "check":"pnpm typecheck && pnpm build",
+    "legacy:check":"node --check server.mjs && node --test --test-isolation=none"
   },
-  "workspaces": ["apps/*", "packages/*"]
+  "workspaces":["apps/*","packages/*"]
 }
