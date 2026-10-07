@@ -10,8 +10,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
-import { TOOLS, safeStorageLink } from "@/lib/ai/workspace";
-import { SUPABASE_URL } from "@/lib/supabase/config";
+import { TOOLS } from "@/lib/ai/workspace";
+import { AttachmentMessage } from "./attachment-message";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
 import { ThemeControl } from "@/components/preferences/theme-control";
@@ -402,23 +402,7 @@ export function NoataAIClient() {
                       {m.role === "assistant" && m.model && <span>{m.model}</span>}
                     </div>
                     <RichMessage content={m.content} />
-                    {m.role === "user" && typeof m.metadata?.attachmentPath === "string" && (
-                      <div className="owui-sent-attachment">
-                        <Icon name="image" size={16} />
-                        <span>{typeof m.metadata.attachmentName === "string"
-                          ? m.metadata.attachmentName
-                          : "الصورة المرفقة"}</span>
-                        {safeStorageLink(m.metadata.attachmentUrl, SUPABASE_URL) ? (
-                          <a
-                            href={safeStorageLink(m.metadata.attachmentUrl, SUPABASE_URL)!}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >عرض الصورة</a>
-                        ) : (
-                          <small>أعد فتح المحادثة لتجديد رابط المعاينة</small>
-                        )}
-                      </div>
-                    )}
+                    {m.role === "user" && <AttachmentMessage metadata={m.metadata} />}
                     <div className="owui-message-actions">
                       <button type="button" onClick={() => void copy(m.content)} title="نسخ" aria-label="نسخ الرسالة">
                         <Icon name="copy" size={14} />
@@ -640,7 +624,7 @@ export function NoataAIClient() {
               ref={picker}
               type="file"
               hidden
-              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav"
+              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,text/plain,text/markdown,text/csv,application/json"
               onChange={(e) => selectFile(e.target.files?.[0])}
             />
 
@@ -667,7 +651,7 @@ export function NoataAIClient() {
                         }}
                       >
                         <Icon name="image" size={17} />
-                        <span><strong>رفع صورة أو صوت</strong><small>PNG, JPG, WebP أو ملف صوت</small></span>
+                        <span><strong>رفع صورة أو مستند</strong><small>صورة، صوت أو ملف نصي (TXT / MD / CSV / JSON)</small></span>
                       </button>
                       <button
                         type="button"
