@@ -49,6 +49,7 @@ export function SettingsLive(){
       return;
     }
     localStorage.setItem("noata-theme",settings.theme);
+    localStorage.setItem("noata-locale",settings.locale);
     document.documentElement.lang=settings.locale;
     document.documentElement.dir=settings.locale==="ar"?"rtl":"ltr";
     if(settings.theme!=="system")document.documentElement.dataset.theme=settings.theme;
