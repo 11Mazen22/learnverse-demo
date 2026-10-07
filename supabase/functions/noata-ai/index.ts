@@ -154,8 +154,65 @@ async function discoverSpecialPath(kind:"validate"|"research"){
   return null;
 }
 
+function autoModel(text:string,hasImage:boolean){
+  if(hasImage)return "Fanar-Oryx-IVU-2";
+  const q=text.toLowerCase();
+  const islamic=/\b(quran|hadith|islam|allah|prophet|fatwa|salah|ramadan)\b/i.test(q)
+    || /(قرآن|حديث|إسلام|اسلام|الله|رسول|نبي|فتوى|صلاة|رمضان|سورة|آية|اية)/.test(text);
+  if(islamic)return "Fanar-Sadiq-2";
+
+  const deep=/\b(prove|proof|derive|complex|advanced|analyze deeply|reason step by step)\b/i.test(q)
+    || /(برهن|اثبت|اشتق|حلل بعمق|مسألة صعبة|تفكير عميق)/.test(text);
+  if(deep||text.length>900)return "Fanar-C-2-27B";
+
+  const reasoning=/\b(why|explain why|solve|calculate|equation|geometry|physics|logic)\b/i.test(q)
+    || /(ليه|لماذا|حل|احسب|معادلة|هندسة|فيزياء|منطق|اشرح السبب)/.test(text);
+  if(reasoning)return "Fanar-C-1-8.7B";
+
+  const fast=text.length<160&&!/[?\u061f]/.test(text);
+  if(fast)return "Fanar-S-1-7B";
+  return "Fanar";
+}
+
+async function c1Thinking(messages:any[]){
+  const firstMessages=messages.map((m:any)=>({...m}));
+  for(let i=firstMessages.length-1;i>=0;i--){
+    if(firstMessages[i].role==="user"){
+      firstMessages[i]={role:"thinking_user",content:firstMessages[i].content};
+      break;
+    }
+  }
+
+  const {data:first}=await fanarJson("/chat/completions",{
+    model:"Fanar-C-1-8.7B",
+    messages:firstMessages,
+    max_tokens:2000
+  });
+
+  let choice=first?.choices?.[0]??{};
+  let output=String(choice?.message?.content??"");
+  const shouldContinue=output.includes("</think>")||choice?.finish_reason==="length";
+  if(!shouldContinue)return first;
+
+  const thinkingOutput=output.includes("</think>")?output.split("</think>")[0]:output;
+  for(let i=firstMessages.length-1;i>=0;i--){
+    if(firstMessages[i].role==="thinking_user"){
+      firstMessages[i]={role:"user",content:firstMessages[i].content};
+      break;
+    }
+  }
+  firstMessages.push({role:"thinking",content:thinkingOutput});
+
+  const {data:second}=await fanarJson("/chat/completions",{
+    model:"Fanar-C-1-8.7B",
+    messages:firstMessages,
+    max_tokens:1000
+  });
+  return second;
+}
+
 async function handleChat(userId:string,payload:any){
-  let model=typeof payload.model==="string"?payload.model:"Fanar";
+  let model=typeof payload.model==="string"?payload.model:"auto";
   if(!Array.isArray(payload.messages))return json({error:"messages must be an array"},400);
 
   const safeMessages=payload.messages
@@ -183,6 +240,9 @@ async function handleChat(userId:string,payload:any){
     }
   }
 
+  const latestUser=[...safeMessages].reverse().find((m:any)=>m.role==="user");
+  const latestText=typeof latestUser?.content==="string"?latestUser.content:"";
+  if(model==="auto")model=autoModel(latestText,Boolean(payload.attachmentPath));
   if(!CHAT_MODELS.has(model))return json({error:"Unsupported chat model"},400);
   const quota=await claim(userId,model);
   const messages=[{role:"system",content:system},...safeMessages];
@@ -193,7 +253,13 @@ async function handleChat(userId:string,payload:any){
   };
   if(model==="Fanar-C-2-27B"&&payload.enable_thinking===true)body.enable_thinking=true;
 
-  const {data}=await fanarJson("/chat/completions",body);
+  let data:any;
+  if(model==="Fanar-C-1-8.7B"&&payload.enable_thinking===true){
+    data=await c1Thinking(messages);
+  }else{
+    const result=await fanarJson("/chat/completions",body);
+    data=result.data;
+  }
   return json({
     kind:"chat",model,
     content:clean(data?.choices?.[0]?.message?.content??""),
