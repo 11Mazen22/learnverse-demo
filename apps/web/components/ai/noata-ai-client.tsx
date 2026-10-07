@@ -37,6 +37,7 @@ export function NoataAIClient(){
   const [activeId,setActiveId]=useState<string|null>(null);
   const [messages,setMessages]=useState<Message[]>([]);
   const [model,setModel]=useState("auto");
+  const [memoryEnabled,setMemoryEnabled]=useState(true);
   const [input,setInput]=useState("");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
@@ -55,6 +56,7 @@ export function NoataAIClient(){
       .from("ai_conversations")
       .select("id,title,pinned,archived,selected_model,updated_at,temporary")
       .eq("archived",false)
+      .eq("temporary",false)
       .order("pinned",{ascending:false})
       .order("updated_at",{ascending:false});
     if(error){setError(error.message);return;}
@@ -77,18 +79,65 @@ export function NoataAIClient(){
   async function createConversation(){
     const {data:{user}}=await supabase.auth.getUser();
     if(!user){window.location.href="/login";return null;}
+
+    if(!memoryEnabled){
+      await supabase.from("ai_conversations")
+        .delete()
+        .eq("user_id",user.id)
+        .eq("temporary",true);
+    }
+
     const {data,error}=await supabase.from("ai_conversations").insert({
-      user_id:user.id,title:"New chat",selected_model:model
+      user_id:user.id,
+      title:"New chat",
+      selected_model:model,
+      temporary:!memoryEnabled
     }).select("id,title,pinned,archived,selected_model,updated_at,temporary").single();
+
     if(error){setError(error.message);return null;}
     const row=data as Conversation;
-    setConversations(current=>[row,...current]);
+    if(!row.temporary)setConversations(current=>[row,...current]);
     setActiveId(row.id);setMessages([]);
     return row.id;
   }
 
-  useEffect(()=>{void loadConversations();},[loadConversations]);
+  useEffect(()=>{
+    void (async()=>{
+      const {data:{user}}=await supabase.auth.getUser();
+      if(!user){
+        await loadConversations();
+        return;
+      }
+
+      const {data:settings}=await supabase.from("user_settings")
+        .select("default_ai_model,ai_memory_enabled")
+        .eq("user_id",user.id)
+        .maybeSingle();
+
+      if(settings){
+        setModel(settings.default_ai_model||"auto");
+        setMemoryEnabled(settings.ai_memory_enabled);
+        if(!settings.ai_memory_enabled){
+          await supabase.from("ai_conversations")
+            .delete()
+            .eq("user_id",user.id)
+            .eq("temporary",true);
+        }
+      }
+      await loadConversations();
+    })();
+  },[loadConversations,supabase]);
   useEffect(()=>{if(scroller.current)scroller.current.scrollTop=scroller.current.scrollHeight;},[messages,busy]);
+
+  async function changeModel(next:string){
+    setModel(next);
+    if(activeId){
+      const {error}=await supabase.from("ai_conversations")
+        .update({selected_model:next,updated_at:new Date().toISOString()})
+        .eq("id",activeId);
+      if(error)setError(error.message);
+    }
+  }
 
   async function ensureConversation(){
     if(activeId)return activeId;
@@ -392,8 +441,8 @@ export function NoataAIClient(){
 
     <section className="ai-chat">
       <header className="ai-top">
-        <div><b>Noata AI</b><div style={{fontSize:11,color:"#73839b"}}>Learning-aware • Arabic-first • Fanar powered</div></div>
-        <select className="model-select" value={model} onChange={e=>setModel(e.target.value)}>
+        <div><b>Noata AI</b><div style={{fontSize:11,color:"#73839b"}}>Learning-aware • Arabic-first • Fanar powered{memoryEnabled?"":" • Temporary chat"}</div></div>
+        <select className="model-select" value={model} onChange={e=>void changeModel(e.target.value)}>
           <option value="auto">Auto · Smart Router</option>
           {FANAR_CAPABILITIES.filter(x=>x.visibleInPicker).map(item=><option value={item.id} key={item.id}>{item.label}</option>)}
         </select>
