@@ -1351,6 +1351,24 @@ export type Database = {
         Args: { p_question_ids: string[]; p_unit_id: string }
         Returns: Json
       }
+      create_question_draft: {
+        Args: {
+          p_answer_spec: Json
+          p_choices_ar: Json
+          p_choices_en: Json
+          p_difficulty: number
+          p_explanation_ar: string
+          p_explanation_en: string
+          p_lesson_id: string
+          p_metadata?: Json
+          p_prompt_ar: string
+          p_prompt_en: string
+          p_question_type: string
+          p_skill_id: string
+          p_unit_id: string
+        }
+        Returns: string
+      }
       equip_cosmetic: { Args: { p_item_id: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
