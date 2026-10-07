@@ -2,6 +2,8 @@
 
 import {ChangeEvent,FormEvent,useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {FANAR_CAPABILITIES} from "@/lib/ai/catalog";
 
 type Conversation={
@@ -401,7 +403,16 @@ export function NoataAIClient(){
         {!messages.length&&<div className="message assistant"><b>أهلاً 👋</b><p>أنا Noata AI. اشرحلي إنت بتذاكر إيه، ابعت سؤال، أو اطلب مني أختبرك خطوة خطوة.</p></div>}
         {messages.filter(x=>x.role!=="system").map(m=><div key={m.id} className={"message "+m.role}>
           {m.role==="assistant"&&<div style={{fontSize:11,color:"#7d8da4",marginBottom:5}}>{m.model||"Noata AI"}</div>}
-          <div style={{whiteSpace:"pre-wrap"}}>{m.content}</div>
+          <div dir="auto" className="ai-rich-message">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a:({href,children})=><a href={href} target="_blank" rel="noreferrer">{children}</a>,
+                img:({src,alt})=><img src={src??""} alt={alt??"Noata generated media"} loading="lazy" style={{maxWidth:"100%",borderRadius:16,marginTop:10}}/>,
+                code:({children})=><code style={{fontFamily:"ui-monospace,SFMono-Regular,Consolas,monospace"}}>{children}</code>
+              }}
+            >{m.content}</ReactMarkdown>
+          </div>
           {m.role==="user"&&<div style={{display:"flex",gap:6,marginTop:7}}>
             <button type="button" className="icon-btn" style={{width:32,height:32,background:"rgba(255,255,255,.08)",borderColor:"rgba(255,255,255,.12)",color:"white"}} title="Edit from here" onClick={()=>void editFrom(m)}>✎</button>
           </div>}
