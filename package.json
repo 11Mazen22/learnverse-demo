@@ -1,15 +1,14 @@
 {
-  "name": "learning-platform-mvp",
-  "version": "0.1.0",
+  "name": "noata",
+  "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "packageManager": "pnpm@10.17.1",
   "scripts": {
-    "start": "node server.mjs",
-    "dev": "node --watch server.mjs",
-    "test": "node --test --test-isolation=none",
-    "check": "node --check server.mjs && node --check lib/chat-reasoning.mjs && node --check lib/chat-continuation.mjs && node --check public/app.js && node --check public/chat.js && node --check public/markdown.js && node --check public/langdetect.js && node --test --test-isolation=none"
+    "dev": "pnpm --filter @noata/web dev",
+    "build": "pnpm --filter @noata/web build",
+    "lint": "pnpm --filter @noata/web lint",
+    "typecheck": "pnpm --filter @noata/web typecheck",
+    "legacy:check": "node --check server.mjs && node --test --test-isolation=none"
   },
-  "engines": {
-    "node": ">=22"
-  }
+  "workspaces": ["apps/*", "packages/*"]
 }
