@@ -463,6 +463,24 @@ export function NoataAIClient() {
                         <div className="owui-inline-player-head">
                           <Icon name="volume" size={16} />
                           <strong>استمع إلى رد Noata</strong>
+                          <label className="owui-playback-speed">
+                            <span>السرعة</span>
+                            <select
+                              defaultValue="1"
+                              aria-label="سرعة تشغيل الرد الصوتي"
+                              onChange={(event) => {
+                                if (audioElement.current) {
+                                  audioElement.current.playbackRate = Number(event.target.value);
+                                }
+                              }}
+                            >
+                              <option value="0.75">0.75×</option>
+                              <option value="1">1×</option>
+                              <option value="1.25">1.25×</option>
+                              <option value="1.5">1.5×</option>
+                              <option value="2">2×</option>
+                            </select>
+                          </label>
                           <button
                             type="button"
                             onClick={stopVoice}
