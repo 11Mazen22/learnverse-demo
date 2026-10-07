@@ -421,12 +421,21 @@ export function NoataAIClient(){
             <button type="button" onClick={()=>{setAttachment(null);if(fileInput.current)fileInput.current.value="";}} style={{border:0,background:"transparent"}}>×</button>
           </div>}
           {showTools&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:7,padding:"6px 4px 10px"}}>
-            {[
-              ["Image","ارسم صورة","Generate image"],
-              ["Translate","ترجمة","Arabic ↔ English"],
-              ["Poem","ديوان","Arabic poetry"],
-              ["Research","بحث صادق","Deep research"]
-            ].map(([key,label,title])=><button type="button" key={key} title={title} onClick={()=>{setInput(current=>current||label+": ");setShowTools(false);}} style={{border:"1px solid #dce6f3",background:"#f8fbff",borderRadius:11,padding:"9px 7px",fontSize:11,fontWeight:800}}>{label}</button>)}
+                        {[
+              ["image","صورة","Generate image with Oryx IG"],
+              ["translate","ترجمة","Arabic ↔ English with Shaheen"],
+              ["poem","ديوان","Arabic poetry with Diwan"],
+              ["moderate","Guard","Safety and cultural-awareness check"],
+              ["sadiq_validate","تحقق صادق","Sadiq validation"],
+              ["sadiq_research","بحث صادق","Sadiq deep research"]
+            ].map(([action,label,title])=><button
+              type="button"
+              disabled={busy||!input.trim()}
+              key={action}
+              title={title}
+              onClick={()=>void runTool(action)}
+              style={{border:"1px solid #dce6f3",background:"#f8fbff",borderRadius:11,padding:"9px 7px",fontSize:11,fontWeight:800}}
+            >{label}</button>)}
           </div>}
           <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="اسأل Noata… اكتب، ارفع صورة، أو استخدم صوتك" onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}}/>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={pickImage}/>
