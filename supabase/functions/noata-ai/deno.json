@@ -1,3 +1,6 @@
 {
-  "compilerOptions":{"strict":true}
+  "nodeModulesDir":"auto",
+  "compilerOptions":{
+    "strict":true
+  }
 }
