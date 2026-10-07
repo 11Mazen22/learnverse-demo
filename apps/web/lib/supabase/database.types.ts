@@ -1283,6 +1283,47 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          ai_memory_enabled: boolean
+          created_at: string
+          default_ai_model: string
+          locale: string
+          reduced_motion: boolean
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_memory_enabled?: boolean
+          created_at?: string
+          default_ai_model?: string
+          locale?: string
+          reduced_motion?: boolean
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_memory_enabled?: boolean
+          created_at?: string
+          default_ai_model?: string
+          locale?: string
+          reduced_motion?: boolean
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1306,11 +1347,22 @@ export type Database = {
         Args: { p_lesson_id: string; p_score: number }
         Returns: Json
       }
+      complete_unit_boss: {
+        Args: { p_question_ids: string[]; p_unit_id: string }
+        Returns: Json
+      }
       equip_cosmetic: { Args: { p_item_id: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       purchase_shop_item: {
         Args: { p_idempotency_key: string; p_item_id: string }
+        Returns: Json
+      }
+      set_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["noata_role"]
+          p_user_id: string
+        }
         Returns: Json
       }
       submit_attempt: {
@@ -1321,6 +1373,10 @@ export type Database = {
           p_question_id: string
           p_response: Json
         }
+        Returns: Json
+      }
+      transition_question: {
+        Args: { p_action: string; p_question_id: string }
         Returns: Json
       }
     }
