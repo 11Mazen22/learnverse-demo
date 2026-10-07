@@ -1,18 +1,57 @@
 "use client";
 
-import {useEffect} from "react";
+import { useEffect } from "react";
 
-export default function ErrorPage({error,reset}:{error:Error&{digest?:string};reset:()=>void}){
-  useEffect(()=>{console.error("Noata UI error",error);},[error]);
+export default function ErrorPage({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    console.error("Noata UI error", error);
+  }, [error]);
 
-  return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",padding:20}}>
-    <section className="panel" style={{width:"min(560px,100%)",padding:34,textAlign:"center"}}>
-      <div className="brand-mark" style={{margin:"0 auto 16px"}}>N</div>
-      <div className="eyebrow" style={{color:"#e35757"}}>RECOVERY MODE</div>
-      <h1>حصل خطأ غير متوقع.</h1>
-      <p style={{color:"var(--muted)",lineHeight:1.8}}>بياناتك مش هنعتبرها اتسجلت إلا لما السيرفر يأكد العملية. جرّب تحميل الجزء ده تاني.</p>
-      <button className="btn" onClick={reset} style={{background:"#102b52",color:"white"}}>Try again</button>
-      {error.digest&&<small style={{display:"block",marginTop:12,color:"var(--muted)"}}>Reference: {error.digest}</small>}
-    </section>
-  </main>;
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: 20,
+      }}
+    >
+      <section
+        className="panel"
+        style={{ width: "min(560px,100%)", padding: 34, textAlign: "center" }}
+      >
+        <div className="brand-mark" style={{ margin: "0 auto 16px" }}>
+          N
+        </div>
+        <div className="eyebrow" style={{ color: "var(--danger)" }}>
+          RECOVERY MODE
+        </div>
+        <h1>حصل خطأ غير متوقع.</h1>
+        <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>
+          بياناتك مش هنعتبرها اتسجلت إلا لما السيرفر يأكد العملية. جرّب تحميل
+          الجزء ده تاني.
+        </p>
+        <button
+          className="btn"
+          onClick={reset}
+          style={{ background: "var(--accent)", color: "var(--surface)" }}
+        >
+          Try again
+        </button>
+        {error.digest && (
+          <small
+            style={{ display: "block", marginTop: 12, color: "var(--muted)" }}
+          >
+            Reference: {error.digest}
+          </small>
+        )}
+      </section>
+    </main>
+  );
 }

@@ -6,3 +6,12 @@ data/chat-attachments/
 coverage/
 *.log
 scratch_*.json
+
+
+qa/
+*.tsbuildinfo
+.next/
+.env.local
+.env.*.local
+.vercel/
+supabase/.temp/
