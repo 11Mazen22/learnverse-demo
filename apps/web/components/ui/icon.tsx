@@ -27,6 +27,18 @@ const paths: Record<string, string> = {
   image: "M3 3h18v18H3Zm0 14 6-6 5 5 3-3 4 4M16 7h.01",
   clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3 2",
   help: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM9 9a3 3 0 1 1 4 3c-1 0-1 1-1 2m0 3h.01",
+  sidebar: "M4 4h16v16H4Zm6 0v16 M7 8h.01 M7 12h.01 M7 16h.01",
+  chat: "M4 5h16v11H8l-4 4Zm4 4h8M8 12h5",
+  dots: "M6 12h.01M12 12h.01M18 12h.01",
+  download: "M12 3v12m-5-5 5 5 5-5M4 20h16",
+  screen: "M3 4h18v12H3Zm6 16h6m-3-4v4",
+  sparkles: "m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6ZM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z",
+  chevron: "m8 10 4 4 4-4",
+  folder: "M3 6h7l2 2h9v11H3Z",
+  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0",
+  stop: "M7 7h10v10H7Z",
+  keyboard: "M3 6h18v12H3Zm3 4h.01m3 0h.01m3 0h.01m3 0h.01m3 0h.01M7 14h10",
+  sliders: "M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M8 14v6",
 };
 export function Icon({
   name,
