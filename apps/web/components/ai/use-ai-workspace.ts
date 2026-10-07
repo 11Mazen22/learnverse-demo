@@ -39,8 +39,13 @@ export function useAIWorkspace() {
     [preview, setPreview] = useState(""),
     [recording, setRecording] = useState(false),
     [elapsed, setElapsed] = useState(0),
-    [audioUrl, setAudioUrl] = useState(""),
-    [voiceBusy, setVoiceBusy] = useState(false);
+    [audioPlayback, setAudioPlayback] = useState<{
+      messageId: string;
+      conversationId: string | null;
+      url: string;
+    } | null>(null),
+    [voiceBusy, setVoiceBusy] = useState(false),
+    [voiceRequestMessageId, setVoiceRequestMessageId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{
       kind: "delete" | "rename" | "edit";
       conversation?: Conversation;
@@ -58,7 +63,9 @@ export function useAIWorkspace() {
     follow = useRef(true);
   const media = useRef<MediaRecorder | null>(null),
     cancelRecording = useRef(false),
-    openSequence = useRef(0);
+    openSequence = useRef(0),
+    voiceSequence = useRef(0),
+    audioElement = useRef<HTMLAudioElement | null>(null);
   const failedTool = useRef<string | undefined>(undefined);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
   const [ttsModel, setTtsModel] = useState("Fanar-Aura-TTS-2");
@@ -107,6 +114,8 @@ export function useAIWorkspace() {
     return () => {
       alive = false;
       abort.current?.abort();
+      ++voiceSequence.current;
+      audioElement.current?.pause();
       cancelRecording.current = true;
       if (media.current?.state === "recording") media.current.stop();
       media.current?.stream.getTracks().forEach((t) => t.stop());
@@ -134,8 +143,20 @@ export function useAIWorkspace() {
   useEffect(() => {
     if (recording && elapsed >= 120) media.current?.stop();
   }, [recording, elapsed]);
+  function stopVoice() {
+    ++voiceSequence.current;
+    if (audioElement.current) {
+      audioElement.current.pause();
+      audioElement.current.removeAttribute("src");
+      audioElement.current.load();
+    }
+    setAudioPlayback(null);
+    setVoiceBusy(false);
+    setVoiceRequestMessageId(null);
+  }
   async function openConversation(id: string) {
     if (lock.current) return;
+    stopVoice();
     const seq = ++openSequence.current;
     setLoading(true);
     setError("");
@@ -193,6 +214,7 @@ export function useAIWorkspace() {
   }, [conversations, loading, activeId]);
   function newChat(temp = temporary) {
     if (lock.current) return;
+    stopVoice();
     ++openSequence.current;
     setActiveId(null);
     setMessages([]);
@@ -541,6 +563,7 @@ export function useAIWorkspace() {
             .in("id", ids);
           if (result.error) throw result.error;
         }
+        if (audioPlayback && ids.includes(audioPlayback.messageId)) stopVoice();
         setMessages(messages.slice(0, index));
         setInput(editValue);
         setDialog(null);
@@ -556,6 +579,7 @@ export function useAIWorkspace() {
                 .eq("id", c.id);
         if (result.error) throw result.error;
         if (dialog.kind === "delete" && activeId === c.id) {
+          stopVoice();
           setActiveId(null);
           setMessages([]);
           window.history.replaceState(null, "", "/ai");
@@ -694,9 +718,14 @@ export function useAIWorkspace() {
       );
     }
   }
-  async function readAloud(text: string) {
-    if (voiceBusy) return;
+  async function readAloud(text: string, messageId: string) {
+    // A voice response belongs to a specific message. Discard async results
+    // from a different chat, an edited message, or a closed player.
+    stopVoice();
+    const sequence = voiceSequence.current;
+    const conversationId = activeId;
     setVoiceBusy(true);
+    setVoiceRequestMessageId(messageId);
     setError("");
     try {
       const { data, error } = await supabase.functions.invoke(AI_FUNCTION, {
@@ -710,13 +739,21 @@ export function useAIWorkspace() {
         },
         timeout: 180000,
       });
+      if (sequence !== voiceSequence.current) return;
       if (error || data?.error) throw error ?? Error(String(data.error));
-      if (!data.asset?.signedUrl) throw Error("No audio");
-      setAudioUrl(data.asset.signedUrl);
+      if (typeof data?.asset?.signedUrl !== "string") throw Error("No audio");
+      setAudioPlayback({
+        messageId,
+        conversationId,
+        url: data.asset.signedUrl,
+      });
     } catch (e) {
-      setError(friendlyError(e));
+      if (sequence === voiceSequence.current) setError(friendlyError(e));
     } finally {
-      setVoiceBusy(false);
+      if (sequence === voiceSequence.current) {
+        setVoiceBusy(false);
+        setVoiceRequestMessageId(null);
+      }
     }
   }
   async function savePreferences() {
@@ -797,10 +834,13 @@ export function useAIWorkspace() {
     setDialog,
     setEditValue,
     voiceBusy,
+    voiceRequestMessageId,
     readAloud,
+    stopVoice,
+    audioElement,
     send,
     pendingText,
-    audioUrl,
+    audioPlayback,
     error,
     attachment,
     preview,
