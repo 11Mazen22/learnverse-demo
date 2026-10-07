@@ -729,7 +729,7 @@ export function NoataAIClient() {
                   <button
                     className="owui-send"
                     type="submit"
-                    disabled={!input.trim() || recording}
+                    disabled={(!input.trim() && !attachment) || recording}
                     aria-label="إرسال"
                   >
                     <Icon name="arrow" size={17} />
