@@ -43,13 +43,19 @@ Keep localhost redirect URLs only for development.
 
 Deploy GitHub repository `11Mazen22/learnverse-demo` from branch `noata-v1-rebuild`.
 
-Recommended monorepo build contract:
+Recommended Vercel monorepo settings:
 
-- Install: pnpm install --frozen-lockfile (or --no-frozen-lockfile until lockfile is committed)
-- Build: pnpm --filter @noata/web build
-- Application: apps/web
-- Node: 24
+- Repository: 11Mazen22/learnverse-demo
+- Production branch: noata-v1-rebuild
+- Framework Preset: Next.js
+- Root Directory: apps/web
+- Install Command: pnpm install
+- Build Command: next build
+- Output Directory: .next
+- Node.js: 24.x
 - Production domain: noata.enterpriseworkhub.online
+
+The repository is a pnpm workspace, so Vercel should keep monorepo dependency access enabled when apps/web is selected as the project Root Directory.
 
 The browser-safe Supabase URL/publishable key are already bound in the source as safe fallbacks. No service-role or Fanar secret belongs in frontend hosting.
 
@@ -70,8 +76,17 @@ At the frontend hosting provider:
 4. Do not allow the browser to assign teacher/admin roles.
 5. Promote the intended owner/admin directly in the database only after the real account exists.
 
+## Automated deployment smoke
+
+CI starts the built Next.js production server and verifies:
+- /health returns ok=true
+- /, /learn, /ai, /login, /privacy and /terms return successfully
+- X-Frame-Options is DENY
+- X-Content-Type-Options is nosniff
+
 ## Production smoke test
 
+- https://noata.enterpriseworkhub.online/health returns ok=true
 - Public course loads while signed out
 - Draft content is hidden while signed out
 - Question answer keys cannot be selected as anon/student
