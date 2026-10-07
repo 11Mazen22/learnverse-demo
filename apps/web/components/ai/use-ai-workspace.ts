@@ -584,6 +584,49 @@ export function useAIWorkspace() {
     setAttachment(file);
     setError("");
   }
+  async function captureScreen() {
+    if (lock.current || busy) return;
+    if (!signedIn) {
+      setError("سجّل الدخول علشان ترفق لقطة شاشة.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      });
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      video.muted = true;
+      video.playsInline = true;
+      await video.play();
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw Error("screen capture unavailable");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      stream.getTracks().forEach((track) => track.stop());
+      video.srcObject = null;
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/png", 0.92),
+      );
+      if (!blob) throw Error("screen capture unavailable");
+      selectFile(
+        new File([blob], "screen-" + Date.now() + ".png", {
+          type: "image/png",
+        }),
+      );
+      setNotice("تم التقاط الشاشة. اكتب سؤالك ثم أرسل.");
+      composer.current?.focus();
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "NotAllowedError") {
+        setNotice("تم إلغاء مشاركة الشاشة.");
+      } else {
+        setError("تعذّر التقاط الشاشة. جرّب رفع صورة بدلًا منها.");
+      }
+    }
+  }
   async function transcribe(file: File) {
     if (lock.current) return;
     lock.current = true;
@@ -676,6 +719,33 @@ export function useAIWorkspace() {
       setVoiceBusy(false);
     }
   }
+  async function savePreferences() {
+    if (!signedIn) {
+      setError("سجّل الدخول علشان نحفظ تفضيلاتك.");
+      return false;
+    }
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw Error("auth expired");
+      const { error } = await supabase.from("user_settings").upsert(
+        {
+          user_id: user.id,
+          default_ai_model: model,
+          ai_memory_enabled: !temporary,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
+      if (error) throw error;
+      setNotice("تم حفظ تفضيلات Noata AI.");
+      return true;
+    } catch (e) {
+      setError(friendlyError(e));
+      return false;
+    }
+  }
   async function copy(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -702,11 +772,13 @@ export function useAIWorkspace() {
     archived: archiveView,
     onArchiveView: () => setArchiveView((x) => !x),
     temporary,
+    newChat,
     onTemporary: () => newChat(!temporary),
   };
   return {
     historyProps,
     selectFile,
+    captureScreen,
     setMobileHistory,
     temporary,
     activeId,
@@ -748,6 +820,9 @@ export function useAIWorkspace() {
     dialog,
     editValue,
     applyDialog,
+    savePreferences,
+    setNotice,
+    setError,
     sttModel,
     setSttModel,
     ttsModel,
