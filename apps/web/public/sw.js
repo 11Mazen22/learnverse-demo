@@ -1,5 +1,5 @@
-const CACHE="noata-shell-v2";
-const SHELL=["/","/offline.html","/manifest.webmanifest","/icon.svg"];
+const CACHE="noata-static-v3";
+const SHELL=["/offline.html","/manifest.webmanifest","/icon.svg"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -28,13 +28,7 @@ self.addEventListener("fetch",event=>{
 
   if(request.mode==="navigate"){
     event.respondWith(
-      fetch(request)
-        .then(response=>{
-          const copy=response.clone();
-          caches.open(CACHE).then(cache=>cache.put(request,copy));
-          return response;
-        })
-        .catch(()=>caches.match(request).then(hit=>hit||caches.match("/offline.html")))
+      fetch(request).catch(()=>caches.match("/offline.html"))
     );
     return;
   }
@@ -51,3 +45,4 @@ self.addEventListener("fetch",event=>{
     );
   }
 });
+

@@ -1,0 +1,58 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  parseStreamFrames,
+  validateAttachment,
+  safeHref,
+  titleFrom,
+} from "./workspace.ts";
+import { sanitizeFanarText } from "./sanitize.ts";
+test("SSE parser preserves incomplete events and accepts CRLF", () => {
+  const a = parseStreamFrames('data: {"content":"أهلا"}\r\n\r\ndata: {"do');
+  assert.deepEqual(a.data, ['{"content":"أهلا"}']);
+  assert.equal(a.rest, 'data: {"do');
+  const b = parseStreamFrames(a.rest + 'ne":true}\n\n');
+  assert.deepEqual(b.data, ['{"done":true}']);
+  assert.equal(b.rest, "");
+});
+test("uploads reject zero bytes, oversized files, and active formats", () => {
+  assert.ok(
+    validateAttachment({ name: "x.svg", type: "image/svg+xml", size: 400 }),
+  );
+  assert.ok(validateAttachment({ name: "x.png", type: "image/png", size: 0 }));
+  assert.ok(
+    validateAttachment({
+      name: "x.png",
+      type: "image/png",
+      size: 11 * 1024 * 1024,
+    }),
+  );
+  assert.equal(
+    validateAttachment({
+      name: "voice.webm",
+      type: "audio/webm;codecs=opus",
+      size: 500,
+    }),
+    "",
+  );
+});
+test("notification destinations reject javascript, protocol-relative and backslash URLs", () => {
+  for (const href of [
+    "javascript:alert(1)",
+    "//evil.test",
+    "/\\evil.test",
+    "https://evil.test",
+  ])
+    assert.equal(safeHref(href), "/notifications");
+  assert.equal(safeHref("/assignments?x=1"), "/assignments?x=1");
+});
+test("sanitizer removes reasoning and tool payloads including unfinished chunks", () => {
+  assert.equal(sanitizeFanarText("Visible<think>private"), "Visible");
+  assert.equal(sanitizeFanarText("A<analysis>secret</analysis>B"), "AB");
+  assert.equal(sanitizeFanarText("A<tool_start>secret<tool_end>B"), "AB");
+  assert.equal(sanitizeFanarText("A<thi"), "A");
+});
+test("conversation titles are bounded and normalize whitespace", () => {
+  assert.equal(titleFrom("  one\n two "), "one two");
+  assert.ok(titleFrom("a".repeat(100)).length <= 49);
+});

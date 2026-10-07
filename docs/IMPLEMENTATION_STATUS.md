@@ -1,126 +1,44 @@
-# Noata v1 implementation status
+# Noata 2.0 candidate status
 
-Last production engineering pass: 2026-10-07.
+Release gate: **not yet approved for production**. This document supersedes the v1 verification labels on this branch. Last updated 2026-10-07.
 
-Evidence labels used here:
+## Implemented and locally verified
 
-- **LIVE + VERIFIED** — applied to the real Supabase project or passed automated CI.
-- **IMPLEMENTED + BUILD VERIFIED** — production code exists and passes the build/type gates, but still needs public-browser QA.
-- **HUMAN QA REQUIRED** — cannot be truthfully certified from repository/Supabase automation alone.
+- Shared Arabic-first light/dark tokens, self-hosted Cairo, responsive navigation, command palette, accessible dialogs, reduced motion.
+- New data-backed dashboard; curriculum search/progress filters; contextual lesson-to-AI links.
+- Shared visual treatment across missions, Boss, review, progress, rewards, assignments, notifications, settings, auth, teacher and admin. Existing learning/economy rules retained.
+- Teacher workflow tabs, draft-before-publish assignment creation, nonempty grade validation. Admin user search, role confirmation, audit/usage views.
+- Native AI workspace: history, pin/archive/rename/delete, temporary mode, explicit edit confirmation, streaming/cancel, regeneration, continuation, Markdown/GFM/code/math, image attachments, STT/TTS controls, specialized tools.
+- Provider and browser sanitization remove hidden reasoning contents. Service-only request receipts reject duplicate inference attempts.
+- Private generated image paths stored in message metadata; signed links refreshed when conversations open.
+- PWA navigation uses network/offline fallback, avoiding cached authenticated HTML.
 
-## Platform foundation
+## Evidence
 
-- Next.js/React/TypeScript production application: **LIVE + VERIFIED**
-- Supabase production schema and migrations: **LIVE + VERIFIED**
-- Row Level Security across product data: **LIVE + VERIFIED**
-- Supabase Security Advisor: **LIVE + VERIFIED — zero security findings**
-- JWT-protected Noata AI Edge Function: **LIVE + VERIFIED**
-- private Fanar secret boundary: **LIVE + VERIFIED**
-- Arabic RTL / English LTR experience layer: **IMPLEMENTED + BUILD VERIFIED**
-- light/dark/system theme and reduced-motion preferences: **IMPLEMENTED + BUILD VERIFIED**
-- PWA manifest, service worker and offline shell: **IMPLEMENTED + BUILD VERIFIED**
+- TypeScript: pass.
+- Modern tests: 16/16 pass.
+- Legacy command: 84/84 pass (includes the modern tests; counts are not additive).
+- Next production build: pass, 23 generated pages.
+- Local production HTTP smoke: 18 routes returned 200; DENY frame and nosniff headers present. A rendered shell is not proof of an authenticated workflow.
+- Supabase candidate noata-ai-v2 deployed with JWT verification enabled. Existing noata-ai left intact.
+- Anonymous candidate request returned 401.
+- Two additive migrations applied: inference receipts and admin-only aggregated AI usage. No account data migration or DNS change.
 
-## Student learning
+## Outstanding release gates
 
-- sign up / sign in / password recovery / session handling: **IMPLEMENTED + BUILD VERIFIED**
-- profile/settings: **IMPLEMENTED + BUILD VERIFIED**
-- dashboard backed by real Supabase progress/economy data: **IMPLEMENTED + BUILD VERIFIED**
-- curriculum map: **IMPLEMENTED + BUILD VERIFIED**
-- lesson player: **IMPLEMENTED + BUILD VERIFIED**
-- adaptive three-stage Mission: **IMPLEMENTED + BUILD VERIFIED**
-- server-side grading with private answer keys: **LIVE + VERIFIED**
-- reviewed parallel retry variants: **LIVE + VERIFIED**
-- explainable mastery evidence: **LIVE + VERIFIED**
-- spaced Review Queue: **IMPLEMENTED + BUILD VERIFIED**
-- Unit Boss and one-time rewards: **LIVE + VERIFIED**
-- Mystery Box claim flow: **LIVE + VERIFIED**
-- XP and Coins separation: **LIVE + VERIFIED**
-- shop purchasing and cosmetic ownership: **LIVE + VERIFIED**
-- inventory/equip: **IMPLEMENTED + BUILD VERIFIED**
-- assignments and notifications: **IMPLEMENTED + BUILD VERIFIED**
+Authenticated Browser → Supabase → Fanar → UI → persistence testing; every capability's actual output; student/teacher/admin role journeys; browser viewport/theme/keyboard/voice checks; PWA offline/update check; production runtime log review; cross-user RLS tests. See TESTING.md and AI_CAPABILITY_MATRIX.md for explicit pending states.
 
-## Teacher and administrator
+Local Playwright browser download was blocked by execution network policy. Local Deno checking was blocked fetching the JSR manifest. Neither is a pass. CI and a deployed browser are the next verification paths.
 
-- role-scoped teacher/admin access enforced in RLS: **LIVE + VERIFIED**
-- class membership model: **LIVE + VERIFIED**
-- teacher class/evidence workspace: **IMPLEMENTED + BUILD VERIFIED**
-- assignment authoring and student submission workflows: **IMPLEMENTED + BUILD VERIFIED**
-- grade notifications: **LIVE + VERIFIED**
-- Admin Content Studio: **IMPLEMENTED + BUILD VERIFIED**
-- curriculum/course/unit/lesson/skill authoring policies: **LIVE + VERIFIED**
-- question draft creation with hidden answer key: **LIVE + VERIFIED**
-- draft -> review -> approve -> publish -> retire lifecycle: **LIVE + VERIFIED**
-- admin user role changes with audit events: **LIVE + VERIFIED**
+Historical Railway/Open WebUI archives were not present among the supplied files or repository snapshot. None were modified. Archive hashes/import inspection remain blocked on availability.
 
-## Noata AI
+## Known scope limits
 
-- persistent conversation history: **IMPLEMENTED + BUILD VERIFIED**
-- rename, pin, archive and delete conversations: **IMPLEMENTED + BUILD VERIFIED**
-- edit/regenerate/continue: **IMPLEMENTED + BUILD VERIFIED**
-- default model + memory preferences: **IMPLEMENTED + BUILD VERIFIED**
-- automatic Fanar routing: **LIVE + VERIFIED by regression tests**
-- Fanar response sanitizer: **LIVE + VERIFIED by regression tests**
-- safe Markdown/GFM response rendering: **IMPLEMENTED + BUILD VERIFIED**
-- image upload / vision: **IMPLEMENTED + BUILD VERIFIED**
-- STT: **IMPLEMENTED + BUILD VERIFIED**
-- TTS: **IMPLEMENTED + BUILD VERIFIED**
-- Oryx image generation: **IMPLEMENTED + BUILD VERIFIED**
-- Shaheen translation: **IMPLEMENTED + BUILD VERIFIED**
-- Guard moderation: **IMPLEMENTED + BUILD VERIFIED**
-- Diwan poetry: **IMPLEMENTED + BUILD VERIFIED**
-- Sadiq validation and deep research: **IMPLEMENTED + BUILD VERIFIED**
-- provider quota accounting: **LIVE + VERIFIED**
-
-## Security checks already performed
-
-- anonymous users can read intended published demo curriculum: **LIVE + VERIFIED**
-- anonymous users cannot read hidden question keys: **LIVE + VERIFIED**
-- draft questions remain hidden from anonymous users: **LIVE + VERIFIED**
-- student-controlled profile updates cannot alter role/XP/Coins: **LIVE + VERIFIED**
-- attempts/economy changes route through protected server operations: **LIVE + VERIFIED**
-- teacher/admin data access is database-scoped, not merely hidden in UI: **LIVE + VERIFIED**
-
-## Automated quality gate
-
-Current CI covers:
-
-1. TypeScript compilation
-2. modern typed Noata AI/domain regression tests
-3. Deno check for the Supabase Edge Function
-4. Next.js production build
-5. historical MVP regression tests
-
-The branch is not considered ready for handoff if any of these are red.
-
-## Content status
-
-The seeded Science course is **demo/reference content only**.
-
-It includes:
-- 2 units
-- 2 lessons
-- 2 skills
-- reviewed published demo questions
-- hidden answer keys
-- parallel retry variants
-- Unit Boss questions
-- an unpublished draft demonstrating Content Studio workflow
-- starter cosmetics
-
-Real school curriculum must be imported/reviewed separately before Noata is presented as curriculum-complete.
-
-## Human QA still required at the final handoff
-
-The user asked to test at the end, so these are intentionally left for the final public deployment pass rather than claiming false automated certainty:
-
-- real-browser signup and email confirmation
-- account recovery email round trip
-- real Fanar responses using the production secret
-- image/vision/STT/TTS on an actual browser/device
-- final desktop/mobile visual pass
-- physical touch keyboard/screen-reader testing
-- DNS/SSL on `noata.enterpriseworkhub.online`
-- end-to-end teacher/admin workflows with real accounts
-- domain-level performance measurements
-
-Everything above this section is either live-verified or build-verified; nothing in this document should be read as a claim that unperformed human QA has already happened.
+- No new full English translation: Arabic-first UI remains, with direction/language preferences preserved.
+- History currently loads at most 200 conversations and 500 messages per conversation; older pagination remains work.
+- No automatic deletion of Storage objects when deleting a conversation; privacy text discloses this.
+- Receipt cleanup runs during usage, not on a guaranteed retention schedule.
+- Realtime notification delivery and full role/browser QA are not certified.
+- Existing teacher visibility uses private.is_staff() on several learning tables; class isolation needs explicit regression testing before launch.
+- Admin usage is a last-500-attempt aggregate, not provider health, cost, latency, or success telemetry.
+- Demo science curriculum remains reference content, not an approved syllabus.

@@ -2,7 +2,7 @@ name: Noata CI
 
 on:
   push:
-    branches: [master, noata-v1-rebuild]
+    branches: [master, noata-v1-rebuild, noata-v2-total-redesign]
   pull_request:
     branches: [master]
 
@@ -24,7 +24,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm modern:test
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
@@ -57,3 +57,4 @@ jobs:
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-frame-options: DENY'
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-content-type-options: nosniff'
       - run: pnpm legacy:check
+
