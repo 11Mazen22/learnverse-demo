@@ -2,6 +2,7 @@
 
 import {FormEvent,useEffect,useMemo,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
+import type {Json} from "@/lib/supabase/database.types";
 import {CurriculumManager} from "@/components/admin/curriculum-manager";
 
 type Question={id:string;prompt_ar:string;review_status:string;publication_status:string;question_type:string};
@@ -109,7 +110,7 @@ export function AdminLive(){
     setBusy(true);setStatus("Creating draft…");
     const {error}=await supabase.rpc("create_question_draft",{
       p_lesson_id:lessonId,
-      p_unit_id:null,
+      p_unit_id:null as unknown as string,
       p_skill_id:skillId,
       p_question_type:questionType,
       p_prompt_ar:promptAr.trim(),
@@ -120,7 +121,7 @@ export function AdminLive(){
       p_explanation_ar:explanationAr.trim(),
       p_explanation_en:explanationEn.trim(),
       p_difficulty:1,
-      p_metadata:{source:"admin-studio"}
+      p_metadata:{source:"admin-studio"} as Json
     });
     if(error){setStatus(error.message);setBusy(false);return;}
 
