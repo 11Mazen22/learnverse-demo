@@ -93,6 +93,7 @@ create table public.attempts (
   response jsonb not null,
   correct boolean not null,
   assisted boolean not null default false,
+  practice_repeat boolean not null default false,
   evidence_weight numeric(4,3) not null default 1.0 check (evidence_weight >= 0),
   created_at timestamptz not null default now(),
   unique(user_id,idempotency_key)
@@ -238,6 +239,9 @@ alter table public.audit_events enable row level security;
 
 create policy "profiles own read" on public.profiles for select using (id=auth.uid() or public.is_staff());
 create policy "profiles own update" on public.profiles for update using (id=auth.uid()) with check (id=auth.uid());
+
+revoke update on public.profiles from anon,authenticated;
+grant update(display_name,preferred_language,avatar_url) on public.profiles to authenticated;
 create policy "courses public read" on public.courses for select using (active or public.is_staff());
 create policy "units read" on public.units for select using (true);
 create policy "lessons read" on public.lessons for select using (true);
