@@ -11,6 +11,7 @@ type Conversation={
   archived:boolean;
   selected_model:string;
   updated_at:string;
+  temporary:boolean;
 };
 
 type Message={
@@ -40,6 +41,8 @@ export function NoataAIClient(){
   const [attachment,setAttachment]=useState<File|null>(null);
   const [recording,setRecording]=useState(false);
   const [audioUrl,setAudioUrl]=useState<string|null>(null);
+  const [historyQuery,setHistoryQuery]=useState("");
+  const [showTools,setShowTools]=useState(false);
   const scroller=useRef<HTMLDivElement>(null);
   const fileInput=useRef<HTMLInputElement>(null);
   const recorder=useRef<MediaRecorder|null>(null);
@@ -48,7 +51,7 @@ export function NoataAIClient(){
   const loadConversations=useCallback(async()=>{
     const {data,error}=await supabase
       .from("ai_conversations")
-      .select("id,title,pinned,archived,selected_model,updated_at")
+      .select("id,title,pinned,archived,selected_model,updated_at,temporary")
       .eq("archived",false)
       .order("pinned",{ascending:false})
       .order("updated_at",{ascending:false});
@@ -74,7 +77,7 @@ export function NoataAIClient(){
     if(!user){window.location.href="/login";return null;}
     const {data,error}=await supabase.from("ai_conversations").insert({
       user_id:user.id,title:"New chat",selected_model:model
-    }).select("id,title,pinned,archived,selected_model,updated_at").single();
+    }).select("id,title,pinned,archived,selected_model,updated_at,temporary").single();
     if(error){setError(error.message);return null;}
     const row=data as Conversation;
     setConversations(current=>[row,...current]);
@@ -240,6 +243,48 @@ export function NoataAIClient(){
     await loadConversations();
   }
 
+  async function togglePin(conversation:Conversation){
+    const {error}=await supabase.from("ai_conversations").update({
+      pinned:!conversation.pinned,updated_at:new Date().toISOString()
+    }).eq("id",conversation.id);
+    if(error){setError(error.message);return;}
+    await loadConversations();
+  }
+
+  async function archiveConversation(id:string){
+    const {error}=await supabase.from("ai_conversations").update({
+      archived:true,updated_at:new Date().toISOString()
+    }).eq("id",id);
+    if(error){setError(error.message);return;}
+    if(activeId===id){setActiveId(null);setMessages([]);}
+    await loadConversations();
+  }
+
+  async function renameConversation(id:string,title:string){
+    const next=title.trim().slice(0,80);
+    if(!next)return;
+    const {error}=await supabase.from("ai_conversations").update({
+      title:next,updated_at:new Date().toISOString()
+    }).eq("id",id);
+    if(error){setError(error.message);return;}
+    await loadConversations();
+  }
+
+  async function editFrom(message:Message){
+    if(!activeId||message.role!=="user"||busy)return;
+    setInput(message.content);
+    const index=messages.findIndex(x=>x.id===message.id);
+    if(index<0)return;
+    const removeIds=messages.slice(index).map(x=>x.id);
+    const {error}=await supabase.from("ai_messages").delete().in("id",removeIds);
+    if(error){setError(error.message);return;}
+    setMessages(messages.slice(0,index));
+  }
+
+  const visibleConversations=conversations.filter(c=>
+    !historyQuery.trim()||c.title.toLowerCase().includes(historyQuery.trim().toLowerCase())
+  );
+
   async function regenerate(){
     if(busy||!activeId)return;
     const last=messages.at(-1);
@@ -261,12 +306,23 @@ export function NoataAIClient(){
     <aside className="ai-sidebar">
       <div className="brand"><div className="brand-mark">N</div><div className="brand-copy"><strong>Noata AI</strong><span>Study companion</span></div></div>
       <button className="ai-new" onClick={()=>void createConversation()}>＋ محادثة جديدة</button>
+      <input
+        value={historyQuery}
+        onChange={e=>setHistoryQuery(e.target.value)}
+        placeholder="ابحث في المحادثات…"
+        style={{height:38,borderRadius:11,border:"1px solid rgba(255,255,255,.1)",background:"rgba(255,255,255,.05)",color:"#fff",padding:"0 11px",outline:0}}
+      />
       <div className="ai-history">
-        {conversations.map(c=><div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr 28px",gap:4}}>
+        {visibleConversations.map(c=><div key={c.id} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:4,alignItems:"center"}}>
           <button onClick={()=>void openConversation(c.id)} style={{background:activeId===c.id?"rgba(255,255,255,.08)":undefined}}>{c.pinned?"◆ ":""}{c.title}</button>
-          <button onClick={()=>void removeConversation(c.id)} title="Delete" style={{border:0,background:"transparent",color:"#7386a4"}}>×</button>
+          <div style={{display:"flex"}}>
+            <button onClick={()=>void togglePin(c)} title={c.pinned?"Unpin":"Pin"} style={{border:0,background:"transparent",color:"#7386a4",width:26}}>◆</button>
+            <button onClick={()=>{const next=window.prompt("اسم المحادثة",c.title);if(next)void renameConversation(c.id,next);}} title="Rename" style={{border:0,background:"transparent",color:"#7386a4",width:26}}>✎</button>
+            <button onClick={()=>void archiveConversation(c.id)} title="Archive" style={{border:0,background:"transparent",color:"#7386a4",width:26}}>⌄</button>
+            <button onClick={()=>void removeConversation(c.id)} title="Delete" style={{border:0,background:"transparent",color:"#7386a4",width:26}}>×</button>
+          </div>
         </div>)}
-        {!conversations.length&&<div style={{padding:12,color:"#7288aa",fontSize:12}}>مفيش محادثات لسه. ابدأ واحدة جديدة.</div>}
+        {!visibleConversations.length&&<div style={{padding:12,color:"#7288aa",fontSize:12}}>مفيش محادثات مطابقة.</div>}
       </div>
     </aside>
 
@@ -284,6 +340,9 @@ export function NoataAIClient(){
         {messages.filter(x=>x.role!=="system").map(m=><div key={m.id} className={"message "+m.role}>
           {m.role==="assistant"&&<div style={{fontSize:11,color:"#7d8da4",marginBottom:5}}>{m.model||"Noata AI"}</div>}
           <div style={{whiteSpace:"pre-wrap"}}>{m.content}</div>
+          {m.role==="user"&&<div style={{display:"flex",gap:6,marginTop:7}}>
+            <button type="button" className="icon-btn" style={{width:32,height:32,background:"rgba(255,255,255,.08)",borderColor:"rgba(255,255,255,.12)",color:"white"}} title="Edit from here" onClick={()=>void editFrom(m)}>✎</button>
+          </div>}
           {m.role==="assistant"&&<div style={{display:"flex",gap:6,marginTop:7}}>
             <button type="button" className="icon-btn" style={{width:32,height:32}} title="Read aloud" onClick={()=>void readAloud(m.content)}>◖</button>
           </div>}
@@ -299,10 +358,19 @@ export function NoataAIClient(){
             <span>▧</span><span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{attachment.name}</span>
             <button type="button" onClick={()=>{setAttachment(null);if(fileInput.current)fileInput.current.value="";}} style={{border:0,background:"transparent"}}>×</button>
           </div>}
+          {showTools&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:7,padding:"6px 4px 10px"}}>
+            {[
+              ["Image","ارسم صورة","Generate image"],
+              ["Translate","ترجمة","Arabic ↔ English"],
+              ["Poem","ديوان","Arabic poetry"],
+              ["Research","بحث صادق","Deep research"]
+            ].map(([key,label,title])=><button type="button" key={key} title={title} onClick={()=>{setInput(current=>current||label+": ");setShowTools(false);}} style={{border:"1px solid #dce6f3",background:"#f8fbff",borderRadius:11,padding:"9px 7px",fontSize:11,fontWeight:800}}>{label}</button>)}
+          </div>}
           <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="اسأل Noata… اكتب، ارفع صورة، أو استخدم صوتك" onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}}/>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={pickImage}/>
           <div className="composer-actions">
             <div style={{display:"flex",gap:8}}>
+              <button type="button" className="icon-btn" title="Tools" onClick={()=>setShowTools(x=>!x)}>✦</button>
               <button type="button" className="icon-btn" title="Attach image" onClick={()=>fileInput.current?.click()}>＋</button>
               <button type="button" className="icon-btn" title={recording?"Stop recording":"Voice"} onClick={()=>void toggleRecording()} style={recording?{background:"#feecec",color:"#c73f3f"}:undefined}>{recording?"■":"◉"}</button>
               {messages.at(-1)?.role==="assistant"&&<button type="button" className="icon-btn" title="Regenerate" onClick={()=>void regenerate()}>↻</button>}
