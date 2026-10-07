@@ -398,6 +398,10 @@ export function useAIWorkspace() {
   ) {
     e?.preventDefault();
     if (lock.current || recording) return;
+    if (attachment && (tool || mode !== "send")) {
+      setError("لإرسال صورة، ابدأ رسالة عادية. الأدوات وإعادة التوليد لا تدعم مرفقًا جديدًا حاليًا.");
+      return;
+    }
     if (!signedIn) {
       window.location.href = "/login?next=/ai";
       return;
@@ -407,7 +411,7 @@ export function useAIWorkspace() {
         ? "كمّل شرحك من النقطة اللي وقفت عندها."
         : mode === "retry"
           ? (messages.at(-1)?.content ?? "")
-          : input.trim();
+          : input.trim() || (attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
