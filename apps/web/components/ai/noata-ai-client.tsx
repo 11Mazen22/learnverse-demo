@@ -10,7 +10,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
-import { TOOLS } from "@/lib/ai/workspace";
+import { TOOLS, safeStorageLink } from "@/lib/ai/workspace";
+import { SUPABASE_URL } from "@/lib/supabase/config";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
 import { ThemeControl } from "@/components/preferences/theme-control";
@@ -401,6 +402,23 @@ export function NoataAIClient() {
                       {m.role === "assistant" && m.model && <span>{m.model}</span>}
                     </div>
                     <RichMessage content={m.content} />
+                    {m.role === "user" && typeof m.metadata?.attachmentPath === "string" && (
+                      <div className="owui-sent-attachment">
+                        <Icon name="image" size={16} />
+                        <span>{typeof m.metadata.attachmentName === "string"
+                          ? m.metadata.attachmentName
+                          : "الصورة المرفقة"}</span>
+                        {safeStorageLink(m.metadata.attachmentUrl, SUPABASE_URL) ? (
+                          <a
+                            href={safeStorageLink(m.metadata.attachmentUrl, SUPABASE_URL)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >عرض الصورة</a>
+                        ) : (
+                          <small>أعد فتح المحادثة لتجديد رابط المعاينة</small>
+                        )}
+                      </div>
+                    )}
                     <div className="owui-message-actions">
                       <button type="button" onClick={() => void copy(m.content)} title="نسخ" aria-label="نسخ الرسالة">
                         <Icon name="copy" size={14} />
