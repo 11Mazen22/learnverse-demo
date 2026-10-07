@@ -75,6 +75,31 @@ async function authUser(req:Request){
 
 const admin=createClient(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
 
+function bytesToBase64(bytes:Uint8Array){
+  let binary="";
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+  }
+  return btoa(binary);
+}
+
+async function readPrivateUpload(userId:string,path:string){
+  if(!path.startsWith(userId+"/"))throw Object.assign(new Error("Attachment ownership mismatch"),{status:403});
+  const {data,error}=await admin.storage.from("noata-uploads").download(path);
+  if(error||!data)throw Object.assign(new Error("Attachment unavailable"),{status:404});
+  if(data.size>10*1024*1024)throw Object.assign(new Error("Attachment too large"),{status:413});
+  return data;
+}
+
+async function storeGenerated(userId:string,folder:string,bytes:ArrayBuffer,mimeType:string,extension:string){
+  const path=userId+"/"+folder+"/"+crypto.randomUUID()+"."+extension;
+  const {error}=await admin.storage.from("noata-generated").upload(path,bytes,{contentType:mimeType,upsert:false});
+  if(error)throw new Error("Could not store generated media");
+  const {data}=await admin.storage.from("noata-generated").createSignedUrl(path,3600);
+  return {path,signedUrl:data?.signedUrl??null,mimeType};
+}
+
 async function claim(userId:string,capability:string){
   const config=QUOTAS[capability]??{limit:20,window:60};
   const {data,error}=await admin.rpc("claim_ai_quota",{
@@ -130,12 +155,37 @@ async function discoverSpecialPath(kind:"validate"|"research"){
 }
 
 async function handleChat(userId:string,payload:any){
-  const model=typeof payload.model==="string"?payload.model:"Fanar";
-  if(!CHAT_MODELS.has(model))return json({error:"Unsupported chat model"},400);
-  const quota=await claim(userId,model);
+  let model=typeof payload.model==="string"?payload.model:"Fanar";
   if(!Array.isArray(payload.messages))return json({error:"messages must be an array"},400);
 
-  const messages=[{role:"system",content:system},...payload.messages.slice(-24)];
+  const safeMessages=payload.messages
+    .filter((m:any)=>m&&(m.role==="user"||m.role==="assistant")&&typeof m.content==="string")
+    .slice(-24)
+    .map((m:any)=>({role:m.role,content:m.content}));
+
+  if(payload.attachmentPath){
+    model="Fanar-Oryx-IVU-2";
+    const blob=await readPrivateUpload(userId,String(payload.attachmentPath));
+    if(!blob.type.startsWith("image/"))return json({error:"Vision requires an image attachment"},400);
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    const dataUrl="data:"+blob.type+";base64,"+bytesToBase64(bytes);
+    for(let i=safeMessages.length-1;i>=0;i--){
+      if(safeMessages[i].role==="user"){
+        safeMessages[i]={
+          role:"user",
+          content:[
+            {type:"text",text:safeMessages[i].content},
+            {type:"image_url",image_url:{url:dataUrl}}
+          ]
+        } as any;
+        break;
+      }
+    }
+  }
+
+  if(!CHAT_MODELS.has(model))return json({error:"Unsupported chat model"},400);
+  const quota=await claim(userId,model);
+  const messages=[{role:"system",content:system},...safeMessages];
   const body:any={
     model,messages,stream:false,
     max_tokens:Math.min(Math.max(Number(payload.max_tokens??1600),64),2200),
@@ -187,7 +237,12 @@ async function handleJsonAction(userId:string,payload:any){
   if(action==="image"){
     const quota=await claim(userId,"Fanar-Oryx-IG-2");
     const {data}=await fanarJson("/images/generations",{model:"Fanar-Oryx-IG-2",prompt:String(payload.prompt??"")});
-    return json({kind:"image",result:data,quota});
+    const first=Array.isArray(data?.data)?data.data[0]:null;
+    const b64=first?.b64_json??first?.b64??null;
+    if(!b64)return json({kind:"image",result:data,quota});
+    const raw=Uint8Array.from(atob(String(b64)),c=>c.charCodeAt(0));
+    const asset=await storeGenerated(userId,"images",raw.buffer,"image/png","png");
+    return json({kind:"image",asset,quota});
   }
 
   if(action==="sadiq_validate"||action==="sadiq_research"){
@@ -205,13 +260,14 @@ async function handleJsonAction(userId:string,payload:any){
 async function handleTts(userId:string,payload:any){
   const model=payload.model==="Fanar-Sadiq-TTS-1"?"Fanar-Sadiq-TTS-1":"Fanar-Aura-TTS-2";
   const quota=await claim(userId,model);
+  const format=payload.response_format==="wav"?"wav":"mp3";
   const response=await fetch(FANAR_BASE+"/audio/speech",{
     method:"POST",
     headers:{"Authorization":"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
     body:JSON.stringify({
       model,input:String(payload.input??""),
       voice:String(payload.voice??"Amelia"),
-      response_format:payload.response_format==="wav"?"wav":"mp3",
+      response_format:format,
       ...(model==="Fanar-Sadiq-TTS-1"?{quran_reciter:String(payload.quran_reciter??"abdul-basit")}:{})
     }),
     signal:AbortSignal.timeout(180000)
@@ -220,11 +276,34 @@ async function handleTts(userId:string,payload:any){
     const data=await response.json().catch(()=>({}));
     return json({error:data},response.status);
   }
-  const headers=new Headers(cors);
-  headers.set("Content-Type",response.headers.get("Content-Type")??"audio/mpeg");
-  headers.set("Cache-Control","no-store");
-  headers.set("X-Noata-Quota-Remaining",String(quota?.remaining??""));
-  return new Response(response.body,{status:200,headers});
+  const mime=response.headers.get("Content-Type")??(format==="wav"?"audio/wav":"audio/mpeg");
+  const asset=await storeGenerated(userId,"audio",await response.arrayBuffer(),mime,format);
+  return json({
+    kind:"audio",
+    asset,
+    revisedInput:response.headers.get("X-Revised-Input"),
+    quota
+  });
+}
+
+async function handleStoredStt(userId:string,payload:any){
+  const model=payload.model==="Fanar-Aura-STT-LF-1"?"Fanar-Aura-STT-LF-1":"Fanar-Aura-STT-1";
+  const quota=await claim(userId,model);
+  const blob=await readPrivateUpload(userId,String(payload.attachmentPath??""));
+  if(!blob.type.startsWith("audio/"))return json({error:"Transcription requires an audio attachment"},400);
+  const form=new FormData();
+  form.append("file",blob,String(payload.filename??"audio"));
+  form.append("model",model);
+  if(model==="Fanar-Aura-STT-LF-1")form.append("format",String(payload.format??"json"));
+  const response=await fetch(FANAR_BASE+"/audio/transcriptions",{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+FANAR_KEY},
+    body:form,
+    signal:AbortSignal.timeout(180000)
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)return json({error:data},response.status);
+  return json({kind:"stt",result:data,quota});
 }
 
 async function handleStt(req:Request,userId:string){
@@ -264,6 +343,7 @@ Deno.serve(async(req)=>{
     const payload=await req.json().catch(()=>null);
     if(!payload)return json({error:"Invalid payload"},400);
     if(payload.action==="tts")return await handleTts(user.id,payload);
+    if(payload.action==="transcribe_storage")return await handleStoredStt(user.id,payload);
     return await handleJsonAction(user.id,payload);
   }catch(error){
     const e=error as Error&{status?:number;quota?:unknown;data?:unknown};
