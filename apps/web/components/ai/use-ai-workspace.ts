@@ -772,7 +772,6 @@ export function useAIWorkspace() {
     archived: archiveView,
     onArchiveView: () => setArchiveView((x) => !x),
     temporary,
-    newChat,
     onTemporary: () => newChat(!temporary),
   };
   return {
@@ -781,6 +780,7 @@ export function useAIWorkspace() {
     captureScreen,
     setMobileHistory,
     temporary,
+    newChat,
     activeId,
     conversations,
     busy,
