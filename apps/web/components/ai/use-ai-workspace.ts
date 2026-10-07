@@ -175,6 +175,18 @@ export function useAIWorkspace() {
       const restored = await Promise.all(
         (data ?? []).map(async (message) => {
           const meta = message.metadata as Record<string, unknown> | null;
+          if (message.role === "user" && typeof meta?.attachmentPath === "string") {
+            const link = await supabase.storage
+              .from("noata-uploads")
+              .createSignedUrl(meta.attachmentPath, 3600);
+            return {
+              ...message,
+              metadata: {
+                ...meta,
+                attachmentUrl: link.data?.signedUrl ?? null,
+              },
+            };
+          }
           if (typeof meta?.assetPath === "string") {
             const signed = await supabase.storage
               .from("noata-generated")
@@ -417,26 +429,43 @@ export function useAIWorkspace() {
       if (mode === "regenerate") {
         history = messages.slice(0, -1);
       }
+      let path: string | undefined;
+      if (attachment) {
+        // Upload and record the real file before reporting a sent message.
+        setNotice("بنرفع الملف…");
+        path = await upload(attachment, conversationId);
+        setNotice("");
+      }
       if (mode === "send" || mode === "continue") {
         const row: Message = {
           id: crypto.randomUUID(),
           conversation_id: conversationId,
           role: "user",
           content: text,
+          metadata: path && attachment
+            ? {
+                attachmentPath: path,
+                attachmentName: attachment.name,
+                attachmentMime: attachment.type,
+              }
+            : {},
           model: null,
           status: "complete",
           created_at: new Date().toISOString(),
         };
         const saved = await persist(row);
+        if (path && attachment) {
+          const signed = await supabase.storage
+            .from("noata-uploads")
+            .createSignedUrl(path, 3600);
+          saved.metadata = {
+            ...(saved.metadata ?? {}),
+            attachmentUrl: signed.data?.signedUrl ?? null,
+          };
+        }
         history = [...history, saved];
         setMessages(history);
         setInput("");
-      }
-      let path: string | undefined;
-      if (attachment) {
-        setNotice("بنرفع الملف…");
-        path = await upload(attachment, conversationId);
-        setNotice("");
       }
       let result: { content: string; model: string };
       let metadata: Record<string, unknown> = {};
