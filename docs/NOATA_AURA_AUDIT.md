@@ -39,6 +39,7 @@ The archives contain historical account/authentication/chat data and must remain
 - Correct cleanup of the active audio element on conversation navigation.
 - Regression tests for stale speech results and cancellation.
 - More readable Arabic UI font sizes across the existing AI workspace.
+- Image uploads now precede user-message persistence; message metadata records the actual private storage path, filename and MIME type. The chat history refreshes private signed preview links when reopened. Standalone image analysis is enabled, and unsupported image+tool combinations explicitly fail rather than pretending to process a file.
 - No new external AI provider, model capability, production database migration, or destructive action.
 
 ## Still required for the complete brief
