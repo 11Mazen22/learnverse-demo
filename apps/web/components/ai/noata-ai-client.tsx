@@ -1,6 +1,6 @@
 "use client";
 
-import {FormEvent,useCallback,useEffect,useMemo,useRef,useState} from "react";
+import {ChangeEvent,FormEvent,useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {FANAR_CAPABILITIES} from "@/lib/ai/catalog";
 
@@ -37,7 +37,13 @@ export function NoataAIClient(){
   const [input,setInput]=useState("");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
+  const [attachment,setAttachment]=useState<File|null>(null);
+  const [recording,setRecording]=useState(false);
+  const [audioUrl,setAudioUrl]=useState<string|null>(null);
   const scroller=useRef<HTMLDivElement>(null);
+  const fileInput=useRef<HTMLInputElement>(null);
+  const recorder=useRef<MediaRecorder|null>(null);
+  const recordingChunks=useRef<Blob[]>([]);
 
   const loadConversations=useCallback(async()=>{
     const {data,error}=await supabase
@@ -84,10 +90,90 @@ export function NoataAIClient(){
     return await createConversation();
   }
 
-  async function invokeChat(history:{role:string;content:string}[]){
+  async function uploadFile(file:File,conversationId?:string){
+    const {data:{user}}=await supabase.auth.getUser();
+    if(!user)throw new Error("Please sign in first");
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]+/g,"-").slice(-80)||"upload";
+    const path=user.id+"/"+(conversationId??"scratch")+"/"+crypto.randomUUID()+"-"+safeName;
+    const {error}=await supabase.storage.from("noata-uploads").upload(path,file,{upsert:false,contentType:file.type});
+    if(error)throw error;
+    await supabase.from("ai_attachments").insert({
+      user_id:user.id,
+      conversation_id:conversationId??null,
+      storage_path:path,
+      mime_type:file.type,
+      size_bytes:file.size
+    });
+    return path;
+  }
+
+  function pickImage(e:ChangeEvent<HTMLInputElement>){
+    const file=e.target.files?.[0]??null;
+    if(!file)return;
+    if(!file.type.startsWith("image/")){setError("اختار صورة من فضلك.");return;}
+    if(file.size>10*1024*1024){setError("الصورة أكبر من 10MB.");return;}
+    setAttachment(file);setError("");
+  }
+
+  async function transcribeBlob(blob:Blob){
+    setBusy(true);setError("");
+    try{
+      const file=new File([blob],"voice.webm",{type:blob.type||"audio/webm"});
+      const path=await uploadFile(file,activeId??undefined);
+      const {data,error}=await supabase.functions.invoke("noata-ai",{
+        body:{action:"transcribe_storage",model:"Fanar-Aura-STT-1",attachmentPath:path,filename:file.name}
+      });
+      if(error)throw error;
+      if(data?.error)throw new Error(typeof data.error==="string"?data.error:JSON.stringify(data.error));
+      const text=String(data?.result?.text??data?.result?.transcript??"").trim();
+      if(!text)throw new Error("No transcript returned");
+      setInput(current=>current?current+" "+text:text);
+    }catch(err){setError(err instanceof Error?err.message:"Voice transcription failed");}
+    finally{setBusy(false);}
+  }
+
+  async function toggleRecording(){
+    if(recording){
+      recorder.current?.stop();
+      return;
+    }
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const media=new MediaRecorder(stream);
+      recordingChunks.current=[];
+      media.ondataavailable=e=>{if(e.data.size)recordingChunks.current.push(e.data);};
+      media.onstop=()=>{
+        setRecording(false);
+        stream.getTracks().forEach(t=>t.stop());
+        const blob=new Blob(recordingChunks.current,{type:media.mimeType||"audio/webm"});
+        void transcribeBlob(blob);
+      };
+      recorder.current=media;
+      media.start();
+      setRecording(true);
+    }catch{setError("محتاج إذن الميكروفون علشان أسمعك.");}
+  }
+
+  async function readAloud(text:string){
+    setError("");
+    try{
+      const {data,error}=await supabase.functions.invoke("noata-ai",{
+        body:{action:"tts",model:"Fanar-Aura-TTS-2",input:text,voice:"Amelia",response_format:"mp3"}
+      });
+      if(error)throw error;
+      if(data?.error)throw new Error(typeof data.error==="string"?data.error:JSON.stringify(data.error));
+      const url=String(data?.asset?.signedUrl??"");
+      if(!url)throw new Error("No audio URL returned");
+      setAudioUrl(url);
+      const audio=new Audio(url);
+      await audio.play();
+    }catch(err){setError(err instanceof Error?err.message:"Text-to-speech failed");}
+  }
+
+  async function invokeChat(history:{role:string;content:string}[],attachmentPath?:string){
     const selected=model==="auto"?"Fanar":model;
     const {data,error}=await supabase.functions.invoke("noata-ai",{
-      body:{action:"chat",model:selected,messages:history}
+      body:{action:"chat",model:selected,messages:history,attachmentPath}
     });
     if(error)throw error;
     if(data?.error)throw new Error(typeof data.error==="string"?data.error:JSON.stringify(data.error));
@@ -118,13 +204,19 @@ export function NoataAIClient(){
         .filter(x=>x.role==="user"||x.role==="assistant")
         .map(x=>({role:x.role,content:x.content}));
 
-      const response=await invokeChat(history);
+      let attachmentPath:string|undefined;
+      if(attachment){
+        attachmentPath=await uploadFile(attachment,conversationId);
+      }
+      const response=await invokeChat(history,attachmentPath);
       const {data:assistantRow,error:assistantError}=await supabase.from("ai_messages").insert({
         conversation_id:conversationId,role:"assistant",content:response.content,model:response.model,status:"complete"
       }).select("id,conversation_id,role,content,model,status,created_at").single();
       if(assistantError)throw assistantError;
 
       setMessages(current=>current.filter(x=>x.id!==optimistic.id).concat(userRow as Message,assistantRow as Message));
+      setAttachment(null);
+      if(fileInput.current)fileInput.current.value="";
 
       const existing=conversations.find(x=>x.id===conversationId);
       const patch:{
@@ -192,16 +284,29 @@ export function NoataAIClient(){
         {messages.filter(x=>x.role!=="system").map(m=><div key={m.id} className={"message "+m.role}>
           {m.role==="assistant"&&<div style={{fontSize:11,color:"#7d8da4",marginBottom:5}}>{m.model||"Noata AI"}</div>}
           <div style={{whiteSpace:"pre-wrap"}}>{m.content}</div>
+          {m.role==="assistant"&&<div style={{display:"flex",gap:6,marginTop:7}}>
+            <button type="button" className="icon-btn" style={{width:32,height:32}} title="Read aloud" onClick={()=>void readAloud(m.content)}>◖</button>
+          </div>}
         </div>)}
+        {audioUrl&&<audio src={audioUrl} controls style={{width:"min(520px,100%)"}}/>}
         {busy&&<div className="message assistant" style={{color:"#6b7b92"}}>Noata بيفكر…</div>}
         {error&&<div className="message assistant" style={{color:"#e35757"}}>{error}</div>}
       </div>
 
       <footer className="ai-composer">
         <form className="composer-box" onSubmit={send}>
+          {attachment&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#f0f6ff",borderRadius:12,fontSize:12}}>
+            <span>▧</span><span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{attachment.name}</span>
+            <button type="button" onClick={()=>{setAttachment(null);if(fileInput.current)fileInput.current.value="";}} style={{border:0,background:"transparent"}}>×</button>
+          </div>}
           <textarea value={input} onChange={e=>setInput(e.target.value)} placeholder="اسأل Noata… اكتب، ارفع صورة، أو استخدم صوتك" onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}}/>
+          <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={pickImage}/>
           <div className="composer-actions">
-            <div style={{display:"flex",gap:8}}><button type="button" className="icon-btn" title="Attachment">＋</button><button type="button" className="icon-btn" title="Voice">◉</button>{messages.at(-1)?.role==="assistant"&&<button type="button" className="icon-btn" title="Regenerate" onClick={()=>void regenerate()}>↻</button>}</div>
+            <div style={{display:"flex",gap:8}}>
+              <button type="button" className="icon-btn" title="Attach image" onClick={()=>fileInput.current?.click()}>＋</button>
+              <button type="button" className="icon-btn" title={recording?"Stop recording":"Voice"} onClick={()=>void toggleRecording()} style={recording?{background:"#feecec",color:"#c73f3f"}:undefined}>{recording?"■":"◉"}</button>
+              {messages.at(-1)?.role==="assistant"&&<button type="button" className="icon-btn" title="Regenerate" onClick={()=>void regenerate()}>↻</button>}
+            </div>
             <button disabled={busy||!input.trim()} className="send-btn">إرسال ↑</button>
           </div>
         </form>
