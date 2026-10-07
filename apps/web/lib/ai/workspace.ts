@@ -1,3 +1,4 @@
+import { isTextDocument, MAX_TEXT_DOCUMENT_BYTES } from "./document-text";
 export type Conversation = {
   id: string;
   title: string;
@@ -66,6 +67,12 @@ export function validateAttachment(file: {
   type: string;
   size: number;
 }) {
+  if (isTextDocument(file)) {
+    if (!file.size) return "الملف فارغ. اختار ملف تاني.";
+    return file.size <= MAX_TEXT_DOCUMENT_BYTES
+      ? ""
+      : "الملفات النصية حدها 512 كيلوبايت. اختار ملف أصغر.";
+  }
   if (
     ![
       "image/png",
@@ -78,7 +85,7 @@ export function validateAttachment(file: {
       "audio/wav",
     ].includes(file.type.split(";")[0])
   )
-    return "اختار صورة PNG أو JPG أو WebP، أو ملف صوتي مدعوم.";
+    return "المدعوم حاليًا: PNG/JPG/WebP أو صوت، ومستندات TXT/MD/CSV/JSON. PDF وDOCX لم يجهزا للتحليل بعد.";
   if (file.size > 10 * 1024 * 1024)
     return "حجم الملف لازم يكون أقل من 10 ميجابايت.";
   if (file.size === 0) return "الملف فارغ. اختار ملف تاني.";
