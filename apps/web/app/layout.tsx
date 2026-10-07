@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body><PwaRegister/><ExperienceBoot/>{children}</body>
+      <body><a className="skip-link" href="#noata-main">Skip to content</a><PwaRegister/><ExperienceBoot/>{children}</body>
     </html>
   );
 }
