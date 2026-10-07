@@ -1733,7 +1733,7 @@ html[data-reduced-motion="true"] *::after {
   display: block;
   margin-top: 2px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-icon,
 .owui-round {
@@ -1763,7 +1763,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 8px 10px;
   background: transparent;
   text-align: start;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
 }
 .owui-new-chat:hover {
@@ -1774,7 +1774,7 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-new-chat kbd {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 500;
 }
 .owui-search {
@@ -1795,7 +1795,7 @@ html[data-reduced-motion="true"] *::after {
   outline: 0 !important;
   padding: 7px 0 !important;
   background: transparent !important;
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-sidebar-links,
 .owui-sidebar-footer {
@@ -1820,7 +1820,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 7px 9px;
   text-align: start;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-sidebar-links a:hover,
 .owui-sidebar-links button:hover,
@@ -1835,7 +1835,7 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-sidebar-links i {
   font-style: normal;
-  font-size: 7px;
+  font-size: 12px;
   padding: 2px 5px;
   border-radius: 999px;
   color: var(--accent);
@@ -1855,7 +1855,7 @@ html[data-reduced-motion="true"] *::after {
 .owui-chat-group h3 {
   margin: 0 8px 3px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 650;
   letter-spacing: .02em;
 }
@@ -1885,7 +1885,7 @@ html[data-reduced-motion="true"] *::after {
   background: transparent;
   padding: 4px 6px;
   text-align: start;
-  font-size: 10px;
+  font-size: 14px;
   color: inherit;
 }
 .owui-chat-title span {
@@ -1932,7 +1932,7 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-history-empty p {
   margin: 0;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-sidebar-footer {
   padding-top: 6px;
@@ -1980,7 +1980,7 @@ html[data-reduced-motion="true"] *::after {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-status-pill {
   display: inline-flex;
@@ -1990,7 +1990,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 5px 9px;
   color: var(--warning);
   background: color-mix(in srgb, var(--warning) 10%, var(--surface));
-  font-size: 9px;
+  font-size: 13px;
 }
 .mobile-sidebar-trigger {
   display: none;
@@ -2020,14 +2020,14 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-model-trigger small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.15;
 }
 .owui-model-trigger strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 650;
 }
 .owui-model-menu,
@@ -2068,11 +2068,11 @@ html[data-reduced-motion="true"] *::after {
   min-width: 0;
 }
 .owui-model-menu strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-model-menu small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-model-dot {
   width: 9px;
@@ -2105,7 +2105,7 @@ html[data-reduced-motion="true"] *::after {
   gap: 7px;
   padding: 7px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-messages {
   min-width: 0;
@@ -2154,7 +2154,7 @@ html[data-reduced-motion="true"] *::after {
   max-width: 560px;
   margin: 7px 0 21px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
 }
 .owui-suggestions {
   width: min(100%, 620px);
@@ -2183,11 +2183,11 @@ html[data-reduced-motion="true"] *::after {
   display: grid;
 }
 .owui-suggestions strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-suggestions small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2203,7 +2203,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 8px 13px;
   color: white;
   background: #245d49;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 750;
 }
 html[data-theme="dark"] .owui-primary-action {
@@ -2226,13 +2226,13 @@ html[data-theme="dark"] .owui-primary-action {
   background: var(--surface-soft);
   color: var(--muted);
   font-family: system-ui, sans-serif;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 800;
 }
 .owui-message.assistant .owui-message-avatar {
   color: #d9f08a;
   background: #245d49;
-  font-size: 11px;
+  font-size: 14px;
 }
 .owui-message-body {
   min-width: 0;
@@ -2245,11 +2245,11 @@ html[data-theme="dark"] .owui-primary-action {
   margin-bottom: 1px;
 }
 .owui-message-meta strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-message-meta span {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-message.user .ai-rich-message {
   display: inline-block;
@@ -2281,7 +2281,7 @@ html[data-theme="dark"] .owui-primary-action {
   background: transparent;
   color: var(--muted);
   padding: 5px 7px;
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-message-actions button:hover {
   color: var(--ink);
@@ -2313,7 +2313,7 @@ html[data-theme="dark"] .owui-primary-action {
 .owui-thinking em {
   margin-inline-start: 6px;
   font-style: normal;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-loading {
   min-height: 50vh;
@@ -2334,7 +2334,7 @@ html[data-theme="dark"] .owui-primary-action {
 .owui-loading > span:nth-child(3) { animation-delay: .3s; }
 .owui-loading p {
   margin-inline-start: 7px;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-audio-card {
   width: min(100%, var(--owui-content));
@@ -2353,7 +2353,7 @@ html[data-theme="dark"] .owui-primary-action {
   gap: 5px;
 }
 .owui-audio-card strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-audio-card audio {
   width: 100%;
@@ -2363,7 +2363,7 @@ html[data-theme="dark"] .owui-primary-action {
   width: min(100%, var(--owui-content));
   margin: 0 auto;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-error {
   width: min(100%, var(--owui-content));
@@ -2379,12 +2379,12 @@ html[data-theme="dark"] .owui-primary-action {
   background: color-mix(in srgb, var(--danger) 5%, var(--surface));
 }
 .owui-error strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-error p {
   margin: 1px 0 0;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-error button {
   border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--line));
@@ -2392,7 +2392,7 @@ html[data-theme="dark"] .owui-primary-action {
   background: transparent;
   color: inherit;
   padding: 6px 9px;
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-composer-wrap {
   position: relative;
@@ -2454,7 +2454,7 @@ html[data-theme="dark"] .owui-primary-action {
   background: transparent;
   color: var(--muted);
   padding: 0 10px;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-tool-toggle:hover,
 .owui-tool-toggle.active {
@@ -2463,7 +2463,7 @@ html[data-theme="dark"] .owui-primary-action {
 }
 .owui-char-count {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-send {
   width: 34px;
@@ -2519,7 +2519,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   display: grid;
 }
 .owui-input-menu strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-input-menu small {
   color: var(--muted);
@@ -2563,7 +2563,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-attachment small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-recording {
   display: flex;
@@ -2571,7 +2571,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   gap: 7px;
   margin: 2px 4px 5px;
   color: var(--danger);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-recording-dot {
   width: 8px;
@@ -2588,7 +2588,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: transparent;
   color: inherit;
   text-decoration: underline;
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-tool-panel {
   position: absolute;
@@ -2611,7 +2611,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   display: grid;
 }
 .owui-tool-panel-head strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-tool-panel-head small {
   color: var(--muted);
@@ -2645,7 +2645,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-tool-list small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-drop-overlay {
   position: absolute;
@@ -2666,7 +2666,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-drop-overlay span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-mobile-sidebar .owui-sidebar {
   width: 100%;
@@ -2687,7 +2687,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .owui-control-grid label > span,
 .owui-settings-content label > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-control-grid select,
 .owui-settings-content select {
@@ -2717,11 +2717,11 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   display: grid;
 }
 .owui-setting-switch strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-setting-switch small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-setting-switch i {
   min-width: 38px;
@@ -2731,7 +2731,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: color-mix(in srgb, var(--ink) 6%, transparent);
   text-align: center;
   font-style: normal;
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-setting-switch.active i {
   color: var(--accent);
@@ -2751,7 +2751,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   border-radius: 10px;
   background: transparent;
   padding: 7px 12px;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-settings {
   display: grid;
@@ -2777,7 +2777,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   padding: 7px 9px;
   text-align: start;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-settings-tabs button:hover,
 .owui-settings-tabs button.active {
@@ -2797,7 +2797,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .owui-settings-content p {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-settings-content > * + h3 {
   margin-top: 20px;
@@ -2826,7 +2826,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-capability-list small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-privacy-links,
 .owui-export-actions {
@@ -2841,7 +2841,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: transparent;
   padding: 7px 10px;
   color: var(--accent);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-shortcuts {
   display: grid;
@@ -2856,7 +2856,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-shortcuts span {
   flex: 1;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-shortcuts kbd {
   min-width: 27px;
@@ -2867,7 +2867,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: var(--surface-soft);
   text-align: center;
   font-family: ui-monospace, monospace;
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-dialog-textarea {
   width: 100%;
@@ -2927,7 +2927,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     display: none;
   }
   .owui-model-trigger strong {
-    font-size: 9px;
+    font-size: 13px;
   }
   .owui-navbar-actions .top-icon {
     width: 34px;
@@ -2949,7 +2949,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     font-size: 24px;
   }
   .owui-welcome > p {
-    font-size: 9px;
+    font-size: 13px;
   }
   .owui-suggestions {
     grid-template-columns: 1fr;
@@ -2965,10 +2965,10 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     width: 26px;
     height: 26px;
     border-radius: 8px;
-    font-size: 7px;
+    font-size: 12px;
   }
   .owui-message.assistant .owui-message-avatar {
-    font-size: 9px;
+    font-size: 13px;
   }
   .owui-message .ai-rich-message {
     font-size: 11.5px;
@@ -2987,7 +2987,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   }
   .owui-composer textarea {
     min-height: 44px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .owui-tool-toggle {
     padding-inline: 8px;
