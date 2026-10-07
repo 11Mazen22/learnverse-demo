@@ -38,7 +38,7 @@ export function AppShell({children,active,role="student"}:{children:React.ReactN
       <div className="sidebar-foot">Noata v1<br/>AI-native learning system<br/><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></div>
     </aside>
 
-    <section className="noata-main">
+    <section className="noata-main" id="noata-main" tabIndex={-1}>
       <header className="topbar">
         <div>
           <a href="/" className="top-brand">Noata</a>
