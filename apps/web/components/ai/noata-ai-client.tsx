@@ -13,6 +13,7 @@ import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
 import { TOOLS } from "@/lib/ai/workspace";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
+import { WritingStudio } from "./writing-studio";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
 import { ThemeControl } from "@/components/preferences/theme-control";
@@ -101,6 +102,7 @@ export function NoataAIClient() {
   const [inputMenuOpen, setInputMenuOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [studioSource, setStudioSource] = useState<string | null>(null);
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeId),
@@ -433,6 +435,14 @@ export function NoataAIClient() {
                         </button>
                       ) : (
                         <>
+                          <button
+                            type="button"
+                            onClick={() => setStudioSource(m.content)}
+                            title="تحرير الرد في مساحة الكتابة"
+                            aria-label="فتح الرد في مساحة الكتابة"
+                          >
+                            <Icon name="edit" size={14} />
+                          </button>
                           <button
                             type="button"
                             disabled={voiceBusy}
@@ -970,6 +980,11 @@ export function NoataAIClient() {
         </div>
       </Dialog>
 
+      <WritingStudio
+        open={studioSource !== null}
+        source={studioSource ?? ""}
+        onClose={() => setStudioSource(null)}
+      />
       <Dialog
         open={Boolean(dialog)}
         onClose={() => {
