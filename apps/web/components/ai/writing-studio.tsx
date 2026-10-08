@@ -34,6 +34,33 @@ export function WritingStudio({
       setNotice("المستند طويل جدًا للتصدير. قصّره أو حمّله بصيغة Markdown.");
     }
   }
+  const [busy,setBusy]=useState(false);
+  async function downloadArabicPdf() {
+    if(busy)return;
+    setBusy(true);setNotice("جارٍ إنشاء ملف PDF عربي…");
+    try {
+      const firstLine=draft.split("\n").find(l=>l.trim())?.replace(/^#+\s*/,"").slice(0,80)||"مستند Noata";
+      const response=await fetch("/api/pdf",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({title:firstLine,markdown:draft}),
+      });
+      if(!response.ok){
+        const detail=await response.json().catch(()=>null) as {error?:string}|null;
+        setNotice(detail?.error||"تعذر إنشاء ملف PDF الآن.");
+        return;
+      }
+      const url=URL.createObjectURL(await response.blob());
+      const a=document.createElement("a");
+      a.href=url;a.download="noata-document.pdf";
+      document.body.append(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),15000);
+      setNotice("تم إنشاء ملف PDF عربي جاهز للتنزيل.");
+    } catch {
+      setNotice("تعذر الاتصال بخدمة PDF. تحقق من الاتصال وحاول مرة أخرى.");
+    } finally {
+      setBusy(false);
+    }
+  }
   function printToPdf() {
     const win=window.open("","_blank");
     if(!win){setNotice("اسمح بالنوافذ المنبثقة لطباعة المستند أو حفظه بصيغة PDF.");return;}
@@ -76,7 +103,8 @@ export function WritingStudio({
           <small>{draft.length.toLocaleString("ar-EG")} حرف</small>
           <button type="button" disabled={!draft.trim()} onClick={saveWord}>Word DOCX</button>
           <button type="button" disabled={!draft.trim()} onClick={downloadMarkdown}>Markdown</button>
-          <button type="button" disabled={!draft.trim()} onClick={printToPdf}>طباعة / حفظ PDF</button>
+          <button type="button" disabled={!draft.trim()||busy} aria-busy={busy} onClick={downloadArabicPdf}>PDF عربي</button>
+          <button type="button" disabled={!draft.trim()} onClick={printToPdf}>طباعة</button>
         </div>
         {notice && <p className="aura-studio-status" role="status">{notice}</p>}
       </div>

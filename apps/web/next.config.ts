@@ -13,6 +13,9 @@ const nextConfig:NextConfig={
   reactStrictMode:true,
   poweredByHeader:false,
   compress:true,
+  // pdfkit/fontkit read their own data files with fs, so they must not be bundled.
+  serverExternalPackages:["pdfkit","fontkit"],
+  outputFileTracingIncludes:{"/api/pdf":["./lib/pdf/fonts/**"]},
   async headers(){
     return [{
       source:"/:path*",

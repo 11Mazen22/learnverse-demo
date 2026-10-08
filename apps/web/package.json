@@ -9,10 +9,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/cairo": "^5.3.0",
     "@supabase/ssr": "0.7.0",
     "@supabase/supabase-js": "2.117.3",
+    "bidi-js": "1.0.3",
+    "fontkit": "2.0.4",
     "katex": "0.19.0",
     "next": "16.4.0",
+    "pdfjs-dist": "5.4.394",
+    "pdfkit": "0.17.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",
@@ -20,12 +25,13 @@
     "rehype-katex": "7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "6.0.0",
-    "zod": "4.6.5",
-    "pdfjs-dist": "5.4.394"
+    "zod": "4.6.5"
   },
   "devDependencies": {
+    "@fontsource/noto-sans-math": "^5.3.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "24.19.1",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "tailwindcss": "4.3.3",
