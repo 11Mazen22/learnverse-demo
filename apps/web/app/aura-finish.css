@@ -749,3 +749,202 @@ html[data-theme="dark"] a.notification-bell b {
 .aura-quran-verse { font-size-adjust: none; }
 .aura-quran-font button:disabled { opacity: .45; cursor: not-allowed; }
 .aura-quran-font button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Noata Aura — unified Arabic account recovery experience */
+.auth-journey-shell {
+  background:
+    radial-gradient(circle at 12% 15%, color-mix(in srgb,var(--accent) 9%,transparent),transparent 44%),
+    radial-gradient(circle at 88% 82%,color-mix(in srgb,var(--accent) 6%,transparent),transparent 38%),
+    var(--surface-soft);
+  min-height:100dvh;
+  padding:clamp(20px,4vw,54px) 16px;
+}
+.auth-journey-shell .auth-journey-card {
+  position:relative;
+  isolation:isolate;
+  width:min(550px,100%);
+  padding:clamp(24px,4vw,44px);
+  gap:13px;
+  border-radius:28px;
+  box-shadow:0 32px 90px color-mix(in srgb,var(--ink) 10%,transparent);
+  overflow:hidden;
+}
+.auth-journey-shell .auth-journey-card::before {
+  content:"";
+  position:absolute;
+  inset-block-start:0;
+  inset-inline-start:0;
+  height:4px;
+  width:100%;
+  background:linear-gradient(90deg,#68c6ff,#066abd 56%,#123669);
+}
+.auth-journey-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:20px;
+  margin-bottom:2px;
+  border-bottom:1px solid var(--line);
+}
+.auth-journey-lock {
+  display:grid;
+  place-items:center;
+  flex:none;
+  width:50px;
+  height:50px;
+  border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));
+  border-radius:15px;
+  color:var(--accent);
+  background:var(--accent-soft);
+}
+.auth-journey-shell .auth-card h1 {
+  margin:1px 0;
+  font-size:clamp(26px,3vw,35px);
+  line-height:1.38;
+  font-weight:850;
+  letter-spacing:-.025em;
+}
+.auth-journey-shell .auth-lead {
+  margin:0;
+  font-size:14px;
+  line-height:2;
+  color:var(--muted);
+  max-width:54ch;
+}
+.auth-journey-content {
+  display:grid;
+  gap:18px;
+  padding-top:10px;
+}
+.auth-journey-shell .auth-form { gap:19px; }
+.auth-journey-shell .auth-primary {
+  width:100%;
+  min-height:53px;
+  border-radius:14px;
+  font-size:15px;
+}
+.auth-journey-shell .auth-field input {
+  min-height:54px;
+  font-size:16px;
+  border-radius:14px;
+}
+.auth-journey-steps {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  width:100%;
+}
+.auth-journey-steps span {
+  padding:10px 4px;
+  text-align:center;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--surface-soft);
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+  font-weight:700;
+}
+.auth-journey-steps .is-active {
+  color:var(--accent);
+  border-color:color-mix(in srgb,var(--accent) 40%,var(--line));
+  background:var(--accent-soft);
+}
+.auth-journey-note {
+  font-size:12px;
+  line-height:1.95;
+  color:var(--muted);
+  margin:0;
+}
+.auth-journey-guidance {
+  display:grid;
+  gap:7px;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--surface-soft);
+}
+.auth-journey-guidance strong { font-size:14px; font-weight:800; color:var(--ink); }
+.auth-journey-guidance p { font-size:13px; line-height:1.9; color:var(--muted); margin:0; }
+.auth-journey-mail-icon {
+  display:grid;place-items:center;
+  width:76px;height:76px;
+  border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));
+  border-radius:25px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:39px;
+  margin:auto;
+}
+.auth-journey-success {
+  display:grid;
+  place-items:center;
+  margin:auto;
+  width:75px;height:75px;
+  border-radius:50%;
+  color:#fff;
+  background:#087b60;
+  font-size:38px;
+  font-weight:800;
+  box-shadow:0 9px 28px #087b6033;
+}
+.auth-journey-subaction {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:9px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  color:var(--accent);
+  font:inherit;
+  text-decoration:none;
+  text-align:center;
+  font-weight:750;
+  font-size:13px;
+  cursor:pointer;
+}
+.auth-journey-subaction:hover { background:var(--accent-soft); }
+.auth-journey-footer {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+  border-top:1px solid var(--line);
+  padding-top:19px;
+  margin-top:10px;
+  font-size:11px;
+  color:var(--muted);
+}
+.auth-journey-back {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:10px;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:750;
+  text-decoration:none;
+  color:var(--ink);
+}
+.auth-journey-back:hover { background:var(--accent-soft); color:var(--accent); }
+.auth-journey-shell :is(.auth-primary,.auth-journey-subaction,.auth-journey-back):focus-visible {
+  outline:3px solid var(--accent);
+  outline-offset:3px;
+}
+@media(max-width:480px) {
+  .auth-journey-shell { padding:12px; place-items:start center; }
+  .auth-journey-shell .auth-journey-card { border-radius:22px; margin:12px 0; padding:25px 19px; }
+  .auth-journey-top { padding-bottom:14px; }
+  .auth-journey-steps span { font-size:10px; }
+  .auth-journey-footer { align-items:flex-start; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .auth-journey-shell *, .auth-journey-shell *::before, .auth-journey-shell *::after {
+    animation-duration:.01ms!important;
+    transition-duration:.01ms!important;
+  }
+}
