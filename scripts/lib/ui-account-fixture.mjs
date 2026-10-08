@@ -154,6 +154,16 @@ function installFixture(origin) {
     if (url.pathname === "/auth/v1/user") return reply(user());
     if (url.pathname === "/auth/v1/logout") return reply({});
     if (url.pathname.startsWith("/functions/v1/")) {
+      // This fixture is deliberately synthetic and makes no real Fanar call.
+      // Simulate the new authenticated, side-effect-free preflight separately
+      // from the streaming request so the existing stream assertions stay real.
+      let payload = null;
+      try { payload = typeof init.body === "string" ? JSON.parse(init.body) : null; }
+      catch {}
+      if (payload?.action === "readiness") {
+        state.calls.at(-1).action = "readiness";
+        return reply({ provider: "Fanar", configured: true });
+      }
       return new Response(
         new ReadableStream({
           start(controller) {
