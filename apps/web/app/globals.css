@@ -3558,3 +3558,36 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
  .aura-studio textarea, .aura-studio-preview { min-height: 210px; }
  .aura-studio-footer button { flex: 1; }
 }
+
+
+/* Noata Aura dashboard: data-backed recommended next step. */
+.aura-next-step {
+  display: flex; align-items: center; gap: 17px;
+  padding: clamp(16px,2vw,24px); margin-block: 21px 5px;
+  background: color-mix(in srgb, var(--surface) 86%, var(--accent-soft));
+  border: 1px solid color-mix(in srgb, var(--accent) 17%, var(--line));
+  border-radius: 22px;
+  box-shadow: 0 9px 25px color-mix(in srgb, var(--accent) 4%, transparent);
+}
+.aura-next-step-icon {
+  width: 56px; height: 56px; flex: none; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+  border-radius: 16px;
+}
+.aura-next-step-copy { flex: 1; min-width: 0; }
+.aura-next-step-copy span { font-size: 12px; color: var(--accent); font-weight: 700; }
+.aura-next-step-copy h2 { font-size: clamp(17px,1.8vw,23px); margin: 2px 0 3px; line-height: 1.6; }
+.aura-next-step-copy p { margin: 0; font-size: 13px; line-height: 1.8; color: var(--muted); }
+.aura-next-step-action {
+  min-height: 45px; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--accent); color: var(--surface);
+  padding: 9px 15px; border-radius: 12px; font-weight: 750; font-size: 13px;
+}
+.aura-next-step-action:hover { filter: brightness(1.1); }
+@media(max-width: 650px) {
+ .aura-next-step { flex-wrap: wrap; gap: 11px; }
+ .aura-next-step-icon { width: 44px; height: 44px; border-radius: 12px; }
+ .aura-next-step-copy { flex-basis: calc(100% - 65px); }
+ .aura-next-step-action { width: 100%; }
+}
