@@ -3762,3 +3762,24 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .aura-education-error{color:var(--danger);font-size:13px}
 .aura-education-note{font-size:11px;color:var(--muted);line-height:1.8;margin:0}
 @media(max-width:530px){.aura-education-grid{grid-template-columns:1fr}.aura-education-entry{margin-inline:9px;font-size:12px;padding-inline:10px}.aura-education-grid>button{min-height:65px}}
+
+
+/* Noata Aura Phase 4 — honest multi-document composer and citations. */
+.aura-document-tray{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:10px 12px;border:1px dashed var(--line);border-radius:15px;background:var(--surface-soft)}
+.aura-document-tray>small{width:100%;font-size:11px;color:var(--muted);line-height:1.6}
+.aura-document-chip{display:flex;gap:7px;align-items:center;max-width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.aura-document-chip>span{font-size:12px;font-weight:650;max-width:165px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+.aura-document-chip>small{font-size:11px;color:var(--muted)}
+.aura-document-chip button{min-width:28px;min-height:28px;border:0;border-radius:7px;display:grid;place-items:center;color:var(--muted)}
+.aura-document-chip button:hover{background:var(--accent-soft);color:var(--accent)}
+.aura-source-files{display:flex;flex-wrap:wrap;gap:9px;margin-block:11px}
+.aura-source-files button{display:flex;gap:9px;align-items:center;max-width:min(100%,350px);min-height:51px;padding:9px 12px;border:1px solid var(--line);border-radius:13px;background:var(--surface-soft);text-align:start}
+.aura-source-files button:hover{background:var(--accent-soft);border-color:var(--accent)}
+.aura-source-files button span{display:grid;gap:2px;min-width:0}
+.aura-source-files button strong{font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aura-source-files button small{font-size:11px;color:var(--muted)}
+.aura-source-preview{display:grid;gap:13px;max-height:65dvh;overflow-y:auto}
+.aura-source-preview p{margin:0;font-size:13px;line-height:1.8;color:var(--muted)}
+.aura-source-preview pre{max-height:42dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;line-height:1.8;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);unicode-bidi:plaintext}
+.aura-source-preview small{font-size:11px;color:var(--muted);line-height:1.8}
+@media(max-width:520px){.aura-document-chip{flex-basis:100%}.aura-document-chip>span{flex:1;max-width:calc(100vw - 170px)}.aura-source-files button{width:100%}}
