@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
-import { normalizedAuthFlow, RECOVERY_GRANT_KEY, recoveryGrantValue } from "@/lib/auth/flows";
+import { normalizedAuthFlow, RECOVERY_GRANT_KEY, recoveryGrantValue, AUTH_COMPLETION_KEY, authCompletionValue } from "@/lib/auth/flows";
 
 function reasonFromCode(code: string | null | undefined) {
   if (code === "otp_expired" || code === "flow_state_expired" || code === "expired_token")
@@ -62,6 +62,12 @@ export default function AuthCallbackPage() {
           return;
         }
         if (flow === "signup") {
+          try {
+            sessionStorage.setItem(AUTH_COMPLETION_KEY, authCompletionValue("verified", data.user.id, Date.now()));
+          } catch {
+            window.location.replace(safeNextPath(params.get("next")));
+            return;
+          }
           window.location.replace("/auth/complete?type=verified");
           return;
         }
