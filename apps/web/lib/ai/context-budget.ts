@@ -1,4 +1,5 @@
 import { appendDocumentContext } from "./document-text.ts";
+import { appendDocumentSources } from "./multi-document.ts";
 import type { Message } from "./workspace.ts";
 
 /**
@@ -13,7 +14,7 @@ export function createAiMessageContext(history:Message[]):{role:"user"|"assistan
  const result:{role:"user"|"assistant";content:string}[]=[];
  for(let i=recent.length-1;i>=0;i--){
   const m=recent[i];
-  const raw=appendDocumentContext(m.content,m.metadata);
+  const raw=appendDocumentSources(appendDocumentContext(m.content,m.metadata),m.metadata?.documentSources);
   if(!budget)break;
   const content=raw.slice(0,Math.min(budget,20000));
   if(!content)continue;
