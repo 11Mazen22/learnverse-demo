@@ -1,19 +1,19 @@
 # Noata isolated staging provisioning proposal
 
-Prepared 2026-10-08. **CREATION APPROVED: Free only, $0 additional monthly ceiling. No resource created by this cloud agent; execution is blocked by the unavailable management connection.**
+Updated 2026-10-08. **PROVISIONED BY THE USER: `vpfpjvhafkmygetjkfcp`, ACTIVE_HEALTHY, Free, eu-west-2. No migration applied by this cloud agent. Staging configuration/testing is blocked by unavailable connections and secure bindings.**
 
 | Setting | Proposed value |
 | --- | --- |
 | Organization | Noata |
 | Organization ID | `sbvcxdwcawkddndptsuh` |
-| New project | `noata-staging` |
+| New project | `noata-staging` — `vpfpjvhafkmygetjkfcp` |
 | Region | `eu-west-2` — London |
 | Plan | Free (`tier_free`) |
 | Additional monthly subscription | $0 |
 | Maximum additional authorized spend | $0; no paid add-ons or upgrade |
 | Existing production project | `jdkfqdzgphzqbbzmerzr` — excluded from QA and changes |
 
-The user independently checked the connected Supabase account and its project-cost API: one accessible organization, one active/healthy Free project, one of two active Free-project slots used, and a quoted creation estimate of **$0/month**. The user also checked official region support and the account-wide active Free-project limit. This is attributed user-provided API evidence, not a connector response obtained by this agent. Connector tools are unavailable in this cloud session.
+The user independently checked the connected Supabase account and its project-cost API before creation: one remaining Free slot and **$0/month**. The user then created and independently verified the separate staging project. A subsequent connected inspection confirmed **zero public application tables, migrations, Auth users and Edge Functions**. These are attributed user API results. Connectors are available only in the separate connected session, not this cloud session. No staging bindings are verified; the new endpoint returns proxy CONNECT 403 here.
 
 Before executing an approved creation, recheck eligibility and the $0 estimate. Abort if capacity, quotas or plan changes require an upgrade, paid add-on or nonzero charge. Never accept a pricing change automatically. Set the database password through secure settings; do not place credentials in this document, chat, repository, screenshots or logs. Creating a project is the only action proposed for approval here; production, domains, billing and PR merging remain excluded.
 
@@ -28,7 +28,7 @@ Before executing an approved creation, recheck eligibility and the $0 estimate. 
 
 ## Recorded approval and next action
 
-The user approved creation of **only** `noata-staging` in organization `sbvcxdwcawkddndptsuh`, region `eu-west-2`, on Free with a $0 additional monthly ceiling. The approval satisfies the earlier user instruction: **“Do not create the project or accept any paid upgrade until I explicitly approve.”** Execution still needs an authorized callable Supabase connection; this session currently has none.
+Creation approval was executed by the user for **only** `noata-staging` in organization `sbvcxdwcawkddndptsuh`, region `eu-west-2`, Free, $0. Subsequent non-destructive staging configuration, base migrations and disposable QA are authorized. Every operation must target `vpfpjvhafkmygetjkfcp`; production is excluded.
 
 
-The user additionally authorized safe staging configuration and authenticated testing after creation, while keeping production untouched and PR #3 draft. Recheck the $0 quote before executing; stop if payment is required. This session has no callable Supabase connector or management credential. Return the **new** public reference/status through the connected session; store keys/passwords only in secure staging settings. The private-document migration remains unapplied and retention stays off. An approved creation is not evidence that a project exists or that authenticated QA passed.
+This session has no callable management connector or staging credentials. Secure settings must supply the connections/bindings; keys/passwords must never enter chat or Git. A guarded 18-file base initialization bundle and SHA-256 manifest are prepared under `/workspace/noata-staging/`, explicitly targeted to the new reference and refusing an existing Noata schema. No request was sent. Inspect actual migration history before execution and do not reset/replay existing data. The new private-document migration remains excluded and unapplied; retention stays off. A healthy empty project does not establish authentication, provider or RLS correctness.

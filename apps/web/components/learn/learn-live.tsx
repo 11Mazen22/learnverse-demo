@@ -251,7 +251,7 @@ export function LearnLive() {
             <article
               className="panel aura-curriculum-unit"
               key={unit.id}
-              style={{ opacity: isLocked ? 0.58 : 1 }}
+              data-locked={isLocked}
             >
               <div className="panel-head">
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -304,7 +304,7 @@ export function LearnLive() {
                           background: isLocked
                             ? "var(--surface-soft)"
                             : "var(--accent)",
-                          color: isLocked ? "var(--muted)" : "#fff",
+                          color: isLocked ? "var(--muted)" : "var(--surface)",
                         }}
                         href={isLocked ? "#" : "/lesson/" + lesson.id}
                       >

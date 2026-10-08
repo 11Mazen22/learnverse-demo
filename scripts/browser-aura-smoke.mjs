@@ -3,6 +3,7 @@
 import {resolve} from "node:path";
 import {launchQaBrowser,findQaChrome,diagnosticError} from "./lib/qa-browser.mjs";
 import {verifyUiAccountContracts} from "./lib/ui-account-fixture.mjs";
+import {verifyPublicCurriculum} from "./lib/public-curriculum-fixture.mjs";
 import {createRequire} from "node:module";
 const require=createRequire(new URL("../apps/web/package.json",import.meta.url));
 const axeSource=await readFile(require.resolve("axe-core/axe.min.js"),"utf8");
@@ -321,6 +322,7 @@ async function main() {
   await verifyWritingAndTheme();
   await verifyDocuments();
   await verifyQuranControls();
+  await verifyPublicCurriculum({browser,evaluate,navigate,waitFor,invariant,auditView:auditSyntheticView});
   await verifyUiAccountContracts({browser,evaluate,navigate,waitFor,invariant,screenshot,base,auditView:auditSyntheticView});
   // Keep a bounded trace over the final reduced-motion/reflow interaction only.
   await command("Tracing.start",{categories:"devtools.timeline,blink.user_timing",transferMode:"ReturnAsStream"});

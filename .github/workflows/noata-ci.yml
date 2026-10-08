@@ -36,6 +36,7 @@ jobs:
           node --check scripts/authenticated-aura-smoke.mjs
           node --check scripts/lib/qa-browser.mjs
           node --check scripts/lib/ui-account-fixture.mjs
+          node --check scripts/lib/public-curriculum-fixture.mjs
           node --check scripts/install-qa-chrome.mjs
           node --check scripts/browser-launch-smoke.mjs
       - name: Browser startup fault regressions
