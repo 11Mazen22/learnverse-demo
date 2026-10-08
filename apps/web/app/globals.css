@@ -3521,3 +3521,40 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .aura-history-menu-panel button:last-child { color: var(--danger); }
 .aura-history-menu summary:focus-visible,
 .aura-history-menu-panel button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+
+/* Noata Aura — editable Arabic document workspace */
+.aura-studio { display: grid; gap: 14px; max-height: 72dvh; overflow-y: auto; }
+.aura-studio > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.9; }
+.aura-studio-tabs { display: flex; gap: 7px; padding: 5px; border-radius: 13px; background: var(--surface-soft); }
+.aura-studio-tabs button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 40px; flex: 1; border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted); font-size: 14px; font-weight: 700;
+}
+.aura-studio-tabs button[aria-pressed="true"] {
+  background: var(--surface); color: var(--accent);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.aura-studio textarea {
+  display: block; width: 100%; min-height: 260px; resize: vertical;
+  padding: 17px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); font-size: 15px; line-height: 1.95;
+}
+.aura-studio-preview {
+  min-height: 260px; max-height: 45dvh; overflow: auto;
+  padding: 17px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); font-size: 15px;
+}
+.aura-studio-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.aura-studio-footer small { margin-inline-end: auto; color: var(--muted); }
+.aura-studio-footer button {
+  min-height: 40px; padding: 8px 12px; background: var(--surface-soft);
+  border: 1px solid var(--line); border-radius: 10px; font-size: 13px; font-weight: 700;
+}
+.aura-studio-footer button:hover { background: var(--accent-soft); color: var(--accent); }
+.aura-studio-status { background: var(--accent-soft); color: var(--accent) !important; padding: 9px 12px; border-radius: 10px; }
+@media(max-width: 540px){
+ .aura-studio textarea, .aura-studio-preview { min-height: 210px; }
+ .aura-studio-footer button { flex: 1; }
+}
