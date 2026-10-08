@@ -1,4 +1,5 @@
 import { isTextDocument, MAX_TEXT_DOCUMENT_BYTES } from "./document-text.ts";
+import { isDocxDocument, MAX_DOCX_INPUT } from "./docx-ingest.ts";
 export type Conversation = {
   id: string;
   title: string;
@@ -67,6 +68,10 @@ export function validateAttachment(file: {
   type: string;
   size: number;
 }) {
+  if (isDocxDocument(file)) {
+    if (file.size === 0) return "الملف فارغ. اختار ملف تاني.";
+    return file.size <= MAX_DOCX_INPUT ? "" : "ملفات Word الحد الأقصى لها 6 ميجابايت.";
+  }
   if (isTextDocument(file)) {
     if (!file.size) return "الملف فارغ. اختار ملف تاني.";
     return file.size <= MAX_TEXT_DOCUMENT_BYTES
@@ -85,7 +90,7 @@ export function validateAttachment(file: {
       "audio/wav",
     ].includes(file.type.split(";")[0])
   )
-    return "المدعوم حاليًا: PNG/JPG/WebP أو صوت، ومستندات TXT/MD/CSV/JSON. PDF وDOCX لم يجهزا للتحليل بعد.";
+    return "المدعوم حاليًا: PNG/JPG/WebP أو صوت، ومستندات TXT/MD/CSV/JSON/DOCX. PDF لم يجهز للتحليل بعد.";
   if (file.size > 10 * 1024 * 1024)
     return "حجم الملف لازم يكون أقل من 10 ميجابايت.";
   if (file.size === 0) return "الملف فارغ. اختار ملف تاني.";
