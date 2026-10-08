@@ -631,6 +631,25 @@ export function useAIWorkspace() {
         composer.current?.focus();
       } else if (dialog.conversation) {
         const c = dialog.conversation;
+        let uploads: string[] = [];
+        let generated: string[] = [];
+        if (dialog.kind === "delete") {
+          // Collect owner-scoped private objects BEFORE the cascade removes
+          // their metadata. Never delete a path outside this authenticated user.
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw Error("auth expired");
+          const [items, replyRows] = await Promise.all([
+            supabase.from("ai_attachments").select("storage_path").eq("conversation_id", c.id).limit(1000),
+            supabase.from("ai_messages").select("metadata").eq("conversation_id", c.id).limit(1000),
+          ]);
+          if (items.error || replyRows.error) throw items.error ?? replyRows.error;
+          uploads = [...new Set((items.data ?? [])
+            .map(x => x.storage_path)
+            .filter(p => typeof p === "string" && p.startsWith(user.id + "/")))];
+          generated = [...new Set((replyRows.data ?? [])
+            .map(x => (x.metadata as Record<string, unknown> | null)?.assetPath)
+            .filter((p): p is string => typeof p === "string" && p.startsWith(user.id + "/")))];
+        }
         const result =
           dialog.kind === "delete"
             ? await supabase.from("ai_conversations").delete().eq("id", c.id)
@@ -639,6 +658,14 @@ export function useAIWorkspace() {
                 .update({ title: editValue.trim().slice(0, 80) })
                 .eq("id", c.id);
         if (result.error) throw result.error;
+        if (dialog.kind === "delete") {
+          const [uploadsResult, generatedResult] = await Promise.all([
+            uploads.length ? supabase.storage.from("noata-uploads").remove(uploads) : Promise.resolve({error:null}),
+            generated.length ? supabase.storage.from("noata-generated").remove(generated) : Promise.resolve({error:null}),
+          ]);
+          if (uploadsResult.error || generatedResult.error)
+            setNotice("تم حذف المحادثة، لكن تعذّر إزالة بعض الملفات. راجع إعدادات بياناتك.");
+        }
         if (dialog.kind === "delete" && activeId === c.id) {
           stopVoice();
           setActiveId(null);
