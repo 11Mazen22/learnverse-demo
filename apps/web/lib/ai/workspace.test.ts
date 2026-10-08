@@ -75,6 +75,7 @@ test("text document attachments have their own safe MIME and size limits", () =>
   assert.equal(validateAttachment({name:"notes.json",type:"application/json",size:620}),"");
   assert.ok(validateAttachment({name:"evil.html",type:"text/html",size:620}));
   assert.equal(validateAttachment({name:"reading.docx",type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",size:620}),"");
-  assert.ok(validateAttachment({name:"unsupported.pdf",type:"application/pdf",size:620}));
+  assert.equal(validateAttachment({name:"lecture.pdf",type:"application/pdf",size:620}),"");
+  assert.ok(validateAttachment({name:"unsupported.xlsx",type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",size:620}));
   assert.ok(validateAttachment({name:"oversize.txt",type:"text/plain",size:600000}));
 });
