@@ -513,3 +513,109 @@
     color: #e3f4ff;
   }
 }
+
+/* Noata's brand mark uses three independent silhouettes (cap, N and book).
+   Reserve a stable square in every header and avoid inline image cropping. */
+.noata-logo {
+  aspect-ratio: 1;
+  overflow: visible;
+  flex-shrink: 0;
+  isolation: isolate;
+}
+.noata-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.noata-brand { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; min-width: 0; }
+.noata-brand-mark { flex: 0 0 auto; line-height: 0; }
+.noata-brand-copy { min-width: 0; text-align: start; gap: 2px; }
+.noata-brand-copy strong { font-family: Arial, "Cairo", sans-serif; letter-spacing: -.025em; font-size: clamp(19px,1.65vw,25px); line-height: 1.1; }
+.noata-brand-copy small { line-height: 1.5; white-space: nowrap; font-size: 11px; }
+.noata-sidebar .sidebar-brand { min-width: 0; }
+.noata-sidebar .sidebar-brand .noata-brand { width: 100%; }
+
+/* Avatar is an account trigger, never a sign-out shortcut. */
+.noata-user-account { position: relative; min-width: 0; z-index: 45; }
+.noata-user-account-trigger-row { display: flex; align-items: center; gap: 10px; }
+.noata-user-summary { text-align: end; display: grid; gap: 2px; min-width: 0; }
+.noata-user-summary strong { font-size: 12px; font-weight: 800; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.noata-user-summary small { color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.noata-account-trigger {
+  display: grid; place-items: center;
+  flex: none;
+  min-width: 44px; min-height: 44px; width: 44px; height: 44px;
+  border: 2px solid color-mix(in srgb, var(--accent) 25%, var(--surface));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ink) 8%, transparent);
+  cursor: pointer;
+}
+.noata-account-trigger[aria-expanded="true"] {
+  outline: 3px solid color-mix(in srgb, var(--accent) 65%, transparent);
+  outline-offset: 2px;
+}
+.noata-account-menu {
+  position: absolute; inset-inline-end: 0; top: calc(100% + 12px);
+  width: min(324px,calc(100vw - 28px));
+  min-width: 245px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: var(--ink);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--ink) 19%, transparent);
+  display: grid; gap: 4px;
+  z-index: 500;
+}
+.noata-account-menu-identity {
+  display: grid; gap: 6px;
+  padding: 13px 14px;
+  margin-bottom: 4px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.noata-account-menu-identity strong { font-size: 15px; font-weight: 850; overflow-wrap: anywhere; }
+.noata-account-menu-identity small { font-size: 11px; color: var(--muted); text-align: start; overflow-wrap: anywhere; }
+.noata-account-menu-identity span { font-size: 11px; color: var(--accent); font-weight: 750; }
+.noata-account-menu > :is(a,button) {
+  width: 100%; display: flex; align-items: center; justify-content: flex-start;
+  gap: 12px; min-height: 44px;
+  background: transparent; border: 0; border-radius: 12px;
+  padding: 11px 13px; color: var(--ink); text-align: start;
+  font: inherit; font-weight: 750; font-size: 13px; text-decoration: none;
+  cursor: pointer;
+}
+.noata-account-menu > :is(a,button):hover { background: var(--accent-soft); color: var(--accent); }
+.noata-account-menu > :is(a,button):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -2px;
+  background: var(--accent-soft);
+}
+.noata-account-menu-separator { border-top: 1px solid var(--line); margin: 5px 2px; }
+.noata-account-menu > .noata-account-logout { color: #c72e48; }
+.noata-account-menu > .noata-account-logout:hover { color: #a91633; background: color-mix(in srgb, #f04460 9%, var(--surface)); }
+.noata-account-error { position: absolute; max-width: 280px; inset-block-start: calc(100% + 5px); inset-inline-end: 0; color: #bd2340; font-size: 12px; }
+.aura-settings-account-overview {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;
+  padding: 18px; border: 1px solid var(--line); background: var(--surface-soft); border-radius: 16px;
+}
+.aura-settings-account-overview > div { display: grid; gap: 5px; min-width: 0; }
+.aura-settings-account-overview strong { font-weight: 850; color: var(--ink); }
+.aura-settings-account-overview span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.aura-settings-signout {
+  display: inline-flex; align-items: center; gap: 9px; justify-content: center;
+  min-height: 44px; padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, #c53249 42%, var(--line));
+  border-radius: 13px; background: var(--surface);
+  color: #b52540; font: inherit; font-size: 13px; font-weight: 800;
+  cursor: pointer;
+}
+.aura-settings-signout:hover { background: color-mix(in srgb, #dc455c 7%, var(--surface)); }
+.aura-settings-signout:disabled { opacity: .55; cursor: wait; }
+.aura-settings-signout:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media(max-width:520px) {
+  .noata-account-trigger { width: 44px; height: 44px; }
+  .noata-account-menu { width: min(320px,calc(100vw - 24px)); }
+  .noata-user-summary { display: none; }
+  .aura-settings-account-overview { align-items: stretch; }
+  .aura-settings-signout { width: 100%; }
+}
