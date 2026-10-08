@@ -32,6 +32,8 @@ const paths: Record<string, string> = {
   dots: "M6 12h.01M12 12h.01M18 12h.01",
   download: "M12 3v12m-5-5 5 5 5-5M4 20h16",
   screen: "M3 4h18v12H3Zm6 16h6m-3-4v4",
+  sun: "M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.5 1.5m9.8 9.8 1.5 1.5M18.4 5.6l-1.5 1.5m-9.8 9.8-1.5 1.5M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
+  moon: "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z",
   sparkles: "m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6ZM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z",
   chevron: "m8 10 4 4 4-4",
   folder: "M3 6h7l2 2h9v11H3Z",
