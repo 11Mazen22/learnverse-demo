@@ -6,6 +6,8 @@ import {
   safeHref,
   safeStorageLink,
   titleFrom,
+  aiResponseFailure,
+  friendlyError,
 } from "./workspace.ts";
 import { sanitizeFanarText } from "./sanitize.ts";
 test("SSE parser preserves incomplete events and accepts CRLF", () => {
@@ -150,4 +152,16 @@ test("notification destinations cannot become external after browser control-cha
     assert.equal(safeHref(href), "/notifications");
   }
   assert.equal(safeHref("/ai?chat=owned-id"), "/ai?chat=owned-id");
+});
+
+test("Fanar configuration failures remain distinguishable from upstream outages", () => {
+  assert.equal(
+    aiResponseFailure(503, { code: "FANAR_NOT_CONFIGURED", error: "AI backend is not configured" }),
+    "FANAR_NOT_CONFIGURED",
+  );
+  assert.equal(aiResponseFailure(503, { error: "Service Unavailable" }), "FANAR_UNAVAILABLE");
+  assert.equal(aiResponseFailure(401, { error: "Unauthorized" }), "401");
+  assert.match(friendlyError(new Error("FANAR_NOT_CONFIGURED")), /Fanar.*لم يكتمل/);
+  assert.match(friendlyError(new Error("FANAR_UNAVAILABLE")), /غير متاحة مؤقتًا/);
+  assert.match(friendlyError(new Error("401")), /الجلسة انتهت/);
 });
