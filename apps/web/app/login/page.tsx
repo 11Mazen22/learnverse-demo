@@ -65,7 +65,10 @@ export default function LoginPage() {
   };
   useEffect(() => {
     // Same-origin PKCE verifier and callback; avoid unallowlisted immutable Preview URLs.
-    beginOnCanonicalHost();
+    if (beginOnCanonicalHost()) return;
+    const requestedMode = new URLSearchParams(window.location.search).get("mode");
+    if (requestedMode === "signup") setMode("signup");
+    if (requestedMode === "forgot") window.location.replace("/auth/forgot-password");
   }, []);
   const nextPath = () =>
     safeNextPath(new URLSearchParams(window.location.search).get("next"));
