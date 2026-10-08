@@ -4005,3 +4005,25 @@ html[data-theme=dark] .owui-new-chat,html[data-theme=dark] .owui-send{background
 .hero .eyebrow{color:#c5e4ff}
 .progress i{background:var(--accent)}
 .aura-writing-entry{display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 16px;margin:9px auto;border:0;background:transparent;color:var(--accent);font-size:12px;border-radius:10px}.aura-writing-entry:hover{background:var(--accent-soft)}.aura-writing-artifact{display:flex;align-items:center;gap:14px;width:100%;max-width:560px;margin:20px 0;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface-soft);text-align:start}.aura-writing-artifact>span:nth-child(2){display:grid;flex:1;min-width:0;gap:5px}.aura-writing-artifact strong{font-size:14px;overflow-wrap:anywhere}.aura-writing-artifact small{color:var(--muted);font-size:11px}.aura-artifact-icon{display:grid;place-items:center;min-width:43px;height:50px;border:1px solid var(--line);border-radius:9px;color:var(--accent);background:var(--surface)}
+
+
+/* Guest sign-in is used across protected pages, including /boss. Explicit
+   luminance-safe colors prevent contrast changes when the OS switches themes. */
+a.noata-sign-in,
+html[data-theme="dark"] a.noata-sign-in {
+  min-height: 40px;
+  background: #075187;
+  color: #fff;
+  border-color: #075187;
+  font-weight: 750;
+}
+a.noata-sign-in:hover,
+html[data-theme="dark"] a.noata-sign-in:hover {
+  background: #063c66;
+  color: #fff;
+  border-color: #063c66;
+}
+a.noata-sign-in:focus-visible {
+  outline: 3px solid #ffde69;
+  outline-offset: 3px;
+}
