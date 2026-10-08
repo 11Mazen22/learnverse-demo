@@ -382,6 +382,19 @@ async function main() {
     await screenshot("artifacts/noata-browser/auth-"+authWidth+".png");
   }
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+
+  // Confirm dialogue must be centered in the actual browser top layer in both modes.
+  for (const [width,height] of [[1440,900],[390,844],[320,700]]) {
+    await command("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile:width<=768});
+    const rect=await evaluate('(()=>{const d=document.createElement("dialog");d.className="noata-confirm";d.innerHTML="<div class=noata-confirm-body><h2>مراجعة مغادرة الصفحة</h2><p>هل تريد المغادرة؟</p><div class=noata-confirm-actions><button>مغادرة الصفحة</button><button>البقاء</button></div></div>";document.body.appendChild(d);d.showModal();const r=d.getBoundingClientRect(),b=getComputedStyle(d);const v={left:r.left,top:r.top,width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight,overflow:b.overflowY};d.close();d.remove();return v})()');
+    invariant(Math.abs(rect.left+(rect.width/2)-rect.viewportWidth/2)<4 && Math.abs(rect.top+(rect.height/2)-rect.viewportHeight/2)<4,"Confirm modal not centered at "+width);
+    invariant(rect.left>=6&&rect.left+rect.width<=width-6,"Confirm modal clipped at "+width);
+  }
+  await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+  await navigate("/");
+  await waitFor(async()=>await evaluate('!!document.querySelector(".notification-bell")'),"Notification bell visible");
+  const badge=await evaluate('(()=>{const bell=document.querySelector(".notification-bell"),count=document.createElement("b");count.textContent="٩٩+";count.dataset.qa="count";bell.appendChild(count);const a=bell.getBoundingClientRect(),b=count.getBoundingClientRect(),sty=getComputedStyle(count);const r={height:b.height,width:b.width,inBellCorner:b.top<a.top+8&&b.right>a.left+4,fontSize:parseFloat(sty.fontSize),rounded:sty.borderRadius};count.remove();return r})()');
+  invariant(badge.height>=20 && badge.width>=20 && badge.fontSize>=10 && badge.inBellCorner,"Notification badge alignment and size");
   await navigate("/help");
   await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-help-topic").length>5'),"Help topics");
   const countBefore=await evaluate('document.querySelectorAll(".aura-help-topic").length');
