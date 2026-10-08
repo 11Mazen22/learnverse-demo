@@ -106,14 +106,27 @@ async function main() {
         input:!!document.querySelector(".owui-composer textarea"),
         side:!!document.querySelector(".owui-layout"),
         visible:!!document.querySelector(".owui-model-trigger"),
-        direction:document.documentElement.dir
+        direction:document.documentElement.dir,
+        theme:document.documentElement.dataset.theme
       })`);
       invariant(r.overflow <= 3,`/ai ${width} ${theme} overflow ${r.overflow}`);
       invariant(r.input&&r.side&&r.visible,`/ai ${width} ${theme} missing controls`);
       invariant(r.direction==="rtl",`/ai ${width} ${theme} RTL`);
+      invariant(r.theme===theme,`/ai ${width} ${theme} appearance did not follow system: ${r.theme}`);
       await screenshot(`artifacts/noata-browser/ai-${width}-${theme}.png`);
     }
   }
+  // Exercise hydrated React interaction without creating an account or an AI inference.
+  await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+  await navigate("/ai");
+  await waitFor(async()=>Boolean(await evaluate('document.querySelector(".owui-suggestions button")')), "AI suggestions");
+  await evaluate('document.querySelector(".owui-suggestions button").click()');
+  const draft=await waitFor(async()=>await evaluate('document.querySelector(".owui-composer textarea")?.value || ""'),"React suggestion populating composer");
+  invariant(draft.length>15,"AI suggestion was visual-only and did not update draft");
+  await evaluate('document.querySelector(".owui-model-trigger")?.click()');
+  const modelMenu=await waitFor(async()=>await evaluate('!!document.querySelector(".owui-model-menu")'),"model menu opens");
+  invariant(modelMenu,"AI model selector failed to open");
+
   console.log(`Noata browser QA PASS: ${checks} public-browser assertions; 8 responsive screenshots.`);
   console.log("Authenticated student/teacher/admin E2E: NOT RUN (requires disposable credentials and protected preview access).");
 }
