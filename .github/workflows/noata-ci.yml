@@ -30,6 +30,10 @@ jobs:
           deno-version: v2.x
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - name: Validate staging and browser runner syntax (no accounts used)
+        run: |
+          node --check scripts/browser-aura-smoke.mjs
+          node --check scripts/authenticated-aura-smoke.mjs
       - run: pnpm modern:test
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
       - run: pnpm build
