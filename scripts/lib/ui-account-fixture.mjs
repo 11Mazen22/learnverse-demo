@@ -404,7 +404,7 @@ export async function verifyUiAccountContracts({
       "avatar opens account menu",
     );
     invariant(
-      await evaluate('!!document.querySelector("#noata-account-menu a[href="/settings"]") && !!document.querySelector("#noata-account-menu .noata-account-logout")'),
+      await evaluate('Array.from(document.querySelectorAll("#noata-account-menu a[href]")).some(a=>a.getAttribute("href")==="/settings") && !!document.querySelector("#noata-account-menu .noata-account-logout")'),
       "Account menu separates settings and explicit sign-out",
     );
     invariant(
