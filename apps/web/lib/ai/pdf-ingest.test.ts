@@ -37,6 +37,23 @@ function buildOnePagePdf(body:string):Uint8Array{
  return encoder.encode(output);
 }
 test("PDF.js extracts actual text from a real one-page PDF file",async()=>{
+ // Node lacks browser DOMMatrix unless native canvas is installed.
+ // Text extraction does not rasterize pages; supply the identity matrix
+ // for the parser module's initialization in this isolated test only.
+ if(!("DOMMatrix" in globalThis)){
+  Object.defineProperty(globalThis,"DOMMatrix",{
+   configurable:true,
+   value:class DOMMatrix {
+    a=1;b=0;c=0;d=1;e=0;f=0;
+    constructor(_values?:unknown){}
+    multiplySelf(){return this;}
+    preMultiplySelf(){return this;}
+    translateSelf(){return this;}
+    scaleSelf(){return this;}
+    invertSelf(){return this;}
+   }
+  });
+ }
  const data=buildOnePagePdf("NOATA VERIFIED PDF");
  const result=await extractPdfDocument({
    name:"lesson.pdf",
