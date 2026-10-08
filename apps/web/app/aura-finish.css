@@ -425,3 +425,59 @@
 @media (prefers-reduced-motion: reduce) {
   .noata-dialog--workshop *, .auth-shell * { animation: none !important; transition: none !important; transform: none !important; }
 }
+
+/* Real Noata mark as the hero focal point; no fabricated student data. */
+.auth-shell .auth-aside-stage {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  position: relative;
+  align-self: center;
+  flex: none;
+  width: min(100%, 330px);
+  min-height: 168px;
+  isolation: isolate;
+}
+.auth-shell .auth-aside-stage-glow {
+  position: absolute;
+  inset: 4px 8%;
+  border: 1px solid #d8ebff31;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 48%, #ffffff15 1%, #b1eaff10 42%, transparent 68%);
+  box-shadow: 0 0 0 20px #ffffff05,0 0 0 44px #ffffff04;
+  z-index: -1;
+}
+.auth-shell .auth-aside-stage-mark {
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 16px 20px #041b4a52);
+}
+.auth-shell .auth-aside-stage-mark .noata-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.auth-shell .auth-aside-stage-mark .noata-brand-copy strong {
+  font-size: 22px;
+  text-shadow: 0 1px 12px #0003;
+}
+.auth-shell .auth-aside-stage-caption {
+  font-size: 12px;
+  letter-spacing: .025em;
+  color: #e1edff;
+  font-weight: 650;
+}
+.auth-shell.is-centered {
+  background: radial-gradient(circle at 20% 18%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 43%),var(--surface-soft);
+}
+.auth-shell.is-centered .auth-card {
+  width: min(530px,100%);
+  padding: clamp(24px,3.5vw,44px);
+  border-radius: 27px;
+  box-shadow: 0 24px 80px color-mix(in srgb,var(--ink) 9%,transparent);
+}
+@media(max-height:780px) and (min-width:901px) {
+  .auth-shell .auth-aside-stage { min-height: 96px; }
+  .auth-shell .auth-aside-stage-mark .noata-logo { transform: scale(.65); }
+  .auth-shell .auth-aside-stage-glow { inset: -20px 15%; }
+}
