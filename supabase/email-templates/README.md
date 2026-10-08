@@ -4,6 +4,34 @@ These files are **reviewed repository artifacts, not live Supabase configuration
 
 **Staging-only:** `vpfpjvhafkmygetjkfcp`. Production `jdkfqdzgphzqbbzmerzr` must remain untouched.
 
+## REQUIRED: live staging Auth redirect configuration (not yet changed by this connector)
+
+**Symptoms:** An email confirmation can land at `http://localhost:3000/?code=...` if Supabase's **Site URL** remains localhost and the intended email `redirectTo` URL is not on the Redirect URLs allowlist. The code can be verified by Supabase yet still fail to create a local Noata session.
+
+Set this on the **approved staging project ONLY** (`vpfpjvhafkmygetjkfcp`) at:
+`https://supabase.com/dashboard/project/vpfpjvhafkmygetjkfcp/auth/url-configuration`
+
+- **Site URL:** `https://noata-git-noata-aura-platform-overhaul-20261008-noata.vercel.app`
+- **Additional Redirect URL:** `https://noata-git-noata-aura-platform-overhaul-20261008-noata.vercel.app/**`
+
+Do not allow-list `https://*.vercel.app/**` globally: an attacker-controlled preview would then be accepted as a destination. Keep any localhost redirect for local-only development only if absolutely required; remove it from release staging after QA. The stable Vercel branch alias points to the latest deployed version of this PR, unlike immutable per-commit deployment URLs.
+
+The Vercel Preview **git-branch-scoped**, public (non-secret) environment variable is:
+`NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN=https://noata-git-noata-aura-platform-overhaul-20261008-noata.vercel.app`.
+It is configured only for branch `noata-aura-platform-overhaul-20261008`, not production.
+
+Noata's `/login` now navigates to this stable origin before starting signup, resend, recovery, or Google OAuth, so the PKCE verifier and `/auth/callback` exchange operate on the same browser origin. The public redirect value is validated against the exact expected staging alias; localhost, other projects, and custom/production hosts are not rewritten.
+
+**After saving Supabase Auth settings:**
+
+1. Open the stable alias directly in the *same browser* at `/login`, then register a disposable staging-only QA account or resend a confirmation if the account is still unverified.
+2. Examine a NEW confirmation email's target **without sharing the confirmation token**. The user must return to the approved Noata staging alias's `/auth/callback`, not localhost.
+3. Confirm the Auth session is established and persisted across refresh, then sign out and sign back in.
+4. Verify recovery email, callback into `/auth/update-password`, and login. Google OAuth still needs its provider configuration separately.
+5. If an email confirmation was already consumed, check whether the user is already verified and sign in with the password rather than repeatedly reusing the one-time link.
+
+The repository and Vercel settings cannot replace Supabase's Auth URL allowlist; this management connector does not expose an Auth URL configuration write action. Keep the status BLOCKED until someone with staging-dashboard permissions saves and verifies these settings.
+
 ## Email templates
 
 Each HTML file contains mobile-friendly, table-based RTL layout and inline CSS. It uses the Supabase-generated `{{ .ConfirmationURL }}` for the action link; do not replace the placeholder with a fixed URL.
