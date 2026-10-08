@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
+import { canonicalAuthOrigin, canonicalLoginDestination } from "@/lib/auth/canonical-origin";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 
@@ -53,10 +54,22 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<"" | "form" | "google" | "resend">("");
 
+  const authCanonicalOrigin = () =>
+    canonicalAuthOrigin(window.location.origin, process.env.NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN);
+  const beginOnCanonicalHost = () => {
+    const target = canonicalLoginDestination(window.location.href, process.env.NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN);
+    if (!target) return false;
+    window.location.replace(target);
+    return true;
+  };
+  useEffect(() => {
+    // Same-origin PKCE verifier and callback; avoid unallowlisted immutable Preview URLs.
+    beginOnCanonicalHost();
+  }, []);
   const nextPath = () =>
     safeNextPath(new URLSearchParams(window.location.search).get("next"));
   const callbackUrl = () =>
-    window.location.origin +
+    authCanonicalOrigin() +
     "/auth/callback?next=" +
     encodeURIComponent(nextPath());
 
@@ -67,7 +80,7 @@ export default function LoginPage() {
   }
 
   async function signInWithGoogle() {
-    if (busy) return;
+    if (busy || beginOnCanonicalHost()) return;
     setBusy("google");
     setError("");
     try {
@@ -89,7 +102,7 @@ export default function LoginPage() {
   }
 
   async function resendVerification() {
-    if (busy || !email.trim()) return;
+    if (busy || !email.trim() || beginOnCanonicalHost()) return;
     setBusy("resend");
     setError("");
     setMessage("");
@@ -110,6 +123,7 @@ export default function LoginPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (beginOnCanonicalHost()) return;
     setBusy("form");
     setError("");
     setMessage("");
@@ -118,7 +132,7 @@ export default function LoginPage() {
 
     if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/auth/callback?next=" + encodeURIComponent("/auth/update-password"),
+        redirectTo: authCanonicalOrigin() + "/auth/callback?next=" + encodeURIComponent("/auth/update-password"),
       });
       setBusy("");
       if (error) {
