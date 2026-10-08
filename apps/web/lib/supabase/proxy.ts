@@ -1,6 +1,6 @@
 import {createServerClient} from "@supabase/ssr";
 import {NextResponse,type NextRequest} from "next/server";
-import {SUPABASE_PUBLISHABLE_KEY,SUPABASE_URL} from "./config";
+import {SUPABASE_PUBLISHABLE_KEY,SUPABASE_URL,stagingFetch} from "./config";
 
 export async function updateSession(request:NextRequest){
   let response=NextResponse.next({request});
@@ -9,6 +9,7 @@ export async function updateSession(request:NextRequest){
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY,
     {
+      global: { fetch: stagingFetch },
       cookies:{
         getAll(){return request.cookies.getAll();},
         setAll(cookiesToSet){

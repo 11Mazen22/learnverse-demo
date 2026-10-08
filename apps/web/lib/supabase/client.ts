@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, stagingFetch } from "./config";
 
 export function createClient() {
   return createBrowserClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -17,7 +17,7 @@ export function createClient() {
           : url.includes("/storage/v1/")
             ? 60000
             : 45000;
-        return fetch(
+        return stagingFetch(
           input,
           boundedService
             ? {
