@@ -3691,3 +3691,49 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
  }
  .aura-model-card-copy small { font-size: 12px; }
 }
+
+
+/* Noata Aura Quran — quiet, precise and distinct from the generated AI UI */
+.aura-quran{display:grid;gap:24px;padding-block:3px 25px}
+.aura-quran-header{display:flex;gap:24px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:clamp(20px,3vw,38px)}
+.aura-quran-header h1{font-size:clamp(25px,2.8vw,41px);margin:8px 0;line-height:1.55}
+.aura-quran-header p{margin:0;max-width:640px;color:var(--muted);font-size:14px;line-height:1.85}
+.aura-quran-ai-link{display:inline-flex;gap:8px;align-items:center;justify-content:center;padding:13px 16px;border:1px solid var(--line);border-radius:13px;color:var(--accent);font-size:13px;font-weight:700;white-space:nowrap}
+.aura-quran-ai-link:hover{background:var(--accent-soft)}
+.aura-quran-toolbar{display:flex;gap:13px;align-items:end;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:19px}
+.aura-quran-toolbar label{display:grid;gap:5px;min-width:205px}
+.aura-quran-toolbar label span,.aura-quran-font>span{color:var(--muted);font-size:12px}
+.aura-quran-toolbar select{width:100%;min-height:45px;padding:8px 13px;border:1px solid var(--line);border-radius:11px;background:var(--surface-soft)}
+.aura-quran-font{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.aura-quran-font button{min-width:38px;min-height:43px;padding:6px 11px;border:1px solid var(--line);border-radius:11px;background:var(--surface-soft)}
+.aura-quran-search{display:flex;min-width:210px;flex:1;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.aura-quran-search input{border:0!important;min-width:0;width:100%;padding:10px 13px;background:transparent!important}
+.aura-quran-search button{min-width:48px;height:44px;display:grid;place-items:center;color:var(--accent)}
+.aura-quran-reading{max-width:920px;width:100%;margin-inline:auto;overflow:hidden;border:1px solid var(--line);background:var(--surface);border-radius:24px;box-shadow:var(--shadow-soft)}
+.aura-quran-chapter{text-align:center;background:var(--surface-soft);border-bottom:1px solid var(--line);padding:31px 20px}
+.aura-quran-chapter span{font-size:12px;color:var(--muted)}
+.aura-quran-chapter h2{font-size:clamp(30px,3.2vw,42px);font-weight:800;line-height:1.7;margin:0}
+.aura-quran-chapter p{font-size:13px;color:var(--muted);margin:0}
+.aura-quran-state{padding:38px 20px;text-align:center;color:var(--muted)}
+.aura-quran-ayah{padding:28px clamp(16px,3.5vw,44px);border-block-end:1px solid var(--line);scroll-margin-top:25px;transition:background .2s}
+.aura-quran-ayah:target{background:var(--accent-soft)}
+.aura-quran-ayah:last-child{border:0}
+.aura-quran-ayah-actions{display:flex;align-items:center;gap:8px;color:var(--muted);margin-block-end:13px}
+.aura-quran-ayah-actions button{min-width:37px;min-height:37px;display:grid;place-items:center;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--muted)}
+.aura-quran-ayah-actions button:hover,.aura-quran-ayah-actions button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent)}
+.aura-ayah-number{display:grid;place-items:center;min-width:39px;height:39px;border-radius:13px;background:var(--accent-soft);color:var(--accent);font-weight:800}
+.aura-quran-verse{margin:0;line-height:2.65;font-family:"Amiri","Noto Naskh Arabic","Traditional Arabic",Cairo,serif;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
+.aura-quran-verse-number{font-size:.72em;color:var(--accent);white-space:nowrap}
+.aura-quran-bookmarks{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px;border-radius:16px;background:var(--accent-soft);color:var(--accent)}
+.aura-quran-bookmarks strong{font-size:13px}
+.aura-quran-bookmarks button{padding:6px 11px;background:var(--surface);border:1px solid var(--line);border-radius:9px;min-height:33px}
+.aura-quran-search-results{padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface);max-height:350px;overflow:auto;display:grid;gap:7px}
+.aura-quran-search-results .panel-head{margin-bottom:4px}
+.aura-quran-search-results .panel-head button{color:var(--accent);font-size:13px}
+.aura-quran-search-results>button{padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--surface-soft);display:grid;text-align:start;gap:3px}
+.aura-quran-search-results>button strong{font-size:12px;color:var(--accent)}
+.aura-quran-search-results>button span{font-size:14px;line-height:1.85}
+.aura-quran-attribution{max-width:920px;margin-inline:auto;color:var(--muted);font-size:12px;line-height:2}
+.aura-quran-attribution a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;margin-inline:5px}
+@media(max-width:720px){.aura-quran-header{flex-wrap:wrap}.aura-quran-ai-link{width:100%}.aura-quran-toolbar>*{flex:1 1 100%}.aura-quran-toolbar label{min-width:0}.aura-quran-font{justify-content:center}.aura-quran-ayah{padding-block:22px}.aura-quran-verse{line-height:2.45}}
+@media(prefers-reduced-motion:reduce){.aura-quran *, .aura-quran *::before{transition:none!important}}
