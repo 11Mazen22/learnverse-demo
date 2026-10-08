@@ -22,6 +22,20 @@ import {
 } from "@/lib/ai/workspace";
 const columns =
   "id,conversation_id,role,content,model,status,created_at,metadata";
+/** Never leave the AI workspace showing an endless loading screen when Auth is offline. */
+async function sessionStep<T>(work: PromiseLike<T>, timeoutMs = 6500): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(work),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("AI session initialization timed out")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 export function useAIWorkspace() {
   const supabase = useMemo(() => createClient(), []);
   const [conversations, setConversations] = useState<Conversation[]>([]),
@@ -88,7 +102,7 @@ export function useAIWorkspace() {
       try {
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await sessionStep(supabase.auth.getUser());
         if (!alive) return;
         setSignedIn(Boolean(user));
         const prompt = new URLSearchParams(window.location.search).get(
@@ -96,19 +110,22 @@ export function useAIWorkspace() {
         );
         if (prompt) setInput(prompt.slice(0, 4000));
         if (user) {
-          const { data } = await supabase
+          const { data } = await sessionStep(supabase
             .from("user_settings")
             .select("default_ai_model,ai_memory_enabled")
             .eq("user_id", user.id)
-            .maybeSingle();
+            .maybeSingle());
           if (data) {
             setModel(data.default_ai_model || "auto");
             setTemporary(!data.ai_memory_enabled);
           }
-          await loadHistory();
+          await sessionStep(loadHistory());
         }
       } catch (e) {
-        if (alive) setError(friendlyError(e));
+        if (alive) {
+          setSignedIn(false);
+          setError("تعذّر التحقق من الجلسة حاليًا. يمكنك مراجعة الواجهة؛ أعد فتح الصفحة عندما يعود الاتصال.");
+        }
       } finally {
         if (alive) setLoading(false);
       }
