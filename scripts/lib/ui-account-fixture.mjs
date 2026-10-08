@@ -507,6 +507,18 @@ export async function verifyUiAccountContracts({
         ),
       "new account composer ready",
     );
+    const requestsBeforeComposition = await evaluate(
+      'window.__noataUiFixture.state.calls.filter(c=>c.path.startsWith("/functions/v1/")).length',
+    );
+    await evaluate(
+      'document.querySelector(".owui-composer textarea").dispatchEvent(new KeyboardEvent("keydown",{key:"Enter",code:"Enter",bubbles:true,isComposing:true}))',
+    );
+    invariant(
+      (await evaluate(
+        'window.__noataUiFixture.state.calls.filter(c=>c.path.startsWith("/functions/v1/")).length',
+      )) === requestsBeforeComposition,
+      "IME composition Enter cannot submit an unfinished draft",
+    );
     await evaluate('document.querySelector(".owui-send").click()');
     await waitFor(
       () =>

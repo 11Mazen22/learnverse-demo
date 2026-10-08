@@ -11,6 +11,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
 
+const testedRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim();
+const initiallyDirty=!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim();
 const binary = findQaChrome();
 const base = "http://127.0.0.1:3000";
 let app, browser, socket, appLog="";
@@ -359,7 +361,9 @@ finally {
   await writeFile("artifacts/noata-browser/captures.json",JSON.stringify(captures,null,2)).catch(()=>{});
   await writeFile("artifacts/noata-browser/server.log",appLog).catch(()=>{});
   try{await browser?.close();}catch(error){failure??=error;console.error(error);}
-  await writeFile("artifacts/noata-browser/outcome.json",JSON.stringify({passed:!failure,revision:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),dirty:!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,routeViews:accessibility.filter(a=>a.kind==="public").length,syntheticUiViews:accessibility.filter(a=>a.kind==="synthetic-ui-only").length,screenshots:new Set(captures.map(c=>c.file)).size,browserErrors,failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2)).catch(()=>{});
+  const endingRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim();
+  if(endingRevision!==testedRevision)failure??=Error("Repository revision changed during browser QA");
+  await writeFile("artifacts/noata-browser/outcome.json",JSON.stringify({passed:!failure,revision:testedRevision,endingRevision,dirty:initiallyDirty||!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,routeViews:accessibility.filter(a=>a.kind==="public").length,syntheticUiViews:accessibility.filter(a=>a.kind==="synthetic-ui-only").length,screenshots:new Set(captures.map(c=>c.file)).size,browserErrors,failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2)).catch(()=>{});
   if(app){try{process.kill(-app.pid,"SIGTERM");}catch{app.kill("SIGTERM");}}
   // pnpm/Next can leave inherited pipe handles open after child termination.
   // Exit explicitly AFTER reporting the actual pass/fail result to CI.

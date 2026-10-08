@@ -8,7 +8,7 @@ Local browser evidence records its exact revision and dirty-tree flag in `artifa
 
 | Area | State | Evidence and limits |
 | --- | --- | --- |
-| TypeScript/build/regression tests | Verified locally | 61 modern tests; legacy runner now 135 (includes modern and six browser startup fault regressions), no failures. Final evidence must match the exact commit; baseline CI type/Deno/PDF/build passes do not certify the corrective head. |
+| TypeScript/build/regression tests | Verified locally | 64 modern tests; legacy runner now 138 (includes modern and six browser startup fault regressions), no failures. Final evidence must match the exact commit; baseline CI type/Deno/PDF/build passes do not certify the corrective head. |
 | Arabic native PDF renderer | Verified locally | Packaged Chromium, embedded Cairo, A4, headings/tables/lists, mixed direction, MathML, headers/footers/page numbers. Real 11-page PDF signature, logical Arabic readback, final section and page text bounds checked. Actual pages 1, 6 and 11 inspected. |
 | Authenticated PDF endpoint | Implemented, unverified live | Real `getUser`, same-origin guard, body/input/output limits, JS/network disabled in renderer, per-instance rate/concurrency caps. Browser anonymous POST returns 401. Authorized download and serverless packaging require staging. Distributed quotas are not implemented. |
 | Writing/artifact editor | Public interaction verified; authenticated exports pending | Actual Markdown edit/preview, headings/table, dirty Escape confirmation, discard and reopen. Bounded session-only drafts protect edits and clear on account change. Real DOCX export/readback. PDF download requires login; long complete replies link to the editor. |
