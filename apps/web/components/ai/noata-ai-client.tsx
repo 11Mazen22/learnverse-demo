@@ -1433,7 +1433,7 @@ export function NoataAIClient() {
         title="ورشة المذاكرة · Noata Aura"
       >
         <EducationPanel
-          canSend={signedIn && !busy && !loading && !attachment && documentFiles.length === 0}
+          canSend={Boolean(signedIn) && !busy && !loading && !attachment && documentFiles.length === 0}
           onUse={(prompt) => {
             setInput(prompt);
             setEducationOpen(false);
