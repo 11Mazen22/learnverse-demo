@@ -6,11 +6,13 @@ export function Dialog({
   onClose,
   title,
   children,
+  variant = "default",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  variant?: "default" | "workshop";
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -37,7 +39,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className="noata-dialog"
+      className={`noata-dialog${variant === "workshop" ? " noata-dialog--workshop" : ""}`}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
