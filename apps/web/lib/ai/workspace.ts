@@ -1,4 +1,4 @@
-import { isTextDocument, MAX_TEXT_DOCUMENT_BYTES } from "./document-text";
+import { isTextDocument, MAX_TEXT_DOCUMENT_BYTES } from "./document-text.ts";
 export type Conversation = {
   id: string;
   title: string;
