@@ -1,11 +1,11 @@
-import { safeNextPath } from "@/lib/i18n/auth-errors";
-
+/** Pure auth flow helpers, safe in browser, CI and server contexts. */
 export type AuthFlow = "signup" | "recovery" | "oauth";
 
 export function authCallbackUrl(origin: string, flow: AuthFlow, next = "/") {
   const url = new URL("/auth/callback", origin);
   url.searchParams.set("flow", flow);
-  url.searchParams.set("next", flow === "recovery" ? "/auth/update-password" : safeNextPath(next));
+  const allowed = next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") && !/[\r\n]/.test(next);
+  url.searchParams.set("next", flow === "recovery" ? "/auth/update-password" : allowed ? next : "/");
   return url.toString();
 }
 
