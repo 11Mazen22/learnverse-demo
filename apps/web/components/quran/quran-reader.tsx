@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect,useRef,useState } from "react";
+import { useEffect,useRef,useState,type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 
 type Chapter={number:number;name:string;englishName:string;numberOfAyahs:number};
@@ -27,6 +27,8 @@ export function QuranReader(){
   const [matches,setMatches]=useState<{surah:number;surahName:string;number:number;text:string}[]>([]);
   const [bookmarks,setBookmarks]=useState<string[]>([]);
   const [activeAudio,setActiveAudio]=useState<number|null>(null);
+  const [targetAyah,setTargetAyah]=useState<string|null>(null);
+  const [retryKey,setRetryKey]=useState(0);
   const [readerSize,setReaderSize]=useState(1);
   const audio=useRef<HTMLAudioElement|null>(null);
   const currentRequest=useRef(0);
@@ -64,7 +66,12 @@ export function QuranReader(){
       }
     })();
     return ()=>controller.abort();
-  },[selected]);
+  },[selected,retryKey]);
+  useEffect(()=>{
+    if(!targetAyah||loading||error)return;
+    const target=document.getElementById("ayah-"+targetAyah.replace(":","-"));
+    if(target){target.scrollIntoView({behavior:"smooth",block:"center"});setTargetAyah(null);}
+  },[targetAyah,loading,error,verses]);
   function toggleBookmark(number:number){
     const key=selected+":"+number;
     setBookmarks(old=>{
@@ -86,7 +93,7 @@ export function QuranReader(){
     setActiveAudio(verse.number);
     void audio.current.play().catch(()=>setActiveAudio(null));
   }
-  async function search(event:React.FormEvent) {
+  async function search(event:FormEvent) {
     event.preventDefault();
     const q=query.trim();if(q.length<2||q.length>50)return;
     setSearching(true);setError("");setMatches([]);
@@ -101,8 +108,8 @@ export function QuranReader(){
   function focusVerse(id:string){
     const parts=id.split(":").map(Number);
     if(parts.length!==2)return;
+    setTargetAyah(id);
     if(selected!==parts[0])setSelected(parts[0]);
-    setTimeout(()=>document.getElementById("ayah-"+id.replace(":","-"))?.scrollIntoView({behavior:"smooth",block:"center"}),600);
   }
   return (
     <div className="aura-quran">
@@ -151,7 +158,7 @@ export function QuranReader(){
           <p>{chapter.englishName} · {chapter.numberOfAyahs} آيات</p>
         </div>
         {loading&&<p role="status" className="aura-quran-state">جارٍ جلب النص القرآني من مصدره…</p>}
-        {error&&<div className="error-banner" role="alert">{error}<button type="button" onClick={()=>setSelected(x=>x===114?113:x+1)}>جرّب سورة أخرى</button></div>}
+        {error&&<div className="error-banner" role="alert">{error}<button type="button" onClick={()=>setRetryKey(x=>x+1)}>إعادة تحميل السورة</button></div>}
         {!loading&&!error&&verses.map(v=>{
           const key=selected+":"+v.number;
           return <article id={"ayah-"+selected+"-"+v.number} className="aura-quran-ayah" key={v.number}>
