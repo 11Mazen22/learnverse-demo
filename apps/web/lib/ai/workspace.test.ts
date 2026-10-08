@@ -66,3 +66,14 @@ test("image-preview links must target our private Supabase upload bucket", () =>
   const signed = origin + "/storage/v1/object/sign/noata-uploads/user/chat/picture.png?token=opaque";
   assert.equal(safeStorageLink(signed, origin), signed);
 });
+
+
+test("text document attachments have their own safe MIME and size limits", () => {
+  assert.equal(validateAttachment({name:"reading.txt",type:"text/plain",size:620}),"");
+  assert.equal(validateAttachment({name:"revision.md",type:"text/markdown",size:620}),"");
+  assert.equal(validateAttachment({name:"grades.csv",type:"text/csv",size:620}),"");
+  assert.equal(validateAttachment({name:"notes.json",type:"application/json",size:620}),"");
+  assert.ok(validateAttachment({name:"evil.html",type:"text/html",size:620}));
+  assert.ok(validateAttachment({name:"unsupported.docx",type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",size:620}));
+  assert.ok(validateAttachment({name:"oversize.txt",type:"text/plain",size:600000}));
+});
