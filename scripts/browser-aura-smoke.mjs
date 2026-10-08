@@ -14,6 +14,8 @@ const binary = findQaChrome();
 const base = "http://127.0.0.1:3000";
 let app, browser, socket, appLog="";
 const browserErrors=[];
+const location={path:"",width:null,theme:"",stage:"setup"};
+
 let checks = 0;
 function invariant(ok, reason) { if (!ok) throw new Error("BROWSER QA FAIL: " + reason); checks++; }
 
@@ -26,22 +28,34 @@ async function waitFor(fn, label, ms=20000) {
   throw new Error("Timeout waiting for " + label);
 }
 function command(method,params={}) { return browser.command(method,params); }
-async function evaluate(expr) {
-  const r = await command("Runtime.evaluate",{
-    expression: expr,
-    returnByValue: true,
-    awaitPromise: true,
-  });
-  if (r.exceptionDetails) throw new Error("JS exception in browser");
+async function evaluate(expr, stage="DOM evaluation", timeoutMs=12000) {
+  location.stage=stage;
+  let r;
+  try {
+    r=await browser.command("Runtime.evaluate",{
+      expression:expr,
+      returnByValue:true,
+      awaitPromise:true,
+    },timeoutMs);
+  } catch(error) {
+    throw new Error(`Chrome ${stage} failed on ${location.path||"initial"} (${location.width??"?"}px/${location.theme||"?"}): ${error.message}`,{cause:error});
+  }
+  if (r.exceptionDetails) throw new Error("JS exception in browser during "+stage+": "+(r.exceptionDetails.text??"unknown"));
   return r.result?.value;
 }
 async function navigate(path) {
+  location.path=path;
+  location.stage="Page.navigate";
   await command("Page.navigate",{url:base+path});
   await waitFor(async()=> {
     const state=await evaluate("({ready: document.readyState, path: location.pathname, size: document.body?.innerText?.length || 0})");
     return state.ready === "complete" && state.path === path && state.size > 30;
   }, path);
-  await evaluate("document.fonts.ready.then(()=>true)");
+  // Never await document.fonts.ready unbounded in a CDP evaluate call: slow
+  // font requests can strand an awaited promise and block an entire CI run.
+  // font-display:swap provides readable fallback, so read status synchronously.
+  const fontStatus=await evaluate("document.fonts.status","font status (nonblocking)");
+  if(fontStatus!=="loaded") console.warn("[browser] fonts still loading for",path);
 }
 async function screenshot(file) {
   const data = await command("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
@@ -183,14 +197,17 @@ async function main() {
   await command("Page.enable");
   await command("Runtime.enable");
   socket.addEventListener("message",({data})=>{const event=JSON.parse(String(data));if(event.method==="Runtime.exceptionThrown")browserErrors.push(event.params.exceptionDetails.text);});
-  await command("Tracing.start",{categories:"devtools.timeline,loading,blink.user_timing",transferMode:"ReturnAsStream"});
+  // Full-session tracing introduces excessive renderer overhead across
+  // 48 axe audits. Collect a focused final interaction trace instead.
 
   const routes=["/","/ai","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/settings","/help","/quran"];
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:"light"}]});
   for(const width of [1440,390]) {
+    location.width=width;
     await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width===390});
     for(const theme of ["light","dark"]) {
+      location.theme=theme;
       await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:theme}]});
       for(const path of routes) {
         console.log("[browser] checking route",path,width,theme);
@@ -200,7 +217,7 @@ async function main() {
         if(path==="/ai")invariant(result.hasAI,"AI workspace missing");
         if(path==="/quran")invariant(await evaluate('!!document.querySelector(".aura-quran-reading")'),"Quran reader UI missing");
         await evaluate(axeSource);
-        const audit=await evaluate('axe.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21aa","wcag22aa"]}}).then(r=>({violations:r.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),incomplete:r.incomplete.map(v=>v.id)}))');
+        const audit=await evaluate('Promise.race([axe.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21aa","wcag22aa"]}}).then(r=>({violations:r.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),incomplete:r.incomplete.map(v=>v.id)})),new Promise((_,reject)=>setTimeout(()=>reject(Error("axe audit exceeded 16 seconds")),16000))])',"axe accessibility audit",22000);
         accessibility.push({path,width,theme,...audit});
         performanceResults.push({path,width,theme,...await evaluate('({fcp:performance.getEntriesByName("first-contentful-paint")[0]?.startTime??null,domReady:performance.getEntriesByType("navigation")[0]?.domContentLoadedEventEnd??null,resources:performance.getEntriesByType("resource").reduce((s,r)=>s+r.transferSize,0)})')});
         await screenshot(`artifacts/noata-browser/${path==="/"?"home":path.slice(1)}-${width}-${theme}.png`);
@@ -208,8 +225,10 @@ async function main() {
     }
   }
   for(const [width,height,mobile] of [[1920,1080,false],[1440,900,false],[1024,768,false],[768,1024,true],[390,844,true],[320,700,true]]) {
+    location.width=width;
     await command("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile});
     for(const theme of ["light","dark"]) {
+      location.theme=theme;
       console.log("[browser] viewport/theme",width,theme);
       await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:theme}]});
       await navigate("/ai");
@@ -260,6 +279,8 @@ async function main() {
   await verifyWritingAndTheme();
   await verifyDocuments();
   await verifyQuranControls();
+  // Keep a bounded trace over the final reduced-motion/reflow interaction only.
+  await command("Tracing.start",{categories:"devtools.timeline,blink.user_timing",transferMode:"ReturnAsStream"});
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
   await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-reduced-motion",value:"reduce"},{name:"prefers-color-scheme",value:"light"}]});
   await navigate('/ai');
