@@ -29,7 +29,7 @@ export function ThemeControl() {
   useEffect(()=>{
     let active=true;
     const stored=localStorage.getItem("noata-theme");
-    const initial:isThemeGuard = isTheme(stored) ? stored : "system";
+    const initial:Theme = isTheme(stored) ? stored : "system";
     setTheme(initial);
     apply(initial);
     const media=window.matchMedia("(prefers-color-scheme: dark)");
@@ -121,4 +121,3 @@ export function ThemeControl() {
     </div>
   );
 }
-type isThemeGuard = Theme;
