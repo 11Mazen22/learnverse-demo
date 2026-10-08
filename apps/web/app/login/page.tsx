@@ -177,6 +177,11 @@ export default function LoginPage() {
           <h2>مساحة تعلّم عربية تكبر معك</h2>
           <p>دروس تفاعلية، مراجعة ذكية، مصحف موثّق، ومساعد Noata AI يرافقك خطوة بخطوة.</p>
         </div>
+        <div className="auth-aside-stage" aria-hidden="true">
+          <span className="auth-aside-stage-glow" />
+          <span className="auth-aside-stage-mark"><NoataBrand size={76} compact /></span>
+          <span className="auth-aside-stage-caption">الفكرة اليوم، إنجاز الغد</span>
+        </div>
         <ul className="auth-aside-points">
           <li><Icon name="ai" size={18} /> ورشة مذاكرة: شرح، اختبارات، وبطاقات مراجعة</li>
           <li><Icon name="chart" size={18} /> تقدّم ومكافآت تُحفظ مع حسابك</li>
