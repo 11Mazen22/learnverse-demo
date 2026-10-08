@@ -344,6 +344,36 @@ async function main() {
   const modelMenu=await waitFor(async()=>await evaluate('!!document.querySelector(".owui-model-menu")'),"model menu opens");
   invariant(modelMenu,"AI model selector failed to open");
 
+
+  // Responsive workshop regression: one internal scroller and visible actions.
+  await evaluate('document.querySelector(\'[aria-label="افتح ورشة المذاكرة"]\').click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open].noata-dialog--workshop .aura-workshop-scroll")'),"Workshop dialog opens");
+  invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button").length===9'),"Nine workshop flows available");
+  await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button")[1].click()');
+  invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button[aria-pressed=true]").length===1'),"Workshop pressed selection");
+  for (const [workshopWidth,workshopHeight] of [[1920,1080],[1024,768],[768,1024],[390,844],[320,700]]) {
+    location.width=workshopWidth;
+    await command("Emulation.setDeviceMetricsOverride",{width:workshopWidth,height:workshopHeight,deviceScaleFactor:1,mobile:workshopWidth<=768});
+    const wr=await evaluate('(()=>{const d=document.querySelector("dialog[open].noata-dialog--workshop"),sc=d?.querySelector(".aura-workshop-scroll"),foot=d?.querySelector(".aura-workshop-footer");if(!d||!sc||!foot)return null;const dr=d.getBoundingClientRect(),sr=sc.getBoundingClientRect(),fr=foot.getBoundingClientRect();return {viewport:innerWidth,dialogLeft:dr.left,dialogRight:dr.right,footerBottom:fr.bottom,footerTop:fr.top,scrollBottom:sr.bottom,dialogOverflow:getComputedStyle(d).overflowY,scrollOverflow:getComputedStyle(sc).overflowY,scrollWidth:document.documentElement.scrollWidth-innerWidth}})()');
+    invariant(wr!==null,"Workshop "+workshopWidth+" missing scroll layout");
+    invariant(wr.scrollWidth<=3,"Workshop "+workshopWidth+" horizontal overflow: "+wr.scrollWidth);
+    invariant(wr.dialogLeft>=-3&&wr.dialogRight<=wr.viewport+3,"Workshop "+workshopWidth+" outside viewport");
+    invariant(wr.dialogOverflow==="hidden"&&wr.scrollOverflow==="auto","Workshop "+workshopWidth+" double-scrolling");
+    invariant(wr.footerBottom<=workshopHeight+3&&wr.footerTop>wr.scrollBottom-3,"Workshop "+workshopWidth+" inaccessible actions");
+    await screenshot("artifacts/noata-browser/workshop-"+workshopWidth+".png");
+  }
+  await evaluate('document.querySelector("dialog[open].noata-dialog--workshop .dialog-heading button").click()');
+  await waitFor(async()=>await evaluate('!document.querySelector("dialog[open].noata-dialog--workshop")'),"Workshop dialog closes");
+  for(const authWidth of [1440,390,320]){
+    location.width=authWidth;
+    await command("Emulation.setDeviceMetricsOverride",{width:authWidth,height:900,deviceScaleFactor:1,mobile:authWidth<=768});
+    await navigate("/login");
+    const ar=await evaluate('(()=>{const card=document.querySelector(".auth-card"),google=document.querySelector(".auth-google");if(!card||!google)return null;const r=card.getBoundingClientRect();return {left:r.left,right:r.right,viewport:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,googleLabel:google.textContent}})()');
+    invariant(ar!==null&&ar.googleLabel.includes("Google"),"Auth "+authWidth+" missing Google entry");
+    invariant(ar.overflow<=3&&ar.left>=-3&&ar.right<=ar.viewport+3,"Auth "+authWidth+" overflow");
+    await screenshot("artifacts/noata-browser/auth-"+authWidth+".png");
+  }
+  await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await navigate("/help");
   await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-help-topic").length>5'),"Help topics");
   const countBefore=await evaluate('document.querySelectorAll(".aura-help-topic").length');
