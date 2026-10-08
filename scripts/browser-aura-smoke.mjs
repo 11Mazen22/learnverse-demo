@@ -189,6 +189,17 @@ async function main() {
   const modelMenu=await waitFor(async()=>await evaluate('!!document.querySelector(".owui-model-menu")'),"model menu opens");
   invariant(modelMenu,"AI model selector failed to open");
 
+  await navigate("/help");
+  await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-help-topic").length>5'),"Help topics");
+  const countBefore=await evaluate('document.querySelectorAll(".aura-help-topic").length');
+  invariant(countBefore>5,"Help topics missing");
+  await evaluate('(()=>{const el=document.querySelector(".aura-help-search input");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"PDF");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-help-topic").length>0&&document.querySelectorAll(".aura-help-topic").length<10'),"Help search");
+  const countAfter=await evaluate('document.querySelectorAll(".aura-help-topic").length');
+  invariant(countAfter<countBefore,"Help search did not filter entries");
+  await evaluate('document.querySelector(".aura-help-topic > button")?.click()');
+  invariant(await evaluate('document.querySelector(".aura-help-topic > button")?.getAttribute("aria-expanded")==="true"'),"Help FAQ was not expandable");
+  invariant(await evaluate('!!document.querySelector(".aura-help-answer")'),"Help answer not rendered");
   await verifyQuranControls();
   console.log(`Noata browser QA PASS: ${checks} public-browser assertions; 12 responsive screenshots.`);
   console.log("Authenticated student/teacher/admin E2E: NOT RUN (requires disposable credentials and protected preview access).");
