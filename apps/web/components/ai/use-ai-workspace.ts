@@ -563,6 +563,7 @@ export function useAIWorkspace() {
     e?: FormEvent,
     mode: "send" | "retry" | "regenerate" | "continue" = "send",
     tool?: string,
+    directPrompt?: string,
   ) {
     e?.preventDefault();
     if (lock.current || recording || loading) return;
@@ -581,7 +582,7 @@ export function useAIWorkspace() {
         ? "كمّل شرحك من النقطة اللي وقفت عندها."
         : mode === "retry"
           ? (messages.findLast((m) => m.role === "user")?.content ?? "")
-          : input.trim() ||
+          : (directPrompt?.trim() || input.trim()) ||
             (documentFiles.length > 0 ||
             (attachment &&
               (isTextDocument(attachment) || isDocxDocument(attachment)))
