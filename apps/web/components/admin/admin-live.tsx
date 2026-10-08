@@ -1,7 +1,10 @@
 "use client";
 
+import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { OperationsLive } from "./operations-live";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { boundedRead } from "@/lib/supabase/use-verified-account";
+import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
 import { CurriculumManager } from "@/components/admin/curriculum-manager";
@@ -45,8 +48,9 @@ export function AdminLive() {
   const [teacherAccess, setTeacherAccess] = useState<TeacherAccess[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
+  const { account, busy, status, setStatus, run } = useConfirmedMutation();
+  const [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
 
   const [promptAr, setPromptAr] = useState("");
@@ -68,77 +72,115 @@ export function AdminLive() {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
 
+  useUnsavedWork(
+    Boolean(
+      account.user &&
+        (promptAr ||
+          promptEn ||
+          choicesAr ||
+          choicesEn ||
+          answer ||
+          explanationAr ||
+          explanationEn ||
+          className ||
+          gradeLabel ||
+          academicYear),
+    ),
+  );
   async function load() {
-    const [
-      { data: q },
-      { data: p },
-      { data: c },
-      { data: m },
-      { data: t },
-      { data: l },
-      { data: s },
-    ] = await Promise.all([
-      supabase
-        .from("questions")
-        .select("id,prompt_ar,review_status,publication_status,question_type")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("profiles")
-        .select("id,display_name,role,xp,coins")
-        .order("display_name"),
-      supabase
-        .from("classes")
-        .select("id,slug,name,grade_label,academic_year,active")
-        .order("name"),
-      supabase.from("class_memberships").select("class_id,student_id"),
-      supabase.from("teacher_class_access").select("class_id,teacher_id"),
-      supabase.from("lessons").select("id,title_ar").order("position"),
-      supabase.from("skills").select("id,title_ar").order("title_ar"),
-    ]);
-
-    const classRows = (c ?? []) as ClassRow[];
-    const profileRows = (p ?? []) as Profile[];
-    setQuestions((q ?? []) as Question[]);
-    setProfiles(profileRows);
-    setClasses(classRows);
-    setMemberships((m ?? []) as Membership[]);
-    setTeacherAccess((t ?? []) as TeacherAccess[]);
-    setLessons((l ?? []) as Lesson[]);
-    setSkills((s ?? []) as Skill[]);
-    if (!lessonId && l?.[0]) setLessonId(l[0].id);
-    if (!skillId && s?.[0]) setSkillId(s[0].id);
-    if (!selectedClass && classRows[0]) setSelectedClass(classRows[0].id);
-    if (!selectedUser && profileRows[0]) setSelectedUser(profileRows[0].id);
+    if (!account.user) {
+      setLoading(false);
+      return false;
+    }
+    const token = account.revision.current;
+    setLoading(true);
+    setLoadError("");
+    try {
+      const results = await boundedRead(
+        Promise.all([
+          supabase
+            .from("questions")
+            .select(
+              "id,prompt_ar,review_status,publication_status,question_type",
+            )
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("profiles")
+            .select("id,display_name,role,xp,coins")
+            .order("display_name"),
+          supabase
+            .from("classes")
+            .select("id,slug,name,grade_label,academic_year,active")
+            .order("name"),
+          supabase.from("class_memberships").select("class_id,student_id"),
+          supabase.from("teacher_class_access").select("class_id,teacher_id"),
+          supabase.from("lessons").select("id,title_ar").order("position"),
+          supabase.from("skills").select("id,title_ar").order("title_ar"),
+        ]),
+      );
+      if (token !== account.revision.current) return false;
+      const failed = results.find((r) => r.error);
+      if (failed) throw failed.error;
+      const [q, p, c, m, t, l, s] = results,
+        classRows = (c.data ?? []) as ClassRow[],
+        profileRows = (p.data ?? []) as Profile[];
+      setQuestions((q.data ?? []) as Question[]);
+      setProfiles(profileRows);
+      setClasses(classRows);
+      setMemberships((m.data ?? []) as Membership[]);
+      setTeacherAccess((t.data ?? []) as TeacherAccess[]);
+      setLessons((l.data ?? []) as Lesson[]);
+      setSkills((s.data ?? []) as Skill[]);
+      if (!lessonId && l.data?.[0]) setLessonId(l.data[0].id);
+      if (!skillId && s.data?.[0]) setSkillId(s.data[0].id);
+      if (!selectedClass && classRows[0]) setSelectedClass(classRows[0].id);
+      if (!selectedUser && profileRows[0]) setSelectedUser(profileRows[0].id);
+      return true;
+    } catch {
+      if (token === account.revision.current)
+        setLoadError(
+          "تعذّر تحميل بيانات الإدارة. لن نعرض أرقامًا أو قوائم فارغة بوصفها نتائج مؤكدة.",
+        );
+      return false;
+    } finally {
+      if (token === account.revision.current) setLoading(false);
+    }
   }
-
   useEffect(() => {
-    void load();
-  }, []);
-
+    if (!account.loading) void load();
+  }, [account.user, account.loading]);
+  async function refreshMessage(check: () => void, message: string) {
+    const refreshed = await load();
+    check();
+    return (
+      message +
+      (refreshed ? "" : " — تعذّر تحديث القائمة؛ راجعها قبل تكرار العملية.")
+    );
+  }
   async function transition(id: string, action: string) {
-    setBusy(true);
-    setStatus("");
-    const { error } = await supabase.rpc("transition_question", {
-      p_question_id: id,
-      p_action: action,
+    await run(async (check) => {
+      const result = await supabase.rpc("transition_question", {
+        p_question_id: id,
+        p_action: action,
+      });
+      check();
+      if (result.error) throw result.error;
+      return refreshMessage(check, "تم تحديث حالة المحتوى ✓");
     });
-    setStatus(error ? error.message : "Content updated ✓");
-    await load();
-    setBusy(false);
   }
 
   function actionFor(q: Question) {
     if (q.review_status === "draft")
-      return { label: "Submit review", action: "submit_review" };
+      return { label: "إرسال للمراجعة", action: "submit_review" };
     if (q.review_status === "in_review")
-      return { label: "Approve", action: "approve" };
+      return { label: "اعتماد", action: "approve" };
     if (q.review_status === "approved" && q.publication_status === "draft")
-      return { label: "Publish", action: "publish" };
+      return { label: "نشر", action: "publish" };
     if (
       q.publication_status === "published" ||
       q.publication_status === "published_demo"
     )
-      return { label: "Retire", action: "retire" };
+      return { label: "إيقاف النشر", action: "retire" };
     return null;
   }
 
@@ -162,56 +204,54 @@ export function AdminLive() {
         !Number.isInteger(idx) ||
         idx < 0 ||
         idx >= arChoices.length ||
-        arChoices.length < 2
+        arChoices.length < 2 ||
+        enChoices.length !== arChoices.length ||
+        !answer.trim()
       ) {
         setStatus(
-          "For multiple choice, enter a valid zero-based answer index and at least two choices.",
+          "أدخل ترتيب الإجابة الصحيحة بدءًا من صفر، وخيارين على الأقل، مع عدد خيارات متساوٍ بالعربية والإنجليزية.",
         );
         return;
       }
       answerSpec = { type: "multiple-choice", correctAnswer: String(idx) };
     } else {
       const numeric = Number(answer);
-      if (!Number.isFinite(numeric)) {
-        setStatus("Numeric answer is invalid.");
+      if (!answer.trim() || !Number.isFinite(numeric)) {
+        setStatus("الإجابة الرقمية غير صالحة.");
         return;
       }
       answerSpec = { type: "numeric", correctAnswer: numeric, tolerance: 0.01 };
     }
 
-    setBusy(true);
-    setStatus("Creating draft…");
-    const { error } = await supabase.rpc("create_question_draft", {
-      p_lesson_id: lessonId,
-      p_unit_id: null as unknown as string,
-      p_skill_id: skillId,
-      p_question_type: questionType,
-      p_prompt_ar: promptAr.trim(),
-      p_prompt_en: promptEn.trim(),
-      p_choices_ar: questionType === "multiple-choice" ? arChoices : [],
-      p_choices_en: questionType === "multiple-choice" ? enChoices : [],
-      p_answer_spec: answerSpec as Json,
-      p_explanation_ar: explanationAr.trim(),
-      p_explanation_en: explanationEn.trim(),
-      p_difficulty: 1,
-      p_metadata: { source: "admin-studio" } as Json,
-    });
-    if (error) {
-      setStatus(error.message);
-      setBusy(false);
-      return;
-    }
+    await run(async (check) => {
+      const { error } = await supabase.rpc("create_question_draft", {
+        p_lesson_id: lessonId,
+        p_unit_id: null as unknown as string,
+        p_skill_id: skillId,
+        p_question_type: questionType,
+        p_prompt_ar: promptAr.trim(),
+        p_prompt_en: promptEn.trim(),
+        p_choices_ar: questionType === "multiple-choice" ? arChoices : [],
+        p_choices_en: questionType === "multiple-choice" ? enChoices : [],
+        p_answer_spec: answerSpec as Json,
+        p_explanation_ar: explanationAr.trim(),
+        p_explanation_en: explanationEn.trim(),
+        p_difficulty: 1,
+        p_metadata: { source: "admin-studio" } as Json,
+      });
+      check();
+      if (error) throw error;
 
-    setPromptAr("");
-    setPromptEn("");
-    setChoicesAr("");
-    setChoicesEn("");
-    setAnswer("");
-    setExplanationAr("");
-    setExplanationEn("");
-    setStatus("Draft created with hidden answer key ✓");
-    await load();
-    setBusy(false);
+      setPromptAr("");
+      setPromptEn("");
+      setChoicesAr("");
+      setChoicesEn("");
+      setAnswer("");
+      setExplanationAr("");
+      setExplanationEn("");
+      const success = "تم حفظ المسودة والإجابة الصحيحة في الخادم ✓";
+      return refreshMessage(check, success);
+    });
   }
 
   async function changeRole(profile: Profile, role: Profile["role"]) {
@@ -226,86 +266,105 @@ export function AdminLive() {
       )
     )
       return;
-    setBusy(true);
-    setStatus("");
-    const { error } = await supabase.rpc("set_user_role", {
-      p_user_id: profile.id,
-      p_role: role,
+    await run(async (check) => {
+      const { error } = await supabase.rpc("set_user_role", {
+        p_user_id: profile.id,
+        p_role: role,
+      });
+      check();
+      if (error) throw error;
+      const success = "تم تحديث الصلاحيات ✓";
+      return refreshMessage(check, success);
     });
-    setStatus(error ? error.message : "Role updated ✓");
-    await load();
-    setBusy(false);
   }
 
   async function createClass(e: FormEvent) {
     e.preventDefault();
     if (!className.trim() || !gradeLabel.trim() || !academicYear.trim()) return;
-    setBusy(true);
-    setStatus("");
-    const slug = "class-" + Date.now().toString(36);
-    const { error } = await supabase.from("classes").insert({
-      slug,
-      name: className.trim(),
-      grade_label: gradeLabel.trim(),
-      academic_year: academicYear.trim(),
-      active: true,
+    await run(async (check) => {
+      const slug = "class-" + Date.now().toString(36);
+      const { error } = await supabase
+        .from("classes")
+        .insert({
+          slug,
+          name: className.trim(),
+          grade_label: gradeLabel.trim(),
+          academic_year: academicYear.trim(),
+          active: true,
+        })
+        .select("id")
+        .single();
+      check();
+      if (error) throw error;
+      const success = "تم إنشاء الصفّ ✓";
+      if (!error) {
+        setClassName("");
+        setGradeLabel("");
+        setAcademicYear("");
+      }
+      return refreshMessage(check, success);
     });
-    setStatus(error ? error.message : "Class created ✓");
-    if (!error) {
-      setClassName("");
-      setGradeLabel("");
-      setAcademicYear("");
-    }
-    await load();
-    setBusy(false);
   }
 
   async function addAccess() {
     const profile = profiles.find((x) => x.id === selectedUser);
     if (!profile || !selectedClass) return;
-    setBusy(true);
-    setStatus("");
-    let errorMessage = "";
-    if (profile.role === "student") {
-      const { error } = await supabase
-        .from("class_memberships")
-        .insert({ class_id: selectedClass, student_id: profile.id });
-      errorMessage = error?.message ?? "";
-    } else if (profile.role === "teacher") {
-      const { error } = await supabase
-        .from("teacher_class_access")
-        .insert({ class_id: selectedClass, teacher_id: profile.id });
-      errorMessage = error?.message ?? "";
-    } else {
-      errorMessage = "Admins already have global class access.";
-    }
-    setStatus(errorMessage || "Class access added ✓");
-    await load();
-    setBusy(false);
+    await run(async (check) => {
+      let errorMessage = "";
+      if (profile.role === "student") {
+        const { error } = await supabase
+          .from("class_memberships")
+          .insert({ class_id: selectedClass, student_id: profile.id })
+          .select("class_id")
+          .single();
+        errorMessage = error?.message ?? "";
+      } else if (profile.role === "teacher") {
+        const { error } = await supabase
+          .from("teacher_class_access")
+          .insert({ class_id: selectedClass, teacher_id: profile.id })
+          .select("class_id")
+          .single();
+        errorMessage = error?.message ?? "";
+      } else {
+        errorMessage = "الإدارة لديها وصول لجميع الصفوف.";
+      }
+      check();
+      if (errorMessage) throw Error("تعذّر منح الوصول إلى الصفّ.");
+      const success = "تم منح الوصول إلى الصفّ ✓";
+      return refreshMessage(check, success);
+    });
   }
 
   async function removeStudent(classId: string, userId: string) {
-    setBusy(true);
-    const { error } = await supabase
-      .from("class_memberships")
-      .delete()
-      .eq("class_id", classId)
-      .eq("student_id", userId);
-    setStatus(error ? error.message : "Student removed ✓");
-    await load();
-    setBusy(false);
+    await run(async (check) => {
+      const { error } = await supabase
+        .from("class_memberships")
+        .delete()
+        .eq("class_id", classId)
+        .eq("student_id", userId)
+        .select("class_id")
+        .single();
+      check();
+      if (error) throw error;
+      const success = "تمت إزالة عضوية الطالب ✓";
+      return refreshMessage(check, success);
+    });
   }
 
   async function removeTeacher(classId: string, userId: string) {
-    setBusy(true);
-    const { error } = await supabase
-      .from("teacher_class_access")
-      .delete()
-      .eq("class_id", classId)
-      .eq("teacher_id", userId);
-    setStatus(error ? error.message : "Teacher access removed ✓");
-    await load();
-    setBusy(false);
+    await run(async (check) => {
+      const { error } = await supabase
+        .from("teacher_class_access")
+        .delete()
+        .eq("class_id", classId)
+        .eq("teacher_id", userId)
+        .select("class_id")
+        .single();
+      check();
+      if (error) throw error;
+      const success = "تمت إزالة وصول المعلّم ✓";
+      return refreshMessage(check, success);
+    });
   }
 
   const counts = {
@@ -319,38 +378,60 @@ export function AdminLive() {
     users: profiles.length,
   };
 
+  if (account.error || loadError)
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>{account.error || loadError}</h2>
+        <button
+          type="button"
+          onClick={() => {
+            if (account.error) void account.refresh();
+            else void load();
+          }}
+        >
+          إعادة المحاولة
+        </button>
+      </section>
+    );
+  if (account.loading || loading)
+    return (
+      <section className="aura-loading-state" role="status">
+        <span />
+        <h2>بنجهّز مساحة إدارة Noata…</h2>
+      </section>
+    );
   return (
     <>
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            ADMIN STUDIO
+            إدارة المحتوى والمجتمع
           </div>
-          <h1 style={{ margin: "6px 0 0" }}>Noata Control Center</h1>
+          <h1 style={{ margin: "6px 0 0" }}>مركز إدارة Noata</h1>
         </div>
         <span className="pill">إدارة المحتوى والمجتمع</span>
       </header>
 
       <section className="grid-4">
         <article className="metric-card">
-          <span>Drafts</span>
+          <span>المسودات</span>
           <strong>{counts.draft}</strong>
-          <small>private</small>
+          <small>محتوى خاص</small>
         </article>
         <article className="metric-card">
-          <span>In review</span>
+          <span>قيد المراجعة</span>
           <strong>{counts.review}</strong>
-          <small>awaiting approval</small>
+          <small>بانتظار الاعتماد</small>
         </article>
         <article className="metric-card">
-          <span>Published</span>
+          <span>منشور</span>
           <strong>{counts.published}</strong>
-          <small>student-visible</small>
+          <small>متاح للطلاب</small>
         </article>
         <article className="metric-card">
-          <span>Users</span>
+          <span>الحسابات</span>
           <strong>{counts.users}</strong>
-          <small>{classes.length} classes</small>
+          <small>{classes.length} صفوف</small>
         </article>
       </section>
 
@@ -364,11 +445,19 @@ export function AdminLive() {
             className="btn"
             style={{
               background: tab === x ? "var(--accent)" : "var(--surface)",
-              color: tab === x ? "white" : "var(--ink)",
+              color: tab === x ? "var(--surface)" : "var(--ink)",
               borderColor: "var(--line)",
             }}
           >
-            {x[0].toUpperCase() + x.slice(1)}
+            {
+              {
+                content: "المحتوى",
+                curriculum: "المناهج",
+                users: "الحسابات",
+                classes: "الصفوف",
+                operations: "تشغيل المنصة",
+              }[x]
+            }
           </button>
         ))}
       </div>
@@ -376,6 +465,7 @@ export function AdminLive() {
       {status && (
         <div
           className="panel"
+          role="status"
           style={{
             marginTop: 14,
             padding: 14,
@@ -391,12 +481,12 @@ export function AdminLive() {
           <section className="content-grid">
             <form className="panel" onSubmit={createQuestion}>
               <div className="panel-head">
-                <h2>Create question draft</h2>
-                <span className="pill">Answer key hidden</span>
+                <h2>إنشاء مسودة سؤال</h2>
+                <span className="pill">الإجابة الصحيحة محفوظة في الخادم</span>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
                 <label>
-                  <small>Lesson</small>
+                  <small>الدرس</small>
                   <select
                     className="model-select"
                     style={{ width: "100%", marginTop: 5 }}
@@ -411,7 +501,7 @@ export function AdminLive() {
                   </select>
                 </label>
                 <label>
-                  <small>Skill</small>
+                  <small>المهارة</small>
                   <select
                     className="model-select"
                     style={{ width: "100%", marginTop: 5 }}
@@ -426,7 +516,7 @@ export function AdminLive() {
                   </select>
                 </label>
                 <label>
-                  <small>Type</small>
+                  <small>النوع</small>
                   <select
                     className="model-select"
                     style={{ width: "100%", marginTop: 5 }}
@@ -437,8 +527,8 @@ export function AdminLive() {
                       )
                     }
                   >
-                    <option value="multiple-choice">Multiple choice</option>
-                    <option value="numeric">Numeric</option>
+                    <option value="multiple-choice">اختيار من متعدد</option>
+                    <option value="numeric">إجابة رقمية</option>
                   </select>
                 </label>
                 <textarea
@@ -447,13 +537,15 @@ export function AdminLive() {
                   value={promptAr}
                   onChange={(e) => setPromptAr(e.target.value)}
                   placeholder="السؤال بالعربية"
+                  aria-label="السؤال بالعربية"
                 />
                 <textarea
                   className="search"
                   style={{ width: "100%", minHeight: 74, paddingTop: 12 }}
                   value={promptEn}
                   onChange={(e) => setPromptEn(e.target.value)}
-                  placeholder="English prompt"
+                  placeholder="السؤال بالإنجليزية"
+                  aria-label="السؤال بالإنجليزية"
                 />
                 {questionType === "multiple-choice" && (
                   <>
@@ -462,26 +554,29 @@ export function AdminLive() {
                       style={{ width: "100%", minHeight: 90, paddingTop: 12 }}
                       value={choicesAr}
                       onChange={(e) => setChoicesAr(e.target.value)}
-                      placeholder={"Arabic choices — one per line"}
+                      placeholder={"الخيارات العربية · خيار في كل سطر"}
+                      aria-label="الخيارات العربية"
                     />
                     <textarea
                       className="search"
                       style={{ width: "100%", minHeight: 90, paddingTop: 12 }}
                       value={choicesEn}
                       onChange={(e) => setChoicesEn(e.target.value)}
-                      placeholder={"English choices — one per line"}
+                      placeholder={"الخيارات الإنجليزية · خيار في كل سطر"}
+                      aria-label="الخيارات الإنجليزية"
                     />
                   </>
                 )}
                 <input
                   className="search"
                   style={{ width: "100%" }}
+                  aria-label="الإجابة الصحيحة"
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
                   placeholder={
                     questionType === "multiple-choice"
-                      ? "Correct index: 0, 1, 2…"
-                      : "Correct numeric answer"
+                      ? "رقم الخيار الصحيح: 0، 1، 2…"
+                      : "الإجابة الرقمية الصحيحة"
                   }
                 />
                 <textarea
@@ -490,13 +585,15 @@ export function AdminLive() {
                   value={explanationAr}
                   onChange={(e) => setExplanationAr(e.target.value)}
                   placeholder="الشرح بعد التصحيح"
+                  aria-label="الشرح بعد التصحيح"
                 />
                 <textarea
                   className="search"
                   style={{ width: "100%", minHeight: 70, paddingTop: 12 }}
                   value={explanationEn}
                   onChange={(e) => setExplanationEn(e.target.value)}
-                  placeholder="Explanation in English"
+                  placeholder="الشرح بالإنجليزية"
+                  aria-label="الشرح بالإنجليزية"
                 />
                 <button
                   disabled={busy}
@@ -506,28 +603,28 @@ export function AdminLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  Create draft
+                  إنشاء المسودة
                 </button>
               </div>
             </form>
 
             <aside className="panel">
               <div className="panel-head">
-                <h2>Workflow rules</h2>
-                <span className="pill">Server enforced</span>
+                <h2>قواعد مراجعة المحتوى</h2>
+                <span className="pill">ضوابط على الخادم</span>
               </div>
               <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>
-                Draft → Review → Approve → Publish. Students never receive the
-                hidden answer-key row. Publishing and retiring require admin
-                access and every transition is written to the audit log.
+                يبدأ المحتوى بمسودة، ثم المراجعة والاعتماد والنشر. مفاتيح
+                الإجابات محفوظة على الخادم. النشر وإيقافه يتطلبان صلاحية
+                الإدارة، وتُسجّل تغييرات الحالة في سجل النشاط.
               </p>
             </aside>
           </section>
 
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">
-              <h2>Content queue</h2>
-              <span className="pill">{questions.length} items</span>
+              <h2>قائمة المحتوى</h2>
+              <span className="pill">{questions.length} سؤال</span>
             </div>
             <div className="quest-list">
               {questions.slice(0, 30).map((q, i) => {
@@ -538,8 +635,26 @@ export function AdminLive() {
                     <div>
                       <h3>{q.prompt_ar}</h3>
                       <p>
-                        {q.review_status} · {q.publication_status} ·{" "}
-                        {q.question_type}
+                        {(
+                          {
+                            draft: "مسودة",
+                            in_review: "قيد المراجعة",
+                            approved: "معتمد",
+                            rejected: "مرفوض",
+                          } as Record<string, string>
+                        )[q.review_status] ?? "حالة غير معروفة"}{" "}
+                        ·{" "}
+                        {(
+                          {
+                            unpublished: "غير منشور",
+                            published: "منشور",
+                            retired: "متوقف",
+                          } as Record<string, string>
+                        )[q.publication_status] ?? "حالة غير معروفة"}{" "}
+                        ·{" "}
+                        {q.question_type === "multiple-choice"
+                          ? "اختيار متعدد"
+                          : "إجابة رقمية"}
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
@@ -557,7 +672,7 @@ export function AdminLive() {
                             padding: "0 10px",
                           }}
                         >
-                          Return
+                          إعادة للمراجعة
                         </button>
                       )}
                       {action && (
@@ -590,13 +705,13 @@ export function AdminLive() {
       {tab === "users" && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h2>Users & roles</h2>
+            <h2>الحسابات والصلاحيات</h2>
             <span className="pill">صلاحيات الحساب</span>
           </div>
           <input
             className="search"
-            aria-label="البحث عن مستخدم"
             placeholder="ابحث بالاسم أو الدور…"
+            aria-label="ابحث بالاسم أو الدور…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ marginBottom: 16 }}
@@ -621,15 +736,16 @@ export function AdminLive() {
                   </div>
                   <select
                     className="model-select"
+                    aria-label={"دور حساب " + (p.display_name || "المستخدم")}
                     value={p.role}
                     disabled={busy}
                     onChange={(e) =>
                       void changeRole(p, e.target.value as Profile["role"])
                     }
                   >
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="admin">Admin</option>
+                    <option value="student">طالب</option>
+                    <option value="teacher">معلّم</option>
+                    <option value="admin">إدارة</option>
                   </select>
                 </div>
               ))}
@@ -642,8 +758,8 @@ export function AdminLive() {
           <section className="content-grid">
             <form className="panel" onSubmit={createClass}>
               <div className="panel-head">
-                <h2>Create class</h2>
-                <span className="pill">Admin only</span>
+                <h2>إنشاء الصفّ</h2>
+                <span className="pill">للإدارة فقط</span>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
                 <input
@@ -651,21 +767,24 @@ export function AdminLive() {
                   style={{ width: "100%" }}
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
-                  placeholder="Class name"
+                  placeholder="اسم الصفّ"
+                  aria-label="اسم الصفّ"
                 />
                 <input
                   className="search"
                   style={{ width: "100%" }}
                   value={gradeLabel}
                   onChange={(e) => setGradeLabel(e.target.value)}
-                  placeholder="Grade / level"
+                  placeholder="المرحلة الدراسية"
+                  aria-label="المرحلة الدراسية"
                 />
                 <input
                   className="search"
                   style={{ width: "100%" }}
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
-                  placeholder="Academic year"
+                  placeholder="العام الدراسي"
+                  aria-label="العام الدراسي"
                 />
                 <button
                   disabled={busy}
@@ -675,18 +794,19 @@ export function AdminLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  Create class
+                  إنشاء الصفّ
                 </button>
               </div>
             </form>
 
             <aside className="panel">
               <div className="panel-head">
-                <h2>Add class access</h2>
+                <h2>منح الوصول إلى الصفّ</h2>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
                 <select
                   className="model-select"
+                  aria-label="اختر الصفّ لمنح الوصول"
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
                 >
@@ -698,6 +818,7 @@ export function AdminLive() {
                 </select>
                 <select
                   className="model-select"
+                  aria-label="اختر الحساب لمنح الوصول"
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
                 >
@@ -716,7 +837,7 @@ export function AdminLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  Add access
+                  منح الوصول
                 </button>
               </div>
             </aside>
@@ -736,7 +857,7 @@ export function AdminLive() {
                       </p>
                     </div>
                     <span className="pill">
-                      {students.length} students · {teachers.length} teachers
+                      {students.length} طالب · {teachers.length} معلّم
                     </span>
                   </div>
                   <div
@@ -747,7 +868,7 @@ export function AdminLive() {
                     }}
                   >
                     <div>
-                      <b>Students</b>
+                      <b>الطلاب</b>
                       {students.map((m) => (
                         <div
                           key={m.student_id}
@@ -773,13 +894,13 @@ export function AdminLive() {
                               color: "var(--danger)",
                             }}
                           >
-                            Remove
+                            إزالة الوصول
                           </button>
                         </div>
                       ))}
                     </div>
                     <div>
-                      <b>Teachers</b>
+                      <b>المعلّمون</b>
                       {teachers.map((t) => (
                         <div
                           key={t.teacher_id}
@@ -805,7 +926,7 @@ export function AdminLive() {
                               color: "var(--danger)",
                             }}
                           >
-                            Remove
+                            إزالة الوصول
                           </button>
                         </div>
                       ))}

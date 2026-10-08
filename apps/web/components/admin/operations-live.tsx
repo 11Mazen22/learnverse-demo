@@ -16,29 +16,37 @@ export function OperationsLive() {
     ),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
     let live = true;
+    setLoading(true);
+    setError("");
     void (async () => {
-      const [a, u] = await Promise.all([
-        supabase
-          .from("audit_events")
-          .select("id,action,entity_type,created_at")
-          .order("created_at", { ascending: false })
-          .limit(50),
-        supabase.rpc("admin_ai_usage_summary"),
-      ]);
-      if (!live) return;
-      if (a.error || u.error) setError("تعذّر تحميل سجل العمليات.");
-      else {
-        setAudit(a.data ?? []);
-        setUsage(u.data ?? []);
+      try {
+        const [a, u] = await Promise.all([
+          supabase
+            .from("audit_events")
+            .select("id,action,entity_type,created_at")
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase.rpc("admin_ai_usage_summary"),
+        ]);
+        if (!live) return;
+        if (a.error || u.error) setError("تعذّر تحميل سجل العمليات.");
+        else {
+          setAudit(a.data ?? []);
+          setUsage(u.data ?? []);
+        }
+      } catch {
+        if (live) setError("تعذّر تحميل سجل العمليات.");
+      } finally {
+        if (live) setLoading(false);
       }
-      setLoading(false);
     })();
     return () => {
       live = false;
     };
-  }, [supabase]);
+  }, [supabase, retry]);
   return (
     <>
       <div className="section-heading">
@@ -47,7 +55,10 @@ export function OperationsLive() {
       </div>
       {error && (
         <p role="alert" className="error-banner">
-          {error}
+          {error}{" "}
+          <button type="button" onClick={() => setRetry((x) => x + 1)}>
+            إعادة المحاولة
+          </button>
         </p>
       )}
       <p style={{ color: "var(--muted)", fontSize: 12 }}>
@@ -59,9 +70,9 @@ export function OperationsLive() {
           <article className="metric-card" key={c.id}>
             <span>{c.label}</span>
             <strong>
-              {loading
+              {loading || error
                 ? "—"
-                : usage.find((x) => x.capability === c.id)?.attempts ?? 0}
+                : (usage.find((x) => x.capability === c.id)?.attempts ?? 0)}
             </strong>
             <small>{c.category}</small>
           </article>

@@ -61,21 +61,93 @@ test("conversation titles are bounded and normalize whitespace", () => {
 test("image-preview links must target our private Supabase upload bucket", () => {
   const origin = "https://example.supabase.co";
   assert.equal(safeStorageLink("javascript:alert(1)", origin), null);
-  assert.equal(safeStorageLink("https://untrusted.test/file.png", origin), null);
-  assert.equal(safeStorageLink("https://example.supabase.co/storage/v1/object/public/other/a.png", origin), null);
-  const signed = origin + "/storage/v1/object/sign/noata-uploads/user/chat/picture.png?token=opaque";
+  assert.equal(
+    safeStorageLink("https://untrusted.test/file.png", origin),
+    null,
+  );
+  assert.equal(
+    safeStorageLink(
+      "https://example.supabase.co/storage/v1/object/public/other/a.png",
+      origin,
+    ),
+    null,
+  );
+  const signed =
+    origin +
+    "/storage/v1/object/sign/noata-uploads/user/chat/picture.png?token=opaque";
   assert.equal(safeStorageLink(signed, origin), signed);
 });
 
-
 test("text document attachments have their own safe MIME and size limits", () => {
-  assert.equal(validateAttachment({name:"reading.txt",type:"text/plain",size:620}),"");
-  assert.equal(validateAttachment({name:"revision.md",type:"text/markdown",size:620}),"");
-  assert.equal(validateAttachment({name:"grades.csv",type:"text/csv",size:620}),"");
-  assert.equal(validateAttachment({name:"notes.json",type:"application/json",size:620}),"");
-  assert.ok(validateAttachment({name:"evil.html",type:"text/html",size:620}));
-  assert.equal(validateAttachment({name:"reading.docx",type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",size:620}),"");
-  assert.equal(validateAttachment({name:"lecture.pdf",type:"application/pdf",size:620}),"");
-  assert.ok(validateAttachment({name:"unsupported.xlsx",type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",size:620}));
-  assert.ok(validateAttachment({name:"oversize.txt",type:"text/plain",size:600000}));
+  assert.equal(
+    validateAttachment({ name: "reading.txt", type: "text/plain", size: 620 }),
+    "",
+  );
+  assert.equal(
+    validateAttachment({
+      name: "revision.md",
+      type: "text/markdown",
+      size: 620,
+    }),
+    "",
+  );
+  assert.equal(
+    validateAttachment({ name: "grades.csv", type: "text/csv", size: 620 }),
+    "",
+  );
+  assert.equal(
+    validateAttachment({
+      name: "notes.json",
+      type: "application/json",
+      size: 620,
+    }),
+    "",
+  );
+  assert.ok(
+    validateAttachment({ name: "evil.html", type: "text/html", size: 620 }),
+  );
+  assert.equal(
+    validateAttachment({
+      name: "reading.docx",
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      size: 620,
+    }),
+    "",
+  );
+  assert.equal(
+    validateAttachment({
+      name: "lecture.pdf",
+      type: "application/pdf",
+      size: 620,
+    }),
+    "",
+  );
+  assert.ok(
+    validateAttachment({
+      name: "unsupported.xlsx",
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      size: 620,
+    }),
+  );
+  assert.ok(
+    validateAttachment({
+      name: "oversize.txt",
+      type: "text/plain",
+      size: 600000,
+    }),
+  );
+});
+
+test("notification destinations cannot become external after browser control-character normalization", () => {
+  for (const href of [
+    "/\n/evil.example",
+    "/\r/evil.example",
+    "/\t/evil.example",
+    "/path\u0000other",
+    "/\\evil.example",
+    "//evil.example",
+  ]) {
+    assert.equal(safeHref(href), "/notifications");
+  }
+  assert.equal(safeHref("/ai?chat=owned-id"), "/ai?chat=owned-id");
 });

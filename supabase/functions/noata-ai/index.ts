@@ -1,5 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+// This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
+import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 
 const FANAR_BASE = Deno.env.get("FANAR_BASE_URL") ?? "https://api.fanar.qa/v1";
 const FANAR_ORIGIN = FANAR_BASE.replace(/\/v1\/?$/, "");

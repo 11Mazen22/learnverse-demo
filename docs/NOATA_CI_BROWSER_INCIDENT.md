@@ -19,7 +19,7 @@ The source unconditionally applied `--single-process` and `--no-zygote`, used a 
 - Full stdout/stderr persists to `chromium.log`. `browser-startup.json` captures the executable, flags, PID, port, version, spawn errors, exit code/signal, readiness errors, WebSocket endpoint/error/HTTP rejection status/close details and cleanup results. The suite outcome includes nested error causes/stacks. Command and trace waits fail promptly on disconnect or timeout.
 - CI installs full Chrome for Testing matched to pinned Puppeteer (`146.0.7680.153`) and records installer diagnostics. Three simultaneous real Chrome/CDP sessions test isolation and crash propagation before the full suite. Six fault regressions cover flags, missing executable, exit code, signal, rejected handshake and missing debugger.
 - Public and authenticated runners share the launcher. Authenticated execution still requires the isolated staging guard; no auth bypass was added.
-- PDF/DOCX fixtures, 253 browser assertions, 68 captures, 48 public-view axe checks, trace/performance evidence, all modern/legacy tests and HTTP smoke remain required. No failures are retried away or converted to success.
+- PDF/DOCX fixtures, dynamically counted browser assertions/captures, 180 public-view axe checks and clearly labeled synthetic client regressions, trace/performance evidence, all modern/legacy tests and HTTP smoke remain required. No failures are retried away or converted to success.
 
 ## Reproduce and inspect
 
@@ -45,3 +45,10 @@ The user independently read deployment `dpl_9FqbL9geFgdebrqKKMQ5UeZc6D2M` as `BL
 Read-only attempts to retrieve this deployment through `api.vercel.com` fail with a proxy tunnel 403; GitHub deployment/status API reads are also Forbidden. The repository records project `prj_UwZa56LUkn8ELou8gWfEd6B371RM` / team `team_JAfADczhFscVrYQAPyLi41SS`. Commit author/committer identity is already the repository owner's configured identity; it has not been changed to impersonate another team member. Team membership/Git integration authorization, plan policy and exact `errorCode`/`errorMessage` must be inspected through an authorized connected read. No precise cause is confirmed from the available response.
 
 Do not change billing, account limits, deployment protection, production aliases or identity to get around the block. Storage migration remains unapplied. Release approval stays blocked until exact-head CI, an authorized isolated preview/staging and the remaining release matrix succeed.
+
+
+## Independently verified recovery baseline
+
+The user subsequently verified commit **2b6c9b9b352a8cf1c74e30bfc679a109f68af839** through connected APIs: [PR CI 37728570750](https://github.com/11Mazen22/learnverse-demo/actions/runs/37728570750) SUCCESS, [push CI 37728567137](https://github.com/11Mazen22/learnverse-demo/actions/runs/37728567137) SUCCESS, and Vercel **dpl_HWfRU9pkW6yQv7MY3T5CJFtirEg4** READY at https://noata-cgdyh3tnu-noata.vercel.app. This establishes recovery at that exact baseline, without attributing a definitive cause or configuration change to the earlier Vercel block. No billing, limit bypass or production action occurred here.
+
+Subsequent product changes must independently pass their own exact-head workflow and preview. The expanded suite now audits all six required widths and both themes, records settled error/guest states, protects writing edits on Escape, and exercises synthetic account/logout races with all real backend traffic blocked. Synthetic client fixtures never establish real authentication, provider health or RLS. See [current release gates](NOATA_AURA_FINAL_RELEASE_GATES.md).

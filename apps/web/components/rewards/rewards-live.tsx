@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {Icon} from "@/components/ui/icon";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@/components/ui/icon";
+import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
+import { createOperationKeys } from "@/lib/ai/operation-keys";
 import { createClient } from "@/lib/supabase/client";
 
 type Item = {
@@ -31,8 +33,16 @@ export function RewardsLive() {
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState("");
-  const [loading,setLoading]=useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const {
+    account,
+    busy: mutating,
+    status: mutationStatus,
+    run,
+  } = useConfirmedMutation();
+  const keys = useRef(createOperationKeys());
+  const [action, setBusy] = useState<string | null>(null);
+  const busy = mutating ? action : null;
   const [lastReward, setLastReward] = useState<{
     coins?: number;
     xp?: number;
@@ -40,32 +50,32 @@ export function RewardsLive() {
   } | null>(null);
 
   async function load() {
+    const token = account.revision.current;
     setLoading(true);
-    try{
-    const [
-      { data: itemRows, error:itemError },
-      {
-        data: { user },
-      },
-    ] = await Promise.all([
-      supabase
+    setError("");
+    try {
+      const { data: itemRows, error: itemError } = await supabase
         .from("shop_items")
         .select("id,slug,item_type,title_ar,title_en,price,asset_url")
         .eq("active", true)
-        .order("price"),
-      supabase.auth.getUser(),
-    ]);
-    if(itemError)throw itemError;
-    setItems((itemRows ?? []) as Item[]);
-    if (!user) {
-      setProfile(null);
-      setOwned(new Set());
-      setEquipped(new Map());
-      setBoxes([]);
-      return;
-    }
-    const [{ data: p,error:profileError }, { data: inventory,error:inventoryError }, { data: eq,error:equippedError }, { data: boxRows,error:boxesError }] =
-      await Promise.all([
+        .order("price");
+      if (token !== account.revision.current) return;
+      const user = account.user;
+      if (itemError) throw itemError;
+      setItems((itemRows ?? []) as Item[]);
+      if (!user) {
+        setProfile(null);
+        setOwned(new Set());
+        setEquipped(new Map());
+        setBoxes([]);
+        return;
+      }
+      const [
+        { data: p, error: profileError },
+        { data: inventory, error: inventoryError },
+        { data: eq, error: equippedError },
+        { data: boxRows, error: boxesError },
+      ] = await Promise.all([
         supabase.from("profiles").select("xp,coins").eq("id", user.id).single(),
         supabase.from("inventory").select("item_id").eq("user_id", user.id),
         supabase
@@ -78,73 +88,103 @@ export function RewardsLive() {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
       ]);
-    if(profileError||inventoryError||equippedError||boxesError)throw profileError??inventoryError??equippedError??boxesError;
-    setProfile(p as Profile | null);
-    setOwned(new Set((inventory ?? []).map((x) => x.item_id)));
-    setEquipped(
-      new Map(((eq ?? []) as Equipped[]).map((x) => [x.slot, x.item_id])),
-    );
-    setBoxes((boxRows ?? []) as Box[]);
-    }catch{setError("تعذّر تحميل المكافآت والرصيد. لن نعرض بيانات جديدة قبل التحقق من الاتصال.");}
-    finally{setLoading(false);}
-
+      if (token !== account.revision.current) return;
+      if (profileError || inventoryError || equippedError || boxesError)
+        throw profileError ?? inventoryError ?? equippedError ?? boxesError;
+      setProfile(p as Profile | null);
+      setOwned(new Set((inventory ?? []).map((x) => x.item_id)));
+      setEquipped(
+        new Map(((eq ?? []) as Equipped[]).map((x) => [x.slot, x.item_id])),
+      );
+      setBoxes((boxRows ?? []) as Box[]);
+    } catch {
+      if (token === account.revision.current)
+        setError(
+          "تعذّر تحميل المكافآت والرصيد. لن نعرض بيانات جديدة قبل التحقق من الاتصال.",
+        );
+    } finally {
+      if (token === account.revision.current) setLoading(false);
+    }
   }
 
   useEffect(() => {
-    void load();
-  }, []);
+    setProfile(null);
+    setOwned(new Set());
+    setEquipped(new Map());
+    setBoxes([]);
+    setLastReward(null);
+    keys.current.clear();
+    setBusy(null);
+    if (!account.loading) void load();
+  }, [account.user, account.loading]);
 
   async function buy(item: Item) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.href = "/login";
+    if (!account.user) {
+      window.location.href = "/login?next=/rewards";
       return;
     }
-    setBusy("buy:" + item.id);
-    setError("");
-    const { error } = await supabase.rpc("purchase_shop_item", {
-      p_item_id: item.id,
-      p_idempotency_key: crypto.randomUUID(),
-    });
-    if (error) setError(error.message);
-    await load();
-    setBusy(null);
+    await run(async (check) => {
+      setBusy("buy:" + item.id);
+      setError("");
+      const result = await supabase.rpc("purchase_shop_item", {
+        p_item_id: item.id,
+        p_idempotency_key: keys.current.get("buy:" + item.id),
+      });
+      check();
+      if (result.error) throw result.error;
+      keys.current.confirmed("buy:" + item.id);
+      await load();
+      check();
+      setBusy(null);
+    }, "");
   }
-
   async function equip(item: Item) {
-    setBusy("equip:" + item.id);
-    setError("");
-    const { error } = await supabase.rpc("equip_cosmetic", {
-      p_item_id: item.id,
-    });
-    if (error) setError(error.message);
-    await load();
-    setBusy(null);
+    await run(async (check) => {
+      setBusy("equip:" + item.id);
+      setError("");
+      const result = await supabase.rpc("equip_cosmetic", {
+        p_item_id: item.id,
+      });
+      check();
+      if (result.error) throw result.error;
+      await load();
+      check();
+      setBusy(null);
+    }, "");
   }
-
   async function claim(box: Box) {
-    setBusy("box:" + box.id);
-    setError("");
-    setLastReward(null);
-    const { data, error } = await supabase.rpc("claim_reward_box", {
-      p_box_id: box.id,
-    });
-    if (error) setError(error.message);
-    else {
-      const payload = (data ?? {}) as {
+    await run(async (check) => {
+      setBusy("box:" + box.id);
+      setError("");
+      setLastReward(null);
+      const result = await supabase.rpc("claim_reward_box", {
+        p_box_id: box.id,
+      });
+      check();
+      if (result.error) throw result.error;
+      const payload = result.data as {
         reward?: { coins?: number; xp?: number; tier?: string };
-      };
-      setLastReward(payload.reward ?? null);
-    }
-    await load();
-    setBusy(null);
+      } | null;
+      if (!payload?.reward) throw Error("Missing confirmed reward");
+      setLastReward(payload.reward);
+      await load();
+      check();
+      setBusy(null);
+    }, "");
   }
 
   const level = Math.floor(Number(profile?.xp ?? 0) / 100) + 1;
   const unclaimed = boxes.filter((x) => !x.claimed_at);
 
+  if (account.error)
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>{account.error}</h2>
+        <button type="button" onClick={() => void account.refresh()}>
+          إعادة المحاولة
+        </button>
+      </section>
+    );
   return (
     <>
       <header className="topbar" style={{ marginBottom: 18 }}>
@@ -155,9 +195,13 @@ export function RewardsLive() {
           <h1 style={{ margin: "6px 0 0" }}>شخصيتك ومكافآتك</h1>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <span className="pill">{profile?"المستوى "+level:"رصيدك مرتبط بحسابك"}</span>
           <span className="pill">
-            {profile?Number(profile.coins).toLocaleString()+" عملات":"—"}
+            {profile ? "المستوى " + level : "رصيدك مرتبط بحسابك"}
+          </span>
+          <span className="pill">
+            {profile && !loading && !error
+              ? Number(profile.coins).toLocaleString("ar-EG") + " عملات"
+              : "—"}
           </span>
         </div>
       </header>
@@ -192,17 +236,28 @@ export function RewardsLive() {
             fontSize: 72,
           }}
         >
-          <Icon name="gift" size={66}/>
+          <Icon name="gift" size={66} />
         </div>
       </section>
 
-      {loading&&<p role="status">بنحمّل المكافآت…</p>}
-      {error && (
+      {(account.loading || loading) && <p role="status">بنحمّل المكافآت…</p>}
+      {(error || mutationStatus) && (
         <div
           className="panel"
+          role="alert"
           style={{ marginTop: 14, color: "var(--danger)" }}
         >
-          {error}<button type="button" className="btn" onClick={()=>{setError("");void load();}}>إعادة المحاولة</button>
+          {error || mutationStatus}
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              setError("");
+              void load();
+            }}
+          >
+            إعادة المحاولة
+          </button>
         </div>
       )}
       {lastReward && (
@@ -223,7 +278,9 @@ export function RewardsLive() {
           <div className="quest-list">
             {unclaimed.map((box) => (
               <div className="quest" key={box.id}>
-                <div className="quest-icon"><Icon name="gift" size={22}/></div>
+                <div className="quest-icon">
+                  <Icon name="gift" size={22} />
+                </div>
                 <div>
                   <h3>{box.tier.toUpperCase()} Box</h3>
                   <p>Earned from {box.source.replaceAll("_", " ")}</p>
@@ -231,7 +288,7 @@ export function RewardsLive() {
                 <button
                   className="btn"
                   onClick={() => void claim(box)}
-                  disabled={busy === "box:" + box.id}
+                  disabled={mutating || busy === "box:" + box.id}
                   style={{
                     background: "var(--accent)",
                     color: "var(--surface)",
@@ -261,14 +318,28 @@ export function RewardsLive() {
             const item = items.find((x) => x.id === equipped.get(slot));
             return (
               <div
-                key={{avatar:"الصورة الشخصية",outfit:"المظهر",companion:"الرفيق",background:"الخلفية"}[slot]??slot}
+                key={
+                  {
+                    avatar: "الصورة الشخصية",
+                    outfit: "المظهر",
+                    companion: "الرفيق",
+                    background: "الخلفية",
+                  }[slot] ?? slot
+                }
                 style={{
                   padding: 14,
                   border: "1px solid var(--line)",
                   borderRadius: 15,
                 }}
               >
-                <small style={{ color: "var(--muted)" }}>{{avatar:"الصورة الشخصية",outfit:"المظهر",companion:"الرفيق",background:"الخلفية"}[slot]??slot}</small>
+                <small style={{ color: "var(--muted)" }}>
+                  {{
+                    avatar: "الصورة الشخصية",
+                    outfit: "المظهر",
+                    companion: "الرفيق",
+                    background: "الخلفية",
+                  }[slot] ?? slot}
+                </small>
                 <b style={{ display: "block", marginTop: 5 }}>
                   {item?.title_ar ?? "—"}
                 </b>
@@ -302,7 +373,7 @@ export function RewardsLive() {
                   fontSize: 44,
                 }}
               >
-                <Icon name="gift" size={42}/>
+                <Icon name="gift" size={42} />
               </div>
               <h3>{item.title_ar}</h3>
               <p style={{ color: "var(--muted)", fontSize: 12 }}>
@@ -310,7 +381,7 @@ export function RewardsLive() {
               </p>
               {!isOwned ? (
                 <button
-                  disabled={busy === "buy:" + item.id}
+                  disabled={mutating || busy === "buy:" + item.id}
                   onClick={() => void buy(item)}
                   className="btn"
                   style={{

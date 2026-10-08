@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  boundedRead,
+  useVerifiedAccount,
+} from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 
 export function RoleGate({
@@ -11,39 +15,83 @@ export function RoleGate({
   children: React.ReactNode;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const account = useVerifiedAccount();
+  const allowKey = allow.slice().sort().join(",");
+  const [retry, setRetry] = useState(0);
   const [state, setState] = useState<
-    "loading" | "allowed" | "denied" | "signed-out"
+    "loading" | "allowed" | "denied" | "signed-out" | "error"
   >("loading");
 
   useEffect(() => {
+    let alive = true;
+    setState("loading");
+    if (account.loading) return;
+    if (account.error) {
+      setState("error");
+      return;
+    }
+    if (!account.user) {
+      setState("signed-out");
+      return;
+    }
+    const token = account.revision.current;
     void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setState("signed-out");
-        return;
+      try {
+        const { data, error } = await boundedRead(
+          supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", account.user!.id)
+            .single(),
+        );
+        if (!alive || token !== account.revision.current) return;
+        if (error) throw error;
+        setState(
+          data && allowKey.split(",").includes(data.role)
+            ? "allowed"
+            : "denied",
+        );
+      } catch {
+        if (alive && token === account.revision.current) setState("error");
       }
-      const { data } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      setState(
-        data && allow.includes(data.role as "teacher" | "admin")
-          ? "allowed"
-          : "denied",
-      );
     })();
-  }, [allow, supabase]);
+    return () => {
+      alive = false;
+    };
+  }, [
+    account.user,
+    account.loading,
+    account.error,
+    account.revision,
+    allowKey,
+    supabase,
+    retry,
+  ]);
 
-  if (state === "loading")
+  if (account.loading || state === "loading")
     return (
-      <section className="panel">
-        <p>Loading workspace…</p>
+      <section className="aura-loading-state" role="status">
+        <span />
+        <h2>نتحقق من صلاحيات مساحة العمل…</h2>
       </section>
     );
-  if (state === "signed-out")
+  if (account.error || state === "error")
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>تعذّر التحقق من الصلاحيات</h2>
+        <p>أعد المحاولة عند عودة الاتصال.</p>
+        <button
+          type="button"
+          onClick={() => {
+            if (account.error) void account.refresh();
+            else setRetry((x) => x + 1);
+          }}
+        >
+          إعادة المحاولة
+        </button>
+      </section>
+    );
+  if (!account.user || state === "signed-out")
     return (
       <section className="panel" style={{ textAlign: "center", padding: 30 }}>
         <h2>سجّل الدخول أولًا</h2>

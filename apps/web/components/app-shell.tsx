@@ -1,5 +1,5 @@
 "use client";
-import {NoataLogo} from "@/components/ui/noata-logo";
+import { NoataLogo } from "@/components/ui/noata-logo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -48,11 +48,9 @@ export function AppShell({
   const nav = (
     <>
       <Link href="/" className="brand">
-        <NoataLogo size={44}/>
+        <NoataLogo size={44} />
         <span className="brand-copy">
-          <strong>
-            Noäta
-          </strong>
+          <strong>Noäta</strong>
           <span>تعلّم · انمُ · أنجز</span>
         </span>
       </Link>
@@ -103,7 +101,9 @@ export function AppShell({
               <span className="tiny-label">
                 {role === "student"
                   ? "MY LEARNING SPACE"
-                  : role.toUpperCase() + " WORKSPACE"}
+                  : role === "teacher"
+                    ? "مساحة المعلّم"
+                    : "مساحة الإدارة"}
               </span>
               <b>
                 {routes.find((r) => r[1] === active)?.[0] ??

@@ -8,12 +8,27 @@ import {
   type FormEvent,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toolOutputText } from "@/lib/ai/tool-output";
 import { createVoiceGenerationGuard } from "@/lib/ai/voice-generation";
+import {
+  createSessionGuard,
+  clearSessionWork,
+  synchronizeSessionWork,
+  composerDrafts,
+} from "@/lib/ai/session-work";
 import { isTextDocument, extractTextDocument } from "@/lib/ai/document-text";
 import { isDocxDocument, extractDocxDocument } from "@/lib/ai/docx-ingest";
-import {retainOriginalDocuments,deleteOriginalDocuments,clearOriginalDocuments} from "@/lib/ai/original-documents";
+import {
+  retainOriginalDocuments,
+  deleteOriginalDocuments,
+  clearOriginalDocuments,
+} from "@/lib/ai/original-documents";
 import { createAiMessageContext } from "@/lib/ai/context-budget";
-import { isSupportedDocument,validateDocumentBatch,extractDocumentBatch } from "@/lib/ai/multi-document";
+import {
+  isSupportedDocument,
+  validateDocumentBatch,
+  extractDocumentBatch,
+} from "@/lib/ai/multi-document";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
 import {
   AI_FUNCTION,
@@ -27,13 +42,19 @@ import {
 const columns =
   "id,conversation_id,role,content,model,status,created_at,metadata";
 /** Never leave the AI workspace showing an endless loading screen when Auth is offline. */
-async function sessionStep<T>(work: PromiseLike<T>, timeoutMs = 6500): Promise<T> {
+async function sessionStep<T>(
+  work: PromiseLike<T>,
+  timeoutMs = 6500,
+): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       Promise.resolve(work),
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("AI session initialization timed out")), timeoutMs);
+        timer = setTimeout(
+          () => reject(new Error("AI session initialization timed out")),
+          timeoutMs,
+        );
       }),
     ]);
   } finally {
@@ -55,7 +76,7 @@ export function useAIWorkspace() {
     [archiveView, setArchiveView] = useState(false),
     [mobileHistory, setMobileHistory] = useState(false),
     [showTools, setShowTools] = useState(false);
-  const [documentFiles,setDocumentFiles] = useState<File[]>([]);
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [attachment, setAttachment] = useState<File | null>(null),
     [preview, setPreview] = useState(""),
     [recording, setRecording] = useState(false),
@@ -66,7 +87,9 @@ export function useAIWorkspace() {
       url: string;
     } | null>(null),
     [voiceBusy, setVoiceBusy] = useState(false),
-    [voiceRequestMessageId, setVoiceRequestMessageId] = useState<string | null>(null);
+    [voiceRequestMessageId, setVoiceRequestMessageId] = useState<string | null>(
+      null,
+    );
   const [dialog, setDialog] = useState<{
       kind: "delete" | "rename" | "edit";
       conversation?: Conversation;
@@ -87,40 +110,91 @@ export function useAIWorkspace() {
     openSequence = useRef(0),
     voiceGeneration = useRef(createVoiceGenerationGuard()),
     audioElement = useRef<HTMLAudioElement | null>(null);
+  const streamed = useRef({ content: "", model: "auto" });
   const failedTool = useRef<string | undefined>(undefined);
+  const sessionScope = useRef(createSessionGuard());
+  const [sessionVersion, setSessionVersion] = useState(0);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
   const [ttsModel, setTtsModel] = useState("Fanar-Aura-TTS-2");
   const loadHistory = useCallback(async () => {
+    const scope = sessionScope.current,
+      token = scope.capture(),
+      owner = scope.owner();
+    if (!owner) return;
     const { data, error } = await supabase
       .from("ai_conversations")
       .select("id,title,pinned,archived,selected_model,updated_at,temporary")
+      .eq("user_id", owner)
       .eq("temporary", false)
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(200);
+    if (!scope.isCurrent(token)) return;
     if (error) throw error;
     setConversations((data ?? []) as Conversation[]);
   }, [supabase]);
   useEffect(() => {
     let alive = true;
-    const {data:{subscription}}=supabase.auth.onAuthStateChange(event=>{if(event==="SIGNED_OUT")clearOriginalDocuments();});
-    void (async () => {
+    const scope = sessionScope.current;
+    function reset(owner: string | null) {
+      if (scope.owner() && scope.owner() !== owner)
+        window.history.replaceState(null, "", "/ai");
+      setSessionVersion(scope.reset(owner));
+      abort.current?.abort();
+      abort.current = null;
+      lock.current = false;
+      ++openSequence.current;
+      stopVoice();
+      cancelRecording.current = true;
+      if (media.current?.state === "recording") media.current.stop();
+      media.current?.stream.getTracks().forEach((t) => t.stop());
+      if (synchronizeSessionWork(owner)) clearOriginalDocuments();
+      setRecording(false);
+      setBusy(false);
+      setConversations([]);
+      setMessages([]);
+      streamed.current = { content: "", model: "auto" };
+      setActiveId(null);
+      setPendingText("");
+      setInput("");
+      setDocumentFiles([]);
+      setAttachment(null);
+      setDialog(null);
+      setEditValue("");
+      setHistoryQuery("");
+      setError("");
+      setNotice("");
+      setModel("auto");
+      setTemporary(false);
+      failedTool.current = undefined;
+      setSignedIn(Boolean(owner));
+      setLoading(Boolean(owner));
+    }
+    async function initialize() {
+      let token = scope.capture();
       try {
         const {
           data: { user },
         } = await sessionStep(supabase.auth.getUser());
-        if (!alive) return;
+        if (!alive || !scope.isCurrent(token)) return;
+        if (user?.id !== scope.owner() && (user || scope.owner()))
+          reset(user?.id ?? null);
+        token = scope.capture();
+        if (synchronizeSessionWork(user?.id ?? null)) clearOriginalDocuments();
         setSignedIn(Boolean(user));
         const prompt = new URLSearchParams(window.location.search).get(
           "prompt",
         );
         if (prompt) setInput(prompt.slice(0, 4000));
         if (user) {
-          const { data } = await sessionStep(supabase
-            .from("user_settings")
-            .select("default_ai_model,ai_memory_enabled")
-            .eq("user_id", user.id)
-            .maybeSingle());
+          const { data } = await sessionStep(
+            supabase
+              .from("user_settings")
+              .select("default_ai_model,ai_memory_enabled")
+              .eq("user_id", user.id)
+              .maybeSingle(),
+          );
+          if (!alive || !scope.isCurrent(token)) return;
           if (data) {
             setModel(data.default_ai_model || "auto");
             setTemporary(!data.ai_memory_enabled);
@@ -128,17 +202,36 @@ export function useAIWorkspace() {
           await sessionStep(loadHistory());
         }
       } catch (e) {
-        if (alive) {
-          setSignedIn(false);
-          setError("تعذّر التحقق من الجلسة حاليًا. يمكنك مراجعة الواجهة؛ أعد فتح الصفحة عندما يعود الاتصال.");
+        if (alive && scope.isCurrent(token)) {
+          setError(
+            "تعذّر التحقق من الجلسة حاليًا. يمكنك مراجعة الواجهة؛ أعد فتح الصفحة عندما يعود الاتصال.",
+          );
         }
       } finally {
-        if (alive) setLoading(false);
+        if (alive && scope.isCurrent(token)) setLoading(false);
       }
-    })();
+    }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!alive) return;
+      if (event === "SIGNED_OUT") {
+        reset(null);
+        clearOriginalDocuments();
+        clearSessionWork();
+      } else if (session?.user.id && session.user.id !== scope.owner()) {
+        reset(session.user.id);
+        // Supabase auth callbacks must not await another auth operation.
+        queueMicrotask(() => {
+          if (alive) void initialize();
+        });
+      }
+    });
+    void initialize();
     return () => {
       subscription.unsubscribe();
       alive = false;
+      scope.reset(null);
       abort.current?.abort();
       voiceGeneration.current.invalidate();
       audioElement.current?.pause();
@@ -180,8 +273,27 @@ export function useAIWorkspace() {
     setVoiceBusy(false);
     setVoiceRequestMessageId(null);
   }
+  function stashComposer() {
+    return composerDrafts.set(activeId ?? "new", {
+      text: input,
+      documents: documentFiles,
+      attachment,
+    });
+  }
+  function restoreComposer(id: string | null) {
+    const saved = composerDrafts.get(id ?? "new");
+    setInput(saved?.text ?? "");
+    setDocumentFiles(saved?.documents ?? []);
+    setAttachment(saved?.attachment ?? null);
+  }
   async function openConversation(id: string) {
     if (lock.current) return;
+    if (!stashComposer()) {
+      setError(
+        "الملفات تتجاوز حد ذاكرة المسودات. أرسلها أو أزلها قبل تغيير المحادثة.",
+      );
+      return;
+    }
     stopVoice();
     const seq = ++openSequence.current;
     setLoading(true);
@@ -200,7 +312,10 @@ export function useAIWorkspace() {
       const restored = await Promise.all(
         (data ?? []).map(async (message) => {
           const meta = message.metadata as Record<string, unknown> | null;
-          if (message.role === "user" && typeof meta?.attachmentPath === "string") {
+          if (
+            message.role === "user" &&
+            typeof meta?.attachmentPath === "string"
+          ) {
             const link = await supabase.storage
               .from("noata-uploads")
               .createSignedUrl(meta.attachmentPath, 3600);
@@ -231,8 +346,7 @@ export function useAIWorkspace() {
       setModel(row?.selected_model || "auto");
       setTemporary(false);
       setMobileHistory(false);
-      setAttachment(null);
-      setInput("");
+      restoreComposer(id);
       follow.current = true;
       window.history.replaceState(
         null,
@@ -240,9 +354,9 @@ export function useAIWorkspace() {
         "/ai?chat=" + encodeURIComponent(id),
       );
     } catch (e) {
-      setError(friendlyError(e));
+      if (seq === openSequence.current) setError(friendlyError(e));
     } finally {
-      setLoading(false);
+      if (seq === openSequence.current) setLoading(false);
     }
   }
   useEffect(() => {
@@ -252,6 +366,10 @@ export function useAIWorkspace() {
   }, [conversations, loading, activeId]);
   function newChat(temp = temporary) {
     if (lock.current) return;
+    if (!stashComposer()) {
+      setError("أرسل الملفات أو أزلها قبل بدء محادثة أخرى.");
+      return;
+    }
     stopVoice();
     setDocumentFiles([]);
     setAttachment(null);
@@ -260,21 +378,26 @@ export function useAIWorkspace() {
     setMessages([]);
     setPendingText("");
     failedTool.current = undefined;
-    setInput("");
+    restoreComposer(null);
     setError("");
     setNotice("");
-    setAttachment(null);
     setTemporary(temp);
     setMobileHistory(false);
     window.history.replaceState(null, "", "/ai");
     composer.current?.focus();
   }
-  async function ensureConversation(text: string) {
+  function assertSession(token: number) {
+    if (!sessionScope.current.isCurrent(token) || !sessionScope.current.owner())
+      throw new DOMException("Session changed", "AbortError");
+  }
+  async function ensureConversation(text: string, token: number) {
+    assertSession(token);
     if (activeId) return activeId;
     if (temporary) return "temporary";
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    assertSession(token);
     if (!user) throw Error("auth expired");
     const { data, error } = await supabase
       .from("ai_conversations")
@@ -286,24 +409,31 @@ export function useAIWorkspace() {
       })
       .select("id")
       .single();
+    assertSession(token);
     if (error || !data) throw error ?? Error("save failed");
     setActiveId(data.id);
     window.history.replaceState(null, "", "/ai?chat=" + data.id);
     return data.id;
   }
-  async function upload(file: File, conversationId: string) {
+  async function upload(file: File, conversationId: string, token: number) {
+    assertSession(token);
     const invalid = validateAttachment(file);
     if (invalid) throw Error(invalid);
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    assertSession(token);
     if (!user) throw Error("auth expired");
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-70);
     const path =
       user.id + "/" + conversationId + "/" + crypto.randomUUID() + "-" + safe;
     const { error } = await supabase.storage
       .from("noata-uploads")
-      .upload(path, file, { contentType: file.type || "text/plain", upsert: false });
+      .upload(path, file, {
+        contentType: file.type || "text/plain",
+        upsert: false,
+      });
+    assertSession(token);
     if (error) throw error;
     const record = await supabase.from("ai_attachments").insert({
       user_id: user.id,
@@ -312,6 +442,7 @@ export function useAIWorkspace() {
       mime_type: file.type,
       size_bytes: file.size,
     });
+    assertSession(token);
     if (record.error) {
       await supabase.storage.from("noata-uploads").remove([path]);
       throw record.error;
@@ -328,10 +459,17 @@ export function useAIWorkspace() {
     if (data?.error) throw Error(String(data.error));
     return data;
   }
-  async function chat(history: Message[], attachmentPath?: string) {
+  async function chat(
+    history: Message[],
+    token: number,
+    signal: AbortSignal,
+    attachmentPath?: string,
+  ) {
+    assertSession(token);
     const {
       data: { session },
     } = await supabase.auth.getSession();
+    assertSession(token);
     if (!session) throw Error("auth expired");
     const response = await fetch(
       SUPABASE_URL + "/functions/v1/" + AI_FUNCTION,
@@ -350,15 +488,14 @@ export function useAIWorkspace() {
           stream: true,
           requestId: crypto.randomUUID(),
         }),
-        signal: AbortSignal.any([
-          abort.current!.signal,
-          AbortSignal.timeout(180000),
-        ]),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(180000)]),
       },
     );
+    assertSession(token);
     if (!response.ok) throw Error(String(response.status));
     if (!response.headers.get("content-type")?.includes("text/event-stream")) {
       const data = await response.json();
+      assertSession(token);
       if (data.error) throw Error(String(data.error));
       if (!data.content) throw Error("Empty response");
       return {
@@ -375,15 +512,20 @@ export function useAIWorkspace() {
     try {
       for (;;) {
         const part = await reader.read();
+        assertSession(token);
         if (part.done) break;
         buffer += decoder.decode(part.value, { stream: true });
+        if (buffer.length > 1024 * 1024) throw Error("Stream frame too large");
         const parsed = parseStreamFrames(buffer);
         buffer = parsed.rest;
         for (const frame of parsed.data) {
           const event = JSON.parse(frame);
           if (event.error) throw Error(event.error);
           if (typeof event.content === "string") {
+            if (event.content.length > 500000)
+              throw Error("Response too large");
             content = event.content;
+            streamed.current = { content, model: event.model || used };
             setPendingText(content);
           }
           if (event.model) used = event.model;
@@ -391,6 +533,7 @@ export function useAIWorkspace() {
         }
       }
     } finally {
+      await reader.cancel().catch(() => {});
       reader.releaseLock();
     }
     if (!done) throw Error("Stream interrupted");
@@ -422,9 +565,11 @@ export function useAIWorkspace() {
     tool?: string,
   ) {
     e?.preventDefault();
-    if (lock.current || recording) return;
-    if ((attachment || documentFiles.length>0) && (tool || mode !== "send")) {
-      setError("المرفقات الجديدة تدعم الرسالة العادية فقط. أرسل الملفات أولًا قبل استخدام الأدوات أو إعادة توليد رد.");
+    if (lock.current || recording || loading) return;
+    if ((attachment || documentFiles.length > 0) && (tool || mode !== "send")) {
+      setError(
+        "المرفقات الجديدة تدعم الرسالة العادية فقط. أرسل الملفات أولًا قبل استخدام الأدوات أو إعادة توليد رد.",
+      );
       return;
     }
     if (!signedIn) {
@@ -435,43 +580,76 @@ export function useAIWorkspace() {
       mode === "continue"
         ? "كمّل شرحك من النقطة اللي وقفت عندها."
         : mode === "retry"
-          ? (messages.at(-1)?.content ?? "")
-          : input.trim() || (documentFiles.length>0 || attachment && (isTextDocument(attachment)||isDocxDocument(attachment)) ? "قارن الملفات المرفقة واشرح ما يدعمه كل مصدر، مع الاستشهاد بأسماء الملفات." : attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
+          ? (messages.findLast((m) => m.role === "user")?.content ?? "")
+          : input.trim() ||
+            (documentFiles.length > 0 ||
+            (attachment &&
+              (isTextDocument(attachment) || isDocxDocument(attachment)))
+              ? "قارن الملفات المرفقة واشرح ما يدعمه كل مصدر، مع الاستشهاد بأسماء الملفات."
+              : attachment?.type.startsWith("image/")
+                ? "حلّل الصورة المرفقة."
+                : "");
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
+    const token = sessionScope.current.capture();
     lock.current = true;
     setBusy(true);
     setError("");
     setNotice("");
     setPendingText("");
+    streamed.current = { content: "", model };
     follow.current = true;
-    abort.current = new AbortController();
+    const controller = new AbortController();
+    abort.current = controller;
     let history = messages;
     let conversationId = activeId ?? "temporary";
     let assistant: Message | undefined;
     let savedResponse = false;
     let temporaryUploadPath: string | undefined;
-    let retainedDocumentIds:string[]=[];
-    let sourcesSaved=false;
+    let uploadedPath: string | undefined;
+    let retainedDocumentIds: string[] = [];
+    let sourcesSaved = false;
     try {
       conversationId = await ensureConversation(
         text || messages[0]?.content || "محادثة",
+        token,
       );
-      if (mode === "regenerate") {
+      assertSession(token);
+      if (
+        mode === "regenerate" ||
+        (mode === "retry" &&
+          messages.at(-1)?.role === "assistant" &&
+          messages.at(-1)?.status !== "complete")
+      ) {
         history = messages.slice(0, -1);
       }
       let path: string | undefined;
       let documentExcerpt: string | undefined;
       let documentTruncated = false;
       const documentSources = documentFiles.length
-        ? await extractDocumentBatch(documentFiles,text)
+        ? await extractDocumentBatch(documentFiles, text)
         : [];
-      if(documentSources.length){
-        setNotice(temporary?"بنقرأ مستنداتك دون حفظ الأصل…":"بنجهّز المستندات الأصلية…");
-        retainedDocumentIds=await retainOriginalDocuments(documentSources,documentFiles,conversationId,temporary,abort.current?.signal);
-        if(!temporary && !retainedDocumentIds.length)setNotice("حفظ الأصل غير مفعّل؛ المعاينة الكاملة متاحة خلال جلسة الرفع فقط.");
+      assertSession(token);
+      if (documentSources.length) {
+        setNotice(
+          temporary
+            ? "بنقرأ مستنداتك دون حفظ الأصل…"
+            : "بنجهّز المستندات الأصلية…",
+        );
+        retainedDocumentIds = await retainOriginalDocuments(
+          documentSources,
+          documentFiles,
+          conversationId,
+          temporary,
+          abort.current?.signal,
+        );
+        if (!temporary && !retainedDocumentIds.length)
+          setNotice(
+            "حفظ الأصل غير مفعّل؛ المعاينة الكاملة متاحة خلال جلسة الرفع فقط.",
+          );
       }
+      assertSession(token);
       if (attachment) {
         if (isTextDocument(attachment) || isDocxDocument(attachment)) {
           setNotice("بنقرأ محتوى المستند…");
@@ -486,11 +664,13 @@ export function useAIWorkspace() {
           setNotice("بنجهّز النص للمحادثة…");
         } else {
           setNotice("بنرفع الملف…");
-          path = await upload(attachment, conversationId);
+          path = await upload(attachment, conversationId, token);
+          uploadedPath = path;
           if (temporary) temporaryUploadPath = path;
         }
         setNotice("");
       }
+      assertSession(token);
       if (mode === "send" || mode === "continue") {
         const row: Message = {
           id: crypto.randomUUID(),
@@ -498,20 +678,25 @@ export function useAIWorkspace() {
           role: "user",
           content: text,
           metadata: {
-            ...(attachment ? {
-              ...(path ? { attachmentPath: path } : {}),
-              attachmentName: attachment.name,
-              attachmentMime: attachment.type || "text/plain",
-              ...(documentExcerpt ? {documentExcerpt,documentTruncated}:{}),
-            } : {}),
-            ...(documentSources.length ? {documentSources} : {}),
+            ...(attachment
+              ? {
+                  ...(path ? { attachmentPath: path } : {}),
+                  attachmentName: attachment.name,
+                  attachmentMime: attachment.type || "text/plain",
+                  ...(documentExcerpt
+                    ? { documentExcerpt, documentTruncated }
+                    : {}),
+                }
+              : {}),
+            ...(documentSources.length ? { documentSources } : {}),
           },
           model: null,
           status: "complete",
           created_at: new Date().toISOString(),
         };
         const saved = await persist(row);
-        sourcesSaved=true;
+        sourcesSaved = true;
+        assertSession(token);
         if (path && attachment) {
           const signed = await supabase.storage
             .from("noata-uploads")
@@ -521,9 +706,14 @@ export function useAIWorkspace() {
             attachmentUrl: signed.data?.signedUrl ?? null,
           };
         }
+        assertSession(token);
         history = [...history, saved];
         setMessages(history);
         setInput("");
+        composerDrafts.delete(activeId ?? "new");
+        composerDrafts.delete(conversationId);
+        setAttachment(null);
+        setDocumentFiles([]);
       }
       let result: { content: string; model: string };
       let metadata: Record<string, unknown> = {};
@@ -539,6 +729,7 @@ export function useAIWorkspace() {
           Object.assign(payload, { prompt: text, response: "" });
         else payload.input = { query: text, prompt: text };
         const data = await invoke(payload);
+        assertSession(token);
         if (tool === "image" && data.asset?.path)
           metadata.assetPath = data.asset.path;
         const content =
@@ -546,16 +737,26 @@ export function useAIWorkspace() {
             ? data.asset?.signedUrl
               ? "![صورة أنشأها Noata](" + data.asset.signedUrl + ")"
               : ""
-            : String(
-                data.result?.translation ??
-                  data.result?.poem ??
-                  data.result?.text ??
-                  data.result?.content ??
-                  JSON.stringify(data.result, null, 2),
-              );
+            : toolOutputText(data.result);
         if (!content) throw Error("No output");
         result = { content, model: tool };
-      } else result = await chat(history, attachment && (isTextDocument(attachment)||isDocxDocument(attachment)) ? undefined : path);
+      } else {
+        const priorPath =
+          mode !== "send"
+            ? history.findLast(
+                (m) =>
+                  m.role === "user" &&
+                  typeof m.metadata?.attachmentPath === "string",
+              )?.metadata?.attachmentPath
+            : undefined;
+        result = await chat(
+          history,
+          token,
+          controller.signal,
+          path ?? (typeof priorPath === "string" ? priorPath : undefined),
+        );
+      }
+      assertSession(token);
       assistant = {
         id: crypto.randomUUID(),
         conversation_id: conversationId,
@@ -566,7 +767,13 @@ export function useAIWorkspace() {
         status: "complete",
         created_at: new Date().toISOString(),
       };
-      if (mode === "regenerate" && !temporary) {
+      if (
+        (mode === "regenerate" ||
+          (mode === "retry" &&
+            messages.at(-1)?.role === "assistant" &&
+            messages.at(-1)?.status !== "complete")) &&
+        !temporary
+      ) {
         const old = messages.at(-1)!;
         const { data, error } = await supabase
           .from("ai_messages")
@@ -581,6 +788,7 @@ export function useAIWorkspace() {
         if (error) throw error;
         assistant = data as Message;
       } else assistant = await persist(assistant);
+      assertSession(token);
       setMessages([...history, assistant]);
       savedResponse = true;
       setAttachment(null);
@@ -599,26 +807,105 @@ export function useAIWorkspace() {
         await loadHistory();
       }
     } catch (e) {
+      if (!sessionScope.current.isCurrent(token)) return;
       setError(friendlyError(e));
+      if (!assistant && streamed.current.content && mode !== "regenerate") {
+        const partial: Message = {
+          id: crypto.randomUUID(),
+          conversation_id: conversationId,
+          role: "assistant",
+          content: streamed.current.content,
+          model: streamed.current.model,
+          status: controller.signal.aborted ? "stopped" : "failed",
+          created_at: new Date().toISOString(),
+          metadata: { incomplete: true },
+        };
+        try {
+          let saved: Message;
+          const previous = messages.at(-1);
+          if (
+            mode === "retry" &&
+            !temporary &&
+            previous?.role === "assistant" &&
+            previous.status !== "complete"
+          ) {
+            const result = await supabase
+              .from("ai_messages")
+              .update({
+                content: partial.content,
+                model: partial.model,
+                status: partial.status,
+                metadata: { incomplete: true },
+              })
+              .eq("id", previous.id)
+              .select(columns)
+              .single();
+            assertSession(token);
+            if (result.error) throw result.error;
+            saved = result.data as Message;
+          } else saved = await persist(partial);
+          assertSession(token);
+          setMessages([...history, saved]);
+          setPendingText("");
+          setNotice(
+            "تم الاحتفاظ بالرد الجزئي مع توضيح أنه غير مكتمل. يمكنك إكماله أو إعادة توليده.",
+          );
+        } catch {
+          if (sessionScope.current.isCurrent(token))
+            setNotice(
+              "الرد الجزئي ظاهر هنا، لكن حفظه لم يتأكد. انسخه قبل مغادرة الصفحة.",
+            );
+        }
+      }
       if (assistant && !savedResponse) {
         setPendingText(assistant.content);
         setNotice("الرد ظاهر هنا، لكن حفظه لم يتأكد. انسخه قبل مغادرة الصفحة.");
       }
     } finally {
-      setBusy(false);
-      lock.current = false;
-      abort.current = null;
-      if (savedResponse) setPendingText("");
-      if(!sourcesSaved && retainedDocumentIds.length){try{await deleteOriginalDocuments(retainedDocumentIds);}catch{setError("تعذّر تنظيف المستندات بعد فشل حفظ الرسالة. حاول حذفها من المحادثة.");}}
-      if (temporaryUploadPath) {
-        // Temporary images are used for inference then erased from Storage
-        // and the attachment index, even if inference fails.
-        const [storageResult, recordResult] = await Promise.all([
-          supabase.storage.from("noata-uploads").remove([temporaryUploadPath]),
-          supabase.from("ai_attachments").delete().eq("storage_path", temporaryUploadPath),
-        ]);
-        if (storageResult.error || recordResult.error) {
-          setError("تعذّر تنظيف المرفق المؤقت بالكامل. جرّب حذف البيانات المؤقتة من إعدادات الحساب.");
+      if (!sessionScope.current.isCurrent(token)) return;
+      try {
+        if (savedResponse) setPendingText("");
+        if (!sourcesSaved && retainedDocumentIds.length) {
+          try {
+            await deleteOriginalDocuments(retainedDocumentIds);
+          } catch {
+            if (sessionScope.current.isCurrent(token))
+              setError(
+                "تعذّر تنظيف المستندات بعد فشل حفظ الرسالة. حاول حذفها من المحادثة.",
+              );
+          }
+        }
+        if (!sessionScope.current.isCurrent(token)) return;
+        temporaryUploadPath ??= !sourcesSaved ? uploadedPath : undefined;
+        if (temporaryUploadPath) {
+          // Temporary images are used for inference then erased from Storage
+          // and the attachment index, even if inference fails.
+          const [storageResult, recordResult] = await Promise.all([
+            supabase.storage
+              .from("noata-uploads")
+              .remove([temporaryUploadPath]),
+            supabase
+              .from("ai_attachments")
+              .delete()
+              .eq("storage_path", temporaryUploadPath),
+          ]);
+          if (
+            sessionScope.current.isCurrent(token) &&
+            (storageResult.error || recordResult.error)
+          ) {
+            setError(
+              "تعذّر تنظيف المرفق المؤقت بالكامل. جرّب حذف البيانات المؤقتة من إعدادات الحساب.",
+            );
+          }
+        }
+      } catch {
+        if (sessionScope.current.isCurrent(token))
+          setError("تعذّر تنظيف بعض المرفقات المؤقتة. راجع إعدادات بياناتك.");
+      } finally {
+        if (sessionScope.current.isCurrent(token)) {
+          setBusy(false);
+          lock.current = false;
+          abort.current = null;
         }
       }
     }
@@ -627,6 +914,7 @@ export function useAIWorkspace() {
     c: Conversation,
     action: "pin" | "archive" | "rename" | "delete",
   ) {
+    const token = sessionScope.current.capture();
     if (lock.current) return;
     if (action === "rename" || action === "delete") {
       setDialog({ kind: action, conversation: c });
@@ -639,6 +927,7 @@ export function useAIWorkspace() {
         action === "pin" ? { pinned: !c.pinned } : { archived: !c.archived },
       )
       .eq("id", c.id);
+    if (!sessionScope.current.isCurrent(token)) return;
     if (error) {
       setError(friendlyError(error));
       return;
@@ -646,10 +935,12 @@ export function useAIWorkspace() {
     try {
       await loadHistory();
     } catch (e) {
+      if (!sessionScope.current.isCurrent(token)) return;
       setError(friendlyError(e));
     }
   }
   async function applyDialog() {
+    const token = sessionScope.current.capture();
     if (!dialog || lock.current) return;
     lock.current = true;
     setBusy(true);
@@ -662,8 +953,10 @@ export function useAIWorkspace() {
             .from("ai_messages")
             .delete()
             .in("id", ids);
+          assertSession(token);
           if (result.error) throw result.error;
         }
+        assertSession(token);
         if (audioPlayback && ids.includes(audioPlayback.messageId)) stopVoice();
         setMessages(messages.slice(0, index));
         setInput(editValue);
@@ -676,21 +969,60 @@ export function useAIWorkspace() {
         if (dialog.kind === "delete") {
           // Collect owner-scoped private objects BEFORE the cascade removes
           // their metadata. Never delete a path outside this authenticated user.
-          const { data: { user } } = await supabase.auth.getUser();
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          assertSession(token);
           if (!user) throw Error("auth expired");
-          const capability=await fetch("/api/documents?capabilities=1").then(r=>r.json());
-          if(capability.retention){const deleted=await fetch("/api/documents?conversationId="+encodeURIComponent(c.id),{method:"DELETE"});if(!deleted.ok)throw Error("تعذّر حذف المستندات. المحادثة لم تُحذف؛ حاول مرة أخرى.");}
+          const capability = await fetch("/api/documents?capabilities=1").then(
+            (r) => r.json(),
+          );
+          if (capability.retention) {
+            const deleted = await fetch(
+              "/api/documents?conversationId=" + encodeURIComponent(c.id),
+              { method: "DELETE" },
+            );
+            if (!deleted.ok)
+              throw Error(
+                "تعذّر حذف المستندات. المحادثة لم تُحذف؛ حاول مرة أخرى.",
+              );
+          }
           const [items, replyRows] = await Promise.all([
-            supabase.from("ai_attachments").select("storage_path").eq("conversation_id", c.id).limit(1000),
-            supabase.from("ai_messages").select("metadata").eq("conversation_id", c.id).limit(1000),
+            supabase
+              .from("ai_attachments")
+              .select("storage_path")
+              .eq("conversation_id", c.id)
+              .limit(1000),
+            supabase
+              .from("ai_messages")
+              .select("metadata")
+              .eq("conversation_id", c.id)
+              .limit(1000),
           ]);
-          if (items.error || replyRows.error) throw items.error ?? replyRows.error;
-          uploads = [...new Set((items.data ?? [])
-            .map(x => x.storage_path)
-            .filter(p => typeof p === "string" && p.startsWith(user.id + "/")))];
-          generated = [...new Set((replyRows.data ?? [])
-            .map(x => (x.metadata as Record<string, unknown> | null)?.assetPath)
-            .filter((p): p is string => typeof p === "string" && p.startsWith(user.id + "/")))];
+          if (items.error || replyRows.error)
+            throw items.error ?? replyRows.error;
+          uploads = [
+            ...new Set(
+              (items.data ?? [])
+                .map((x) => x.storage_path)
+                .filter(
+                  (p) => typeof p === "string" && p.startsWith(user.id + "/"),
+                ),
+            ),
+          ];
+          generated = [
+            ...new Set(
+              (replyRows.data ?? [])
+                .map(
+                  (x) =>
+                    (x.metadata as Record<string, unknown> | null)?.assetPath,
+                )
+                .filter(
+                  (p): p is string =>
+                    typeof p === "string" && p.startsWith(user.id + "/"),
+                ),
+            ),
+          ];
         }
         const result =
           dialog.kind === "delete"
@@ -699,14 +1031,21 @@ export function useAIWorkspace() {
                 .from("ai_conversations")
                 .update({ title: editValue.trim().slice(0, 80) })
                 .eq("id", c.id);
+        assertSession(token);
         if (result.error) throw result.error;
         if (dialog.kind === "delete") {
           const [uploadsResult, generatedResult] = await Promise.all([
-            uploads.length ? supabase.storage.from("noata-uploads").remove(uploads) : Promise.resolve({error:null}),
-            generated.length ? supabase.storage.from("noata-generated").remove(generated) : Promise.resolve({error:null}),
+            uploads.length
+              ? supabase.storage.from("noata-uploads").remove(uploads)
+              : Promise.resolve({ error: null }),
+            generated.length
+              ? supabase.storage.from("noata-generated").remove(generated)
+              : Promise.resolve({ error: null }),
           ]);
           if (uploadsResult.error || generatedResult.error)
-            setNotice("تم حذف المحادثة، لكن تعذّر إزالة بعض الملفات. راجع إعدادات بياناتك.");
+            setNotice(
+              "تم حذف المحادثة، لكن تعذّر إزالة بعض الملفات. راجع إعدادات بياناتك.",
+            );
         }
         if (dialog.kind === "delete" && activeId === c.id) {
           stopVoice();
@@ -718,8 +1057,10 @@ export function useAIWorkspace() {
         setDialog(null);
       }
     } catch (e) {
+      if (!sessionScope.current.isCurrent(token)) return;
       setError(friendlyError(e));
     } finally {
+      if (!sessionScope.current.isCurrent(token)) return;
       lock.current = false;
       setBusy(false);
     }
@@ -727,43 +1068,63 @@ export function useAIWorkspace() {
   function selectFile(file: File | undefined) {
     if (!file || lock.current) return;
     const invalid = validateAttachment(file);
-    if (invalid) {setError(invalid);return;}
-    if (file.type.startsWith("audio/")) {void transcribe(file);return;}
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
+    if (file.type.startsWith("audio/")) {
+      void transcribe(file);
+      return;
+    }
     if (isSupportedDocument(file)) {
-      const proposed=[...documentFiles,file];
-      const rejected=validateDocumentBatch(proposed);
-      if(rejected){setError(rejected);return;}
+      const proposed = [...documentFiles, file];
+      const rejected = validateDocumentBatch(proposed);
+      if (rejected) {
+        setError(rejected);
+        return;
+      }
       setDocumentFiles(proposed);
-    }else{
+    } else {
       // Backend supports one vision image per request at present.
       setAttachment(file);
     }
     setError("");
   }
-  function selectFiles(files:FileList|File[]|null|undefined){
-    if(!files||lock.current)return;
-    const incoming=Array.from(files);
-    const documents=incoming.filter(isSupportedDocument);
-    const others=incoming.filter(f=>!isSupportedDocument(f));
-    const next=[...documentFiles,...documents];
-    const bad=validateDocumentBatch(next);
-    if(bad){setError(bad);return;}
-    if(others.length>1 || (others.length && others[0].type.startsWith("audio/") && documents.length)){
+  function selectFiles(files: FileList | File[] | null | undefined) {
+    if (!files || lock.current || loading) return;
+    const incoming = Array.from(files);
+    const documents = incoming.filter(isSupportedDocument);
+    const others = incoming.filter((f) => !isSupportedDocument(f));
+    const next = [...documentFiles, ...documents];
+    const bad = validateDocumentBatch(next);
+    if (bad) {
+      setError(bad);
+      return;
+    }
+    if (
+      others.length > 1 ||
+      (others.length && others[0].type.startsWith("audio/") && documents.length)
+    ) {
       setError("المسموح صورة واحدة مع عدة مستندات، أو ملف صوت منفصل للتفريغ.");
       return;
     }
-    if(others.length){
-      const error=validateAttachment(others[0]);
-      if(error){setError(error);return;}
+    if (others.length) {
+      const error = validateAttachment(others[0]);
+      if (error) {
+        setError(error);
+        return;
+      }
     }
     setDocumentFiles(next);
-    if(others.length){
-      if(others[0].type.startsWith("audio/")) void transcribe(others[0]);
+    if (others.length) {
+      if (others[0].type.startsWith("audio/")) void transcribe(others[0]);
       else setAttachment(others[0]);
     }
     setError("");
   }
   async function captureScreen() {
+    const token = sessionScope.current.capture();
+    let capture: MediaStream | undefined;
     if (lock.current || busy) return;
     if (!signedIn) {
       setError("سجّل الدخول علشان ترفق لقطة شاشة.");
@@ -774,6 +1135,8 @@ export function useAIWorkspace() {
         video: true,
         audio: false,
       });
+      capture = stream;
+      if (!sessionScope.current.isCurrent(token)) return;
       const video = document.createElement("video");
       video.srcObject = stream;
       video.muted = true;
@@ -790,6 +1153,7 @@ export function useAIWorkspace() {
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, "image/png", 0.92),
       );
+      assertSession(token);
       if (!blob) throw Error("screen capture unavailable");
       selectFile(
         new File([blob], "screen-" + Date.now() + ".png", {
@@ -799,41 +1163,52 @@ export function useAIWorkspace() {
       setNotice("تم التقاط الشاشة. اكتب سؤالك ثم أرسل.");
       composer.current?.focus();
     } catch (e) {
+      if (!sessionScope.current.isCurrent(token)) return;
       if (e instanceof DOMException && e.name === "NotAllowedError") {
         setNotice("تم إلغاء مشاركة الشاشة.");
       } else {
         setError("تعذّر التقاط الشاشة. جرّب رفع صورة بدلًا منها.");
       }
+    } finally {
+      capture?.getTracks().forEach((t) => t.stop());
     }
   }
   async function transcribe(file: File) {
     if (lock.current) return;
+    const token = sessionScope.current.capture();
     lock.current = true;
     setBusy(true);
     setError("");
     abort.current = new AbortController();
     let uploadedAudioPath: string | undefined;
     try {
-      const path = await upload(file, activeId ?? "temporary");
+      const path = await upload(file, activeId ?? "temporary", token);
       uploadedAudioPath = path;
+      assertSession(token);
       const data = await invoke({
         action: "transcribe_storage",
         model: sttModel,
         attachmentPath: path,
         filename: file.name,
       });
+      assertSession(token);
       const text = String(data.result?.text ?? data.result?.transcript ?? "");
       if (!text) throw Error("Empty transcript");
       setInput((x) => (x ? x + " " + text : text));
       setNotice("راجع النص قبل إرساله.");
       composer.current?.focus();
     } catch (e) {
+      if (!sessionScope.current.isCurrent(token)) return;
       setError(friendlyError(e));
     } finally {
+      if (!sessionScope.current.isCurrent(token)) return;
       if (uploadedAudioPath) {
         const [storage, index] = await Promise.all([
           supabase.storage.from("noata-uploads").remove([uploadedAudioPath]),
-          supabase.from("ai_attachments").delete().eq("storage_path", uploadedAudioPath),
+          supabase
+            .from("ai_attachments")
+            .delete()
+            .eq("storage_path", uploadedAudioPath),
         ]);
         if (storage.error || index.error) {
           setError("تعذّر تنظيف التسجيل الصوتي المؤقت. راجع إعدادات الملفات.");
@@ -845,6 +1220,7 @@ export function useAIWorkspace() {
     }
   }
   async function toggleRecording() {
+    const token = sessionScope.current.capture();
     if (recording) {
       media.current?.stop();
       return;
@@ -856,6 +1232,10 @@ export function useAIWorkspace() {
     try {
       cancelRecording.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!sessionScope.current.isCurrent(token)) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       const recorder = new MediaRecorder(stream);
       media.current = recorder;
       const chunks: Blob[] = [];
@@ -864,6 +1244,7 @@ export function useAIWorkspace() {
       };
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        if (!sessionScope.current.isCurrent(token)) return;
         setRecording(false);
         if (!cancelRecording.current) {
           const type = recorder.mimeType || "audio/webm";
@@ -914,7 +1295,8 @@ export function useAIWorkspace() {
         url: data.asset.signedUrl,
       });
     } catch (e) {
-      if (voiceGeneration.current.isCurrent(sequence)) setError(friendlyError(e));
+      if (voiceGeneration.current.isCurrent(sequence))
+        setError(friendlyError(e));
     } finally {
       if (voiceGeneration.current.isCurrent(sequence)) {
         setVoiceBusy(false);
@@ -923,6 +1305,7 @@ export function useAIWorkspace() {
     }
   }
   async function savePreferences() {
+    const token = sessionScope.current.capture();
     if (!signedIn) {
       setError("سجّل الدخول علشان نحفظ تفضيلاتك.");
       return false;
@@ -931,6 +1314,7 @@ export function useAIWorkspace() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      assertSession(token);
       if (!user) throw Error("auth expired");
       const { error } = await supabase.from("user_settings").upsert(
         {
@@ -941,10 +1325,12 @@ export function useAIWorkspace() {
         },
         { onConflict: "user_id" },
       );
+      assertSession(token);
       if (error) throw error;
       setNotice("تم حفظ تفضيلات Noata AI.");
       return true;
     } catch (e) {
+      if (!sessionScope.current.isCurrent(token)) return false;
       setError(friendlyError(e));
       return false;
     }
@@ -979,6 +1365,7 @@ export function useAIWorkspace() {
   };
   return {
     historyProps,
+    sessionVersion,
     selectFile,
     captureScreen,
     setMobileHistory,

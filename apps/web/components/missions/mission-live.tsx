@@ -1,6 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
+import { createOperationKeys } from "@/lib/ai/operation-keys";
 import { createClient } from "@/lib/supabase/client";
 
 type Question = {
@@ -33,8 +35,9 @@ export function MissionLive() {
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState("");
   const [grade, setGrade] = useState<Grade | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const { account, busy, status, run } = useConfirmedMutation();
+  const operationKeys = useRef(createOperationKeys());
+  const signedIn = account.loading ? null : Boolean(account.user);
   const [firstTryWins, setFirstTryWins] = useState(0);
   const [attempted, setAttempted] = useState<Set<string>>(new Set());
   const [complete, setComplete] = useState(false);
@@ -44,61 +47,79 @@ export function MissionLive() {
   } | null>(null);
   const [error, setError] = useState("");
 
-  const [loading,setLoading]=useState(true);
-  const [reload,setReload]=useState(0);
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
   useEffect(() => {
-    let active=true;
-    setLoading(true);setError("");
+    if (account.loading) return;
+    let active = true;
+    operationKeys.current.clear();
+    setQuestions([]);
+    setAnswer("");
+    setGrade(null);
+    setIndex(0);
+    setFirstTryWins(0);
+    setAttempted(new Set());
+    setComplete(false);
+    setReward(null);
+    setLoading(true);
+    setError("");
     void (async () => {
-      try{
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setSignedIn(Boolean(user));
+      try {
+        const user = account.user;
+        if (!user) return;
 
-      const requested = new URLSearchParams(window.location.search).get(
-        "lesson",
-      );
-      let lesson: { id: string; title_ar: string } | null = null;
+        const requested = new URLSearchParams(window.location.search).get(
+          "lesson",
+        );
+        let lesson: { id: string; title_ar: string } | null = null;
 
-      if (requested) {
-        const { data, error:readError } = await supabase
-          .from("lessons")
-          .select("id,title_ar")
-          .eq("id", requested)
-          .maybeSingle();
-      if(readError)throw readError;
-        lesson = data;
-      }
-      if (!lesson) {
-        const { data, error:readError } = await supabase
-          .from("lessons")
-          .select("id,title_ar")
+        if (requested) {
+          const { data, error: readError } = await supabase
+            .from("lessons")
+            .select("id,title_ar")
+            .eq("id", requested)
+            .maybeSingle();
+          if (!active) return;
+          if (readError) throw readError;
+          lesson = data;
+        }
+        if (!lesson) {
+          const { data, error: readError } = await supabase
+            .from("lessons")
+            .select("id,title_ar")
+            .order("position")
+            .limit(1);
+          if (!active) return;
+          if (readError) throw readError;
+          lesson = data?.[0] ?? null;
+        }
+        if (!lesson) return;
+
+        setLessonId(lesson.id);
+        setLessonTitle(lesson.title_ar);
+        const { data, error: readError } = await supabase
+          .from("questions")
+          .select(
+            "id,lesson_id,position,question_type,prompt_ar,choices_ar,metadata",
+          )
+          .eq("lesson_id", lesson.id)
+          .is("variant_of", null)
+          .in("publication_status", ["published_demo", "published"])
           .order("position")
-          .limit(1);
-      if(readError)throw readError;
-        lesson = data?.[0] ?? null;
+          .limit(3);
+        if (!active) return;
+        if (readError) throw readError;
+        setQuestions((data ?? []) as Question[]);
+      } catch {
+        if (active) setError("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.");
+      } finally {
+        if (active) setLoading(false);
       }
-      if (!lesson) return;
-
-      setLessonId(lesson.id);
-      setLessonTitle(lesson.title_ar);
-      const { data, error:readError } = await supabase
-        .from("questions")
-        .select(
-          "id,lesson_id,position,question_type,prompt_ar,choices_ar,metadata",
-        )
-        .eq("lesson_id", lesson.id)
-        .is("variant_of", null)
-        .in("publication_status", ["published_demo", "published"])
-        .order("position")
-        .limit(3);
-      if(readError)throw readError;
-      setQuestions((data ?? []) as Question[]);
-      }catch{if(active)setError("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.");}
-      finally{if(active)setLoading(false);}
-    })();return()=>{active=false;};
-  }, [supabase,reload]);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [supabase, reload, account.user, account.loading]);
 
   const current = questions[index];
   const opts = current ? choices(current.choices_ar) : [];
@@ -113,97 +134,121 @@ export function MissionLive() {
       window.location.href = "/login";
       return;
     }
-    setBusy(true);
-    setError("");
-    const firstAttempt = !attempted.has(current.id);
-    const nextAttempted = new Set(attempted);
-    nextAttempted.add(current.id);
-    setAttempted(nextAttempted);
+    await run(async (check) => {
+      setError("");
+      const firstAttempt = !attempted.has(current.id);
+      const nextAttempted = new Set(attempted);
+      nextAttempted.add(current.id);
 
-    const { data, error } = await supabase.rpc("submit_attempt", {
-      p_question_id: current.id,
-      p_response: { value: answer },
-      p_assisted: false,
-      p_idempotency_key: crypto.randomUUID(),
-      p_practice_repeat: false,
-    });
+      const { data, error } = await supabase.rpc("submit_attempt", {
+        p_question_id: current.id,
+        p_response: { value: answer },
+        p_assisted: false,
+        p_idempotency_key: operationKeys.current.get(
+          JSON.stringify([current.id, answer]),
+        ),
+        p_practice_repeat: false,
+      });
 
-    if (error) {
-      setError(error.message);
-      setBusy(false);
-      return;
-    }
-    const result = (data ?? {}) as Grade;
-    setGrade(result);
-    if (result.correct && firstAttempt) setFirstTryWins((x) => x + 1);
-    setBusy(false);
+      check();
+      if (error) throw error;
+      if (typeof (data as Grade | null)?.correct !== "boolean")
+        throw Error("Missing grade");
+      setAttempted(nextAttempted);
+      const result = data as Grade;
+      setGrade(result);
+      if (result.correct && firstAttempt) setFirstTryWins((x) => x + 1);
+    }, "");
   }
 
   async function continueMission() {
     if (!current || !grade) return;
-    setBusy(true);
-    setError("");
+    await run(async (check) => {
+      setError("");
 
-    if (!grade.correct) {
-      const { data } = await supabase
-        .from("questions")
-        .select(
-          "id,lesson_id,position,question_type,prompt_ar,choices_ar,metadata",
-        )
-        .eq("variant_of", current.id)
-        .in("publication_status", ["published_demo", "published"])
-        .limit(1)
-        .maybeSingle();
-      if (data) {
-        setQuestions((list) =>
-          list.map((q, i) => (i === index ? (data as Question) : q)),
-        );
+      if (!grade.correct) {
+        const { data, error: variantError } = await supabase
+          .from("questions")
+          .select(
+            "id,lesson_id,position,question_type,prompt_ar,choices_ar,metadata",
+          )
+          .eq("variant_of", current.id)
+          .in("publication_status", ["published_demo", "published"])
+          .limit(1)
+          .maybeSingle();
+        check();
+        if (variantError) throw variantError;
+        if (data) {
+          setQuestions((list) =>
+            list.map((q, i) => (i === index ? (data as Question) : q)),
+          );
+          setAnswer("");
+          setGrade(null);
+          return;
+        }
         setAnswer("");
         setGrade(null);
-        setBusy(false);
         return;
       }
-      setAnswer("");
-      setGrade(null);
-      setBusy(false);
-      return;
-    }
 
-    if (index < questions.length - 1) {
-      setIndex((x) => x + 1);
-      setAnswer("");
-      setGrade(null);
-      setBusy(false);
-      return;
-    }
-
-    const score = Math.round(
-      ((firstTryWins + (grade.correct && !attempted.has(current.id) ? 1 : 0)) /
-        questions.length) *
-        100,
-    );
-    if (lessonId) {
-      const { data, error } = await supabase.rpc("complete_lesson", {
-        p_lesson_id: lessonId,
-        p_score: score,
-      });
-      if (error) {
-        setError(error.message);
-        setBusy(false);
+      if (index < questions.length - 1) {
+        setIndex((x) => x + 1);
+        setAnswer("");
+        setGrade(null);
         return;
       }
-      setReward((data ?? {}) as { xp_reward?: number; coin_reward?: number });
-    }
-    setComplete(true);
-    setBusy(false);
+
+      const score = Math.round(
+        ((firstTryWins +
+          (grade.correct && !attempted.has(current.id) ? 1 : 0)) /
+          questions.length) *
+          100,
+      );
+      if (lessonId) {
+        const { data, error } = await supabase.rpc("complete_lesson", {
+          p_lesson_id: lessonId,
+          p_score: score,
+        });
+        check();
+        if (error) throw error;
+        if (!data || typeof data !== "object")
+          throw Error("Missing completion receipt");
+        setReward(data as { xp_reward?: number; coin_reward?: number });
+      }
+      setComplete(true);
+    }, "");
   }
 
-  if(loading)return <section className="aura-loading-state" role="status"><span/><h2>بنجهّز مساحتك…</h2><p>لحظات ونرتّب خطوتك التالية.</p></section>;
-  if(error && !questions.length)return <section className="aura-load-error" role="alert"><strong>{error}</strong><button type="button" onClick={()=>setReload(n=>n+1)}>إعادة المحاولة</button></section>;
+  if (account.error)
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>{account.error}</h2>
+        <button type="button" onClick={() => void account.refresh()}>
+          إعادة المحاولة
+        </button>
+      </section>
+    );
+  if (account.loading || loading)
+    return (
+      <section className="aura-loading-state" role="status">
+        <span />
+        <h2>بنجهّز مساحتك…</h2>
+        <p>لحظات ونرتّب خطوتك التالية.</p>
+      </section>
+    );
+  if (error && !questions.length)
+    return (
+      <section className="aura-load-error" role="alert">
+        <strong>{error}</strong>
+        <button type="button" onClick={() => setReload((n) => n + 1)}>
+          إعادة المحاولة
+        </button>
+      </section>
+    );
   if (complete) {
     return (
       <section className="hero" style={{ textAlign: "center", padding: 44 }}>
-        <div className="eyebrow">MISSION COMPLETE</div>
+        <div className="eyebrow">خطوة اكتملت في رحلتك</div>
         <h1>خلصت المهمة 🔥</h1>
         <p>خطوة جديدة في رحلتك! تقدّمك محفوظ، ومهاراتك بتقوى مع كل محاولة.</p>
         <div
@@ -244,7 +289,29 @@ export function MissionLive() {
         </span>
       </header>
 
-      <ol className="aura-mission-stages" aria-label="مراحل المهمة">{["افهم الفكرة","طبّق المعرفة","اربط الأفكار"].map((label,stage)=><li key={label} className={stage===index?"current":stage<index?"done":""} aria-current={stage===index?"step":undefined}><span>{stage+1}</span><div><strong>{label}</strong><small>{stage<index?"اجتزت المرحلة":stage===index?"مرحلتك الحالية":"الخطوة التالية"}</small></div></li>)}</ol>
+      <ol className="aura-mission-stages" aria-label="مراحل المهمة">
+        {["افهم الفكرة", "طبّق المعرفة", "اربط الأفكار"].map((label, stage) => (
+          <li
+            key={label}
+            className={
+              stage === index ? "current" : stage < index ? "done" : ""
+            }
+            aria-current={stage === index ? "step" : undefined}
+          >
+            <span>{stage + 1}</span>
+            <div>
+              <strong>{label}</strong>
+              <small>
+                {stage < index
+                  ? "اجتزت المرحلة"
+                  : stage === index
+                    ? "مرحلتك الحالية"
+                    : "الخطوة التالية"}
+              </small>
+            </div>
+          </li>
+        ))}
+      </ol>
       <section className="panel">
         <div className="panel-head">
           <div>
@@ -314,9 +381,12 @@ export function MissionLive() {
                 <input
                   className="search"
                   style={{ width: "100%" }}
-                  inputMode="decimal"
+                  inputMode={
+                    current.question_type === "numeric" ? "decimal" : "text"
+                  }
+                  aria-label="إجابتك على السؤال"
                   value={answer}
-                  disabled={Boolean(grade)}
+                  disabled={Boolean(grade) || busy}
                   onChange={(e) => setAnswer(e.target.value)}
                   placeholder="اكتب الإجابة…"
                 />
@@ -352,9 +422,9 @@ export function MissionLive() {
                   )}
                 </div>
               )}
-              {error && (
+              {(error || status) && (
                 <div style={{ marginTop: 12, color: "var(--danger)" }}>
-                  {error}
+                  {error || status}
                 </div>
               )}
               <div

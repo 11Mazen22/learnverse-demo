@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 
 type LessonRow = {
@@ -24,6 +25,9 @@ type ContentShape = {
 
 export function LessonLive({ id }: { id: string }) {
   const supabase = useMemo(() => createClient(), []);
+  const account = useVerifiedAccount();
+  const [error, setError] = useState(""),
+    [retry, setRetry] = useState(0);
   const [lesson, setLesson] = useState<LessonRow | null>(null);
   const [questionCount, setQuestionCount] = useState(0);
   const [completed, setCompleted] = useState(false);
@@ -32,55 +36,84 @@ export function LessonLive({ id }: { id: string }) {
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
+    if (account.loading) return;
+    let alive = true;
+    setLoading(true);
+    setError("");
+    setMissing(false);
+    setLesson(null);
+    setCompleted(false);
+    setBestScore(null);
+    setQuestionCount(0);
     void (async () => {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select(
-          "id,title_ar,title_en,content,xp_reward,coin_reward,units(title_ar)",
-        )
-        .eq("id", id)
-        .maybeSingle();
-
-      if (error || !data) {
-        setMissing(true);
-        setLoading(false);
-        return;
-      }
-      setLesson(data as LessonRow);
-
-      const [
-        { count },
-        {
-          data: { user },
-        },
-      ] = await Promise.all([
-        supabase
+      try {
+        const lesson = await supabase
+          .from("lessons")
+          .select(
+            "id,title_ar,title_en,content,xp_reward,coin_reward,units(title_ar)",
+          )
+          .eq("id", id)
+          .maybeSingle();
+        if (!alive) return;
+        if (lesson.error) throw lesson.error;
+        if (!lesson.data) {
+          setMissing(true);
+          return;
+        }
+        const count = await supabase
           .from("questions")
           .select("id", { count: "exact", head: true })
           .eq("lesson_id", id)
           .is("variant_of", null)
-          .in("publication_status", ["published_demo", "published"]),
-        supabase.auth.getUser(),
-      ]);
-      setQuestionCount(count ?? 0);
-
-      if (user) {
-        const { data: progress } = await supabase
-          .from("lesson_progress")
-          .select("completed_at,best_score")
-          .eq("user_id", user.id)
-          .eq("lesson_id", id)
-          .maybeSingle();
-        if (progress) {
-          setCompleted(Boolean(progress.completed_at));
-          setBestScore(Number(progress.best_score));
+          .in("publication_status", ["published_demo", "published"]);
+        if (!alive) return;
+        if (count.error || count.count === null)
+          throw count.error ?? Error("Unknown question count");
+        if (account.user) {
+          const result = await supabase
+            .from("lesson_progress")
+            .select("completed_at,best_score")
+            .eq("user_id", account.user.id)
+            .eq("lesson_id", id)
+            .maybeSingle();
+          if (!alive) return;
+          if (result.error) throw result.error;
+          if (result.data) {
+            setCompleted(Boolean(result.data.completed_at));
+            setBestScore(result.data.best_score);
+          }
         }
+        setLesson(lesson.data as LessonRow);
+        setQuestionCount(count.count);
+      } catch {
+        if (alive)
+          setError(
+            "تعذّر تحميل الدرس وتقدّمك. حاول مرة أخرى؛ لم نؤكد أنه غير متاح.",
+          );
+      } finally {
+        if (alive) setLoading(false);
       }
-      setLoading(false);
     })();
-  }, [id, supabase]);
-
-  if (loading)
+    return () => {
+      alive = false;
+    };
+  }, [id, supabase, retry, account.user, account.loading]);
+  if (account.error || error)
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>{account.error || error}</h2>
+        <button
+          type="button"
+          onClick={() => {
+            if (account.error) void account.refresh();
+            else setRetry((x) => x + 1);
+          }}
+        >
+          إعادة المحاولة
+        </button>
+      </section>
+    );
+  if (account.loading || loading)
     return (
       <section className="panel" style={{ padding: 32 }}>
         <div

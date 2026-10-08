@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 
 type Unit = {
@@ -28,14 +29,15 @@ type Progress = {
 function locked(metadata: unknown) {
   return Boolean(
     metadata &&
-    typeof metadata === "object" &&
-    "locked" in metadata &&
-    (metadata as { locked?: boolean }).locked,
+      typeof metadata === "object" &&
+      "locked" in metadata &&
+      (metadata as { locked?: boolean }).locked,
   );
 }
 
 export function LearnLive() {
   const supabase = useMemo(() => createClient(), []);
+  const account = useVerifiedAccount();
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
@@ -43,31 +45,88 @@ export function LearnLive() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
-  const [error,setError]=useState("");
-  const [reload,setReload]=useState(0);
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    let active=true;const controller=new AbortController();setLoading(true);setError("");
-    void(async()=>{
-      try{
-        const courses=await supabase.from("courses").select("id,title_ar").eq("active",true).order("created_at").limit(1).abortSignal(controller.signal);
-        if(courses.error)throw Error("تعذّر تحميل المسار. بياناتك محفوظة؛ جرّب مرة أخرى.");
-        const courseRow=courses.data?.[0];if(!courseRow){if(active){setUnits([]);setLessons([]);}return;}
-        const [unitResult,auth]=await Promise.all([
-          supabase.from("units").select("id,position,title_ar,title_en,description_ar,metadata").eq("course_id",courseRow.id).order("position").abortSignal(controller.signal),
-          supabase.auth.getUser(),
+    if (account.loading) return;
+    setProgress([]);
+    let active = true;
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    void (async () => {
+      try {
+        const courses = await supabase
+          .from("courses")
+          .select("id,title_ar")
+          .eq("active", true)
+          .order("created_at")
+          .limit(1)
+          .abortSignal(controller.signal);
+        if (courses.error)
+          throw Error("تعذّر تحميل المسار. بياناتك محفوظة؛ جرّب مرة أخرى.");
+        const courseRow = courses.data?.[0];
+        if (!courseRow) {
+          if (active) {
+            setUnits([]);
+            setLessons([]);
+          }
+          return;
+        }
+        const [unitResult, auth] = await Promise.all([
+          supabase
+            .from("units")
+            .select("id,position,title_ar,title_en,description_ar,metadata")
+            .eq("course_id", courseRow.id)
+            .order("position")
+            .abortSignal(controller.signal),
+          Promise.resolve({ data: { user: account.user } }),
         ]);
-        if(unitResult.error)throw Error("تعذّر تحميل وحدات المسار.");
-        const unitRows=unitResult.data??[];
-        const lessonResult=unitRows.length?await supabase.from("lessons").select("id,unit_id,position,title_ar,title_en,content").in("unit_id",unitRows.map(u=>u.id)).order("position").abortSignal(controller.signal):{data:[],error:null};
-        if(lessonResult.error)throw Error("تعذّر تحميل الدروس.");
-        let progressRows:Progress[]=[];
-        if(auth.data.user){const result=await supabase.from("lesson_progress").select("lesson_id,completed_at,best_score").eq("user_id",auth.data.user.id).abortSignal(controller.signal);if(result.error)throw Error("تعذّر تحميل تقدّمك؛ حاول مرة أخرى.");progressRows=result.data??[];}
-        if(active){setCourse(courseRow.title_ar);setUnits(unitRows as Unit[]);setLessons((lessonResult.data??[]) as Lesson[]);setProgress(progressRows);}
-      }catch(error){if(active)setError(error instanceof Error?error.message:"تعذّر الاتصال بالمسار.");}
-      finally{if(active)setLoading(false);}
-    })();return()=>{active=false;controller.abort();};
-  },[supabase,reload]);
+        if (unitResult.error) throw Error("تعذّر تحميل وحدات المسار.");
+        const unitRows = unitResult.data ?? [];
+        const lessonResult = unitRows.length
+          ? await supabase
+              .from("lessons")
+              .select("id,unit_id,position,title_ar,title_en,content")
+              .in(
+                "unit_id",
+                unitRows.map((u) => u.id),
+              )
+              .order("position")
+              .abortSignal(controller.signal)
+          : { data: [], error: null };
+        if (lessonResult.error) throw Error("تعذّر تحميل الدروس.");
+        let progressRows: Progress[] = [];
+        if (auth.data.user) {
+          const result = await supabase
+            .from("lesson_progress")
+            .select("lesson_id,completed_at,best_score")
+            .eq("user_id", auth.data.user.id)
+            .abortSignal(controller.signal);
+          if (result.error) throw Error("تعذّر تحميل تقدّمك؛ حاول مرة أخرى.");
+          progressRows = result.data ?? [];
+        }
+        if (active) {
+          setCourse(courseRow.title_ar);
+          setUnits(unitRows as Unit[]);
+          setLessons((lessonResult.data ?? []) as Lesson[]);
+          setProgress(progressRows);
+        }
+      } catch (error) {
+        if (active)
+          setError(
+            error instanceof Error ? error.message : "تعذّر الاتصال بالمسار.",
+          );
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [supabase, reload, account.user, account.loading]);
 
   const completed = new Set(
     progress.filter((x) => x.completed_at).map((x) => x.lesson_id),
@@ -98,8 +157,21 @@ export function LearnLive() {
         </div>
         <span className="pill">{course}</span>
       </header>
-      {error&&<div className="aura-load-error" role="alert"><strong>{error}</strong><button type="button" onClick={()=>setReload(n=>n+1)}>إعادة المحاولة</button></div>}
-      <section className="panel">
+      {(error || account.error) && (
+        <div className="aura-load-error" role="alert">
+          <strong>{error || account.error}</strong>
+          <button
+            type="button"
+            onClick={() => {
+              if (account.error) void account.refresh();
+              else setReload((n) => n + 1);
+            }}
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      )}
+      <section className="panel" aria-busy={loading || account.loading}>
         <div className="panel-head">
           <div>
             <h2>تقدّم المسار</h2>
@@ -107,10 +179,23 @@ export function LearnLive() {
               التقدم مبني على إكمال الدروس والإتقان، مش مجرد فتح الصفحات.
             </p>
           </div>
-          <b>{loading ? "—" : percent + "%"}</b>
+          <b>{loading || error || account.error ? "—" : percent + "%"}</b>
         </div>
-        <div className="progress" role="progressbar" aria-label="تقدّم المسار" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-          <i style={{ width: percent + "%" }} />
+        <div
+          className="progress"
+          role="progressbar"
+          aria-label="تقدّم المسار"
+          aria-valuenow={
+            loading || error || account.error ? undefined : percent
+          }
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <i
+            style={{
+              width: (loading || error || account.error ? 0 : percent) + "%",
+            }}
+          />
         </div>
       </section>
       <div className="filter-bar">
@@ -138,8 +223,16 @@ export function LearnLive() {
       </div>
       {!loading && !error && !lessons.some(visible) && (
         <div className="panel empty-state">
-          <h2>{lessons.length?"مفيش دروس مطابقة لبحثك.":"الدروس لم تُنشر بعد."}</h2>
-          <p>{lessons.length?"جرّب كلمة تانية أو غيّر التصفية.":"تظهر المواد هنا بعد مراجعتها ونشرها."}</p>
+          <h2>
+            {lessons.length
+              ? "مفيش دروس مطابقة لبحثك."
+              : "الدروس لم تُنشر بعد."}
+          </h2>
+          <p>
+            {lessons.length
+              ? "جرّب كلمة تانية أو غيّر التصفية."
+              : "تظهر المواد هنا بعد مراجعتها ونشرها."}
+          </p>
         </div>
       )}
       <section style={{ display: "grid", gap: 16, marginTop: 18 }}>
@@ -147,7 +240,7 @@ export function LearnLive() {
           const unitLessons = lessons.filter(
             (l) => l.unit_id === unit.id && visible(l),
           );
-          const allUnitLessons=lessons.filter(l=>l.unit_id===unit.id);
+          const allUnitLessons = lessons.filter((l) => l.unit_id === unit.id);
           const done = allUnitLessons.filter((l) => completed.has(l.id)).length;
           const unitProgress = allUnitLessons.length
             ? Math.round((done / allUnitLessons.length) * 100)

@@ -1,7 +1,8 @@
 "use client";
-import {NoataLogo} from "@/components/ui/noata-logo";
+import { NoataLogo } from "@/components/ui/noata-logo";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
 type State = {
@@ -35,13 +36,16 @@ const initial: State = {
   unread: 0,
 };
 export function DashboardLive() {
+  const account = useVerifiedAccount();
   const [state, setState] = useState(initial);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const supabase = useMemo(() => createClient(), []);
   useEffect(() => {
+    if (account.loading) return;
     let alive = true;
+    setState(initial);
     void (async () => {
       setLoading(true);
       setError("");
@@ -57,7 +61,7 @@ export function DashboardLive() {
             .from("lessons")
             .select("id,title_ar,position")
             .order("position"),
-          supabase.auth.getUser(),
+          Promise.resolve({ data: { user: account.user } }),
         ]);
         if (coursesResult.error || lessonsResult.error)
           throw Error("تعذّر تحميل رحلتك. جرّب تاني لما الاتصال يرجع.");
@@ -119,7 +123,7 @@ export function DashboardLive() {
     return () => {
       alive = false;
     };
-  }, [supabase, retry]);
+  }, [supabase, retry, account.user, account.loading]);
   const level = Math.floor(state.xp / 100) + 1,
     mastery = state.masteryRows.length
       ? Math.round(
@@ -138,29 +142,36 @@ export function DashboardLive() {
     : "/learn";
   // Personalized but deterministic: recommendations derive exclusively from
   // the learner's real review queue and course progress.
-  const recommendation = due > 0
-    ? {
-        href: "/review",
-        title: "راجع اللي محتاج تثبيت",
-        description: "عندك " + due + " مراجعات حان وقتها. المراجعة الأول هتساعدك تبني على فهم ثابت.",
-        action: "ابدأ المراجعة",
-        icon: "review",
-      }
-    : state.nextLesson
+  const recommendation =
+    due > 0
       ? {
-          href: nextHref,
-          title: "كمّل رحلتك من آخر نقطة",
-          description: "درس «" + state.nextLesson.title_ar + "» هو خطوتك التالية في المسار الحالي.",
-          action: "افتح الدرس",
-          icon: "book",
+          href: "/review",
+          title: "راجع اللي محتاج تثبيت",
+          description:
+            "عندك " +
+            due +
+            " مراجعات حان وقتها. المراجعة الأول هتساعدك تبني على فهم ثابت.",
+          action: "ابدأ المراجعة",
+          icon: "review",
         }
-      : {
-          href: "/missions",
-          title: "جاهز تتحدّى نفسك؟",
-          description: "اختار تحدّي قصير وجرّب تثبّت اللي عرفته.",
-          action: "استكشف المهام",
-          icon: "target",
-        };
+      : state.nextLesson
+        ? {
+            href: nextHref,
+            title: "كمّل رحلتك من آخر نقطة",
+            description:
+              "درس «" +
+              state.nextLesson.title_ar +
+              "» هو خطوتك التالية في المسار الحالي.",
+            action: "افتح الدرس",
+            icon: "book",
+          }
+        : {
+            href: "/missions",
+            title: "جاهز تتحدّى نفسك؟",
+            description: "اختار تحدّي قصير وجرّب تثبّت اللي عرفته.",
+            action: "استكشف المهام",
+            icon: "target",
+          };
   const metrics = [
     ["مستواك الحالي", level, state.xp + " نقطة خبرة", "boss"],
     [
@@ -188,7 +199,7 @@ export function DashboardLive() {
         <div>
           <span className="tiny-label">مساحتك لتكتشف أكثر</span>
           <h1>
-            {state.signedIn
+            {Boolean(account.user) && state.signedIn
               ? `أهلاً${state.displayName ? "، " + state.displayName : ""}. جاهز لخطوة جديدة؟`
               : "كل يوم، نسخة أذكى منك."}
           </h1>
@@ -199,10 +210,16 @@ export function DashboardLive() {
           رحلتك تبدأ من هنا
         </span>
       </div>
-      {error && (
+      {(error || account.error) && (
         <div className="error-banner" role="alert">
           {error}{" "}
-          <button className="btn" onClick={() => setRetry((x) => x + 1)}>
+          <button
+            className="btn"
+            onClick={() => {
+              if (account.error) void account.refresh();
+              else setRetry((x) => x + 1);
+            }}
+          >
             إعادة المحاولة
           </button>
         </div>
@@ -211,12 +228,12 @@ export function DashboardLive() {
         <div>
           <div className="eyebrow">NOÄTA · LEARN. GROW. ACHIEVE.</div>
           <h2>
-            {state.signedIn
+            {Boolean(account.user) && state.signedIn
               ? "خطوة النهارده، بتفتح طريق بكرة."
               : "مش بس تذاكر. افهم، جرّب، واتقدّم."}
           </h2>
           <p>
-            {state.signedIn
+            {Boolean(account.user) && state.signedIn
               ? state.nextLesson
                 ? "كمّل «" +
                   state.nextLesson.title_ar +
@@ -226,7 +243,9 @@ export function DashboardLive() {
           </p>
           <div className="hero-actions">
             <Link className="btn btn-primary" href={nextHref}>
-              {state.signedIn ? "كمّل التعلّم" : "استكشف رحلتك"}
+              {Boolean(account.user) && state.signedIn
+                ? "كمّل التعلّم"
+                : "استكشف رحلتك"}
               <Icon name="arrow" size={17} />
             </Link>
             <Link className="btn btn-secondary" href="/ai">
@@ -236,27 +255,60 @@ export function DashboardLive() {
           </div>
         </div>
         <div className="aura-brand-scene" aria-hidden="true">
-          <div className="aura-brand-halo"/><NoataLogo size={174} className="noata-logo-on-navy"/>
-          <span className="aura-scene-caption" dir="ltr">Learn. Grow. Achieve.</span>
-          <span className="aura-scene-note"><Icon name="ai" size={16}/> كل سؤال يفتح أفقًا</span>
+          <div className="aura-brand-halo" />
+          <NoataLogo size={174} className="noata-logo-on-navy" />
+          <span className="aura-scene-caption" dir="ltr">
+            Learn. Grow. Achieve.
+          </span>
+          <span className="aura-scene-note">
+            <Icon name="ai" size={16} /> كل سؤال يفتح أفقًا
+          </span>
         </div>
       </section>
       <nav className="aura-learning-paths" aria-label="طرق التعلّم في Noata">
-        <Link href="/learn"><span>01</span><div><strong>افهم الفكرة</strong><small>دروس تبني فهمك خطوة بخطوة</small></div><Icon name="book"/></Link>
-        <Link href="/missions"><span>02</span><div><strong>جرّب بنفسك</strong><small>تحديات تكشف ما أتقنته</small></div><Icon name="target"/></Link>
-        <Link href="/review"><span>03</span><div><strong>خلّي المعرفة معاك</strong><small>مراجعة في الوقت المناسب</small></div><Icon name="review"/></Link>
+        <Link href="/learn">
+          <span>01</span>
+          <div>
+            <strong>افهم الفكرة</strong>
+            <small>دروس تبني فهمك خطوة بخطوة</small>
+          </div>
+          <Icon name="book" />
+        </Link>
+        <Link href="/missions">
+          <span>02</span>
+          <div>
+            <strong>جرّب بنفسك</strong>
+            <small>تحديات تكشف ما أتقنته</small>
+          </div>
+          <Icon name="target" />
+        </Link>
+        <Link href="/review">
+          <span>03</span>
+          <div>
+            <strong>خلّي المعرفة معاك</strong>
+            <small>مراجعة في الوقت المناسب</small>
+          </div>
+          <Icon name="review" />
+        </Link>
       </nav>
-      <section className="aura-next-step" aria-label="اقتراح خطوة التعلّم التالية">
+      <section
+        className="aura-next-step"
+        aria-label="اقتراح خطوة التعلّم التالية"
+      >
         <div className="aura-next-step-icon" aria-hidden="true">
           <Icon name={recommendation.icon} size={24} />
         </div>
         <div className="aura-next-step-copy">
           <span>خطوتك المقترحة</span>
           <h2>{recommendation.title}</h2>
-          <p>{loading ? "بنحدد خطوتك بناءً على تقدّمك…" : recommendation.description}</p>
+          <p>
+            {loading
+              ? "بنحدد خطوتك بناءً على تقدّمك…"
+              : recommendation.description}
+          </p>
         </div>
         <Link href={recommendation.href} className="aura-next-step-action">
-          {recommendation.action} <Icon name="arrow" size={17}/>
+          {recommendation.action} <Icon name="arrow" size={17} />
         </Link>
       </section>
       <section className="grid-4" aria-label="تقدمك" aria-busy={loading}>
@@ -340,22 +392,24 @@ export function DashboardLive() {
             <i style={{ width: percent + "%" }} />
           </div>
           <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 18 }}>
-            {state.signedIn
+            {Boolean(account.user) && state.signedIn
               ? "كل محاولة فرصة للفهم. خُد وقتك وركّز على تقدّمك."
               : "سجّل الدخول علشان تحفظ تقدّمك وتكمّل من أي جهاز."}
           </p>
-          {!state.signedIn && !loading && (
-            <Link
-              className="btn"
-              href="/login"
-              style={{
-                background: "var(--accent-soft)",
-                color: "var(--accent)",
-              }}
-            >
-              ابدأ حسابك
-            </Link>
-          )}
+          {!(Boolean(account.user) && state.signedIn) &&
+            !account.loading &&
+            !loading && (
+              <Link
+                className="btn"
+                href="/login"
+                style={{
+                  background: "var(--accent-soft)",
+                  color: "var(--accent)",
+                }}
+              >
+                ابدأ حسابك
+              </Link>
+            )}
         </article>
         <aside>
           <div className="rank-card">

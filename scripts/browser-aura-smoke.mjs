@@ -2,10 +2,11 @@
 // Real browser layout/RTL/theme/render assertions; not an authenticated E2E claim.
 import {resolve} from "node:path";
 import {launchQaBrowser,findQaChrome,diagnosticError} from "./lib/qa-browser.mjs";
+import {verifyUiAccountContracts} from "./lib/ui-account-fixture.mjs";
 import {createRequire} from "node:module";
 const require=createRequire(new URL("../apps/web/package.json",import.meta.url));
 const axeSource=await readFile(require.resolve("axe-core/axe.min.js"),"utf8");
-const accessibility=[],performanceResults=[];
+const accessibility=[],performanceResults=[],captures=[];
 import { spawn, spawnSync } from "node:child_process";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -51,6 +52,7 @@ async function navigate(path) {
     const state=await evaluate("({ready: document.readyState, path: location.pathname, size: document.body?.innerText?.length || 0})");
     return state.ready === "complete" && state.path === path && state.size > 30;
   }, path);
+  await waitFor(async()=>await evaluate(`!document.querySelector('.aura-loading-state,.aura-progress-loading,.owui-loading,[aria-busy="true"]') && !Array.from(document.querySelectorAll('[role="status"]')).some(el=>/بنحمّل|بنجهّز|نتحقق من الحساب/.test(el.textContent))`),path+" settled loading/error/guest state",30000);
   // Never await document.fonts.ready unbounded in a CDP evaluate call: slow
   // font requests can strand an awaited promise and block an entire CI run.
   // font-display:swap provides readable fallback, so read status synchronously.
@@ -60,6 +62,30 @@ async function navigate(path) {
 async function screenshot(file) {
   const data = await command("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
   await writeFile(file,Buffer.from(data.data,"base64"));
+  captures.push({file,...location});
+}
+async function auditView(kind) {
+await evaluate(axeSource);
+        const audit=await evaluate('Promise.race([axe.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21aa","wcag22aa"]}}).then(r=>({violations:r.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),incomplete:r.incomplete.map(v=>v.id)})),new Promise((_,reject)=>setTimeout(()=>reject(Error("axe audit exceeded 16 seconds")),16000))])',"axe accessibility audit",22000);
+        accessibility.push({...location,kind,...audit});
+}
+async function auditSyntheticView(name) {
+  for(const width of [1920,1440,1024,768,390,320]) {
+    location.width=width;
+    await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
+    for(const theme of ["light","dark"]) {
+      location.theme=theme;
+      await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:theme}]});
+      await waitFor(()=>evaluate('document.documentElement.dataset.theme==='+JSON.stringify(theme)),name+" synthetic theme applied");
+      // Audit the settled theme, after finite entry/color transitions complete.
+      // Infinite decorative animations do not prevent accessibility measurement.
+      await evaluate('Promise.all(document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})))',"settled synthetic theme");
+      invariant(await evaluate("document.documentElement.scrollWidth-innerWidth<=3"),name+" synthetic viewport overflow "+width);
+      await auditView("synthetic-ui-only");
+      await screenshot(`artifacts/noata-browser/${name}-synthetic-${width}-${theme}.png`);
+    }
+  }
+  await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
 }
 async function verifyQuranControls(){
   // No production code is altered. Mocked responses make interactive UI
@@ -121,8 +147,24 @@ async function verifyWritingAndTheme(){
   await evaluate('Array.from(document.querySelectorAll(".aura-studio-tabs button")).find(b=>b.textContent.includes("معاينة")).click()');
   invariant(await evaluate('!!document.querySelector(".aura-studio-preview h2")&&!!document.querySelector(".aura-studio-preview table")'),"Writing preview renders headings and tables");
   await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
-  await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"writing studio keyboard close");
-  invariant(true,"Writing studio Escape close");
+  await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .aura-studio-close-confirm")'),"unsaved writing protection on Escape");
+  invariant(await evaluate('!!document.querySelector("dialog[open]")'),"Escape preserves unsaved editor");
+  await evaluate('Array.from(document.querySelectorAll(".aura-studio-close-confirm button")).find(b=>b.textContent.includes("متابعة التحرير")).click()');
+  invariant(await evaluate('!!document.querySelector("dialog[open] .aura-studio-preview table")'),"Keep editing preserves document preview");
+  await evaluate('document.querySelector("dialog[open] .dialog-heading button").click()');
+  await evaluate('Array.from(document.querySelectorAll(".aura-studio-close-confirm button")).find(b=>b.textContent.includes("الاحتفاظ")).click()');
+  await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"explicit keep-draft close");
+  await evaluate('document.querySelector(".aura-writing-entry").click()');
+  await waitFor(async()=>await evaluate('document.querySelector("dialog[open] .aura-studio textarea")?.value.includes("مستند عربي")'),"writing draft restores on reopening");
+  invariant(true,"Writing draft survives close and reopen");
+  await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
+  await evaluate('Array.from(document.querySelectorAll(".aura-studio-close-confirm button")).find(b=>b.textContent.includes("تجاهل")).click()');
+  await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"discard confirmed draft close");
+  await evaluate('document.querySelector(".aura-writing-entry").click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .aura-studio textarea")'),"fresh draft opens after discard");
+  invariant(await evaluate('!document.querySelector("dialog[open] .aura-studio textarea").value.includes("مستند عربي")'),"Discard actually clears retained draft");
+  await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
+  await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"unchanged draft keyboard close");
   await navigate("/settings");
   await waitFor(async()=>await evaluate('!!document.querySelector(".aura-device-appearance")'),"Guest settings is usable without a false auth error");
   invariant(true,"Guest settings recognizes missing session");
@@ -198,14 +240,14 @@ async function main() {
   await command("Runtime.enable");
   socket.addEventListener("message",({data})=>{const event=JSON.parse(String(data));if(event.method==="Runtime.exceptionThrown")browserErrors.push(event.params.exceptionDetails.text);});
   // Full-session tracing introduces excessive renderer overhead across
-  // 48 axe audits. Collect a focused final interaction trace instead.
+  // route axe audits. Collect a focused final interaction trace instead.
 
-  const routes=["/","/ai","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/settings","/help","/quran"];
+  const routes=["/","/ai","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/settings","/help","/quran","/notifications","/teacher","/admin"];
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:"light"}]});
-  for(const width of [1440,390]) {
+  for(const width of [1920,1440,1024,768,390,320]) {
     location.width=width;
-    await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width===390});
+    await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
     for(const theme of ["light","dark"]) {
       location.theme=theme;
       await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:theme}]});
@@ -216,9 +258,7 @@ async function main() {
         invariant(result.hasBody,path+" empty body");invariant(result.rtl,path+" missing Arabic RTL root");invariant(result.overflow <= 3,path+" horizontal overflow "+result.overflow);
         if(path==="/ai")invariant(result.hasAI,"AI workspace missing");
         if(path==="/quran")invariant(await evaluate('!!document.querySelector(".aura-quran-reading")'),"Quran reader UI missing");
-        await evaluate(axeSource);
-        const audit=await evaluate('Promise.race([axe.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21aa","wcag22aa"]}}).then(r=>({violations:r.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),incomplete:r.incomplete.map(v=>v.id)})),new Promise((_,reject)=>setTimeout(()=>reject(Error("axe audit exceeded 16 seconds")),16000))])',"axe accessibility audit",22000);
-        accessibility.push({path,width,theme,...audit});
+        await auditView("public");
         performanceResults.push({path,width,theme,...await evaluate('({fcp:performance.getEntriesByName("first-contentful-paint")[0]?.startTime??null,domReady:performance.getEntriesByType("navigation")[0]?.domContentLoadedEventEnd??null,resources:performance.getEntriesByType("resource").reduce((s,r)=>s+r.transferSize,0)})')});
         await screenshot(`artifacts/noata-browser/${path==="/"?"home":path.slice(1)}-${width}-${theme}.png`);
       }
@@ -279,6 +319,7 @@ async function main() {
   await verifyWritingAndTheme();
   await verifyDocuments();
   await verifyQuranControls();
+  await verifyUiAccountContracts({browser,evaluate,navigate,waitFor,invariant,screenshot,base,auditView:auditSyntheticView});
   // Keep a bounded trace over the final reduced-motion/reflow interaction only.
   await command("Tracing.start",{categories:"devtools.timeline,blink.user_timing",transferMode:"ReturnAsStream"});
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
@@ -306,7 +347,7 @@ async function main() {
   invariant(violations.length===0,"Accessibility violations: "+violations.join("; "));
   invariant(browserErrors.length===0,"Uncaught browser exceptions: "+browserErrors.join(","));
   invariant(performanceResults.every(r=>r.resources<2*1024*1024),"Public route transferred resources remain below 2 MiB per navigation");
-  console.log(`Noata browser QA PASS: ${checks} public-browser assertions; 68 route/theme/document/responsive screenshots.`);
+  console.log(`Noata browser QA PASS: ${checks} public-browser assertions; ${new Set(captures.map(c=>c.file)).size} route/theme/document/responsive screenshots.`);
   console.log("Authenticated student/teacher/admin E2E: NOT RUN (requires disposable credentials and protected preview access).");
 }
 let failure = null;
@@ -315,9 +356,10 @@ catch(error) { failure = error; console.error(error); }
 finally {
   await writeFile("artifacts/noata-browser/accessibility.json",JSON.stringify(accessibility,null,2)).catch(()=>{});
   await writeFile("artifacts/noata-browser/performance.json",JSON.stringify(performanceResults,null,2)).catch(()=>{});
+  await writeFile("artifacts/noata-browser/captures.json",JSON.stringify(captures,null,2)).catch(()=>{});
   await writeFile("artifacts/noata-browser/server.log",appLog).catch(()=>{});
   try{await browser?.close();}catch(error){failure??=error;console.error(error);}
-  await writeFile("artifacts/noata-browser/outcome.json",JSON.stringify({passed:!failure,revision:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),dirty:!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,browserErrors,failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2)).catch(()=>{});
+  await writeFile("artifacts/noata-browser/outcome.json",JSON.stringify({passed:!failure,revision:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),dirty:!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,routeViews:accessibility.filter(a=>a.kind==="public").length,syntheticUiViews:accessibility.filter(a=>a.kind==="synthetic-ui-only").length,screenshots:new Set(captures.map(c=>c.file)).size,browserErrors,failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2)).catch(()=>{});
   if(app){try{process.kill(-app.pid,"SIGTERM");}catch{app.kill("SIGTERM");}}
   // pnpm/Next can leave inherited pipe handles open after child termination.
   // Exit explicitly AFTER reporting the actual pass/fail result to CI.

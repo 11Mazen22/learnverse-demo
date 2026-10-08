@@ -4027,3 +4027,33 @@ a.noata-sign-in:focus-visible {
   outline: 3px solid #ffde69;
   outline-offset: 3px;
 }
+
+/* A readable inbox: read state is explicit, never faded text. */
+.aura-inbox .topbar{gap:18px;flex-wrap:wrap;margin-bottom:24px}
+.aura-inbox .topbar p{color:var(--muted)}
+.aura-inbox-item{display:flex;align-items:flex-start;gap:16px;padding:24px 4px;border-bottom:1px solid var(--line)}
+.aura-inbox-item:last-child{border-bottom:0}
+.aura-inbox-item>div{flex:1;min-width:0;overflow-wrap:anywhere}
+.aura-inbox-item h2{font-size:18px;margin:12px 0 6px}
+.aura-inbox-item p{color:var(--muted);line-height:1.8}
+.aura-inbox-item time{display:block;color:var(--muted);font-size:12px;margin:12px 0}
+.aura-inbox-item a{display:inline-flex;min-height:44px;align-items:center;color:var(--accent);font-weight:700}
+.aura-inbox-marker{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:14px;background:var(--accent-soft);color:var(--accent)}
+.aura-inbox-empty{padding:44px 16px;text-align:center;color:var(--muted)}
+.aura-studio-close-confirm{border:1px solid var(--line);padding:16px;border-radius:14px;background:var(--surface)}
+.aura-studio-close-confirm button{min-height:44px;padding:8px 14px;margin:4px;border:1px solid var(--line);border-radius:10px;color:var(--ink);background:var(--surface)}
+.noata-user-account{max-width:240px;overflow-wrap:anywhere}
+.noata-user-account>[role=alert]{display:block;color:var(--danger);font-size:11px}
+@media(max-width:390px){.aura-inbox-item{gap:10px}.aura-inbox-marker{flex-basis:32px;height:32px}.noata-user-account{max-width:165px}}
+.aura-quran-chapter-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}
+.aura-quran-chapter-nav button{border:1px solid var(--line);border-radius:12px;min-height:44px;padding:8px 16px;background:var(--surface);color:var(--ink)}
+.aura-quran-chapter-nav span,.aura-quran-notice{color:var(--muted);font-size:14px}
+.aura-staff-status{padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow-wrap:anywhere}
+.aura-progress-guest .eyebrow{color:var(--accent)}
+
+/* Legible keyboard hints and compact account identity at narrow widths. */
+.command-trigger kbd{color:var(--ink);background:var(--surface)}
+.noata-user-summary{min-width:0;max-width:150px}
+.noata-user-summary>div,.noata-user-summary>small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.noata-user-account .avatar{flex-shrink:0}
+@media(max-width:480px){.noata-user-summary{display:none}}

@@ -6,6 +6,8 @@ import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { safeStorageLink } from "@/lib/ai/workspace";
+import { SUPABASE_URL } from "@/lib/supabase/config";
 export function RichMessage({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -19,9 +21,29 @@ export function RichMessage({ content }: { content: string }) {
               {children}
             </a>
           ),
-          img: ({ src, alt }) => (
-            <img src={src} alt={alt ?? "صورة"} loading="lazy" />
-          ),
+          img: ({ src, alt }) => {
+            const allowed =
+              safeStorageLink(src, SUPABASE_URL, "noata-generated") ??
+              safeStorageLink(src, SUPABASE_URL);
+            if (allowed)
+              return (
+                <img
+                  src={allowed}
+                  alt={alt ?? "صورة"}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              );
+            // Model-authored external images can encode private prompt text in
+            // their URL. Load them only after the user explicitly follows a link.
+            if (typeof src === "string" && /^https:\/\//.test(src))
+              return (
+                <a href={src} target="_blank" rel="noopener noreferrer">
+                  {alt || "صورة خارجية"} · فتح رابط الصورة
+                </a>
+              );
+            return <span>{alt || "الصورة غير متاحة"}</span>;
+          },
           pre: ({ children }) => (
             <div>
               <pre>{children}</pre>

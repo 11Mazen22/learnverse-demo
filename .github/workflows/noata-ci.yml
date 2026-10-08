@@ -16,7 +16,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,6 +35,7 @@ jobs:
           node --check scripts/browser-aura-smoke.mjs
           node --check scripts/authenticated-aura-smoke.mjs
           node --check scripts/lib/qa-browser.mjs
+          node --check scripts/lib/ui-account-fixture.mjs
           node --check scripts/install-qa-chrome.mjs
           node --check scripts/browser-launch-smoke.mjs
       - name: Browser startup fault regressions
@@ -79,11 +80,14 @@ jobs:
             exit 1
           fi
 
-          for path in / /learn /ai /login /privacy /terms; do
+          for path in / /learn /ai /missions /review /boss /progress /rewards /assignments /settings /help /quran /notifications /teacher /admin /login /privacy /terms; do
             curl -fsS -o /dev/null "http://127.0.0.1:3000$path"
           done
 
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-frame-options: DENY'
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-content-type-options: nosniff'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/documents/pdf -H 'Content-Type: application/json' -H 'Origin: https://untrusted.invalid' --data '{}')" = 403
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/documents/pdf -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:3000' --data '{}')" = 401
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/qa-target)" = 404
       - run: pnpm legacy:check
 
