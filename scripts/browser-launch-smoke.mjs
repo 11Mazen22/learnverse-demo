@@ -15,12 +15,22 @@ try{
     const result=await session.command('Runtime.evaluate',{expression:'document.body.innerHTML="<h1>اختبار تشغيل Chrome</h1>";document.body.innerText',returnByValue:true});
     assert.match(result.result.value,/اختبار تشغيل Chrome/);
   }
+  // A never-settling JS promise should time out one CDP command, while
+  // leaving the browser connection usable for subsequent commands.
+  const healthy=sessions[1];
+  await assert.rejects(
+    healthy.command('Runtime.evaluate',{expression:'new Promise(()=>{})',awaitPromise:true},400),
+    /CDP timed out: Runtime\.evaluate/
+  );
+  const recovered=await healthy.command('Runtime.evaluate',{expression:'6*7',returnByValue:true});
+  assert.equal(recovered.result.value,42,'CDP must recover after one command times out');
+  assert.equal(healthy.diagnostics.commandTimeouts.at(-1)?.method,'Runtime.evaluate');
   const interrupted=sessions[0];
   const pending=interrupted.command('Runtime.evaluate',{expression:'new Promise(()=>{})',awaitPromise:true},30000);
   const rejected=assert.rejects(pending,/Chrome (exited unexpectedly|CDP closed|CDP WebSocket failed)/);
   interrupted.process.kill('SIGKILL');
   await rejected;
-  console.log('PASS: three simultaneous full-Chrome/CDP sessions, isolated dynamic ports/profiles, Arabic DOM and immediate crash propagation');
+  console.log('PASS: three isolated full-Chrome sessions, timeout recovery, Arabic DOM and immediate crash propagation');
 }catch(error){failure=error;console.error(error);}
 finally{
   for(const session of sessions){try{await session.close();}catch(error){failure??=error;console.error(error);}}
