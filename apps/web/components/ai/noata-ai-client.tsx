@@ -14,6 +14,7 @@ import { CHAT_MODEL_CARDS, resolveSuggestedModel } from "@/lib/ai/model-routing"
 import { TOOLS } from "@/lib/ai/workspace";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
+import { DocumentSourcesMessage } from "./document-sources-message";
 import { WritingStudio } from "./writing-studio";
 import { EducationPanel } from "./education-panel";
 import { Icon } from "@/components/ui/icon";
@@ -42,6 +43,9 @@ export function NoataAIClient() {
   const {
     historyProps,
     selectFile,
+    selectFiles,
+    documentFiles,
+    setDocumentFiles,
     captureScreen,
     setMobileHistory,
     temporary,
@@ -199,14 +203,14 @@ export function NoataAIClient() {
         onDrop={(e) => {
           e.preventDefault();
           setDragging(false);
-          selectFile(e.dataTransfer.files[0]);
+          selectFiles(e.dataTransfer.files);
         }}
       >
         {dragging && (
           <div className="owui-drop-overlay" role="status">
             <Icon name="image" size={34} />
-            <strong>سيب الصورة أو الملف الصوتي هنا</strong>
-            <span>Noata AI هيجهزه للمحادثة</span>
+            <strong>ارفع مستنداتك أو صورتك</strong>
+            <span>حتى ٤ ملفات TXT أو DOCX وملف صورة واحد — الملفات غير المدعومة تظهر رسالة توضيحية</span>
           </div>
         )}
 
@@ -429,7 +433,10 @@ export function NoataAIClient() {
                       {m.role === "assistant" && m.model && <span>{m.model}</span>}
                     </div>
                     <RichMessage content={m.content} />
-                    {m.role === "user" && <AttachmentMessage metadata={m.metadata} />}
+                    {m.role === "user" && <>
+                      <AttachmentMessage metadata={m.metadata} />
+                      <DocumentSourcesMessage sources={m.metadata?.documentSources} />
+                    </>}
                     <div className="owui-message-actions">
                       <button type="button" onClick={() => void copy(m.content)} title="نسخ" aria-label="نسخ الرسالة">
                         <Icon name="copy" size={14} />
@@ -593,6 +600,20 @@ export function NoataAIClient() {
 
         <footer className="owui-composer-wrap">
           <form onSubmit={(e) => void send(e)} className="owui-composer">
+            {documentFiles.length>0 && (
+              <div className="aura-document-tray" role="group" aria-label="ملفات المستندات المختارة">
+                {documentFiles.map((file,index)=>(
+                  <div className="aura-document-chip" key={index}>
+                    <Icon name="book" size={16}/>
+                    <span title={file.name}>{file.name}</span>
+                    <small>{Math.max(1,Math.round(file.size/1024))} KB</small>
+                    <button type="button" onClick={()=>setDocumentFiles(old=>old.filter((_,i)=>i!==index))}
+                      aria-label={"إزالة "+file.name}><Icon name="close" size={14}/></button>
+                  </div>
+                ))}
+                <small>تُستخلص محتوياتها محليًا ثم تُحفظ مقتطفات داخل الرسالة، وليس الملفات الأصلية.</small>
+              </div>
+            )}
             {attachment && (
               <div className="owui-attachment">
                 {preview ? (
@@ -640,10 +661,10 @@ export function NoataAIClient() {
               disabled={busy}
               onChange={(e) => setInput(e.target.value)}
               onPaste={(e) => {
-                const file = Array.from(e.clipboardData.files)[0];
-                if (file) {
+                const files = Array.from(e.clipboardData.files);
+                if (files.length) {
                   e.preventDefault();
-                  selectFile(file);
+                  selectFiles(files);
                 }
               }}
               onKeyDown={(e) => {
@@ -660,8 +681,9 @@ export function NoataAIClient() {
               ref={picker}
               type="file"
               hidden
+              multiple
               accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,.docx,text/plain,text/markdown,text/csv,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={(e) => selectFile(e.target.files?.[0])}
+              onChange={(e) => {selectFiles(e.target.files);e.currentTarget.value="";}}
             />
 
             <div className="owui-composer-toolbar">
@@ -749,7 +771,7 @@ export function NoataAIClient() {
                   <button
                     className="owui-send"
                     type="submit"
-                    disabled={(!input.trim() && !attachment) || recording}
+                    disabled={(!input.trim() && !attachment && !documentFiles.length) || recording}
                     aria-label="إرسال"
                   >
                     <Icon name="arrow" size={17} />
