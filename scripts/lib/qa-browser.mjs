@@ -25,6 +25,7 @@ export function diagnosticError(error,depth=0){
 export const qaChromeArgs=profile=>[
   '--user-data-dir='+profile,'--headless=new','--no-sandbox','--disable-dev-shm-usage',
   '--disable-background-networking','--no-first-run','--no-default-browser-check',
+  '--enable-logging=stderr','--v=1',
   '--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','about:blank',
 ];
 
