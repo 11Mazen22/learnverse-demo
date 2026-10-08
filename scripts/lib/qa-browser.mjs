@@ -52,7 +52,7 @@ export async function launchQaBrowser({executablePath=findQaChrome(),artifactsDi
   const args=qaChromeArgs(profile);
   const diagnostics={executablePath,args,pid:null,profile,profileRemoved:false,startedAt:new Date().toISOString(),
     readyAt:null,port:null,version:null,spawnError:null,exit:null,webSocket:{url:null,error:null,close:null},
-    lastReadinessError:null,cleanupErrors:[],proxyEnvironmentPresent:Object.fromEntries(['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','NODE_USE_ENV_PROXY'].map(name=>[name,Boolean(process.env[name])]))};
+    lastReadinessError:null,commandTimeouts:[],lastCommand:null,cleanupErrors:[],proxyEnvironmentPresent:Object.fromEntries(['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','NODE_USE_ENV_PROXY'].map(name=>[name,Boolean(process.env[name])]))};
   const log=createWriteStream(join(artifactsDir,'chromium.log'),{flags:'w'});
   let logError;log.on('error',error=>{logError=error;});
   let stopping=false,terminalError,connectionReject,socket,nextId=0;
@@ -79,7 +79,16 @@ export async function launchQaBrowser({executablePath=findQaChrome(),artifactsDi
     if(socket?.readyState!==WebSocket.OPEN)return Promise.reject(Error('CDP socket is not open: '+method));
     return new Promise((resolve,reject)=>{
       const id=++nextId;
-      const timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP timed out: '+method));},timeoutMs);
+      const started=Date.now();
+      diagnostics.lastCommand={method,id,startedAt:new Date(started).toISOString()};
+      const timer=setTimeout(()=>{
+        const timeout={method,id,timeoutMs,elapsedMs:Date.now()-started,pendingCount:pending.size,
+          at:new Date().toISOString()};
+        diagnostics.commandTimeouts.push(timeout);
+        if(diagnostics.commandTimeouts.length>15)diagnostics.commandTimeouts.shift();
+        pending.delete(id);
+        reject(Error(`CDP timed out: ${method} (id=${id}, ${timeoutMs}ms, Chrome pid=${diagnostics.pid}, port=${diagnostics.port})`));
+      },timeoutMs);
       pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});
       try{socket.send(JSON.stringify({id,method,params}));}catch(error){pending.delete(id);clearTimeout(timer);reject(error);}
     });
