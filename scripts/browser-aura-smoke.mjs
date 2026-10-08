@@ -119,7 +119,14 @@ async function main() {
   // Exercise hydrated React interaction without creating an account or an AI inference.
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await navigate("/ai");
-  await waitFor(async()=>Boolean(await evaluate('document.querySelector(".owui-suggestions button")')), "AI suggestions");
+  const ready = await waitFor(async()=>await evaluate(`({
+    suggestions: !!document.querySelector(".owui-suggestions button"),
+    loading: !!document.querySelector(".owui-loading"),
+    error: document.querySelector('[role="alert"]')?.textContent?.slice(0,200) ?? "",
+    text: document.querySelector(".owui-messages")?.innerText?.slice(0,200) ?? ""
+  })`), "AI workspace DOM");
+  console.log("[browser] AI bootstrap state", JSON.stringify(ready));
+  await waitFor(async()=>await evaluate('!!document.querySelector(".owui-suggestions button")'), "AI welcome suggestions / bounded auth initialization", 26000);
   await evaluate('document.querySelector(".owui-suggestions button").click()');
   const draft=await waitFor(async()=>await evaluate('document.querySelector(".owui-composer textarea")?.value || ""'),"React suggestion populating composer");
   invariant(draft.length>15,"AI suggestion was visual-only and did not update draft");
