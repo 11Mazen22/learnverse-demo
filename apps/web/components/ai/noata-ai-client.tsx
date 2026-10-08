@@ -652,7 +652,7 @@ export function NoataAIClient() {
               ref={picker}
               type="file"
               hidden
-              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,text/plain,text/markdown,text/csv,application/json"
+              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,.docx,text/plain,text/markdown,text/csv,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(e) => selectFile(e.target.files?.[0])}
             />
 
@@ -679,7 +679,7 @@ export function NoataAIClient() {
                         }}
                       >
                         <Icon name="image" size={17} />
-                        <span><strong>رفع صورة أو مستند</strong><small>صورة، صوت أو ملف نصي (TXT / MD / CSV / JSON)</small></span>
+                        <span><strong>رفع صورة أو مستند</strong><small>صورة، صوت أو ملف نصي (TXT / MD / CSV / JSON / DOCX)</small></span>
                       </button>
                       <button
                         type="button"
