@@ -89,16 +89,23 @@ export default function LoginPage() {
   }
 
   async function resendVerification() {
+    if (busy || !email.trim()) return;
     setBusy("resend");
     setError("");
-    const { error } = await createClient().auth.resend({
-      type: "signup",
-      email,
-      options: { emailRedirectTo: callbackUrl() },
-    });
-    setBusy("");
-    if (error) setError(localizeAuthError(error));
-    else setMessage("أرسلنا رسالة تأكيد جديدة. قد تستغرق دقيقة للوصول.");
+    setMessage("");
+    try {
+      const { error } = await createClient().auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: callbackUrl() },
+      });
+      if (error) setError(localizeAuthError(error));
+      else setMessage("أرسلنا رسالة تأكيد جديدة. قد تستغرق دقيقة للوصول.");
+    } catch {
+      setError("تعذّر إرسال الرسالة الآن. تحقّق من اتصالك بالإنترنت وحاول مرة أخرى.");
+    } finally {
+      setBusy("");
+    }
   }
 
   async function submit(e: FormEvent) {
@@ -106,6 +113,7 @@ export default function LoginPage() {
     setBusy("form");
     setError("");
     setMessage("");
+    try {
     const supabase = createClient();
 
     if (mode === "forgot") {
@@ -164,6 +172,10 @@ export default function LoginPage() {
     }
     setBusy("");
     setMode("verify");
+    } catch {
+      setError("تعذّر الاتصال بالخادم الآن. تحقّق من اتصالك ثم أعد المحاولة.");
+      setBusy("");
+    }
   }
 
   const copy = COPY[mode];
