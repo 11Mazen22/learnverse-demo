@@ -135,6 +135,31 @@ export function DashboardLive() {
   const nextHref = state.nextLesson
     ? "/lesson/" + state.nextLesson.id
     : "/learn";
+  // Personalized but deterministic: recommendations derive exclusively from
+  // the learner's real review queue and course progress.
+  const recommendation = due > 0
+    ? {
+        href: "/review",
+        title: "راجع اللي محتاج تثبيت",
+        description: "عندك " + due + " مراجعات حان وقتها. المراجعة الأول هتساعدك تبني على فهم ثابت.",
+        action: "ابدأ المراجعة",
+        icon: "review",
+      }
+    : state.nextLesson
+      ? {
+          href: nextHref,
+          title: "كمّل رحلتك من آخر نقطة",
+          description: "درس «" + state.nextLesson.title_ar + "» هو خطوتك التالية في المسار الحالي.",
+          action: "افتح الدرس",
+          icon: "book",
+        }
+      : {
+          href: "/missions",
+          title: "جاهز تتحدّى نفسك؟",
+          description: "اختار تحدّي قصير وجرّب تثبّت اللي عرفته.",
+          action: "استكشف المهام",
+          icon: "target",
+        };
   const metrics = [
     ["مستواك الحالي", level, state.xp + " نقطة خبرة", "boss"],
     [
@@ -222,6 +247,19 @@ export function DashboardLive() {
             <Icon name="check" size={23} />
           </span>
         </div>
+      </section>
+      <section className="aura-next-step" aria-label="اقتراح خطوة التعلّم التالية">
+        <div className="aura-next-step-icon" aria-hidden="true">
+          <Icon name={recommendation.icon} size={24} />
+        </div>
+        <div className="aura-next-step-copy">
+          <span>خطوتك المقترحة</span>
+          <h2>{recommendation.title}</h2>
+          <p>{loading ? "بنحدد خطوتك بناءً على تقدّمك…" : recommendation.description}</p>
+        </div>
+        <Link href={recommendation.href} className="aura-next-step-action">
+          {recommendation.action} <Icon name="arrow" size={17}/>
+        </Link>
       </section>
       <section className="grid-4" aria-label="تقدمك" aria-busy={loading}>
         {metrics.map(([label, value, detail, icon]) => (
