@@ -381,6 +381,30 @@ async function main() {
     invariant(ar.overflow<=3&&ar.left>=-3&&ar.right<=ar.viewport+3,"Auth "+authWidth+" overflow");
     await screenshot("artifacts/noata-browser/auth-"+authWidth+".png");
   }
+  // Real public browser audit for every stage of the Arabic recovery journey.
+  // Never request actual reset emails from this non-authenticated browser fixture.
+  for (const width of [1440,390,320]) {
+    location.width=width;
+    await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
+    for(const [route,expected] of [
+      ["/auth/forgot-password","رابط الاستعادة"],
+      ["/auth/check-email?type=signup","حسابك"],
+      ["/auth/check-email?type=recovery","الاستعادة"],
+      ["/auth/error?reason=expired","صلاحية"],
+      ["/auth/error?reason=invalid","صالح"],
+      ["/auth/complete?type=verified","حسابك"],
+      ["/auth/update-password","الاستعادة"],
+    ]) {
+      await navigate(route);
+      await waitFor(async()=>await evaluate('!!document.querySelector(".auth-journey-card h1")'),"account journey "+route);
+      const result=await evaluate('(()=>{const card=document.querySelector(".auth-journey-card");const r=card.getBoundingClientRect();return {title:card.querySelector("h1")?.textContent,scroll:document.documentElement.scrollWidth-innerWidth,left:r.left,right:r.right,viewport:innerWidth}})()');
+      invariant(result.title&&result.scroll<=3&&result.left>=-3&&result.right<=result.viewport+3,"Broken "+route+" at "+width);
+      await screenshot("artifacts/noata-browser/auth-flow-"+route.split("?")[0].split("/").at(-1)+"-"+width+(route.includes("?")?"-"+new URLSearchParams(route.split("?")[1]).values().next().value:"")+".png");
+    }
+    await navigate("/auth/update-password");
+    await waitFor(async()=>await evaluate('!document.querySelector(".auth-journey-card h1")?.textContent.includes("جارٍ التحقق")'),"untrusted reset session denied");
+    invariant(await evaluate('!document.querySelector(".auth-journey-card input[type=password]")'),"Password reset cannot be used without recovery verification");
+  }
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
 
   // Confirm dialogue must be centered in the actual browser top layer in both modes.
