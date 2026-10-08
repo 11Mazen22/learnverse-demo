@@ -47,16 +47,16 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
         </div>
       </header>
 
+      <div className="aura-workshop-scroll" tabIndex={0} aria-label="خيارات ورشة المذاكرة">
       <ol className="aura-workshop-steps">
         <li>
           <h3><span>1</span> ماذا تريد أن تفعل؟</h3>
-          <div className="aura-workshop-flows" role="radiogroup" aria-label="نوع النشاط">
+          <div className="aura-workshop-flows" role="group" aria-label="نوع النشاط">
             {EDUCATION_FLOWS.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                role="radio"
-                aria-checked={selected === item.id}
+                aria-pressed={selected === item.id}
                 onClick={() => setSelected(item.id)}
               >
                 <span className="aura-workshop-flow-icon"><Icon name={item.icon} size={18} /></span>
@@ -82,7 +82,7 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
             rows={3}
           />
           <div className="aura-workshop-meta">
-            <span>{topic.trim().length} / 1200</span>
+            <span dir="ltr">{topic.trim().length} / 1200</span>
           </div>
         </li>
 
@@ -112,7 +112,9 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
           </div>
         </li>
       </ol>
+      </div>
 
+      <div className="aura-workshop-footer">
       <div className="aura-workshop-preview" aria-live="polite">
         <Icon name="ai" size={17} />
         <p><b>ما الذي ستحصل عليه:</b> {flow.outcome}</p>
@@ -133,6 +135,7 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
       <p className="aura-education-note">
         تُرسل الورشة طلبًا منظّمًا إلى Noata AI. راجع النتائج المهمة مع معلّمك أو كتابك المدرسي.
       </p>
+      </div>
     </section>
   );
 }
