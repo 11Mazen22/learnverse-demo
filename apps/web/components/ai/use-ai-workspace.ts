@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { createVoiceGenerationGuard } from "@/lib/ai/voice-generation";
 import { isTextDocument, extractTextDocument, appendDocumentContext } from "@/lib/ai/document-text";
+import { isDocxDocument, extractDocxDocument } from "@/lib/ai/docx-ingest";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
 import {
   AI_FUNCTION,
@@ -429,7 +430,7 @@ export function useAIWorkspace() {
         ? "كمّل شرحك من النقطة اللي وقفت عندها."
         : mode === "retry"
           ? (messages.at(-1)?.content ?? "")
-          : input.trim() || (attachment && isTextDocument(attachment) ? "اقرأ المستند المرفق وقدم لي شرحًا واضحًا لمحتواه." : attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
+          : input.trim() || (attachment && (isTextDocument(attachment)||isDocxDocument(attachment)) ? "اقرأ المستند المرفق وقدم لي شرحًا واضحًا لمحتواه." : attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
@@ -456,9 +457,11 @@ export function useAIWorkspace() {
       let documentExcerpt: string | undefined;
       let documentTruncated = false;
       if (attachment) {
-        if (isTextDocument(attachment)) {
-          setNotice("بنقرأ محتوى المستند النصي…");
-          const extracted = await extractTextDocument(attachment);
+        if (isTextDocument(attachment) || isDocxDocument(attachment)) {
+          setNotice("بنقرأ محتوى المستند…");
+          const extracted = isDocxDocument(attachment)
+            ? await extractDocxDocument(attachment)
+            : await extractTextDocument(attachment);
           documentExcerpt = extracted.excerpt;
           documentTruncated = extracted.truncated;
           // Private upload bucket currently only accepts image/audio.
@@ -534,7 +537,7 @@ export function useAIWorkspace() {
               );
         if (!content) throw Error("No output");
         result = { content, model: tool };
-      } else result = await chat(history, attachment && isTextDocument(attachment) ? undefined : path);
+      } else result = await chat(history, attachment && (isTextDocument(attachment)||isDocxDocument(attachment)) ? undefined : path);
       assistant = {
         id: crypto.randomUUID(),
         conversation_id: conversationId,
