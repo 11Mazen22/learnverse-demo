@@ -65,7 +65,7 @@ export function NotificationBell() {
     >
       <Icon name="bell" size={20} />
       {currentCount !== null && currentCount > 0 && (
-        <b>{currentCount > 9 ? "9+" : currentCount}</b>
+        <b aria-hidden="true">{currentCount > 99 ? "٩٩+" : currentCount.toLocaleString("ar-EG")}</b>
       )}
     </a>
   );
