@@ -15,6 +15,8 @@ export function canonicalAuthOrigin(
 ): string {
   if (!configuredOrigin) return currentOrigin;
   try {
+    const current = new URL(currentOrigin);
+    if (!current.hostname.startsWith("noata-") || !current.hostname.endsWith(".vercel.app")) return currentOrigin;
     const parsed = new URL(configuredOrigin);
     if (
       parsed.protocol !== "https:" ||
