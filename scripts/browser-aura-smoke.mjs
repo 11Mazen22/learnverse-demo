@@ -83,7 +83,7 @@ async function main() {
   await command("Page.enable");
   await command("Runtime.enable");
 
-  const routes=["/","/ai","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/settings","/help"];
+  const routes=["/","/ai","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/settings","/help","/quran"];
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:"light"}]});
   for(const path of routes) {
@@ -94,6 +94,10 @@ async function main() {
     invariant(result.rtl,path+" missing Arabic RTL root");
     invariant(result.overflow <= 3,path+" horizontal overflow "+result.overflow);
     if(path==="/ai") invariant(result.hasAI,"AI workspace missing");
+    if(path==="/quran"){
+      const reader=await evaluate('!!document.querySelector(".aura-quran-reading")');
+      invariant(reader,"Quran reader UI missing");
+    }
   }
   for(const [width,height,mobile] of [[1440,900,false],[768,1024,true],[390,844,true],[320,700,true]]) {
     await command("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile});
