@@ -9,8 +9,9 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createVoiceGenerationGuard } from "@/lib/ai/voice-generation";
-import { isTextDocument, extractTextDocument, appendDocumentContext } from "@/lib/ai/document-text";
+import { isTextDocument, extractTextDocument } from "@/lib/ai/document-text";
 import { isDocxDocument, extractDocxDocument } from "@/lib/ai/docx-ingest";
+import { createAiMessageContext } from "@/lib/ai/context-budget";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
 import {
   AI_FUNCTION,
@@ -337,9 +338,7 @@ export function useAIWorkspace() {
         body: JSON.stringify({
           action: "chat",
           model,
-          messages: history
-            .filter((m) => m.role !== "system")
-            .map((m) => ({ role: m.role, content: appendDocumentContext(m.content, m.metadata) })),
+          messages: createAiMessageContext(history),
           attachmentPath,
           stream: true,
           requestId: crypto.randomUUID(),
