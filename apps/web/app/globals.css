@@ -3591,3 +3591,34 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
  .aura-next-step-copy { flex-basis: calc(100% - 65px); }
  .aura-next-step-action { width: 100%; }
 }
+
+
+/* Noata Aura appearance selector shared across learning and AI navigation */
+.aura-theme-picker { position: relative; z-index: 60; flex: none; }
+.aura-theme-menu {
+  position: absolute; inset-block-start: calc(100% + 9px); inset-inline-end: 0;
+  width: min(300px,calc(100vw - 22px)); padding: 10px;
+  display: grid; gap: 5px; border: 1px solid var(--line);
+  border-radius: 16px; background: var(--surface);
+  box-shadow: 0 22px 60px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.aura-theme-menu > strong { color: var(--muted); font-size: 12px; padding: 5px 8px 8px; }
+.aura-theme-menu button {
+  width: 100%; min-height: 53px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border: 1px solid transparent;
+  border-radius: 11px; background: transparent; text-align: start;
+}
+.aura-theme-menu button:hover, .aura-theme-menu button.selected {
+  background: var(--accent-soft); color: var(--accent);
+}
+.aura-theme-menu button span { flex: 1; min-width: 0; display: grid; }
+.aura-theme-menu button b { font-size: 14px; }
+.aura-theme-menu button small { color: var(--muted); font-size: 12px; }
+.aura-theme-menu button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.aura-theme-notice {
+  position: absolute; z-index: 62;
+  inset-inline-end: 0; inset-block-start: calc(100% + 210px);
+  width: 270px; padding: 10px; border-radius: 11px;
+  background: var(--accent-soft); color: var(--accent); font-size: 12px;
+}
