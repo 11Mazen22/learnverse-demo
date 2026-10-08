@@ -3783,3 +3783,63 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .aura-source-preview pre{max-height:42dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;line-height:1.8;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);unicode-bidi:plaintext}
 .aura-source-preview small{font-size:11px;color:var(--muted);line-height:1.8}
 @media(max-width:520px){.aura-document-chip{flex-basis:100%}.aura-document-chip>span{flex:1;max-width:calc(100vw - 170px)}.aura-source-files button{width:100%}}
+
+
+/* Phase 4 / Progress: an evidence-led skill map, not recycled metric cards. */
+.aura-progress-page{display:grid;gap:25px;padding-bottom:30px}
+.aura-progress-hero{display:flex;align-items:center;gap:30px;justify-content:space-between;min-height:300px;padding:clamp(24px,3vw,44px);background:var(--surface);border:1px solid var(--line);border-radius:27px}
+.aura-progress-intro{max-width:720px}
+.aura-progress-intro .eyebrow{font-size:12px;color:var(--accent);letter-spacing:0}
+.aura-progress-intro h1{font-size:clamp(28px,3vw,42px);line-height:1.5;letter-spacing:0;margin:11px 0 12px}
+.aura-progress-intro>p{color:var(--muted);line-height:1.95;font-size:14px;margin:0;max-width:590px}
+.aura-progress-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:23px}
+.aura-progress-primary,.aura-progress-secondary{min-height:45px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:9px 16px;font-weight:750;font-size:13px;text-decoration:none}
+.aura-progress-primary{color:var(--surface);background:var(--accent);border:1px solid var(--accent)}
+.aura-progress-secondary{color:var(--accent);background:var(--surface-soft);border:1px solid var(--line)}
+.aura-progress-primary:hover{filter:brightness(1.08)}.aura-progress-secondary:hover{background:var(--accent-soft)}
+.aura-progress-ring{position:relative;width:190px;height:190px;color:var(--accent);flex:none}
+.aura-progress-ring svg{display:block;width:100%;height:100%;overflow:visible}
+.aura-progress-ring>div{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:5px}
+.aura-progress-ring strong{font-size:39px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.aura-progress-ring span{font-size:12px;color:var(--muted)}
+.aura-progress-statstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;border:1px solid var(--line);background:var(--line);border-radius:19px;overflow:hidden}
+.aura-progress-statstrip>div{background:var(--surface);padding:22px 20px;display:grid;gap:4px}
+.aura-progress-statstrip span{font-size:12px;color:var(--muted)}
+.aura-progress-statstrip strong{font-size:29px;line-height:1.3;font-variant-numeric:tabular-nums}
+.aura-progress-statstrip small{color:var(--muted);font-size:11px}
+.aura-progress-map{border:1px solid var(--line);border-radius:24px;background:var(--surface);padding:clamp(18px,2.4vw,32px)}
+.aura-progress-map-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:23px}
+.aura-progress-map-heading h2{font-size:clamp(22px,2vw,30px);margin:5px 0 7px}
+.aura-progress-map-heading p{font-size:13px;color:var(--muted);margin:0;line-height:1.8}
+.aura-progress-map-heading button{border:1px solid var(--line);border-radius:11px;display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:8px 12px;font-size:13px}
+.aura-progress-map-heading button:hover{background:var(--surface-soft)}
+.aura-progress-filters{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:16px}
+.aura-progress-filters>div{display:flex;flex-wrap:wrap;gap:7px}
+.aura-progress-filters button{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;min-height:39px;border:1px solid var(--line);border-radius:11px;font-size:13px;color:var(--muted)}
+.aura-progress-filters button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 25%,var(--line));font-weight:750}
+.aura-progress-filters button small{border-radius:7px;background:var(--surface-soft);padding:2px 6px;font-size:11px}
+.aura-progress-filters input{min-width:170px;min-height:41px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);padding:9px 12px;font-size:13px}
+.aura-progress-skill-list{display:grid;gap:9px}
+.aura-progress-skill{display:flex;gap:14px;align-items:center;min-width:0;padding:16px 19px;background:var(--surface-soft);border:1px solid var(--line);border-radius:16px}
+.aura-progress-skill-num{font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted);width:32px}
+.aura-progress-skill-body{flex:1;min-width:0;display:grid;gap:11px}
+.aura-progress-skill-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.aura-progress-skill h3{font-size:15px;margin:0 0 4px}
+.aura-progress-skill p{font-size:12px;color:var(--muted);margin:0;line-height:1.7}
+.aura-progress-skill-status{font-size:11px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 9px;white-space:nowrap;color:var(--muted)}
+.aura-progress-skill-status.due{color:var(--accent);background:var(--accent-soft)}
+.aura-progress-skill-meter{height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+.aura-progress-skill-meter span{height:100%;display:block;background:var(--accent);border-radius:99px;transition:width .25s ease-out}
+.aura-progress-skill-percent{font-size:20px;font-weight:800;min-width:46px;text-align:end;font-variant-numeric:tabular-nums}
+.aura-progress-empty{text-align:center;padding:46px 18px;display:grid;justify-items:center;gap:12px;color:var(--muted)}
+.aura-progress-empty h3{margin:0;color:var(--ink);font-size:19px}
+.aura-progress-empty p{margin:0;font-size:13px;line-height:1.8}
+.aura-progress-loading,.aura-progress-guest{padding:clamp(40px,7vw,85px) 30px;border:1px solid var(--line);border-radius:24px;background:var(--surface);text-align:center;display:grid;justify-items:center;gap:16px}
+.aura-progress-guest h1,.aura-progress-loading h1{font-size:clamp(24px,3vw,35px);margin:0;line-height:1.6}
+.aura-progress-loading p,.aura-progress-guest p{color:var(--muted);max-width:570px;font-size:14px;line-height:1.9;margin:0}
+.aura-progress-loading-mark{width:42px;height:42px;border:4px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:aura-progress-spin .8s linear infinite}
+@keyframes aura-progress-spin{to{transform:rotate(360deg)}}
+.aura-progress-error{font-size:13px;color:var(--danger)}.aura-progress-refreshing{color:var(--muted);font-size:13px}
+@media(max-width:1040px){.aura-progress-hero{gap:10px}.aura-progress-ring{width:150px;height:150px}.aura-progress-statstrip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:670px){.aura-progress-hero{flex-direction:column;align-items:stretch}.aura-progress-ring{align-self:center}.aura-progress-filters{align-items:stretch;flex-direction:column}.aura-progress-filters input{width:100%}.aura-progress-skill{padding:13px;gap:9px}.aura-progress-skill-top{align-items:start;flex-wrap:wrap}.aura-progress-skill-percent{font-size:16px;min-width:35px}.aura-progress-statstrip>div{padding:17px 14px}}
+@media(prefers-reduced-motion:reduce){.aura-progress-skill-meter span{transition:none}.aura-progress-loading-mark{animation:none}}
