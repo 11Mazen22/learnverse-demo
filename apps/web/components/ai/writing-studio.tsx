@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { RichMessage } from "./rich-message";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
@@ -29,7 +29,9 @@ export function WritingStudio({
     source.match(/^#\s+(.+)$/m)?.[1]?.slice(0, 120) || "مستند Noata";
   const dirty = draft !== source || title !== initialTitle;
   const exportRequest = useRef<AbortController | null>(null);
-  useEffect(() => {
+  // Reset before Dialog's passive showModal effect can reveal the previous
+  // document. Reopening after discard must never flash the discarded text.
+  useLayoutEffect(() => {
     if (open) {
       const saved = writingDrafts.get(draftKey);
       setDraft(saved?.source === source ? saved.text : source);
