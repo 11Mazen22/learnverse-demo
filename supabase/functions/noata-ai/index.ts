@@ -755,7 +755,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  if (!FANAR_KEY) return json({ error: "AI backend is not configured" }, 503);
 
   const user = await authUser(req);
   if (!user) return json({ error: "Unauthorized" }, 401);
@@ -763,10 +762,19 @@ Deno.serve(async (req) => {
   let receipt: Receipt | null = null;
   try {
     const url = new URL(req.url);
-    if (url.searchParams.get("action") === "stt")
+    if (url.searchParams.get("action") === "stt") {
+      if (!FANAR_KEY)
+        return json({ error: "AI backend is not configured", code: "FANAR_NOT_CONFIGURED" }, 503);
       return await handleStt(req, user.id);
+    }
     const payload = await req.json().catch(() => null);
     if (!payload) return json({ error: "Invalid payload" }, 400);
+    // Authenticated, side-effect-free diagnostic. Configured does not claim
+    // that an upstream Fanar inference has already succeeded.
+    if (payload.action === "readiness")
+      return json({ provider: "Fanar", configured: Boolean(FANAR_KEY) });
+    if (!FANAR_KEY)
+      return json({ error: "AI backend is not configured", code: "FANAR_NOT_CONFIGURED" }, 503);
     const claimed = await claimReceipt(user.id, payload);
     receipt = claimed.receipt;
     if (claimed.cached) return json(claimed.cached);
