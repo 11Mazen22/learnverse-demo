@@ -87,6 +87,7 @@ async function main() {
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:"light"}]});
   for(const path of routes) {
+    console.log("[browser] checking route",path);
     await navigate(path);
     const result=await evaluate(`({hasBody: !!document.body, rtl:document.documentElement.dir==="rtl", overflow:document.documentElement.scrollWidth - innerWidth, title:document.title, hasAI:!!document.querySelector(".owui-layout")})`);
     invariant(result.hasBody,path+" empty body");
@@ -97,6 +98,7 @@ async function main() {
   for(const [width,height,mobile] of [[1440,900,false],[768,1024,true],[390,844,true],[320,700,true]]) {
     await command("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile});
     for(const theme of ["light","dark"]) {
+      console.log("[browser] viewport/theme",width,theme);
       await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:theme}]});
       await navigate("/ai");
       const r=await evaluate(`({
@@ -115,9 +117,14 @@ async function main() {
   console.log(`Noata browser QA PASS: ${checks} public-browser assertions; 8 responsive screenshots.`);
   console.log("Authenticated student/teacher/admin E2E: NOT RUN (requires disposable credentials and protected preview access).");
 }
+let failure = null;
 try { await main(); }
+catch(error) { failure = error; console.error(error); }
 finally {
   socket?.close();
   if(chrome) chrome.kill("SIGTERM");
   if(app) app.kill("SIGTERM");
+  // pnpm/Next can leave inherited pipe handles open after child termination.
+  // Exit explicitly AFTER reporting the actual pass/fail result to CI.
+  process.exit(failure ? 1 : 0);
 }
