@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import {
   boundedRead,
@@ -19,6 +21,24 @@ export function UserMenu() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const lock = useRef(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen) return;
+    function outside(event: PointerEvent) {
+      if (event.target instanceof Node && !menuRef.current?.contains(event.target)) setMenuOpen(false);
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [menuOpen]);
+  useEffect(() => { setMenuOpen(false); }, [account.user?.id]);
   useEffect(() => {
     let alive = true;
     const token = account.revision.current;
@@ -72,6 +92,7 @@ export function UserMenu() {
     lock.current = true;
     setBusy(true);
     setError("");
+    setMenuOpen(false);
     try {
       const { error } = await createClient().auth.signOut();
       if (error) throw error;
@@ -84,11 +105,11 @@ export function UserMenu() {
     }
   }
   return (
-    <div className="noata-user-account">
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div className="noata-user-summary" style={{ textAlign: "end" }}>
-          <div style={{ fontSize: 12, fontWeight: 800 }}>{name}</div>
-          <small style={{ color: "var(--muted)" }}>
+    <div className="noata-user-account" ref={menuRef}>
+      <div className="noata-user-account-trigger-row">
+        <div className="noata-user-summary">
+          <strong>{name}</strong>
+          <small>
             {profile
               ? `${roles[profile.role]} · ${profile.coins.toLocaleString("ar-EG")} عملة`
               : "بيانات الرصيد غير متاحة"}
@@ -96,19 +117,39 @@ export function UserMenu() {
         </div>
         <button
           type="button"
-          onClick={() => void logout()}
+          className="avatar noata-account-trigger"
+          onClick={() => setMenuOpen((open) => !open)}
           disabled={busy}
-          aria-label={
-            busy ? "جارٍ تسجيل الخروج" : "تسجيل الخروج من حساب " + name
-          }
-          title="تسجيل الخروج"
-          className="avatar"
-          style={{ border: 0 }}
+          aria-label={"فتح قائمة حساب " + name}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-controls="noata-account-menu"
+          title="حسابي والإعدادات"
         >
           {name.slice(0, 1).toUpperCase()}
         </button>
       </div>
-      {error && <small role="alert">{error}</small>}
+      {menuOpen && (
+        <div id="noata-account-menu" className="noata-account-menu" role="menu" aria-label="خيارات الحساب">
+          <div className="noata-account-menu-identity">
+            <strong>{name}</strong>
+            <small dir="ltr">{account.user.email ?? "حساب Noata"}</small>
+            <span>{profile ? roles[profile.role] : "الحساب الشخصي"}</span>
+          </div>
+          <Link href="/settings#aura-profile" role="menuitem" onClick={() => setMenuOpen(false)}>
+            <Icon name="user" size={18} /> الملف الشخصي
+          </Link>
+          <Link href="/settings" role="menuitem" onClick={() => setMenuOpen(false)}>
+            <Icon name="settings" size={18} /> إعدادات الحساب
+          </Link>
+          <div className="noata-account-menu-separator" />
+          <button type="button" role="menuitem" className="noata-account-logout" onClick={() => void logout()} disabled={busy}>
+            <Icon name="arrow" size={18} />
+            {busy ? "جارٍ تسجيل الخروج…" : "تسجيل الخروج"}
+          </button>
+        </div>
+      )}
+      {error && <small role="alert" className="noata-account-error">{error}</small>}
     </div>
   );
 }
