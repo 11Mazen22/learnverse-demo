@@ -601,6 +601,7 @@ export function NoataAIClient() {
               ref={composer}
               aria-label="رسالتك إلى Noata AI"
               value={input}
+              maxLength={8000}
               disabled={busy}
               onChange={(e) => setInput(e.target.value)}
               onPaste={(e) => {
