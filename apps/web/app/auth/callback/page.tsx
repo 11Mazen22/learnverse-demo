@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
 
 export default function AuthCallbackPage() {
+  const exchangeStarted = useRef(false);
   const [state, setState] = useState<{ status: "loading" | "error"; message: string }>({
     status: "loading",
     message: "جارٍ تأكيد حسابك وتسجيل دخولك…",
   });
 
   useEffect(() => {
+    if (exchangeStarted.current) return;
+    exchangeStarted.current = true;
     void (async () => {
       const params = new URLSearchParams(window.location.search);
       const hash = new URLSearchParams(window.location.hash.slice(1));
