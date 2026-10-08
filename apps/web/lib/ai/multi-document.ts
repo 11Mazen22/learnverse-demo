@@ -1,6 +1,6 @@
 import {extractTextDocument,isTextDocument} from "./document-text.ts";
 import {extractDocxDocument,isDocxDocument} from "./docx-ingest.ts";
-import {extractPdfDocument,isPdfDocument,MAX_PDF_BYTES} from "./pdf-ingest.ts";
+import {extractPdfDocument,isPdfDocument,MAX_PDF_BYTES,type ExtractedPdf} from "./pdf-ingest.ts";
 
 export const MAX_DOCUMENTS_PER_MESSAGE=4;
 export const MAX_DOCUMENT_CONTEXT_CHARS=20000;
@@ -76,8 +76,8 @@ export async function extractDocumentBatch(files:readonly DocumentFile[]):Promis
    format:pdf?"pdf":docx?"docx":"text",
    excerpt,
    truncated:parsed.truncated||parsed.excerpt.length>excerpt.length,
-   ...(pdf && "totalPages" in parsed
-     ? {totalPages:parsed.totalPages,scannedPages:parsed.scannedPages}
+   ...(pdf
+     ? {totalPages:(parsed as ExtractedPdf).totalPages,scannedPages:(parsed as ExtractedPdf).scannedPages}
      : {}),
   });
  }
