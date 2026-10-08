@@ -51,7 +51,7 @@ async function evalJS(expression){
 }
 async function navigate(path){
   await send("Page.navigate",{url:origin+path});
-  await retry(async()=>await evalJS(JSON.stringify({})+'|| document.readyState==="complete" && location.pathname==='+JSON.stringify(path)),path);
+  await retry(async()=>await evalJS('document.readyState==="complete" && location.pathname==='+JSON.stringify(path)),path);
 }
 async function main(){
   chrome=spawn(browser,["--headless=new","--no-sandbox","--disable-dev-shm-usage","--remote-debugging-port=9231","--remote-allow-origins=*","about:blank"],{stdio:"ignore"});
@@ -73,6 +73,11 @@ async function main(){
   await evalJS(fill('input[type=email]',email));
   await evalJS(fill('input[type=password]',password));
   await evalJS('document.querySelector("form button[type=submit],form button:not([type])")?.click()');
+  const verifiedRef=await retry(async()=>{
+    const resources=await evalJS("performance.getEntriesByType('resource').map(x=>x.name).filter(x=>x.includes('.supabase.co'))");
+    return resources?.some(x=>x.includes(ref+".supabase.co")) ? true : null;
+  },"confirm isolated Supabase project reference",12000);
+  assert(verifiedRef,"Browser did not connect to the authorized staging Supabase project");
   const logged=await retry(async()=>await evalJS('location.pathname==="/ai"'),"staging student login",35000);
   assert(logged,"staging login");
   await retry(async()=>await evalJS('!!document.querySelector(".owui-composer textarea")'),"AI chat composer");
