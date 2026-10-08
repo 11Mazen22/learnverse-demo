@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ThemeControl } from "@/components/preferences/theme-control";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { Icon } from "@/components/ui/icon";
+import { confirmAction } from "@/components/ui/confirm-dialog";
 import { CHAT_MODEL_CARDS } from "@/lib/ai/model-routing";
 
 type Settings = {
@@ -73,6 +74,8 @@ export function SettingsLive() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [securityNotice, setSecurityNotice] = useState<Notice | null>(null);
+  const [logoutBusy, setLogoutBusy] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -235,6 +238,31 @@ export function SettingsLive() {
     }, "");
     if (token === account.revision.current) setPasswordBusy(false);
   }
+  async function logoutFromSettings() {
+    if (!userId || logoutBusy || saving || mutating) return;
+    const approved = await confirmAction({
+      title: "تسجيل الخروج من Noata؟",
+      description: dirty
+        ? "لديك تغييرات غير محفوظة في إعدادات الحساب. سيؤدي تسجيل الخروج إلى فقد هذه التغييرات."
+        : "يمكنك العودة في أي وقت وتسجيل الدخول إلى حسابك لاستكمال رحلتك.",
+      confirmLabel: "تسجيل الخروج",
+      cancelLabel: "البقاء في حسابي",
+      tone: "danger",
+      icon: "user",
+    });
+    if (!approved) return;
+    setLogoutBusy(true);
+    setLogoutError("");
+    try {
+      const result = await supabase.auth.signOut();
+      if (result.error) throw result.error;
+      // Successful sign-out is independent of preference-saving state.
+      window.location.assign("/login");
+    } catch {
+      setLogoutError("لم يكتمل تسجيل الخروج. تحقّق من الاتصال وحاول مرة أخرى.");
+      setLogoutBusy(false);
+    }
+  }
   if (account.error)
     return (
       <section className="aura-load-error" role="alert">
@@ -304,6 +332,7 @@ export function SettingsLive() {
         <a href="#aura-appearance">المظهر</a>
         <a href="#aura-ai">Noata AI</a>
         <a href="#aura-security">الأمان</a>
+        <a href="#aura-account">الحساب والجلسة</a>
       </nav>
       <form className="aura-settings-content" onSubmit={(e) => void save(e)}>
         <section id="aura-profile" className="aura-settings-section">
@@ -505,6 +534,30 @@ export function SettingsLive() {
         <p className="aura-settings-security-foot">
           لا تشارك كلمة المرور مع أي شخص. صلاحيات حسابك تتحكم فيها سياسات قاعدة
           البيانات على الخادم، وليس هذه الصفحة.
+        </p>
+      </section>
+      <section id="aura-account" className="aura-settings-section aura-settings-account">
+        <div className="aura-settings-section-top">
+          <Icon name="user" size={21} />
+          <div>
+            <h2>الحساب والجلسة</h2>
+            <p>اطّلع على حسابك وتحكم في تسجيل الخروج بشكل واضح وآمن</p>
+          </div>
+        </div>
+        <div className="aura-settings-account-overview">
+          <div>
+            <strong>{name.trim() || "حساب Noata"}</strong>
+            <span dir="ltr">{email}</span>
+          </div>
+          <button type="button" className="aura-settings-signout"
+            onClick={() => void logoutFromSettings()} disabled={logoutBusy}>
+            <Icon name="arrow" size={18} />
+            {logoutBusy ? "جارٍ تسجيل الخروج…" : "تسجيل الخروج من حسابي"}
+          </button>
+        </div>
+        {logoutError && <p role="alert" className="aura-settings-notice error">{logoutError}</p>}
+        <p className="aura-settings-security-foot">
+          الضغط على صورتك الشخصية يفتح قائمة الحساب؛ لا يُسجل الخروج تلقائيًا.
         </p>
       </section>
     </div>
