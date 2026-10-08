@@ -7,6 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
 import { canonicalAuthOrigin, canonicalLoginDestination } from "@/lib/auth/canonical-origin";
+import { authCallbackUrl, type AuthFlow } from "@/lib/auth/flows";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 
@@ -68,10 +69,8 @@ export default function LoginPage() {
   }, []);
   const nextPath = () =>
     safeNextPath(new URLSearchParams(window.location.search).get("next"));
-  const callbackUrl = () =>
-    authCanonicalOrigin() +
-    "/auth/callback?next=" +
-    encodeURIComponent(nextPath());
+  const callbackUrl = (flow: AuthFlow = "signup") =>
+    authCallbackUrl(authCanonicalOrigin(), flow, nextPath());
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -87,7 +86,7 @@ export default function LoginPage() {
       const { error } = await createClient().auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: callbackUrl(),
+          redirectTo: callbackUrl("oauth"),
           queryParams: { prompt: "select_account" },
         },
       });
@@ -110,7 +109,7 @@ export default function LoginPage() {
       const { error } = await createClient().auth.resend({
         type: "signup",
         email,
-        options: { emailRedirectTo: callbackUrl() },
+        options: { emailRedirectTo: callbackUrl("signup") },
       });
       if (error) setError(localizeAuthError(error));
       else setMessage("أرسلنا رسالة تأكيد جديدة. قد تستغرق دقيقة للوصول.");
@@ -132,7 +131,7 @@ export default function LoginPage() {
 
     if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: authCanonicalOrigin() + "/auth/callback?next=" + encodeURIComponent("/auth/update-password"),
+        redirectTo: callbackUrl("recovery"),
       });
       setBusy("");
       if (error) {
@@ -150,14 +149,14 @@ export default function LoginPage() {
       if (error) {
         if (error.code === "email_not_confirmed") {
           setBusy("");
-          setMode("verify");
+          window.location.assign("/auth/check-email?type=signup");
           return;
         }
         setError(localizeAuthError(error));
         setBusy("");
         return;
       }
-      window.location.href = nextPath();
+      window.location.assign(nextPath());
       return;
     }
 
@@ -172,7 +171,7 @@ export default function LoginPage() {
       password,
       options: {
         data: { display_name: name.trim() },
-        emailRedirectTo: callbackUrl(),
+        emailRedirectTo: callbackUrl("signup"),
       },
     });
     if (error) {
@@ -181,11 +180,11 @@ export default function LoginPage() {
       return;
     }
     if (data.session) {
-      window.location.href = nextPath();
+      window.location.assign(nextPath());
       return;
     }
     setBusy("");
-    setMode("verify");
+    window.location.assign("/auth/check-email?type=signup");
     } catch {
       setError("تعذّر الاتصال بالخادم الآن. تحقّق من اتصالك ثم أعد المحاولة.");
       setBusy("");
@@ -285,7 +284,7 @@ export default function LoginPage() {
                   <span className="auth-field-row">
                     كلمة المرور
                     {mode === "signin" && (
-                      <button type="button" className="auth-inline-link" onClick={() => switchMode("forgot")}>
+                      <button type="button" className="auth-inline-link" onClick={() => window.location.assign("/auth/forgot-password")}>
                         نسيت كلمة المرور؟
                       </button>
                     )}
