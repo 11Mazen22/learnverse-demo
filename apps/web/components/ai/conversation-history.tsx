@@ -61,37 +61,36 @@ function ConversationItem({
         <Icon name="chat" size={16} />
         <span>{c.title}</span>
       </button>
-      <div className="owui-chat-row-actions">
-        {(["pin", "rename", "archive", "delete"] as const).map((action) => {
-          const label = {
-            pin: c.pinned ? "إلغاء التثبيت" : "تثبيت المحادثة",
-            rename: "إعادة تسمية المحادثة",
-            archive: c.archived ? "استعادة المحادثة" : "أرشفة المحادثة",
-            delete: "حذف المحادثة",
-          }[action];
-          const icon = {
-            pin: "pin",
-            rename: "edit",
-            archive: "archive",
-            delete: "trash",
-          }[action];
-          return (
-            <button
-              type="button"
-              key={action}
-              disabled={p.busy}
-              onClick={(e) => {
-                e.stopPropagation();
-                p.onAction(c, action);
-              }}
-              aria-label={label}
-              title={label}
-            >
-              <Icon name={icon} size={13} />
-            </button>
-          );
-        })}
-      </div>
+      <details className="aura-history-menu">
+        <summary aria-label={"خيارات محادثة: " + c.title} title="خيارات المحادثة" aria-haspopup="menu">
+          <Icon name="dots" size={18} />
+        </summary>
+        <div className="aura-history-menu-panel" role="group" aria-label={"إدارة "+c.title}>
+          {(["pin", "rename", "archive", "delete"] as const).map((action) => {
+            const label = {
+              pin: c.pinned ? "إلغاء التثبيت" : "تثبيت المحادثة",
+              rename: "إعادة تسمية المحادثة",
+              archive: c.archived ? "استعادة المحادثة" : "أرشفة المحادثة",
+              delete: "حذف المحادثة",
+            }[action];
+            const icon = {pin:"pin",rename:"edit",archive:"archive",delete:"trash"}[action];
+            return (
+              <button
+                type="button"
+                key={action}
+                disabled={p.busy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.currentTarget.closest("details")?.removeAttribute("open");
+                  p.onAction(c,action);
+                }}
+              >
+                <Icon name={icon} size={16} /> <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </details>
     </div>
   );
 }
