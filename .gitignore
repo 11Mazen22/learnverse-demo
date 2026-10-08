@@ -15,3 +15,5 @@ qa/
 .env.*.local
 .vercel/
 supabase/.temp/
+
+artifacts/

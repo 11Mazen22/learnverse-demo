@@ -2,7 +2,7 @@ name: Noata CI
 
 on:
   push:
-    branches: [master, noata-v1-rebuild, noata-v2-total-redesign]
+    branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008]
   pull_request:
     branches: [master]
 
@@ -36,6 +36,8 @@ jobs:
           node --check scripts/authenticated-aura-smoke.mjs
       - run: pnpm modern:test
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
+      - name: Real Arabic PDF and DOCX fixtures
+        run: node scripts/document-export-smoke.mjs
       - run: pnpm build
       - name: Real browser RTL and responsive smoke
         run: node scripts/browser-aura-smoke.mjs
@@ -43,8 +45,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: noata-aura-browser-screenshots
-          path: artifacts/noata-browser/
+          name: noata-aura-release-evidence
+          path: artifacts/
           if-no-files-found: ignore
           retention-days: 7
       - name: Production HTTP smoke

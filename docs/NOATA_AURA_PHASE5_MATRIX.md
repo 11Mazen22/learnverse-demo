@@ -1,0 +1,65 @@
+# Noata Aura — Phase 5 implementation and release evidence
+
+Updated 2026-10-08. Branch: `noata-aura-platform-overhaul-20261008`. Continued from exact remote baseline `639977364bffc9d8b510046e60496683578d7605`. Existing user-reported draft: [PR #3](https://github.com/11Mazen22/learnverse-demo/pull/3). No merge, production deployment, domain changes, billing changes or production database mutation performed.
+
+Local browser evidence records its exact revision and dirty-tree flag in `artifacts/noata-browser/outcome.json`; PDF readback also records the revision. Never transfer earlier CI/preview success to a later commit. GitHub API reads return Forbidden, so current CI and PR state cannot be independently certified here. Supabase/Vercel plugin references are visible but their callable tools are unavailable in this session. Previously reported Vercel 402 remains an external gate; no workaround or deployment attempt was made.
+
+## Implementation matrix
+
+| Area | State | Evidence and limits |
+| --- | --- | --- |
+| TypeScript/build/regression tests | Verified locally | `pnpm verify`: 52 modern tests; legacy runner 120 (includes modern), no failures. Final evidence must match the exact commit. |
+| Arabic native PDF renderer | Verified locally | Packaged Chromium, embedded Cairo, A4, headings/tables/lists, mixed direction, MathML, headers/footers/page numbers. Real 11-page PDF signature, logical Arabic readback, final section and page text bounds checked. Actual pages 1, 6 and 11 inspected. |
+| Authenticated PDF endpoint | Implemented, unverified live | Real `getUser`, same-origin guard, body/input/output limits, JS/network disabled in renderer, per-instance rate/concurrency caps. Browser anonymous POST returns 401. Authorized download and serverless packaging require staging. Distributed quotas are not implemented. |
+| Writing/artifact editor | Public interaction verified; authenticated exports pending | Actual Markdown edit/preview, headings/table, Escape close. Real DOCX export/readback. PDF download requires login; long complete replies link to the editor. |
+| Original TXT/MD/CSV/JSON/DOCX/PDF previews | Verified locally | Real picker fixtures, actual original contents/downloads, 11-page PDF canvas and navigation. DOCX shows parsed original text, not Word layout. PDF original preview ceiling is 300 pages. |
+| Private original retention | Implemented, unverified | Feature OFF; migration unapplied. Private bucket, ownership RLS, matching upload metadata, server-set 30-day expiry, 40 files/conversation, 128 MiB/user, metadata deletion only after byte deletion. Signed access at most 60 seconds. Cross-user, expiry, quota races and real Storage metadata checks require staging. |
+| Cleanup/transient originals | Implemented, partially verified | Local cache 32 MiB/30 minutes, clears on sign-out; temporary chats stay local. Opt-in staging helper removes expired/orphan metadata and orphan bytes through Storage API. No scheduler installed or privileged cleanup executed; expiry/account deletion lifecycle unverified. |
+| Multi-file relevance/source attribution | Verified unit behavior | Four sources, lexical chunk selection preserves opening/end and query-matching later passages; page labels where available. 20K combined source selection and 48K chat budget with explicit partial-context disclosure. Not semantic search/full-document coverage. Citation fidelity requires real model QA. |
+| PDF ingestion | Verified local fixtures/tests | 8 MiB, at most 30 AI text pages (300-page input ceiling), 3,200 excerpt characters/page, up to 120K preselection context. Scanned/partial warnings and readable reconstruction of fragmented Arabic glyph runs. Full original remains separately previewable. |
+| OCR / XLSX / PPTX | Incomplete / externally blocked | No verified OCR provider. Scanned-only PDFs report unsupported extraction. Unsupported formats are not advertised. |
+| AI history/layout/model controls | Public UI verified; provider workflows unverified | Branded sidebar/avatars, prominent home action, existing organization/edit/regenerate/stream controls retained. Model-menu public interactions pass; live routing/fallback/edit/regenerate require staging. |
+| Educational tools/models | Implemented previously, unverified live | Existing registry/backend and grounded workflow tests retained. Configured capability is not provider health. No new image-generation/browsing claims; actual outputs/authorization/limits require provider QA. |
+| Response audio player | Implemented, unverified live | Play/pause, seek, speed and cleanup with existing generation guard; lifecycle unit regressions pass. Real Fanar STT/TTS and playback unexecuted. |
+| Homepage/navigation/identity | Verified public layouts | User-reference SVG marks, navy/cyan palette, local Arabic font, brand scene and learning paths, shared navigation/theme/notification icons. No fabricated account data. |
+| Learning/missions/review/boss | Public states verified; authenticated flows unverified | Learning scopes lessons to selected units and computes full-unit progress. Query error/retry/loading states hardened across modules. Real attempts/mastery/rewards require staging. |
+| Progress/rewards/assignments | Public states verified; authenticated flows unverified | Progress explorer retained; guest rewards do not invent balances; assignment/reward loading/errors improved. Real transactions, teacher publication and grading unverified. |
+| Settings/help | Public interactions verified; account persistence unverified | Guest device settings, theme keyboard/Escape/local persistence, help search/FAQ pass. Account settings and notifications require staging. |
+| Quran | Fixture UI verified; real source/audio blocked | Deterministic test-only fixture covers selection/search/bookmarks/font controls. Current `api.alquran.cloud` access returns 403; full 114-Surah source and actual playback not certified. Canonical API text stays separate from AI explanation. |
+| Responsive/themes | Verified public browser | 48 route/theme views at 1440/390; AI 320/390/768/1024/1440/1920; original previews, zoom/reduced motion, screenshots and CDP trace. Authenticated/nested states not covered by these captures. |
+| Accessibility | Partial verification | Axe WCAG 2/2.1/2.2 A/AA tags: zero detected violations across 48 public views; incomplete checks retained. Keyboard/theme/dialog assertions pass. Manual screen-reader and authenticated controls remain required. |
+| Performance | Partial verification | Per-navigation FCP/DOM-ready/transfer reports, 2 MiB public transfer budget. Local server/shared browser cache measurements are not cold-device Core Web Vitals or field data. PDF/provider concurrency load unverified. |
+| Authenticated staging smoke | Blocked | Rejects production ref before credentials, validates deployed staging target, checks a real completed reply, persistence and native PDF when configured. Partial smoke only. Sole known Supabase project `jdkfqdzgphzqbbzmerzr` is not approved for QA. |
+| Exact-head GitHub CI / Vercel preview | Blocked externally | CI uploads screenshots, traces, logs, fixtures/reports. API unavailable; no new preview certified. Local builds are not deployment evidence. |
+| Production release | Blocked | Keep PR draft; mandatory gates remain. User forbids production operations. |
+
+## Reproduce local evidence
+
+Product milestone: [`935c097`](https://github.com/11Mazen22/learnverse-demo/commit/935c097), 61 files across the Arabic theme/route components, AI workspace, PDF/export/retrieval helpers, original-file APIs and unapplied storage migration. Local type/build/regression and 11-page PDF checks passed; public browser evidence and its limitations are recorded above. Subsequent release-evidence changes add the reproducible runners and CI artifacts. Final exact-head results live in the artifact outcome/readback files rather than an earlier CI link.
+
+Node 24 / pnpm 10.17.1; install with `pnpm install --frozen-lockfile`. This cloud workspace has tools in `/workspace/.onboarding-tools/node_modules/.bin` and pnpm store `/workspace/.pnpm-store`. Do not supply production service credentials.
+
+```bash
+pnpm verify
+node scripts/document-export-smoke.mjs
+NOATA_CHROMIUM_PATH=/tmp/chromium node scripts/browser-aura-smoke.mjs
+deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
+```
+
+The document fixture script extracts packaged Chromium to `/tmp/chromium`; browser smoke otherwise finds installed Chrome (as in CI). `pdftoppm`, when available, rasterizes actual PDF pages. Browser smoke starts/stops its local production server. For independent UI review run `pnpm --filter @noata/web start --hostname 127.0.0.1` and use environment port forwarding. Without staging this is public UI review only. Deno checking fails here because `jsr.io` returns HTTP 403, even after saving onboarding's allowlist draft; it is not reported as passed.
+
+Evidence is ignored locally and uploaded by CI:
+
+- `artifacts/noata-browser/`: outcome, accessibility/performance reports, CDP trace, app/browser logs, 68 PNG captures (including a real PNG attachment).
+- `artifacts/noata-documents/`: real PDF/DOCX/Markdown, PDF readback, actual page PNGs and six input fixtures.
+- Authenticated smoke writes a scoped outcome under `artifacts/noata-authenticated/` only when configured/executed. Missing configuration exits 2 without using accounts.
+
+## Isolated staging contract
+
+1. Provision an explicitly authorized separate Supabase project. Connected `learnverse-demo` is not approved for QA. Apply existing migrations plus `20261008150000_private_ai_documents.sql` there; verify bucket privacy and real `metadata.mimetype`/`metadata.size` matching. Do not apply to production.
+2. Set public staging URL/key at build time: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Keep passwords/service keys in secure settings. Enable `NOATA_DOCUMENT_STORAGE_ENABLED=true` only after policy checks. Runner preflight requires deployed `NOATA_STAGING_QA_ENABLED=true` and matching `AURA_STAGING_DB_REF`.
+3. Configure the real staging AI backend/provider secrets and quotas. Seed disposable student A/B, teacher A/B and admin fixtures. Keep ordinary auth; no bypasses. The QA student must enable memory for persistence checks.
+4. Run `authenticated-aura-smoke.mjs` with `AURA_ALLOW_QA_RUN=YES`, accessible HTTPS `AURA_STAGING_ORIGIN` on `vercel.app`, matching `AURA_STAGING_DB_REF`, `AURA_QA_EMAIL` and `AURA_QA_PASSWORD`. Preview protection must allow the preflight/browser; this runner does not bypass it. No configured run performed here.
+5. Execute the full `TESTING.md` / `AI_CAPABILITY_MATRIX.md` matrix separately: every model/tool, vision, STT/TTS/cleanup, file comprehension/citation fidelity, progress, assignments/rewards/notifications and roles/cross-user boundaries. Test direct Storage/REST misuse, expiry, quota races, conversation/account byte deletion and anonymous denial. Record commit/backend versions without private prompts/tokens.
+6. Schedule staging cleanup with `cleanup-staging-documents.mjs`, opt-in, ref, matching `AURA_STAGING_SUPABASE_URL` and `AURA_STAGING_SERVICE_ROLE_KEY`. Validate actual byte removal/retries. The helper bounds runs to 1,000 expiry records and 2,000 inventory entries; large inventories require a paginated/resumable scheduler. No lifecycle claim before this runs.
+7. When previews are available, verify the new exact commit, serverless PDF executable/tracing/timeouts, live canonical Quran/audio and current CI. Complete manual accessibility and cold-device performance/load testing. Keep draft status until every mandatory release gate passes.

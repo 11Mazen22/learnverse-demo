@@ -1,5 +1,7 @@
 # Noata Aura — Phase 4 Implementation & Verification Matrix
 
+Historical snapshot. Current implementation and release gates are in [the Phase 5 matrix](NOATA_AURA_PHASE5_MATRIX.md); previous states and CI runs below do not certify today's commit.
+
 Last update: 2026-10-08. Working branch: `noata-aura-platform-overhaul-20261008`.
 
 **Allowed states:** Not started / Implemented, unverified / Verified / Blocked / Failed.
