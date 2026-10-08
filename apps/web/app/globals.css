@@ -3737,3 +3737,28 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .aura-quran-attribution a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;margin-inline:5px}
 @media(max-width:720px){.aura-quran-header{flex-wrap:wrap}.aura-quran-ai-link{width:100%}.aura-quran-toolbar>*{flex:1 1 100%}.aura-quran-toolbar label{min-width:0}.aura-quran-font{justify-content:center}.aura-quran-ayah{padding-block:22px}.aura-quran-verse{line-height:2.45}}
 @media(prefers-reduced-motion:reduce){.aura-quran *, .aura-quran *::before{transition:none!important}}
+
+
+/* Noata Aura real educational workflows */
+.aura-education-entry{display:flex;align-items:center;justify-content:center;gap:10px;min-height:43px;margin:15px auto 0;padding:10px 18px;border:1px solid var(--line);border-radius:13px;background:var(--accent-soft);color:var(--accent);font-weight:750;font-size:13px;max-width:min(100%,680px)}
+.aura-education-entry:hover{background:var(--accent);color:var(--surface)}
+.aura-education-panel{display:grid;gap:17px;max-height:68dvh;overflow-y:auto;min-width:0;padding:3px}
+.aura-education-title{display:flex;gap:11px;align-items:center}
+.aura-education-icon{display:grid;place-items:center;width:46px;height:46px;flex:none;border-radius:14px;color:var(--accent);background:var(--accent-soft)}
+.aura-education-title>div{display:grid;gap:2px}
+.aura-education-title strong{font-size:17px}
+.aura-education-title small{font-size:12px;color:var(--muted)}
+.aura-education-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.aura-education-grid>button{display:flex;align-items:center;gap:9px;min-width:0;min-height:78px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:start;padding:11px}
+.aura-education-grid>button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.aura-education-grid>button:hover{background:var(--surface-soft)}
+.aura-education-grid>button>span{display:grid;gap:1px;min-width:0}
+.aura-education-grid>button strong{font-size:13px}
+.aura-education-grid>button small{font-size:11px;line-height:1.6;color:var(--muted)}
+.aura-education-topic{display:grid;gap:8px}
+.aura-education-topic>span{font-size:13px;font-weight:700}
+.aura-education-topic textarea{width:100%;min-height:95px;resize:vertical;padding:12px 13px;border:1px solid var(--line);border-radius:13px;line-height:1.8}
+.aura-education-prepare{min-height:46px;border:0;border-radius:12px;background:var(--accent);color:var(--surface);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:750}
+.aura-education-error{color:var(--danger);font-size:13px}
+.aura-education-note{font-size:11px;color:var(--muted);line-height:1.8;margin:0}
+@media(max-width:530px){.aura-education-grid{grid-template-columns:1fr}.aura-education-entry{margin-inline:9px;font-size:12px;padding-inline:10px}.aura-education-grid>button{min-height:65px}}
