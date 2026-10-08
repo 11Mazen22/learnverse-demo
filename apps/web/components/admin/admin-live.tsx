@@ -1,6 +1,7 @@
 "use client";
 
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
+import { confirmAction } from "@/components/ui/confirm-dialog";
 import { OperationsLive } from "./operations-live";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { boundedRead } from "@/lib/supabase/use-verified-account";
@@ -256,14 +257,20 @@ export function AdminLive() {
 
   async function changeRole(profile: Profile, role: Profile["role"]) {
     if (profile.role === role) return;
+    const roleLabel =
+      role === "admin" ? "مسؤول" : role === "teacher" ? "معلّم" : "طالب";
     if (
-      !window.confirm(
-        "تأكيد تغيير صلاحيات " +
-          (profile.display_name || "الحساب") +
-          " إلى " +
-          role +
-          "؟",
-      )
+      !(await confirmAction({
+        title: "تغيير صلاحيات الحساب؟",
+        description:
+          "سيتم تغيير صلاحيات " +
+          (profile.display_name || "هذا الحساب") +
+          " إلى «" +
+          roleLabel +
+          "». يمكنك التراجع لاحقًا من نفس الصفحة.",
+        confirmLabel: "تأكيد التغيير",
+        cancelLabel: "إلغاء",
+      }))
     )
       return;
     await run(async (check) => {
@@ -451,7 +458,7 @@ export function AdminLive() {
           >
             {
               {
-                content: "المحتوى",
+                content: "��لمحتوى",
                 curriculum: "المناهج",
                 users: "الحسابات",
                 classes: "الصفوف",

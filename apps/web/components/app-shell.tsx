@@ -1,5 +1,5 @@
 "use client";
-import { NoataLogo } from "@/components/ui/noata-logo";
+import { NoataBrand } from "@/components/ui/noata-logo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -9,20 +9,39 @@ import { StaffNav } from "@/components/auth/staff-nav";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
 
-const routes = [
-  ["الرئيسية", "/", "home", "مساحتك اليومية"],
-  ["رحلة التعلّم", "/learn", "book", "المواد والدروس"],
-  ["المهام", "/missions", "target", "تحديات قصيرة"],
-  ["المراجعة", "/review", "review", "ثبّت اللي اتعلمته"],
-  ["تحدّي الوحدة", "/boss", "boss", "اختبر إتقانك"],
-  ["Noata AI", "/ai", "ai", "فكّر بصوت أعلى"],
-  ["المصحف", "/quran", "book", "قراءة آيات موثّقة وتلاوة"],
-  ["تقدّمي", "/progress", "chart", "كل خطوة بتفرق"],
-  ["المكافآت", "/rewards", "gift", "احتفل بتقدّمك"],
-  ["الواجبات", "/assignments", "check", "من مدرّسك"],
-  ["الإعدادات", "/settings", "settings", "تجربتك بطريقتك"],
-  ["المساعدة", "/help", "help", "خطوتك الجاية"],
+type Route = [label: string, href: string, icon: string, description: string];
+const navGroups: { title: string; routes: Route[] }[] = [
+  {
+    title: "التعلّم",
+    routes: [
+      ["الرئيسية", "/", "home", "مساحتك اليومية"],
+      ["رحلة التعلّم", "/learn", "book", "المواد والدروس"],
+      ["المهام", "/missions", "target", "تحديات قصيرة"],
+      ["المراجعة", "/review", "review", "ثبّت ما تعلّمته"],
+      ["تحدّي الوحدة", "/boss", "boss", "اختبر إتقانك"],
+    ],
+  },
+  {
+    title: "أدوات ذكية",
+    routes: [
+      ["Noata AI", "/ai", "ai", "مساعدك الذكي للمذاكرة"],
+      ["المصحف", "/quran", "book", "آيات موثّقة وتلاوة"],
+    ],
+  },
+  {
+    title: "إنجازاتي",
+    routes: [
+      ["تقدّمي", "/progress", "chart", "كل خطوة تُحتسب"],
+      ["المكافآت", "/rewards", "gift", "احتفل بتقدّمك"],
+      ["الواجبات", "/assignments", "check", "من معلّمك"],
+    ],
+  },
 ];
+const utilityRoutes: Route[] = [
+  ["الإعدادات", "/settings", "settings", "تجربتك بطريقتك"],
+  ["المساعدة", "/help", "help", "إجابات وإرشادات"],
+];
+const routes: Route[] = [...navGroups.flatMap((g) => g.routes), ...utilityRoutes];
 export function AppShell({
   children,
   active,
@@ -45,40 +64,56 @@ export function AppShell({
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
   }, []);
+  const link = ([label, href, icon]: Route) => (
+    <Link
+      key={href}
+      className={
+        "nav-link" +
+        (active === href ? " active" : "") +
+        (href === "/ai" ? " nav-link-ai" : "")
+      }
+      aria-current={active === href ? "page" : undefined}
+      href={href}
+      onClick={() => setMenu(false)}
+    >
+      <span className="nav-icon">
+        <Icon name={icon} size={18} />
+      </span>
+      <span className="nav-label">{label}</span>
+      {href === "/ai" && <small className="nav-tag">جديد</small>}
+    </Link>
+  );
   const nav = (
     <>
-      <Link href="/" className="brand">
-        <NoataLogo size={44} />
-        <span className="brand-copy">
-          <strong>Noäta</strong>
-          <span>تعلّم · انمُ · أنجز</span>
-        </span>
+      <Link href="/" className="brand sidebar-brand" aria-label="Noata — الرئيسية">
+        <NoataBrand size={40} />
       </Link>
-      <div className="nav-title">مساحة التعلّم</div>
-      <nav aria-label="التنقل الرئيسي">
-        {routes.map(([label, href, icon]) => (
-          <Link
-            key={href}
-            className={"nav-link " + (active === href ? "active" : "")}
-            aria-current={active === href ? "page" : undefined}
-            href={href}
-            onClick={() => setMenu(false)}
-          >
-            <Icon name={icon} />
-            <span>{label}</span>
-            {href === "/ai" && <small className="nav-tag">AI</small>}
-          </Link>
+      <nav aria-label="التنقل الرئيسي" className="sidebar-nav">
+        {navGroups.map((group) => (
+          <div className="nav-group" key={group.title}>
+            <div className="nav-title">{group.title}</div>
+            {group.routes.map(link)}
+          </div>
         ))}
       </nav>
       <StaffNav active={active} />
       <div className="sidebar-foot">
-        <span className="tiny-label">YOUR NEXT CHAPTER</span>
-        <p>المعرفة بتبدأ بسؤال.</p>
-        <Link href="/ai">
-          خلّينا نفكّر سوا <Icon name="arrow" size={16} />
+        <Link href="/ai" className="sidebar-ai-card" onClick={() => setMenu(false)}>
+          <span className="sidebar-ai-icon">
+            <Icon name="ai" size={18} />
+          </span>
+          <span>
+            <b>المعرفة تبدأ بسؤال</b>
+            <small>اسأل Noata AI أو افتح ورشة المذاكرة</small>
+          </span>
+          <Icon name="arrow" size={16} />
         </Link>
+        <nav aria-label="الحساب والمساعدة" className="sidebar-utility">
+          {utilityRoutes.map(link)}
+        </nav>
         <div className="legal-links">
-          <Link href="/privacy">الخصوصية</Link> ·{" "}
+          <Link href="/privacy">الخصوصية</Link>
+          <span aria-hidden="true">·</span>
           <Link href="/terms">الشروط</Link>
         </div>
       </div>
@@ -100,7 +135,7 @@ export function AppShell({
             <div>
               <span className="tiny-label">
                 {role === "student"
-                  ? "MY LEARNING SPACE"
+                  ? "مساحتي التعليمية"
                   : role === "teacher"
                     ? "مساحة المعلّم"
                     : "مساحة الإدارة"}
@@ -131,7 +166,7 @@ export function AppShell({
           {children}
         </main>
         <footer className="page-footer">
-          Noata · مساحة تكبر معاك<span>اتعلّم بفضول. اتقدّم بثقة.</span>
+          Noata · مساحة تكبر معك<span>تعلّم بفضول، وتقدّم بثقة.</span>
         </footer>
       </div>
       <nav className="mobile-nav" aria-label="تنقل سريع">
