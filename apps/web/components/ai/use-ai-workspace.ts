@@ -427,6 +427,7 @@ export function useAIWorkspace() {
     let conversationId = activeId ?? "temporary";
     let assistant: Message | undefined;
     let savedResponse = false;
+    let temporaryUploadPath: string | undefined;
     try {
       conversationId = await ensureConversation(
         text || messages[0]?.content || "محادثة",
@@ -450,6 +451,7 @@ export function useAIWorkspace() {
         } else {
           setNotice("بنرفع الملف…");
           path = await upload(attachment, conversationId);
+          if (temporary) temporaryUploadPath = path;
         }
         setNotice("");
       }
@@ -568,6 +570,17 @@ export function useAIWorkspace() {
       lock.current = false;
       abort.current = null;
       if (savedResponse) setPendingText("");
+      if (temporaryUploadPath) {
+        // Temporary images are used for inference then erased from Storage
+        // and the attachment index, even if inference fails.
+        const [storageResult, recordResult] = await Promise.all([
+          supabase.storage.from("noata-uploads").remove([temporaryUploadPath]),
+          supabase.from("ai_attachments").delete().eq("storage_path", temporaryUploadPath),
+        ]);
+        if (storageResult.error || recordResult.error) {
+          setError("تعذّر تنظيف المرفق المؤقت بالكامل. جرّب حذف البيانات المؤقتة من إعدادات الحساب.");
+        }
+      }
     }
   }
   async function historyAction(
@@ -705,8 +718,10 @@ export function useAIWorkspace() {
     setBusy(true);
     setError("");
     abort.current = new AbortController();
+    let uploadedAudioPath: string | undefined;
     try {
       const path = await upload(file, activeId ?? "temporary");
+      uploadedAudioPath = path;
       const data = await invoke({
         action: "transcribe_storage",
         model: sttModel,
@@ -721,6 +736,15 @@ export function useAIWorkspace() {
     } catch (e) {
       setError(friendlyError(e));
     } finally {
+      if (uploadedAudioPath) {
+        const [storage, index] = await Promise.all([
+          supabase.storage.from("noata-uploads").remove([uploadedAudioPath]),
+          supabase.from("ai_attachments").delete().eq("storage_path", uploadedAudioPath),
+        ]);
+        if (storage.error || index.error) {
+          setError("تعذّر تنظيف التسجيل الصوتي المؤقت. راجع إعدادات الملفات.");
+        }
+      }
       lock.current = false;
       setBusy(false);
       abort.current = null;
