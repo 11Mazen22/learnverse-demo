@@ -90,6 +90,42 @@ async function auditSyntheticView(name) {
   }
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
 }
+async function verifyToolThemeContrast(){
+  await command('Emulation.setDeviceMetricsOverride',{width:1920,height:900,deviceScaleFactor:1,mobile:false});
+  await navigate('/ai');
+  await waitFor(()=>evaluate('!!document.querySelector(".owui-tool-toggle")'),'AI tools toggle');
+  // Sample actual rendered colors on every animation frame, including the
+  // first frame after a scheme change. Waiting for transitions hides this bug.
+  const measurements=await evaluate(`(async()=>{
+    const button=document.querySelector('.owui-tool-toggle');
+    const original=document.documentElement.dataset.theme,rows=[];
+    const rgb=s=>(s.match(/[\\d.]+/g)||[]).map(Number);
+    const luminance=c=>c.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
+    const sample=()=>{
+      let background=[255,255,255],ancestors=[];
+      for(let el=button;el;el=el.parentElement)ancestors.unshift(el);
+      for(const el of ancestors){const c=rgb(getComputedStyle(el).backgroundColor),alpha=c[3]??1;background=c.slice(0,3).map((v,i)=>v*alpha+background[i]*(1-alpha));}
+      const foreground=rgb(getComputedStyle(button).color),a=luminance(foreground),b=luminance(background);
+      return {foreground,background,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};
+    };
+    try{
+      for(const active of [false,true]){
+        if((button.getAttribute('aria-pressed')==='true')!==active){button.click();await new Promise(requestAnimationFrame);}
+        for(const theme of ['light','dark']){
+          document.documentElement.dataset.theme=theme==='light'?'dark':'light';
+          await new Promise(r=>setTimeout(r,220));
+          document.documentElement.dataset.theme=theme;
+          const frames=[],start=performance.now();
+          do{frames.push(sample());await new Promise(requestAnimationFrame);}while(performance.now()-start<220);
+          rows.push({active,theme,frames});
+        }
+      }
+    }finally{document.documentElement.dataset.theme=original;if(button.getAttribute('aria-pressed')==='true')button.click();}
+    return rows;
+  })()`,'AI tool toggle theme transition contrast');
+  await writeFile('artifacts/noata-browser/tool-theme-contrast.json',JSON.stringify(measurements,null,2));
+  for(const row of measurements)invariant(row.frames.every(f=>f.ratio>=4.5),`AI tool toggle ${row.theme} ${row.active?'active':'idle'} remains AA during theme changes (minimum ${Math.min(...row.frames.map(f=>f.ratio)).toFixed(2)}:1)`);
+}
 async function verifyQuranControls(){
   // No production code is altered. Mocked responses make interactive UI
   // behavior repeatable even when the external Quran API is temporarily down.
@@ -319,6 +355,7 @@ async function main() {
   await evaluate('document.querySelector(".aura-help-topic > button")?.click()');
   invariant(await evaluate('document.querySelector(".aura-help-topic > button")?.getAttribute("aria-expanded")==="true"'),"Help FAQ was not expandable");
   invariant(await evaluate('!!document.querySelector(".aura-help-answer")'),"Help answer not rendered");
+  await verifyToolThemeContrast();
   await verifyWritingAndTheme();
   await verifyDocuments();
   await verifyQuranControls();

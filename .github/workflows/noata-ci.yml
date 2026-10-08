@@ -43,6 +43,8 @@ jobs:
         run: node --test scripts/qa-browser.test.mjs
       - run: pnpm modern:test
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
+      - name: Base migrations and database authorization regressions
+        run: node scripts/database-migrations-smoke.mjs
       - name: Real Arabic PDF and DOCX fixtures
         run: node scripts/document-export-smoke.mjs
       - run: pnpm build
@@ -52,14 +54,6 @@ jobs:
         run: node scripts/browser-launch-smoke.mjs
       - name: Real browser RTL and responsive smoke
         run: node scripts/browser-aura-smoke.mjs
-      - name: Upload Noata Aura browser screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: noata-aura-release-evidence
-          path: artifacts/
-          if-no-files-found: ignore
-          retention-days: 7
       - name: Production HTTP smoke
         shell: bash
         run: |
@@ -92,3 +86,14 @@ jobs:
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/qa-target)" = 404
       - run: pnpm legacy:check
 
+      - name: Browser failure diagnostics
+        if: failure()
+        run: node scripts/report-qa-diagnostics.mjs
+      - name: Upload Noata Aura browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: noata-aura-release-evidence
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7

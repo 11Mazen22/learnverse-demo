@@ -2458,6 +2458,9 @@ html[data-theme="dark"] .owui-primary-action {
   color: var(--muted);
   padding: 0 10px;
   font-size: 13px;
+  /* Theme foreground/background pairs must change together: interpolated
+     colors briefly fall below AA even though both endpoints pass. */
+  transition: transform 0.18s;
 }
 .owui-tool-toggle:hover,
 .owui-tool-toggle.active {

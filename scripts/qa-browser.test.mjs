@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,chmod,readFile,rm,mkdir} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
-import {launchQaBrowser,qaChromeArgs} from './lib/qa-browser.mjs';
+import {launchQaBrowser,qaChromeArgs,processGroupMembers} from './lib/qa-browser.mjs';
 
 async function fakeChrome(t,name,source){
   const root=await mkdtemp(join(tmpdir(),'noata-chrome-fault-'));
@@ -39,6 +39,25 @@ test('Chrome signal failure is distinguished from a connection timeout',async t=
   await assert.rejects(launchQaBrowser(options),error=>{
     assert.equal(error.diagnostics.exit.signal,'SIGKILL');assert.match(error.message,/signal=SIGKILL/);return true;
   });
+});
+test('crashed browser cleanup kills descendants that ignore SIGTERM',async t=>{
+  assert.equal(process.platform,'linux','This process-group regression requires the Linux CI runner');
+  const options=await fakeChrome(t,'orphan-child',`
+const {spawn}=require('node:child_process');
+const orphan=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});process.stdout.write('ready');setInterval(()=>{},1000)"],{stdio:['ignore','pipe','ignore']});
+orphan.stdout.once('data',()=>{orphan.stdout.destroy();process.exit(9);});
+`);
+  await assert.rejects(launchQaBrowser(options),error=>{
+    assert.equal(error.diagnostics.exit.code,9);
+    assert.ok(error.diagnostics.groupBeforeCleanup.some(p=>p.pid!==error.diagnostics.pid&&p.state!=='Z'));
+    assert.equal(error.diagnostics.groupAfterCleanup.filter(p=>p.state!=='Z'&&p.state!=='X').length,0);
+    assert.equal(error.diagnostics.profileRemoved,true);
+    assert.equal(error.diagnostics.cleanupErrors.length,0);
+    return true;
+  });
+  const result=JSON.parse(await readFile(join(options.artifactsDir,'browser-startup.json'),'utf8'));
+  assert.equal((await processGroupMembers(result.pid)).filter(p=>p.state!=='Z'&&p.state!=='X').length,0);
+  assert.ok(result.resourcesBefore.processLimits);
 });
 test('WebSocket handshake rejection retains platform error, endpoint and Chrome diagnostics',async t=>{
   const options=await fakeChrome(t,'websocket-rejected',`
