@@ -576,8 +576,8 @@ export function NoataAIClient() {
                 className="aura-education-entry"
                 onClick={() => setEducationOpen(true)}
               >
-                <Icon name="book" size={19} /> افتح ورشة المذاكرة: اختبارات،
-                ملخصات، وبطاقات مراجعة
+                <Icon name="book" size={19} /> افتح ورشة المذاكرة: شرح،
+                اختبارات، ملخصات، وبطاقات مراجعة
               </button>
               <button
                 type="button"
@@ -1433,10 +1433,16 @@ export function NoataAIClient() {
         title="ورشة المذاكرة · Noata Aura"
       >
         <EducationPanel
+          canSend={!busy && !attachment && documentFiles.length === 0}
           onUse={(prompt) => {
             setInput(prompt);
             setEducationOpen(false);
             window.setTimeout(() => composer.current?.focus(), 0);
+          }}
+          onSend={(prompt) => {
+            setInput(prompt);
+            setEducationOpen(false);
+            window.setTimeout(() => composer.current?.form?.requestSubmit(), 0);
           }}
         />
       </Dialog>

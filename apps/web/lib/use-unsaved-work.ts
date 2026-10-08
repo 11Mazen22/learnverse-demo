@@ -1,10 +1,30 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { confirmAction } from "@/components/ui/confirm-dialog";
 
+export const UNSAVED_WORK_COPY = {
+  title: "لديك عمل لم يُحفظ بعد",
+  description:
+    "إذا غادرت هذه الصفحة الآن فقد تفقد ما كتبته. هل تريد المتابعة على أي حال؟",
+  confirmLabel: "مغادرة الصفحة",
+  cancelLabel: "البقاء والمتابعة",
+} as const;
+
+/**
+ * Guards in-app navigation with the Noata confirmation modal. The browser's
+ * native unload prompt is only used for hard exits (tab close / reload),
+ * where browsers do not allow custom UI.
+ */
 export function useUnsavedWork(dirty: boolean) {
+  const router = useRouter();
+  const bypass = useRef(false);
+
   useEffect(() => {
     if (!dirty) return;
+    bypass.current = false;
     const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (bypass.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
@@ -31,12 +51,17 @@ export function useUnsavedWork(dirty: boolean) {
         destination.search === location.search
       )
         return;
-      if (
-        !window.confirm("لديك عمل غير محفوظ في هذه الصفحة. هل تريد المغادرة؟")
-      ) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void confirmAction({ ...UNSAVED_WORK_COPY, tone: "danger" }).then(
+        (leave) => {
+          if (!leave) return;
+          bypass.current = true;
+          if (destination.origin === location.origin)
+            router.push(destination.pathname + destination.search + destination.hash);
+          else location.assign(destination.href);
+        },
+      );
     };
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", navigate, true);
@@ -44,5 +69,5 @@ export function useUnsavedWork(dirty: boolean) {
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", navigate, true);
     };
-  }, [dirty]);
+  }, [dirty, router]);
 }

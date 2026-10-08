@@ -1,95 +1,61 @@
 "use client";
 
-import {NoataLogo} from "@/components/ui/noata-logo";
 import { FormEvent, useState } from "react";
+import { NoataBrand } from "@/components/ui/noata-logo";
 import { createClient } from "@/lib/supabase/client";
+import { localizeAuthError } from "@/lib/i18n/auth-errors";
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (password.length < 8) {
-      setStatus("استخدم كلمة مرور 8 حروف على الأقل.");
+      setStatus({ tone: "error", text: "استخدم كلمة مرور من 8 أحرف على الأقل." });
       return;
     }
     if (password !== confirm) {
-      setStatus("كلمتا المرور غير متطابقتين.");
+      setStatus({ tone: "error", text: "كلمتا المرور غير متطابقتين." });
       return;
     }
     setBusy(true);
-    setStatus("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    setStatus(null);
+    const { error } = await createClient().auth.updateUser({ password });
     if (error) {
-      setStatus(error.message);
+      setStatus({ tone: "error", text: localizeAuthError(error) });
       setBusy(false);
       return;
     }
-    setStatus("تم تغيير كلمة المرور ✓");
-    setTimeout(() => window.location.replace("/"), 700);
+    setStatus({ tone: "success", text: "تم تغيير كلمة المرور بنجاح. جارٍ تحويلك…" });
+    setTimeout(() => window.location.replace("/"), 900);
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: 20,
-      }}
-    >
-      <form
-        onSubmit={submit}
-        className="panel"
-        style={{ width: "min(460px,100%)", padding: 30 }}
-      >
-        <NoataLogo size={44}/>
-        <h1>كلمة مرور جديدة</h1>
-        <p style={{ color: "var(--muted)" }}>
-          اختار كلمة مرور قوية ومختلفة عن القديمة.
-        </p>
-        <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
-          <input
-            className="search"
-            style={{ width: "100%" }}
-            type="password"
-            minLength={8}
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="New password"
-          />
-          <input
-            className="search"
-            style={{ width: "100%" }}
-            type="password"
-            minLength={8}
-            required
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Confirm password"
-          />
+    <main id="noata-main" className="auth-shell is-centered">
+      <form onSubmit={submit} className="auth-card" aria-labelledby="pw-title">
+        <div className="auth-card-brand"><NoataBrand size={40} /></div>
+        <p className="auth-eyebrow">أمان الحساب</p>
+        <h1 id="pw-title">عيّن كلمة مرور جديدة</h1>
+        <p className="auth-lead">اختر كلمة مرور قوية ومختلفة عن كلمتك السابقة.</p>
+        <div className="auth-form">
+          <label className="auth-field">
+            <span>كلمة المرور الجديدة</span>
+            <input type="password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" dir="ltr" placeholder="8 أحرف على الأقل" />
+          </label>
+          <label className="auth-field">
+            <span>تأكيد كلمة المرور</span>
+            <input type="password" minLength={8} required value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" dir="ltr" placeholder="أعد كتابة كلمة المرور" />
+          </label>
           {status && (
-            <small
-              style={{
-                color: status.includes("✓")
-                  ? "var(--success)"
-                  : "var(--danger)",
-              }}
-            >
-              {status}
-            </small>
+            <p className={"auth-alert " + (status.tone === "error" ? "is-error" : "is-success")} role={status.tone === "error" ? "alert" : "status"}>
+              {status.text}
+            </p>
           )}
-          <button
-            disabled={busy}
-            className="btn"
-            style={{ background: "var(--accent)", color: "var(--surface)" }}
-          >
-            {busy ? "Saving…" : "Update password"}
+          <button disabled={busy} className="auth-primary">
+            {busy ? "جارٍ الحفظ…" : "حفظ كلمة المرور"}
           </button>
         </div>
       </form>
