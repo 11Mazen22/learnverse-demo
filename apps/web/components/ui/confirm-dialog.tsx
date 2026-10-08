@@ -48,15 +48,21 @@ export function ConfirmHost() {
   const ref = useRef<HTMLDialogElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (current && !el.open) {
+      previouslyFocused.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       el.showModal();
       (current.tone === "danger" ? cancelRef : confirmRef).current?.focus();
     }
-    if (!current && el.open) el.close();
+    if (!current && el.open) {
+      el.close();
+      if (previouslyFocused.current?.isConnected) previouslyFocused.current.focus({ preventScroll: true });
+      previouslyFocused.current = null;
+    }
   }, [current]);
 
   const danger = current?.tone === "danger";
