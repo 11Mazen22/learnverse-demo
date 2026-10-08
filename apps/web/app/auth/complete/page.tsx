@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AuthJourney } from "@/components/auth/auth-journey";
 import { createClient } from "@/lib/supabase/client";
+import { AUTH_COMPLETION_KEY, validAuthCompletion } from "@/lib/auth/flows";
 
 function Content() {
   const params = useSearchParams();
@@ -13,15 +14,23 @@ function Content() {
   useEffect(() => {
     let active = true;
     void createClient().auth.getUser().then(({data,error})=>{
-      if (active) setStatus(!error && data.user ? "ready" : "error");
+      if (!active) return;
+      if (error || !data.user) { setStatus("error"); return; }
+      try {
+        const marker = sessionStorage.getItem(AUTH_COMPLETION_KEY);
+        const type = isReset ? "password-updated" : "verified";
+        setStatus(validAuthCompletion(marker,type,data.user.id,Date.now()) ? "ready" : "error");
+      } catch {
+        setStatus("error");
+      }
     }).catch(()=>{if(active)setStatus("error")});
     return ()=>{active=false};
-  }, []);
+  }, [isReset]);
   return (
     <AuthJourney eyebrow={isReset ? "أمان الحساب" : "حسابك جاهز"}
       title={status === "loading" ? "جارٍ تأكيد حسابك…" : status === "error" ? "تعذّر تأكيد جلستك" : isReset ? "تم تحديث كلمة مرورك" : "تم تأكيد بريدك بنجاح"}
       description={status === "loading" ? "نتحقق من الجلسة قبل استكمال رحلتك." : status === "error"
-        ? "قد تكون جلسة التحقق انتهت. سجّل الدخول أو اطلب رابطًا جديدًا."
+        ? "لم نتمكن من تأكيد إتمام العملية من هذه الصفحة. افتح رابط التأكيد الجديد أو سجّل الدخول."
         : isReset ? "كلمة المرور الجديدة اتسجلت بنجاح. تقدر تكمل رحلتك التعليمية بأمان."
         : "أهلًا بك في Noata! حسابك اتفعل وبقيت جاهز تبدأ التعلّم."}>
       {status === "loading" ? <span className="auth-spinner" aria-label="جارٍ التحقق" /> : (
