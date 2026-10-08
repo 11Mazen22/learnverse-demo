@@ -10,11 +10,10 @@
  * Protected Vercel previews additionally need browser-authorized access.
  * No credentials are output to CI logs.
  */
-import {spawn,spawnSync} from "node:child_process";
+import {spawnSync} from "node:child_process";
+import {launchQaBrowser,findQaChrome,diagnosticError} from "./lib/qa-browser.mjs";
 import {setTimeout as delay} from "node:timers/promises";
-import {mkdtemp,mkdir,writeFile,rm} from "node:fs/promises";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
+import {mkdir,writeFile} from "node:fs/promises";
 
 const origin=process.env.AURA_STAGING_ORIGIN??"";
 const email=process.env.AURA_QA_EMAIL??"";
@@ -35,24 +34,15 @@ const preflight=await fetch(origin+"/api/qa-target",{signal:AbortSignal.timeout(
 if(!preflight.ok)throw Error("Staging QA preflight is not enabled or preview access is unavailable; no credentials submitted");
 const target=await preflight.json();
 if(target.enabled!==true || target.supabaseOrigin!==`https://${ref}.supabase.co`)throw Error("QA target does not match the authorized staging project; no credentials submitted");
-const browser=process.env.NOATA_CHROMIUM_PATH||["google-chrome","chromium","google-chrome-stable"].find(x=>spawnSync("which",[x],{stdio:"ignore"}).status===0);
-if(!browser)throw Error("Chrome is required");
-let chrome,ws,id=0;const pending=new Map();let checks=0;
-const profile=await mkdtemp(join(tmpdir(),"noata-staging-"));
+const binary=findQaChrome();
+let browser;let checks=0;
 function assert(value,reason){if(!value)throw Error("QA assertion: "+reason);checks++;}
 async function retry(fn,label,ms=25000){
   const until=Date.now()+ms;
   while(Date.now()<until){try{const result=await fn();if(result)return result;}catch{}await delay(270);}
   throw Error("QA timed out: "+label);
 }
-function send(method,params={}){
-  return new Promise((resolve,reject)=>{
-    const n=++id;
-    const timeout=setTimeout(()=>{pending.delete(n);reject(Error("CDP timeout: "+method));},15000);
-    pending.set(n,{resolve:value=>{clearTimeout(timeout);resolve(value);},reject:e=>{clearTimeout(timeout);reject(e);}});
-    ws.send(JSON.stringify({id:n,method,params}));
-  });
-}
+function send(method,params={}){return browser.command(method,params);}
 async function evalJS(expression){
   const result=await send("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});
   if(result.exceptionDetails)throw Error("QA browser JavaScript exception");
@@ -63,15 +53,7 @@ async function navigate(path){
   await retry(async()=>await evalJS('document.readyState==="complete" && location.pathname==='+JSON.stringify(new URL(path,origin).pathname)),path);
 }
 async function main(){
-  chrome=spawn(browser,["--headless=new","--no-sandbox","--single-process","--no-zygote","--disable-dev-shm-usage","--user-data-dir="+profile,"--remote-debugging-port=9231","--remote-allow-origins=*","about:blank"],{stdio:"ignore"});
-  const tab=await retry(async()=>{const response=await fetch("http://127.0.0.1:9231/json");return (await response.json()).find(t=>t.type==="page"&&t.webSocketDebuggerUrl);},"Chrome debugger");
-  ws=new WebSocket(tab.webSocketDebuggerUrl);
-  await new Promise((resolve,reject)=>{ws.addEventListener("open",resolve,{once:true});ws.addEventListener("error",reject,{once:true});});
-  ws.addEventListener("message",event=>{
-    const result=JSON.parse(String(event.data)); const cb=pending.get(result.id);
-    if(!cb)return;pending.delete(result.id);
-    if(result.error)cb.reject(Error(result.error.message));else cb.resolve(result.result);
-  });
+  browser=await launchQaBrowser({executablePath:binary,artifactsDir:'artifacts/noata-authenticated',commandTimeoutMs:15000});
   await send("Page.enable");await send("Runtime.enable");
   await send("Emulation.setDeviceMetricsOverride",{width:1280,height:880,deviceScaleFactor:1,mobile:false});
   await navigate("/login?next=/ai");
@@ -112,9 +94,10 @@ async function main(){
   console.log("Authenticated QA checks:",checks);
 }
 let failure;
-try{await main();}catch(error){failure=error;throw error;}
+try{await main();}catch(error){failure=error;console.error(error);}
 finally{
+  try{await browser?.close();}catch(error){failure??=error;console.error(error);}
   await mkdir('artifacts/noata-authenticated',{recursive:true});
-  await writeFile('artifacts/noata-authenticated/outcome.json',JSON.stringify({revision:spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),passed:!failure,checks,scope:'partial smoke: login, real reply, persistence, PDF; full release matrix remains required',failure:failure?.message??null},null,2));
-  ws?.close();chrome?.kill("SIGTERM");await rm(profile,{recursive:true,force:true});
+  await writeFile('artifacts/noata-authenticated/outcome.json',JSON.stringify({revision:spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),passed:!failure,checks,scope:'partial smoke: login, real reply, persistence, PDF; full release matrix remains required',failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2));
 }
+if(failure)process.exitCode=1;

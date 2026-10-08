@@ -1,21 +1,19 @@
 // Noata Aura browser smoke on Node 24 + runner Chrome and axe-core.
 // Real browser layout/RTL/theme/render assertions; not an authenticated E2E claim.
 import {resolve} from "node:path";
+import {launchQaBrowser,findQaChrome,diagnosticError} from "./lib/qa-browser.mjs";
 import {createRequire} from "node:module";
 const require=createRequire(new URL("../apps/web/package.json",import.meta.url));
 const axeSource=await readFile(require.resolve("axe-core/axe.min.js"),"utf8");
 const accessibility=[],performanceResults=[];
 import { spawn, spawnSync } from "node:child_process";
-import { mkdir, writeFile, mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
 
-const binary = process.env.NOATA_CHROMIUM_PATH || ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]
-  .find((b) => spawnSync("which", [b], {stdio: "ignore"}).status === 0);
-if (!binary) throw new Error("Browser QA requires Chrome or Chromium on the runner");
+const binary = findQaChrome();
 const base = "http://127.0.0.1:3000";
-let app, chrome, socket, nextId = 0, appLog="", chromeLog="";
+let app, browser, socket, appLog="";
 const browserErrors=[];
-const pending = new Map();
 let checks = 0;
 function invariant(ok, reason) { if (!ok) throw new Error("BROWSER QA FAIL: " + reason); checks++; }
 
@@ -27,35 +25,7 @@ async function waitFor(fn, label, ms=20000) {
   }
   throw new Error("Timeout waiting for " + label);
 }
-function connect(wsUrl) {
-  return new Promise((resolve, reject) => {
-    socket = new WebSocket(wsUrl);
-    socket.addEventListener("open", () => {
-      socket.addEventListener("message", ({data}) => {
-        const message = JSON.parse(String(data));
-        if (!message.id) return;
-        const entry = pending.get(message.id);
-        if (!entry) return;
-        pending.delete(message.id);
-        if (message.error) entry.reject(new Error(message.error.message));
-        else entry.resolve(message.result);
-      });
-      resolve();
-    }, {once:true});
-    socket.addEventListener("error", () => reject(new Error("Chrome CDP connection error")), {once:true});
-  });
-}
-function command(method, params={}) {
-  const id = ++nextId;
-  return new Promise((resolve,reject)=>{
-    const timer = setTimeout(()=>{pending.delete(id);reject(new Error("CDP timed out: "+method));},12000);
-    pending.set(id, {
-      resolve(v){clearTimeout(timer);resolve(v);},
-      reject(e){clearTimeout(timer);reject(e);}
-    });
-    socket.send(JSON.stringify({id,method,params}));
-  });
-}
+function command(method,params={}) { return browser.command(method,params); }
 async function evaluate(expr) {
   const r = await command("Runtime.evaluate",{
     expression: expr,
@@ -191,14 +161,25 @@ async function main() {
   await mkdir("artifacts/noata-browser",{recursive:true});
   app=spawn("pnpm",["--filter","@noata/web","start"],{stdio:"pipe",detached:true,env:{...process.env,PORT:"3000"}});
 
-  app.stdout.on("data",chunk=>appLog+=String(chunk).slice(-2000));
-  app.stderr.on("data",chunk=>appLog+=String(chunk).slice(-2000));
-  await waitFor(async()=>{const r=await fetch(base+"/health");return r.ok&&(await r.json()).ok===true;}, "Next production server",30000);
-  const profile=await mkdtemp("/tmp/noata-browser-");
-  chrome=spawn(binary,["--user-data-dir="+profile,"--no-zygote","--single-process","--headless=new","--no-sandbox","--disable-dev-shm-usage","--disable-gpu","--disable-background-networking","--remote-debugging-port=9228","--remote-allow-origins=*","about:blank"],{stdio:["ignore","ignore","pipe"]});
-  chrome.stderr.on("data",data=>chromeLog+=String(data).slice(-2000));
-  const tabs=await waitFor(async()=>{const r=await fetch("http://127.0.0.1:9228/json");const arr=await r.json();return arr.find(x=>x.type==="page"&&x.webSocketDebuggerUrl);},"Chrome debugger");
-  await connect(tabs.webSocketDebuggerUrl);
+  app.stdout.on("data",chunk=>appLog+=String(chunk));
+  app.stderr.on("data",chunk=>appLog+=String(chunk));
+  let appFailure;
+  app.on('error',error=>{appFailure=error;});
+  app.on('exit',(code,signal)=>{appFailure=Error(`Next server exited: code=${code}, signal=${signal??'none'}`);});
+  const serverDeadline=Date.now()+30000;let appReady=false;
+  while(Date.now()<serverDeadline){
+    if(appFailure)throw appFailure;
+    try{const r=await fetch(base+'/health',{signal:AbortSignal.timeout(1500)});if(r.ok&&(await r.json()).ok===true){appReady=true;break;}}catch{}
+    await sleep(250);
+  }
+  // Require the process we started to remain alive; an unrelated existing /health
+  // listener must not make an EADDRINUSE startup look successful.
+  await sleep(250);
+  if(appFailure)throw appFailure;
+  if(!appReady)throw Error('Next production server did not become ready');
+  browser=await launchQaBrowser({executablePath:binary,artifactsDir:"artifacts/noata-browser"});
+  socket=browser.socket;
+  console.log("[browser] Chrome startup",JSON.stringify({pid:browser.diagnostics.pid,port:browser.diagnostics.port,version:browser.diagnostics.version.Browser}));
   await command("Page.enable");
   await command("Runtime.enable");
   socket.addEventListener("message",({data})=>{const event=JSON.parse(String(data));if(event.method==="Runtime.exceptionThrown")browserErrors.push(event.params.exceptionDetails.text);});
@@ -288,8 +269,14 @@ async function main() {
   await command("Emulation.setDeviceMetricsOverride",{width:720,height:500,deviceScaleFactor:2,mobile:false});
   invariant(await evaluate('(()=>{const r=document.querySelector(".owui-composer textarea").getBoundingClientRect();return r.left>=-3&&r.right<=innerWidth+3&&r.top>=0&&r.bottom<=innerHeight+3&&document.documentElement.scrollWidth<=innerWidth+3})()'),"AI composer remains visible at 200 percent equivalent viewport reflow");
   await screenshot('artifacts/noata-browser/ai-zoom-200-reduced-motion.png');
-  const traceReady=new Promise(resolve=>socket.addEventListener("message",function listener({data}){const e=JSON.parse(String(data));if(e.method==="Tracing.tracingComplete"){socket.removeEventListener("message",listener);resolve(e.params.stream);}}));
-  await command("Tracing.end");const handle=await traceReady;let trace="";
+  const traceReady=new Promise((resolve,reject)=>{
+    const cleanup=()=>{clearTimeout(timer);socket.removeEventListener('message',listener);socket.removeEventListener('close',closed);};
+    const listener=({data})=>{const e=JSON.parse(String(data));if(e.method==='Tracing.tracingComplete'){cleanup();resolve(e.params.stream);}};
+    const closed=event=>{cleanup();reject(Error('Chrome disconnected before trace completion: '+event.code));};
+    const timer=setTimeout(()=>{cleanup();reject(Error('Chrome trace completion timed out'));},15000);
+    socket.addEventListener('message',listener);socket.addEventListener('close',closed);
+  });
+  const [,handle]=await Promise.all([command("Tracing.end"),traceReady]);let trace="";
   for(;;){const chunk=await command("IO.read",{handle});trace+=chunk.base64Encoded?Buffer.from(chunk.data,"base64").toString():chunk.data;if(chunk.eof)break;}
   await command("IO.close",{handle});await writeFile("artifacts/noata-browser/browser-trace.json",trace);
   await writeFile("artifacts/noata-browser/accessibility.json",JSON.stringify(accessibility,null,2));
@@ -308,10 +295,8 @@ finally {
   await writeFile("artifacts/noata-browser/accessibility.json",JSON.stringify(accessibility,null,2)).catch(()=>{});
   await writeFile("artifacts/noata-browser/performance.json",JSON.stringify(performanceResults,null,2)).catch(()=>{});
   await writeFile("artifacts/noata-browser/server.log",appLog).catch(()=>{});
-  await writeFile("artifacts/noata-browser/chromium.log",chromeLog).catch(()=>{});
-  await writeFile("artifacts/noata-browser/outcome.json",JSON.stringify({passed:!failure,revision:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),dirty:!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,browserErrors,failure:failure?.message??null},null,2)).catch(()=>{});
-  socket?.close();
-  if(chrome) chrome.kill("SIGTERM");
+  try{await browser?.close();}catch(error){failure??=error;console.error(error);}
+  await writeFile("artifacts/noata-browser/outcome.json",JSON.stringify({passed:!failure,revision:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),dirty:!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,browserErrors,failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2)).catch(()=>{});
   if(app){try{process.kill(-app.pid,"SIGTERM");}catch{app.kill("SIGTERM");}}
   // pnpm/Next can leave inherited pipe handles open after child termination.
   // Exit explicitly AFTER reporting the actual pass/fail result to CI.

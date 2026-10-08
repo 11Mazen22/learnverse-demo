@@ -2,13 +2,13 @@
 
 Updated 2026-10-08. Branch: `noata-aura-platform-overhaul-20261008`. Continued from exact remote baseline `639977364bffc9d8b510046e60496683578d7605`. Existing user-reported draft: [PR #3](https://github.com/11Mazen22/learnverse-demo/pull/3). No merge, production deployment, domain changes, billing changes or production database mutation performed.
 
-Local browser evidence records its exact revision and dirty-tree flag in `artifacts/noata-browser/outcome.json`; PDF readback also records the revision. Never transfer earlier CI/preview success to a later commit. GitHub API reads return Forbidden, so current CI and PR state cannot be independently certified here. Supabase/Vercel plugin references are visible but their callable tools are unavailable in this session. Previously reported Vercel 402 remains an external gate; no workaround or deployment attempt was made.
+Local browser evidence records its exact revision and dirty-tree flag in `artifacts/noata-browser/outcome.json`; PDF readback also records the revision. Never transfer earlier CI/preview success to a later commit. The user independently confirmed PR #3 open/draft at `eacf38b` and exact-head run 37717913313 FAILED before any browser assertions, despite passing type/Deno/PDF/build steps. See [the corrective browser milestone](NOATA_CI_BROWSER_INCIDENT.md). Connected tools remain unavailable here and API reads return Forbidden. Latest Vercel deployment `dpl_9FqbL9geFgdebrqKKMQ5UeZc6D2M` is user-confirmed BLOCKED with a team-configuration link and no exact code; do not assume the previously reported 402 is its cause.
 
 ## Implementation matrix
 
 | Area | State | Evidence and limits |
 | --- | --- | --- |
-| TypeScript/build/regression tests | Verified locally | `pnpm verify`: 52 modern tests; legacy runner 120 (includes modern), no failures. Final evidence must match the exact commit. |
+| TypeScript/build/regression tests | Verified locally | 52 modern tests; legacy runner now 126 (includes modern and six browser startup fault regressions), no failures. Final evidence must match the exact commit; baseline CI type/Deno/PDF/build passes do not certify the corrective head. |
 | Arabic native PDF renderer | Verified locally | Packaged Chromium, embedded Cairo, A4, headings/tables/lists, mixed direction, MathML, headers/footers/page numbers. Real 11-page PDF signature, logical Arabic readback, final section and page text bounds checked. Actual pages 1, 6 and 11 inspected. |
 | Authenticated PDF endpoint | Implemented, unverified live | Real `getUser`, same-origin guard, body/input/output limits, JS/network disabled in renderer, per-instance rate/concurrency caps. Browser anonymous POST returns 401. Authorized download and serverless packaging require staging. Distributed quotas are not implemented. |
 | Writing/artifact editor | Public interaction verified; authenticated exports pending | Actual Markdown edit/preview, headings/table, Escape close. Real DOCX export/readback. PDF download requires login; long complete replies link to the editor. |
@@ -30,7 +30,7 @@ Local browser evidence records its exact revision and dirty-tree flag in `artifa
 | Accessibility | Partial verification | Axe WCAG 2/2.1/2.2 A/AA tags: zero detected violations across 48 public views; incomplete checks retained. Keyboard/theme/dialog assertions pass. Manual screen-reader and authenticated controls remain required. |
 | Performance | Partial verification | Per-navigation FCP/DOM-ready/transfer reports, 2 MiB public transfer budget. Local server/shared browser cache measurements are not cold-device Core Web Vitals or field data. PDF/provider concurrency load unverified. |
 | Authenticated staging smoke | Blocked | Rejects production ref before credentials, validates deployed staging target, checks a real completed reply, persistence and native PDF when configured. Partial smoke only. Sole known Supabase project `jdkfqdzgphzqbbzmerzr` is not approved for QA. |
-| Exact-head GitHub CI / Vercel preview | Blocked externally | CI uploads screenshots, traces, logs, fixtures/reports. API unavailable; no new preview certified. Local builds are not deployment evidence. |
+| Exact-head GitHub CI / Vercel preview | Failed baseline; corrective head pending / preview blocked | User-confirmed run 37717913313 failed Chrome startup at `eacf38b`. Shared full-Chrome launcher, dynamic ports, full diagnostics, fault regressions and pinned CI Chrome added. A green run for the new head is still required. Vercel BLOCKED reason unresolved; local builds are not deployment evidence. |
 | Production release | Blocked | Keep PR draft; mandatory gates remain. User forbids production operations. |
 
 ## Reproduce local evidence
@@ -42,11 +42,12 @@ Node 24 / pnpm 10.17.1; install with `pnpm install --frozen-lockfile`. This clou
 ```bash
 pnpm verify
 node scripts/document-export-smoke.mjs
-NOATA_CHROMIUM_PATH=/tmp/chromium node scripts/browser-aura-smoke.mjs
+NOATA_CHROMIUM_PATH=/usr/bin/chromium node scripts/browser-launch-smoke.mjs
+NOATA_CHROMIUM_PATH=/usr/bin/chromium node scripts/browser-aura-smoke.mjs
 deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
 ```
 
-The document fixture script extracts packaged Chromium to `/tmp/chromium`; browser smoke otherwise finds installed Chrome (as in CI). `pdftoppm`, when available, rasterizes actual PDF pages. Browser smoke starts/stops its local production server. For independent UI review run `pnpm --filter @noata/web start --hostname 127.0.0.1` and use environment port forwarding. Without staging this is public UI review only. Deno checking fails here because `jsr.io` returns HTTP 403, even after saving onboarding's allowlist draft; it is not reported as passed.
+Document rendering uses packaged Chromium separately; browser QA uses full Chrome with normal multiprocess flags. CI installs the version matched to pinned Puppeteer, while local native Chromium is explicitly selected above. `pdftoppm`, when available, rasterizes actual PDF pages. Browser smoke starts/stops its local production server. For independent UI review run `pnpm --filter @noata/web start --hostname 127.0.0.1` and use environment port forwarding. Without staging this is public UI review only. Deno dependency checking remains blocked locally by `jsr.io` HTTP 403; the user independently confirmed it passed in the failed baseline's CI.
 
 Evidence is ignored locally and uploaded by CI:
 

@@ -34,11 +34,20 @@ jobs:
         run: |
           node --check scripts/browser-aura-smoke.mjs
           node --check scripts/authenticated-aura-smoke.mjs
+          node --check scripts/lib/qa-browser.mjs
+          node --check scripts/install-qa-chrome.mjs
+          node --check scripts/browser-launch-smoke.mjs
+      - name: Browser startup fault regressions
+        run: node --test scripts/qa-browser.test.mjs
       - run: pnpm modern:test
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
       - name: Real Arabic PDF and DOCX fixtures
         run: node scripts/document-export-smoke.mjs
       - run: pnpm build
+      - name: Install pinned full Chrome for Testing
+        run: node scripts/install-qa-chrome.mjs
+      - name: Real Chrome startup and CDP isolation
+        run: node scripts/browser-launch-smoke.mjs
       - name: Real browser RTL and responsive smoke
         run: node scripts/browser-aura-smoke.mjs
       - name: Upload Noata Aura browser screenshots
