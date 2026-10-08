@@ -80,7 +80,7 @@ export function DashboardLive() {
               .from("profiles")
               .select("display_name,xp,coins,streak_days")
               .eq("id", user.id)
-              .single(),
+              .maybeSingle(),
             supabase
               .from("skill_evidence")
               .select("mastery_score,state,next_review_at")
@@ -95,23 +95,28 @@ export function DashboardLive() {
               .eq("user_id", user.id)
               .is("read_at", null),
           ]);
-          if (p.error || m.error || progress.error || n.error)
-            throw Error("تعذّر تحميل تقدّمك. بياناتك محفوظة؛ حاول مرة تانية.");
-          const done = new Set(
-            (progress.data ?? [])
-              .filter((x) => x.completed_at)
-              .map((x) => x.lesson_id),
-          );
-          Object.assign(next, {
-            displayName: p.data?.display_name || "",
-            xp: Number(p.data?.xp ?? 0),
-            coins: Number(p.data?.coins ?? 0),
-            streak: Number(p.data?.streak_days ?? 0),
-            masteryRows: m.data ?? [],
-            completedLessons: lessons.filter((l) => done.has(l.id)).length,
-            nextLesson: lessons.find((l) => !done.has(l.id)) ?? null,
-            unread: n.count ?? 0,
-          });
+          // A missing profile is allowed for a newly created staging user.
+          // Optional notifications must never blank the entire learning journey.
+          if (p.error || m.error || progress.error) {
+            if (alive) setError("بعض تفاصيل تقدّم حسابك غير متاحة الآن. يمكنك تصفح دروسك والمحاولة مجددًا.");
+          } else {
+            const done = new Set(
+              (progress.data ?? [])
+                .filter((x) => x.completed_at)
+                .map((x) => x.lesson_id),
+            );
+            Object.assign(next, {
+              displayName: p.data?.display_name || "",
+              xp: Number(p.data?.xp ?? 0),
+              coins: Number(p.data?.coins ?? 0),
+              streak: Number(p.data?.streak_days ?? 0),
+              masteryRows: m.data ?? [],
+              completedLessons: lessons.filter((l) => done.has(l.id)).length,
+              nextLesson: lessons.find((l) => !done.has(l.id)) ?? null,
+              unread: n.error ? 0 : (n.count ?? 0),
+            });
+            if (n.error && alive) setError("تقدّمك متاح، لكن عدّاد الإشعارات لم يتحدّث. جرّب تحديث الصفحة لاحقًا.");
+          }
         }
         if (alive) setState(next);
       } catch (e) {
