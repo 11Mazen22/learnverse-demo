@@ -67,17 +67,23 @@ export default function LoginPage() {
   }
 
   async function signInWithGoogle() {
+    if (busy) return;
     setBusy("google");
     setError("");
-    const { error } = await createClient().auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: callbackUrl(),
-        queryParams: { prompt: "select_account" },
-      },
-    });
-    if (error) {
-      setError(localizeAuthError(error));
+    try {
+      const { error } = await createClient().auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: callbackUrl(),
+          queryParams: { prompt: "select_account" },
+        },
+      });
+      if (error) setError(localizeAuthError(error));
+    } catch {
+      setError("تعذّر الاتصال بخدمة Google الآن. تحقّق من اتصالك أو استخدم البريد الإلكتروني.");
+    } finally {
+      // Clear the busy state if the provider rejects the request or navigation
+      // does not begin; a successful OAuth redirect leaves this page.
       setBusy("");
     }
   }
