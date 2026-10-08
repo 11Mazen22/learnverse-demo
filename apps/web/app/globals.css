@@ -3622,3 +3622,72 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   width: 270px; padding: 10px; border-radius: 11px;
   background: var(--accent-soft); color: var(--accent); font-size: 12px;
 }
+
+
+/* Aura 2 — backend-aligned model gallery */
+.owui-model-picker { position: relative; }
+.owui-model-menu.aura-model-gallery {
+  width: min(460px, calc(100vw - 22px));
+  max-height: min(75dvh, 700px);
+  overflow: auto;
+  padding: 12px;
+  z-index: 100;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 20px 65px color-mix(in srgb,var(--ink) 16%,transparent);
+}
+.aura-model-gallery-head { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 7px 5px 15px; }
+.aura-model-gallery-head > strong { font-size: 17px; }
+.aura-model-gallery-head > span { color: var(--muted); font-size: 11px; }
+.aura-model-gallery-list { display: grid; gap: 5px; margin-block: 10px; }
+.owui-model-menu .aura-model-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 76px;
+  text-align: start;
+  padding: 12px 13px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+}
+.owui-model-menu .aura-model-card:hover {
+  border-color: var(--line);
+  background: var(--surface-soft);
+}
+.owui-model-menu .aura-model-card.active {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb,var(--accent) 28%,var(--line));
+}
+.aura-model-card-symbol {
+  width: 42px; height: 42px; flex: none;
+  display: grid; place-items: center;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 12px;
+}
+.aura-model-card-copy { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.aura-model-card-copy strong { font-size: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.aura-model-card-copy strong > span { font-size: 12px; font-weight: 500; color: var(--muted); }
+.aura-model-card-copy small { font-size: 12px; line-height: 1.7; color: var(--muted); }
+.aura-model-features { font-size: 11px; color: var(--accent); font-weight: 700; }
+.owui-model-menu .aura-model-auto {
+  background: color-mix(in srgb,var(--accent-soft) 40%,var(--surface));
+  border-color: var(--line);
+}
+.aura-model-info { display: grid; gap: 10px; border-top: 1px solid var(--line); padding: 11px 5px 3px; }
+.aura-model-info > small { color: var(--muted); font-size: 11px; line-height: 1.8; }
+.aura-model-info button { justify-self: start; }
+@media(max-width: 480px) {
+ .owui-model-menu.aura-model-gallery {
+   position: fixed;
+   inset-block-start: auto;
+   bottom: max(10px,env(safe-area-inset-bottom));
+   inset-inline: 10px;
+   width: calc(100vw - 20px);
+   max-height: 76dvh;
+   border-radius: 22px;
+ }
+ .aura-model-card-copy small { font-size: 12px; }
+}
