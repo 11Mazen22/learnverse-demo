@@ -1,3 +1,4 @@
+import {retrieveDocumentContext} from "./document-retrieval.ts";
 import {extractTextDocument,isTextDocument} from "./document-text.ts";
 import {extractDocxDocument,isDocxDocument} from "./docx-ingest.ts";
 import {extractPdfDocument,isPdfDocument,MAX_PDF_BYTES,type ExtractedPdf} from "./pdf-ingest.ts";
@@ -8,6 +9,9 @@ export const MAX_SINGLE_DOCUMENT_CONTEXT=6500;
 
 export type DocumentSource={
   name:string;
+  localId?:string;
+  documentId?:string;
+  expiresAt?:string;
   format:"text"|"docx"|"pdf";
   totalPages?:number;
   scannedPages?:number[];
@@ -58,7 +62,7 @@ export function validateDocumentBatch(files:readonly Pick<DocumentFile,"name"|"t
  }
  return null;
 }
-export async function extractDocumentBatch(files:readonly DocumentFile[]):Promise<DocumentSource[]>{
+export async function extractDocumentBatch(files:readonly DocumentFile[],query=""):Promise<DocumentSource[]>{
  const invalid=validateDocumentBatch(files);
  if(invalid)throw Error(invalid);
  const result:DocumentSource[]=[];
@@ -67,15 +71,16 @@ export async function extractDocumentBatch(files:readonly DocumentFile[]):Promis
   if(remaining<=0)break;
   const docx=isDocxDocument(file);
   const pdf=isPdfDocument(file);
-  const parsed=pdf?await extractPdfDocument(file):docx?await extractDocxDocument(file):await extractTextDocument(file);
-  const length=Math.min(MAX_SINGLE_DOCUMENT_CONTEXT,remaining);
-  const excerpt=parsed.excerpt.slice(0,length);
+  const parsed=pdf?await extractPdfDocument(file,120000):docx?await extractDocxDocument(file,200000):await extractTextDocument(file,512*1024);
+  const length=Math.min(MAX_SINGLE_DOCUMENT_CONTEXT,remaining,Math.floor(MAX_DOCUMENT_CONTEXT_CHARS/files.length));
+  const selected=retrieveDocumentContext(parsed.excerpt,query,length);
+  const excerpt=selected.excerpt;
   remaining-=excerpt.length;
   result.push({
    name:normalizeSourceName(file.name),
    format:pdf?"pdf":docx?"docx":"text",
    excerpt,
-   truncated:parsed.truncated||parsed.excerpt.length>excerpt.length,
+   truncated:parsed.truncated||selected.truncated,
    ...(pdf
      ? {totalPages:(parsed as ExtractedPdf).totalPages,scannedPages:(parsed as ExtractedPdf).scannedPages}
      : {}),

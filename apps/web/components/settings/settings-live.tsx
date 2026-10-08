@@ -3,6 +3,8 @@
 import {type FormEvent,useEffect,useMemo,useState} from "react";
 import Link from "next/link";
 import {createClient} from "@/lib/supabase/client";
+import {ThemeControl} from "@/components/preferences/theme-control";
+import {ModuleWelcome} from "@/components/ui/module-welcome";
 import {Icon} from "@/components/ui/icon";
 import {CHAT_MODEL_CARDS} from "@/lib/ai/model-routing";
 
@@ -62,7 +64,7 @@ export function SettingsLive(){
    setLoading(true);setError("");
    try{
     const {data:{user},error:authError}=await supabase.auth.getUser();
-    if(authError)throw authError;
+    if(authError && authError.name!=="AuthSessionMissingError")throw authError;
     if(!active)return;
     if(!user){setUserId("");return;}
     setUserId(user.id);
@@ -128,7 +130,8 @@ export function SettingsLive(){
  }
  if(loading)return <section className="aura-settings-state" role="status"><Icon name="settings" size={29}/><h1>بنحمّل إعداداتك…</h1><p>البيانات مرتبطة بحسابك الشخصي.</p></section>;
  if(error)return <section className="aura-settings-state" role="alert"><h1>في مشكلة في تحميل الإعدادات</h1><p>{error}</p><button type="button" onClick={()=>setReload(n=>n+1)}>حاول مرة أخرى</button></section>;
- if(!userId)return <section className="aura-settings-state"><h1>خلّي Noata على مزاجك.</h1><p>سجّل دخولك علشان تحفظ تفضيلاتك بين الأجهزة.</p><Link href="/login?next=/settings">تسجيل الدخول</Link></section>;
+ if(!userId)return <><ModuleWelcome title="مساحتك، بطريقتك." description="احفظ تفضيلات القراءة والذكاء الاصطناعي بين الأجهزة. المظهر متاح الآن على هذا الجهاز؛ بقية التفضيلات تحتاج حسابك." eyebrow="صمّم تجربتك" icon="settings" route="/settings" steps={["اختر المظهر المريح","خصّص تفضيلات المساعد","احمِ حسابك"]}/><section className="aura-device-appearance"><div><h2>مظهر هذا الجهاز</h2><p>جرّب الوضع النهاري، الليلي أو تلقائيًا حسب جهازك.</p></div><ThemeControl/></section></>;
+
  return <div className="aura-settings-page">
   <header className="aura-settings-heading">
    <div><span className="eyebrow">إعدادات الحساب · Noata Aura</span><h1>مساحتك، بطريقتك.</h1>

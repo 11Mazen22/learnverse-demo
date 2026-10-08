@@ -1,3 +1,4 @@
+import {pdfTextLines} from "./pdf-text.ts";
 /** Browser-local, page-aware PDF text extraction via Mozilla PDF.js. */
 export const MAX_PDF_BYTES=8*1024*1024;
 export const MAX_PDF_PAGES=30;
@@ -20,7 +21,8 @@ export function pdfExcerpt(pages:readonly PdfPage[],max=MAX_PDF_CONTEXT):string 
 }
 export async function extractPdfDocument(file:{
  name:string;type:string;size:number;arrayBuffer():Promise<ArrayBuffer>;
-}):Promise<ExtractedPdf>{
+},maxContext=MAX_PDF_CONTEXT):Promise<ExtractedPdf>{
+ const contextLimit=Math.max(1,Math.min(maxContext,120000));
  if(!isPdfDocument(file))throw Error("Unsupported PDF format");
  if(file.size<1||file.size>MAX_PDF_BYTES)throw Error("PDF must be smaller than 8 MiB");
  const bytes=new Uint8Array(await file.arrayBuffer());
@@ -51,32 +53,21 @@ export async function extractPdfDocument(file:{
   for(let number=1;number<=limit;number++){
    const page=await document.getPage(number);
    const text=await page.getTextContent({includeMarkedContent:false});
-   const lines:string[]=[];
-   let line="",prevY: number|null=null;
-   for(const item of text.items){
-    if(!("str" in item))continue;
-    const value=item.str;
-    const y=item.transform?.[5]??0;
-    if(prevY!==null && Math.abs(prevY-y)>4){
-      if(line.trim())lines.push(line.trim());
-      line="";
-    }
-    line+=(line&&value&&!/^\s/.test(value)?" ":"")+value;
-    prevY=y;
-    if(lines.join("\n").length>4000)break;
-   }
-   if(line.trim())lines.push(line.trim());
-   const pageText=lines.join("\n").slice(0,4000);
+   const lines=pdfTextLines(text.items);
+   const fullPageText=lines.join("\n");
+   const pageText=fullPageText.slice(0,4000);
+   // The excerpt caps each page at 3,200 characters. Never hide that loss.
+   if(fullPageText.length>3200)truncated=true;
    if(!pageText.trim())scannedPages.push(number);
    pages.push({page:number,text:pageText,characters:pageText.length});
    page.cleanup();
-   if(pdfExcerpt(pages).length>=MAX_PDF_CONTEXT){
+   if(pdfExcerpt(pages,contextLimit).length>=contextLimit){
      truncated=true;break;
    }
   }
-  if(totalPages>limit)truncated=true;
+  if(totalPages>pages.length || pdfExcerpt(pages,120000).length>contextLimit)truncated=true;
  }finally{await task.destroy();}
- const excerpt=pdfExcerpt(pages);
+ const excerpt=pdfExcerpt(pages,contextLimit);
  if(!excerpt.trim()){
   throw Error("لم يمكن استخراج نص من ملف PDF. يبدو أنه ممسوح ضوئيًا؛ OCR غير متاح حاليًا.");
  }

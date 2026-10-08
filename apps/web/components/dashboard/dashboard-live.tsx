@@ -1,4 +1,5 @@
 "use client";
+import {NoataLogo} from "@/components/ui/noata-logo";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -185,7 +186,7 @@ export function DashboardLive() {
     <>
       <div className="dashboard-welcome">
         <div>
-          <span className="tiny-label">A LITTLE CURIOSITY, EVERY DAY</span>
+          <span className="tiny-label">مساحتك لتكتشف أكثر</span>
           <h1>
             {state.signedIn
               ? `أهلاً${state.displayName ? "، " + state.displayName : ""}. جاهز لخطوة جديدة؟`
@@ -208,7 +209,7 @@ export function DashboardLive() {
       )}
       <section className="hero dashboard-hero">
         <div>
-          <div className="eyebrow">LET YOUR CURIOSITY LEAD</div>
+          <div className="eyebrow">NOÄTA · LEARN. GROW. ACHIEVE.</div>
           <h2>
             {state.signedIn
               ? "خطوة النهارده، بتفتح طريق بكرة."
@@ -234,20 +235,17 @@ export function DashboardLive() {
             </Link>
           </div>
         </div>
-        <div className="hero-orbit" aria-hidden="true">
-          <div className="orbit-ring" />
-          <div className="orbit-ring second" />
-          <div className="orbit-core">
-            <Icon name="book" size={48} />
-          </div>
-          <span className="orbit-satellite">
-            <Icon name="ai" size={23} />
-          </span>
-          <span className="orbit-satellite">
-            <Icon name="check" size={23} />
-          </span>
+        <div className="aura-brand-scene" aria-hidden="true">
+          <div className="aura-brand-halo"/><NoataLogo size={174} className="noata-logo-on-navy"/>
+          <span className="aura-scene-caption" dir="ltr">Learn. Grow. Achieve.</span>
+          <span className="aura-scene-note"><Icon name="ai" size={16}/> كل سؤال يفتح أفقًا</span>
         </div>
       </section>
+      <nav className="aura-learning-paths" aria-label="طرق التعلّم في Noata">
+        <Link href="/learn"><span>01</span><div><strong>افهم الفكرة</strong><small>دروس تبني فهمك خطوة بخطوة</small></div><Icon name="book"/></Link>
+        <Link href="/missions"><span>02</span><div><strong>جرّب بنفسك</strong><small>تحديات تكشف ما أتقنته</small></div><Icon name="target"/></Link>
+        <Link href="/review"><span>03</span><div><strong>خلّي المعرفة معاك</strong><small>مراجعة في الوقت المناسب</small></div><Icon name="review"/></Link>
+      </nav>
       <section className="aura-next-step" aria-label="اقتراح خطوة التعلّم التالية">
         <div className="aura-next-step-icon" aria-hidden="true">
           <Icon name={recommendation.icon} size={24} />

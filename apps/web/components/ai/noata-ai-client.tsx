@@ -7,6 +7,7 @@
  * Supabase persistence, authentication and Fanar backend.
  * See docs/THIRD_PARTY_NOTICES.md.
  */
+import {NoataLogo} from "@/components/ui/noata-logo";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
@@ -15,6 +16,9 @@ import { TOOLS } from "@/lib/ai/workspace";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
 import { DocumentSourcesMessage } from "./document-sources-message";
+import {OriginalDocumentPreview} from "./original-document-preview";
+import {stageOriginalDocument} from "@/lib/ai/original-documents";
+import {ResponseAudioPlayer} from "./response-audio-player";
 import { WritingStudio } from "./writing-studio";
 import { EducationPanel } from "./education-panel";
 import { Icon } from "@/components/ui/icon";
@@ -110,6 +114,7 @@ export function NoataAIClient() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [studioSource, setStudioSource] = useState<string | null>(null);
   const [educationOpen,setEducationOpen] = useState(false);
+  const [pendingPreview,setPendingPreview]=useState<{name:string;localId:string;format:string}|null>(null);
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeId),
@@ -191,7 +196,7 @@ export function NoataAIClient() {
       {sidebar}
 
       <section
-        className="owui-main"
+        className="owui-main" id="noata-main" role="main" tabIndex={-1}
         onDragEnter={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -378,11 +383,11 @@ export function NoataAIClient() {
           {!messages.length && !loading && (
             <div className="owui-welcome">
               <div className="owui-welcome-logo">
-                <span>n·</span>
+                <NoataLogo size={64}/>
               </div>
               <h1>{signedIn === false ? "أهلًا بيك في Noata AI" : "إزاي أقدر أساعدك النهارده؟"}</h1>
               <p>
-                اسأل، ارفع صورة، التقط شاشة، أو اتكلم بصوتك. Noata توجّه طلبك لأفضل قدرة Fanar تلقائيًا.
+                اسأل، ارفع صورة، التقط شاشة، أو اتكلم بصوتك. Noata يساعدك في الشرح والكتابة، مع اختيار نموذج مهيّأ يناسب السؤال. توفّر القدرات يعتمد على الخدمة.
               </p>
               <div className="owui-suggestions">
                 {[
@@ -410,6 +415,7 @@ export function NoataAIClient() {
               <button type="button" className="aura-education-entry" onClick={()=>setEducationOpen(true)}>
                 <Icon name="book" size={19}/> افتح ورشة المذاكرة: اختبارات، ملخصات، وبطاقات مراجعة
               </button>
+              <button type="button" className="aura-writing-entry" onClick={()=>setStudioSource(input.trim() || "# مستند جديد\n\nابدأ كتابة أفكارك هنا.")}><Icon name="edit" size={18}/> مساحة الكتابة · حرّر، راجع، وصدّر مستندك</button>
               {signedIn === false && (
                 <Link className="owui-primary-action" href="/login?next=/ai">
                   سجّل الدخول وابدأ
@@ -425,7 +431,7 @@ export function NoataAIClient() {
               .map((m, index) => (
                 <article key={m.id} className={"owui-message " + m.role}>
                   <div className="owui-message-avatar" aria-hidden="true">
-                    {m.role === "assistant" ? "n·" : "أنت"}
+                    {m.role === "assistant" ? <NoataLogo size={30}/> : "أنت"}
                   </div>
                   <div className="owui-message-body">
                     <div className="owui-message-meta">
@@ -433,6 +439,7 @@ export function NoataAIClient() {
                       {m.role === "assistant" && m.model && <span>{m.model}</span>}
                     </div>
                     <RichMessage content={m.content} />
+                    {m.role==="assistant" && m.status==="complete" && (/^#{1,3}\s/m.test(m.content) || m.content.length>1500) && <button type="button" className="aura-writing-artifact" onClick={()=>setStudioSource(m.content)}><span className="aura-artifact-icon"><Icon name="book" size={23}/></span><span><strong>{m.content.match(/^#{1,3}\s+(.+)$/m)?.[1]?.slice(0,80) || "مسودة من هذه الإجابة"}</strong><small>حرّر النص · تنزيل Word وPDF وMarkdown</small></span><Icon name="arrow" size={17}/></button>}
                     {m.role === "user" && <>
                       <AttachmentMessage metadata={m.metadata} />
                       <DocumentSourcesMessage sources={m.metadata?.documentSources} />
@@ -503,50 +510,7 @@ export function NoataAIClient() {
                       </p>
                     )}
                     {audioPlayback?.messageId === m.id && (
-                      <div className="owui-inline-player" role="group" aria-label="مشغل صوت الرد">
-                        <div className="owui-inline-player-head">
-                          <Icon name="volume" size={16} />
-                          <strong>استمع إلى رد Noata</strong>
-                          <label className="owui-playback-speed">
-                            <span>السرعة</span>
-                            <select
-                              defaultValue="1"
-                              aria-label="سرعة تشغيل الرد الصوتي"
-                              onChange={(event) => {
-                                if (audioElement.current) {
-                                  audioElement.current.playbackRate = Number(event.target.value);
-                                }
-                              }}
-                            >
-                              <option value="0.75">0.75×</option>
-                              <option value="1">1×</option>
-                              <option value="1.25">1.25×</option>
-                              <option value="1.5">1.5×</option>
-                              <option value="2">2×</option>
-                            </select>
-                          </label>
-                          <button
-                            type="button"
-                            onClick={stopVoice}
-                            title="إيقاف وإغلاق الرد الصوتي"
-                            aria-label="إيقاف وإغلاق الرد الصوتي"
-                          >
-                            <Icon name="close" size={15} />
-                          </button>
-                        </div>
-                        <audio
-                          key={audioPlayback.url}
-                          ref={audioElement}
-                          controls
-                          preload="metadata"
-                          src={audioPlayback.url}
-                          aria-label="تشغيل الرد الصوتي لهذه الرسالة"
-                          onError={() => {
-                            stopVoice();
-                            setNotice("تعذّر تشغيل الصوت. جرّب توليده مرة تانية.");
-                          }}
-                        />
-                      </div>
+                      <ResponseAudioPlayer key={audioPlayback.url} url={audioPlayback.url} audioRef={audioElement} onClose={stopVoice} onError={()=>{stopVoice();setNotice("تعذّر تشغيل الصوت. جرّب توليده مرة أخرى.");}}/>
                     )}
                   </div>
                 </article>
@@ -554,7 +518,7 @@ export function NoataAIClient() {
 
             {pendingText && (
               <article className="owui-message assistant streaming">
-                <div className="owui-message-avatar" aria-hidden="true">n·</div>
+                <div className="owui-message-avatar" aria-hidden="true"><NoataLogo size={30}/></div>
                 <div className="owui-message-body">
                   <div className="owui-message-meta">
                     <strong>Noata AI</strong>
@@ -575,7 +539,7 @@ export function NoataAIClient() {
 
             {busy && !pendingText && (
               <div className="owui-thinking" role="status">
-                <div className="owui-message-avatar" aria-hidden="true">n·</div>
+                <div className="owui-message-avatar" aria-hidden="true"><NoataLogo size={30}/></div>
                 <span /><span /><span />
                 <em>{notice || "Noata بتفكر…"}</em>
               </div>
@@ -605,13 +569,13 @@ export function NoataAIClient() {
                 {documentFiles.map((file,index)=>(
                   <div className="aura-document-chip" key={index}>
                     <Icon name="book" size={16}/>
-                    <span title={file.name}>{file.name}</span>
+                    <button className="aura-pending-preview" type="button" title={file.name} aria-label={"معاينة "+file.name} onClick={()=>setPendingPreview({name:file.name,localId:stageOriginalDocument(file),format:file.name.toLowerCase().endsWith(".pdf")?"pdf":file.name.toLowerCase().endsWith(".docx")?"docx":"text"})}>{file.name}</button>
                     <small>{Math.max(1,Math.round(file.size/1024))} KB</small>
                     <button type="button" onClick={()=>setDocumentFiles(old=>old.filter((_,i)=>i!==index))}
                       aria-label={"إزالة "+file.name}><Icon name="close" size={14}/></button>
                   </div>
                 ))}
-                <small>تُستخلص محتوياتها محليًا ثم تُحفظ مقتطفات داخل الرسالة، وليس الملفات الأصلية.</small>
+                <small>تُقرأ الملفات محليًا؛ تُرسل مقاطع مناسبة لسؤالك. حفظ الأصل يتطلب تفعيل التخزين الخاص؛ الوضع المؤقت لا يحفظه.</small>
               </div>
             )}
             {attachment && (
@@ -1016,6 +980,7 @@ export function NoataAIClient() {
         </div>
       </Dialog>
 
+      <Dialog open={pendingPreview!==null} onClose={()=>setPendingPreview(null)} title={pendingPreview?.name??"معاينة المرفق"}>{pendingPreview&&<OriginalDocumentPreview source={pendingPreview}/>}</Dialog>
       <Dialog open={educationOpen} onClose={()=>setEducationOpen(false)} title="ورشة المذاكرة · Noata Aura">
         <EducationPanel onUse={(prompt)=>{
           setInput(prompt);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {Icon} from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 
 export function NotificationBell() {
@@ -26,9 +27,9 @@ export function NotificationBell() {
     <a
       className="top-icon notification-bell"
       href="/notifications"
-      aria-label={"Notifications" + (count ? " (" + count + " unread)" : "")}
+      aria-label={"الإشعارات" + (count ? " — " + count + " غير مقروءة" : "")}
     >
-      <span>♢</span>
+      <Icon name="bell" size={20}/>
       {count > 0 && <b>{count > 9 ? "9+" : count}</b>}
     </a>
   );

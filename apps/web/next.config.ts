@@ -13,6 +13,8 @@ const nextConfig:NextConfig={
   reactStrictMode:true,
   poweredByHeader:false,
   compress:true,
+  serverExternalPackages:["@sparticuz/chromium","puppeteer-core"],
+  outputFileTracingIncludes:{"/api/documents/pdf":["./public/fonts/*.woff2","./node_modules/@sparticuz/chromium/bin/**"]},
   async headers(){
     return [{
       source:"/:path*",

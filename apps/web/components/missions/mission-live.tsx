@@ -28,7 +28,7 @@ function choices(value: unknown) {
 export function MissionLive() {
   const supabase = useMemo(() => createClient(), []);
   const [lessonId, setLessonId] = useState<string | null>(null);
-  const [lessonTitle, setLessonTitle] = useState("Mission");
+  const [lessonTitle, setLessonTitle] = useState("المهام");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -44,8 +44,13 @@ export function MissionLive() {
   } | null>(null);
   const [error, setError] = useState("");
 
+  const [loading,setLoading]=useState(true);
+  const [reload,setReload]=useState(0);
   useEffect(() => {
+    let active=true;
+    setLoading(true);setError("");
     void (async () => {
+      try{
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -57,26 +62,28 @@ export function MissionLive() {
       let lesson: { id: string; title_ar: string } | null = null;
 
       if (requested) {
-        const { data } = await supabase
+        const { data, error:readError } = await supabase
           .from("lessons")
           .select("id,title_ar")
           .eq("id", requested)
           .maybeSingle();
+      if(readError)throw readError;
         lesson = data;
       }
       if (!lesson) {
-        const { data } = await supabase
+        const { data, error:readError } = await supabase
           .from("lessons")
           .select("id,title_ar")
           .order("position")
           .limit(1);
+      if(readError)throw readError;
         lesson = data?.[0] ?? null;
       }
       if (!lesson) return;
 
       setLessonId(lesson.id);
       setLessonTitle(lesson.title_ar);
-      const { data } = await supabase
+      const { data, error:readError } = await supabase
         .from("questions")
         .select(
           "id,lesson_id,position,question_type,prompt_ar,choices_ar,metadata",
@@ -86,9 +93,12 @@ export function MissionLive() {
         .in("publication_status", ["published_demo", "published"])
         .order("position")
         .limit(3);
+      if(readError)throw readError;
       setQuestions((data ?? []) as Question[]);
-    })();
-  }, [supabase]);
+      }catch{if(active)setError("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.");}
+      finally{if(active)setLoading(false);}
+    })();return()=>{active=false;};
+  }, [supabase,reload]);
 
   const current = questions[index];
   const opts = current ? choices(current.choices_ar) : [];
@@ -188,6 +198,8 @@ export function MissionLive() {
     setBusy(false);
   }
 
+  if(loading)return <section className="aura-loading-state" role="status"><span/><h2>بنجهّز مساحتك…</h2><p>لحظات ونرتّب خطوتك التالية.</p></section>;
+  if(error && !questions.length)return <section className="aura-load-error" role="alert"><strong>{error}</strong><button type="button" onClick={()=>setReload(n=>n+1)}>إعادة المحاولة</button></section>;
   if (complete) {
     return (
       <section className="hero" style={{ textAlign: "center", padding: 44 }}>
@@ -223,7 +235,7 @@ export function MissionLive() {
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            ADAPTIVE MISSION
+            ثلاث مراحل · فهم أعمق
           </div>
           <h1 style={{ margin: "6px 0 0" }}>{lessonTitle}</h1>
         </div>
@@ -232,6 +244,7 @@ export function MissionLive() {
         </span>
       </header>
 
+      <ol className="aura-mission-stages" aria-label="مراحل المهمة">{["افهم الفكرة","طبّق المعرفة","اربط الأفكار"].map((label,stage)=><li key={label} className={stage===index?"current":stage<index?"done":""} aria-current={stage===index?"step":undefined}><span>{stage+1}</span><div><strong>{label}</strong><small>{stage<index?"اجتزت المرحلة":stage===index?"مرحلتك الحالية":"الخطوة التالية"}</small></div></li>)}</ol>
       <section className="panel">
         <div className="panel-head">
           <div>
@@ -248,7 +261,7 @@ export function MissionLive() {
       </section>
 
       <section className="panel" style={{ marginTop: 18, padding: 28 }}>
-        {!current && <p>Loading mission…</p>}
+        {!current && <p>المهمة غير متاحة بعد.</p>}
         {current && (
           <>
             <div

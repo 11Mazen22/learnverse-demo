@@ -1,5 +1,6 @@
 "use client";
 
+import {NoataLogo} from "@/components/ui/noata-logo";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -110,9 +111,7 @@ export default function LoginPage() {
           className="brand"
           style={{ padding: 0, marginBottom: 24, color: "var(--ink)" }}
         >
-          <div className="brand-mark">
-            n<span>·</span>
-          </div>
+          <NoataLogo size={44}/>
           <div className="brand-copy">
             <strong>Noata</strong>
             <span style={{ color: "var(--muted)" }}>

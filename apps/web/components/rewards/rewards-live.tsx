@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {Icon} from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 
 type Item = {
@@ -30,6 +31,7 @@ export function RewardsLive() {
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState("");
+  const [loading,setLoading]=useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [lastReward, setLastReward] = useState<{
     coins?: number;
@@ -38,8 +40,10 @@ export function RewardsLive() {
   } | null>(null);
 
   async function load() {
+    setLoading(true);
+    try{
     const [
-      { data: itemRows },
+      { data: itemRows, error:itemError },
       {
         data: { user },
       },
@@ -51,6 +55,7 @@ export function RewardsLive() {
         .order("price"),
       supabase.auth.getUser(),
     ]);
+    if(itemError)throw itemError;
     setItems((itemRows ?? []) as Item[]);
     if (!user) {
       setProfile(null);
@@ -59,7 +64,7 @@ export function RewardsLive() {
       setBoxes([]);
       return;
     }
-    const [{ data: p }, { data: inventory }, { data: eq }, { data: boxRows }] =
+    const [{ data: p,error:profileError }, { data: inventory,error:inventoryError }, { data: eq,error:equippedError }, { data: boxRows,error:boxesError }] =
       await Promise.all([
         supabase.from("profiles").select("xp,coins").eq("id", user.id).single(),
         supabase.from("inventory").select("item_id").eq("user_id", user.id),
@@ -73,12 +78,16 @@ export function RewardsLive() {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
       ]);
+    if(profileError||inventoryError||equippedError||boxesError)throw profileError??inventoryError??equippedError??boxesError;
     setProfile(p as Profile | null);
     setOwned(new Set((inventory ?? []).map((x) => x.item_id)));
     setEquipped(
       new Map(((eq ?? []) as Equipped[]).map((x) => [x.slot, x.item_id])),
     );
     setBoxes((boxRows ?? []) as Box[]);
+    }catch{setError("تعذّر تحميل المكافآت والرصيد. لن نعرض بيانات جديدة قبل التحقق من الاتصال.");}
+    finally{setLoading(false);}
+
   }
 
   useEffect(() => {
@@ -141,14 +150,14 @@ export function RewardsLive() {
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            REWARDS
+            مساحة إنجازاتك
           </div>
           <h1 style={{ margin: "6px 0 0" }}>شخصيتك ومكافآتك</h1>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <span className="pill">Lv. {level}</span>
+          <span className="pill">{profile?"المستوى "+level:"رصيدك مرتبط بحسابك"}</span>
           <span className="pill">
-            {Number(profile?.coins ?? 0).toLocaleString()} Coins
+            {profile?Number(profile.coins).toLocaleString()+" عملات":"—"}
           </span>
         </div>
       </header>
@@ -163,12 +172,12 @@ export function RewardsLive() {
         }}
       >
         <div>
-          <div className="eyebrow">YOUR SPACE</div>
+          <div className="eyebrow">مكافآت التعلّم</div>
           <h2 style={{ fontSize: 34, margin: "8px 0" }}>
             ابني شخصيتك من إنجازاتك.
           </h2>
           <p>
-            XP للتقدم فقط. Coins للـ cosmetics فقط. لا شراء ولا Mystery Box
+            XP للتقدم فقط. عملات للـ cosmetics فقط. لا شراء ولا Mystery Box
             يغيّر الـ mastery — لأن الفهم لازم يفضل حقيقي.
           </p>
         </div>
@@ -183,23 +192,24 @@ export function RewardsLive() {
             fontSize: 72,
           }}
         >
-          ◈
+          <Icon name="gift" size={66}/>
         </div>
       </section>
 
+      {loading&&<p role="status">بنحمّل المكافآت…</p>}
       {error && (
         <div
           className="panel"
           style={{ marginTop: 14, color: "var(--danger)" }}
         >
-          {error}
+          {error}<button type="button" className="btn" onClick={()=>{setError("");void load();}}>إعادة المحاولة</button>
         </div>
       )}
       {lastReward && (
         <div className="panel" style={{ marginTop: 14, textAlign: "center" }}>
           <b>🎁 {lastReward.tier?.toUpperCase()} BOX</b>
           <p>
-            +{lastReward.coins ?? 0} Coins · +{lastReward.xp ?? 0} XP
+            +{lastReward.coins ?? 0} عملات · +{lastReward.xp ?? 0} XP
           </p>
         </div>
       )}
@@ -207,13 +217,13 @@ export function RewardsLive() {
       {unclaimed.length > 0 && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h2>Mystery Boxes</h2>
-            <span className="pill">{unclaimed.length} unclaimed</span>
+            <h2>صناديق المكافآت</h2>
+            <span className="pill">{unclaimed.length} غير مفتوحة</span>
           </div>
           <div className="quest-list">
             {unclaimed.map((box) => (
               <div className="quest" key={box.id}>
-                <div className="quest-icon">🎁</div>
+                <div className="quest-icon"><Icon name="gift" size={22}/></div>
                 <div>
                   <h3>{box.tier.toUpperCase()} Box</h3>
                   <p>Earned from {box.source.replaceAll("_", " ")}</p>
@@ -227,7 +237,7 @@ export function RewardsLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  {busy === "box:" + box.id ? "Opening…" : "Open"}
+                  {busy === "box:" + box.id ? "جارٍ الفتح…" : "افتح الصندوق"}
                 </button>
               </div>
             ))}
@@ -237,8 +247,8 @@ export function RewardsLive() {
 
       <section className="panel" style={{ marginTop: 18 }}>
         <div className="panel-head">
-          <h2>Equipped</h2>
-          <span className="pill">{equipped.size} slots</span>
+          <h2>مظهرك الحالي</h2>
+          <span className="pill">{equipped.size} خيارات مفعّلة</span>
         </div>
         <div
           style={{
@@ -251,14 +261,14 @@ export function RewardsLive() {
             const item = items.find((x) => x.id === equipped.get(slot));
             return (
               <div
-                key={slot}
+                key={{avatar:"الصورة الشخصية",outfit:"المظهر",companion:"الرفيق",background:"الخلفية"}[slot]??slot}
                 style={{
                   padding: 14,
                   border: "1px solid var(--line)",
                   borderRadius: 15,
                 }}
               >
-                <small style={{ color: "var(--muted)" }}>{slot}</small>
+                <small style={{ color: "var(--muted)" }}>{{avatar:"الصورة الشخصية",outfit:"المظهر",companion:"الرفيق",background:"الخلفية"}[slot]??slot}</small>
                 <b style={{ display: "block", marginTop: 5 }}>
                   {item?.title_ar ?? "—"}
                 </b>
@@ -292,7 +302,7 @@ export function RewardsLive() {
                   fontSize: 44,
                 }}
               >
-                ◇
+                <Icon name="gift" size={42}/>
               </div>
               <h3>{item.title_ar}</h3>
               <p style={{ color: "var(--muted)", fontSize: 12 }}>
@@ -312,8 +322,8 @@ export function RewardsLive() {
                   {busy === "buy:" + item.id
                     ? "جارٍ الشراء…"
                     : item.price === 0
-                      ? "Get free"
-                      : item.price + " Coins"}
+                      ? "احصل عليه مجانًا"
+                      : item.price + " عملات"}
                 </button>
               ) : (
                 <button
@@ -327,17 +337,17 @@ export function RewardsLive() {
                   }}
                 >
                   {isEquipped
-                    ? "Equipped"
+                    ? "مظهرك الحالي"
                     : busy === "equip:" + item.id
-                      ? "Equipping…"
-                      : "Equip"}
+                      ? "جارٍ الاستخدام…"
+                      : "استخدم المظهر"}
                 </button>
               )}
               {profile && !isOwned && !canAfford && (
                 <small
                   style={{ display: "block", marginTop: 8, color: "#9a6b1d" }}
                 >
-                  محتاج Coins أكتر
+                  محتاج عملات أكتر
                 </small>
               )}
             </article>

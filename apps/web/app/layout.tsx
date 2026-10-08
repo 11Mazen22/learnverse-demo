@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body>
         <a className="skip-link" href="#noata-main">
-          Skip to content
+          انتقل إلى المحتوى
         </a>
         <PwaRegister />
         <ExperienceBoot />

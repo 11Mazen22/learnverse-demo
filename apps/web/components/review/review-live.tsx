@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {ModuleWelcome} from "@/components/ui/module-welcome";
 import { createClient } from "@/lib/supabase/client";
 
 type ReviewQuestion = {
@@ -41,8 +42,13 @@ export function ReviewLive() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const [loading,setLoading]=useState(true);
+  const [reload,setReload]=useState(0);
   useEffect(() => {
+    let active=true;
+    setLoading(true);setError("");
     void (async () => {
+      try{
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -51,24 +57,26 @@ export function ReviewLive() {
         return;
       }
       setSignedIn(true);
-      const { data: ev } = await supabase
+      const { data:ev, error:readError } = await supabase
         .from("skill_evidence")
         .select(
           "skill_id,mastery_score,state,next_review_at,skills(title_ar,title_en)",
         )
         .eq("user_id", user.id)
         .order("next_review_at", { ascending: true });
+      if(readError)throw readError;
       const rows = (ev ?? []) as Evidence[];
       setEvidence(rows);
       const skillIds = rows.map((x) => x.skill_id);
       if (!skillIds.length) return;
-      const { data: q } = await supabase
+      const { data:q, error:questionError } = await supabase
         .from("questions")
         .select("id,skill_id,question_type,prompt_ar,choices_ar,metadata")
         .in("skill_id", skillIds)
         .is("variant_of", null)
         .in("publication_status", ["published_demo", "published"])
         .order("position");
+      if(questionError)throw questionError;
       const pool = (q ?? []) as ReviewQuestion[];
       const picked: ReviewQuestion[] = [];
       for (const skillId of skillIds) {
@@ -76,8 +84,10 @@ export function ReviewLive() {
         if (used) picked.push(used);
       }
       setQuestions(picked);
-    })();
-  }, [supabase]);
+      }catch{if(active)setError("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.");}
+      finally{if(active)setLoading(false);}
+    })();return()=>{active=false;};
+  }, [supabase,reload]);
 
   const current = questions[idx];
   const skill = evidence.find((x) => x.skill_id === current?.skill_id);
@@ -130,19 +140,9 @@ export function ReviewLive() {
     setIdx((x) => Math.min(x + 1, questions.length));
   }
 
-  if (signedIn === false)
-    return (
-      <section className="panel" style={{ textAlign: "center", padding: 32 }}>
-        <h2>المراجعة الذكية مرتبطة بحسابك.</h2>
-        <a
-          className="btn"
-          href="/login"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
-        >
-          دخول
-        </a>
-      </section>
-    );
+  if(loading)return <section className="aura-loading-state" role="status"><span/><h2>بنجهّز مساحتك…</h2><p>لحظات ونرتّب خطوتك التالية.</p></section>;
+  if(error && !questions.length)return <section className="aura-load-error" role="alert"><strong>{error}</strong><button type="button" onClick={()=>setReload(n=>n+1)}>إعادة المحاولة</button></section>;
+  if (signedIn === false)return <ModuleWelcome title="فهمك يستحق أن يدوم." description="راجع المهارات في وقتها المناسب، واختبر ما تتذكره؛ مواعيد المراجعة مرتبطة بأدائك الفعلي." icon="review" route="/review" eyebrow="المراجعة المتباعدة" steps={["استرجع الفكرة من ذاكرتك", "اعرف ما يحتاج إلى تثبيت", "تابع موعد المراجعة التالية"]}/>;
 
   if (idx >= questions.length && questions.length > 0)
     return (

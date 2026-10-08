@@ -1,5 +1,6 @@
 "use client";
 
+import {NoataLogo} from "@/components/ui/noata-logo";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -36,9 +37,7 @@ export default function AuthCallbackPage() {
         className="panel"
         style={{ width: "min(460px,100%)", padding: 32, textAlign: "center" }}
       >
-        <div className="brand-mark" style={{ margin: "0 auto 18px" }}>
-          N
-        </div>
+        <NoataLogo size={44}/>
         <h1>Noata</h1>
         <p style={{ color: "var(--muted)" }}>{message}</p>
       </section>

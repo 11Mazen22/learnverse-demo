@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {ModuleWelcome} from "@/components/ui/module-welcome";
 import { createClient } from "@/lib/supabase/client";
 
 type Assignment = {
@@ -47,8 +48,10 @@ export function AssignmentsLive() {
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [loading,setLoading]=useState(true);
 
   async function load() {
+    setLoading(true);try{
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -58,7 +61,7 @@ export function AssignmentsLive() {
     }
     setSignedIn(true);
     setUserId(user.id);
-    const [{ data: a }, { data: s }] = await Promise.all([
+    const [{ data: a,error:assignmentError }, { data: s,error:submissionError }] = await Promise.all([
       supabase
         .from("assignments")
         .select("id,title,instructions,due_at,published_at,classes(name)")
@@ -68,8 +71,11 @@ export function AssignmentsLive() {
         .select("assignment_id,submitted_at,score,metadata")
         .eq("student_id", user.id),
     ]);
+    if(assignmentError||submissionError)throw assignmentError??submissionError;
     setRows((a ?? []) as Assignment[]);
     setSubmissions((s ?? []) as Submission[]);
+    }catch{setError("تعذّر تحميل الواجبات. بيانات تسليمك محفوظة؛ حاول مرة أخرى.");}finally{setLoading(false);}
+
   }
 
   useEffect(() => {
@@ -161,19 +167,9 @@ export function AssignmentsLive() {
     setBusy(false);
   }
 
-  if (signedIn === false)
-    return (
-      <section className="panel" style={{ textAlign: "center", padding: 32 }}>
-        <h2>Assignments مرتبطة بحسابك وفصلك.</h2>
-        <a
-          className="btn"
-          href="/login"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
-        >
-          دخول
-        </a>
-      </section>
-    );
+  if(loading)return <section className="aura-loading-state" role="status"><span/><h2>بنرتّب واجباتك…</h2></section>;
+  if(error&&!rows.length)return <section className="aura-load-error" role="alert"><strong>{error}</strong><button type="button" onClick={()=>{setError("");void load();}}>إعادة المحاولة</button></section>;
+  if (signedIn === false)return <ModuleWelcome title="واجباتك، بكل وضوح." description="اعرف المطلوب وموعده، أرسل إجاباتك وتابع التقييم؛ تظهر لك الواجبات المسموح بها لحسابك فقط." icon="check" route="/assignments" eyebrow="من صفّك إلى مساحتك" steps={["اقرأ التعليمات والموعد", "أجب وسلّم عملك", "راجع تقييم المدرّس"]}/>;
 
   if (selected) {
     if (existing?.submitted_at)

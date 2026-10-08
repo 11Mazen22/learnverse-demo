@@ -1,5 +1,6 @@
 "use client";
 
+import {NoataLogo} from "@/components/ui/noata-logo";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -46,9 +47,7 @@ export default function UpdatePasswordPage() {
         className="panel"
         style={{ width: "min(460px,100%)", padding: 30 }}
       >
-        <div className="brand-mark" style={{ marginBottom: 18 }}>
-          N
-        </div>
+        <NoataLogo size={44}/>
         <h1>كلمة مرور جديدة</h1>
         <p style={{ color: "var(--muted)" }}>
           اختار كلمة مرور قوية ومختلفة عن القديمة.

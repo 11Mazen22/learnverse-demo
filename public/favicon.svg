@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="18" fill="#6757d9"/>
-  <text x="32" y="45" text-anchor="middle" font-family="Alexandria, Tahoma, sans-serif" font-weight="900" font-size="34" fill="#ffffff">ل</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#06142d"/><g transform="translate(43 38) scale(.83)" fill="white" color="white"><path d="M114 179v236q0 39 73 48V230z"/><path d="M357 179h74v202l-74 30z"/><path d="M113 159 185 167 387 406 328 462 114 213z" fill="#009aff"/><path d="M208 384q64 27 117 76 61-61 164-91v54q-103 25-164 66-54-41-117-64z"/><path d="M325 452q52-79 140-99v-28q-89 28-140 127z"/><path d="M326 437q41-74 110-105v-26q-71 40-110 131z"/><path d="M102 112v64q79 52 181 1v-71z"/><path d="m38 95 173-83 212 54-177 93z"/><path d="M67 111v101" fill="none" stroke="currentColor" stroke-width="12"/><circle cx="67" cy="215" r="15"/><path d="m58 224-12 58q20 13 42 0l-12-58z"/></g></svg>

@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createVoiceGenerationGuard } from "@/lib/ai/voice-generation";
 import { isTextDocument, extractTextDocument } from "@/lib/ai/document-text";
 import { isDocxDocument, extractDocxDocument } from "@/lib/ai/docx-ingest";
+import {retainOriginalDocuments,deleteOriginalDocuments,clearOriginalDocuments} from "@/lib/ai/original-documents";
 import { createAiMessageContext } from "@/lib/ai/context-budget";
 import { isSupportedDocument,validateDocumentBatch,extractDocumentBatch } from "@/lib/ai/multi-document";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
@@ -102,6 +103,7 @@ export function useAIWorkspace() {
   }, [supabase]);
   useEffect(() => {
     let alive = true;
+    const {data:{subscription}}=supabase.auth.onAuthStateChange(event=>{if(event==="SIGNED_OUT")clearOriginalDocuments();});
     void (async () => {
       try {
         const {
@@ -135,6 +137,7 @@ export function useAIWorkspace() {
       }
     })();
     return () => {
+      subscription.unsubscribe();
       alive = false;
       abort.current?.abort();
       voiceGeneration.current.invalidate();
@@ -449,6 +452,8 @@ export function useAIWorkspace() {
     let assistant: Message | undefined;
     let savedResponse = false;
     let temporaryUploadPath: string | undefined;
+    let retainedDocumentIds:string[]=[];
+    let sourcesSaved=false;
     try {
       conversationId = await ensureConversation(
         text || messages[0]?.content || "محادثة",
@@ -460,8 +465,13 @@ export function useAIWorkspace() {
       let documentExcerpt: string | undefined;
       let documentTruncated = false;
       const documentSources = documentFiles.length
-        ? await extractDocumentBatch(documentFiles)
+        ? await extractDocumentBatch(documentFiles,text)
         : [];
+      if(documentSources.length){
+        setNotice(temporary?"بنقرأ مستنداتك دون حفظ الأصل…":"بنجهّز المستندات الأصلية…");
+        retainedDocumentIds=await retainOriginalDocuments(documentSources,documentFiles,conversationId,temporary,abort.current?.signal);
+        if(!temporary && !retainedDocumentIds.length)setNotice("حفظ الأصل غير مفعّل؛ المعاينة الكاملة متاحة خلال جلسة الرفع فقط.");
+      }
       if (attachment) {
         if (isTextDocument(attachment) || isDocxDocument(attachment)) {
           setNotice("بنقرأ محتوى المستند…");
@@ -501,6 +511,7 @@ export function useAIWorkspace() {
           created_at: new Date().toISOString(),
         };
         const saved = await persist(row);
+        sourcesSaved=true;
         if (path && attachment) {
           const signed = await supabase.storage
             .from("noata-uploads")
@@ -598,6 +609,7 @@ export function useAIWorkspace() {
       lock.current = false;
       abort.current = null;
       if (savedResponse) setPendingText("");
+      if(!sourcesSaved && retainedDocumentIds.length){try{await deleteOriginalDocuments(retainedDocumentIds);}catch{setError("تعذّر تنظيف المستندات بعد فشل حفظ الرسالة. حاول حذفها من المحادثة.");}}
       if (temporaryUploadPath) {
         // Temporary images are used for inference then erased from Storage
         // and the attachment index, even if inference fails.
@@ -666,6 +678,8 @@ export function useAIWorkspace() {
           // their metadata. Never delete a path outside this authenticated user.
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw Error("auth expired");
+          const capability=await fetch("/api/documents?capabilities=1").then(r=>r.json());
+          if(capability.retention){const deleted=await fetch("/api/documents?conversationId="+encodeURIComponent(c.id),{method:"DELETE"});if(!deleted.ok)throw Error("تعذّر حذف المستندات. المحادثة لم تُحذف؛ حاول مرة أخرى.");}
           const [items, replyRows] = await Promise.all([
             supabase.from("ai_attachments").select("storage_path").eq("conversation_id", c.id).limit(1000),
             supabase.from("ai_messages").select("metadata").eq("conversation_id", c.id).limit(1000),

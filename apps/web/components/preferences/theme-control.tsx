@@ -25,6 +25,7 @@ export function ThemeControl() {
   const [open,setOpen]=useState(false);
   const [notice,setNotice]=useState("");
   const menu=useRef<HTMLDivElement>(null);
+  const trigger=useRef<HTMLButtonElement>(null);
 
   useEffect(()=>{
     let active=true;
@@ -64,8 +65,15 @@ export function ThemeControl() {
   },[supabase]);
   useEffect(()=>{
     if(!open)return;
+    menu.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
     const onEscape=(event:KeyboardEvent)=>{
-      if(event.key==="Escape"){event.preventDefault();setOpen(false);}
+      if(event.key==="Escape"){event.preventDefault();setOpen(false);trigger.current?.focus();}
+      if(event.key==="ArrowDown" || event.key==="ArrowUp"){
+        const buttons=Array.from(menu.current?.querySelectorAll<HTMLButtonElement>('.aura-theme-menu button')??[]);
+        if(!buttons.includes(document.activeElement as HTMLButtonElement))return;
+        event.preventDefault();const index=buttons.indexOf(document.activeElement as HTMLButtonElement);
+        buttons[(index+(event.key==="ArrowDown"?1:-1)+buttons.length)%buttons.length]?.focus();
+      }
     };
     document.addEventListener("keydown",onEscape);
     return ()=>document.removeEventListener("keydown",onEscape);
@@ -74,6 +82,7 @@ export function ThemeControl() {
   async function choose(next:Theme) {
     setTheme(next);
     setOpen(false);
+    trigger.current?.focus();
     setNotice("");
     localStorage.setItem("noata-theme",next);
     apply(next);
@@ -91,6 +100,7 @@ export function ThemeControl() {
   return (
     <div className="aura-theme-picker" ref={menu}>
       <button
+        ref={trigger}
         type="button"
         className="top-icon"
         onClick={()=>setOpen(x=>!x)}

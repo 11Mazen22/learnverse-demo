@@ -20,13 +20,14 @@ export async function extractTextDocument(file: {
   type: string;
   size: number;
   text(): Promise<string>;
-}): Promise<{ excerpt: string; truncated: boolean }> {
+},maxCharacters=MAX_TEXT_DOCUMENT_CHARS): Promise<{ excerpt: string; truncated: boolean }> {
+  const limit=Math.max(1,Math.min(maxCharacters,MAX_TEXT_DOCUMENT_BYTES));
   if (!isSupportedTextDocument(file)) throw new Error("Unsupported or oversized text document");
   const raw = (await file.text()).replace(/\u0000/g, "").replace(/\r\n?/g,"\n");
   if (!raw.trim()) throw new Error("The document contains no readable text");
   return {
-    excerpt: raw.slice(0,MAX_TEXT_DOCUMENT_CHARS),
-    truncated: raw.length > MAX_TEXT_DOCUMENT_CHARS,
+    excerpt: raw.slice(0,limit),
+    truncated: raw.length > limit,
   };
 }
 export function appendDocumentContext(

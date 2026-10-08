@@ -14,6 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_document_files: {
+        Row: {id:string;user_id:string;conversation_id:string|null;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at:string;expires_at:string}
+        Insert: {id:string;user_id:string;conversation_id:string;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at?:string;expires_at?:string}
+        Update: {id?:string;user_id?:string;conversation_id?:string|null;name?:string;storage_path?:string;mime_type?:string;size_bytes?:number;created_at?:string;expires_at?:string}
+        Relationships: [{foreignKeyName:"ai_document_files_conversation_id_fkey";columns:["conversation_id"];isOneToOne:false;referencedRelation:"ai_conversations";referencedColumns:["id"]}]
+      }
+
       ai_attachments: {
         Row: {
           conversation_id: string | null

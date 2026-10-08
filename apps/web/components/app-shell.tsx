@@ -1,4 +1,5 @@
 "use client";
+import {NoataLogo} from "@/components/ui/noata-logo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -47,14 +48,12 @@ export function AppShell({
   const nav = (
     <>
       <Link href="/" className="brand">
-        <span className="brand-mark">
-          n<span>·</span>
-        </span>
+        <NoataLogo size={44}/>
         <span className="brand-copy">
           <strong>
-            noata<span className="brand-dot">.</span>
+            Noäta
           </strong>
-          <span>خطوة صغيرة. فرق كبير.</span>
+          <span>تعلّم · انمُ · أنجز</span>
         </span>
       </Link>
       <div className="nav-title">مساحة التعلّم</div>

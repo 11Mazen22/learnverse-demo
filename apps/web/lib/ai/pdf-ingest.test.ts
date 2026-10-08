@@ -15,9 +15,9 @@ test("PDF text includes page citations and stays bounded",()=>{
 });
 
 
-function buildOnePagePdf(body:string):Uint8Array{
+function buildOnePagePdf(body:string,fontSize=14):Uint8Array{
  const encoder=new TextEncoder();
- const stream="BT /F1 14 Tf 60 700 Td ("+body+") Tj ET";
+ const stream="BT /F1 "+fontSize+" Tf 60 700 Td ("+body+") Tj ET";
  const objects=[
    "<< /Type /Catalog /Pages 2 0 R >>",
    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -64,4 +64,8 @@ test("PDF.js extracts actual text from a real one-page PDF file",async()=>{
  assert.equal(result.totalPages,1);
  assert.equal(result.pages[0].page,1);
  assert.match(result.excerpt,/NOATA VERIFIED PDF/);
+ const long=buildOnePagePdf("LONG PAGE ".repeat(600),0.08);
+ const bounded=await extractPdfDocument({name:"dense.pdf",type:"application/pdf",size:long.length,arrayBuffer:async()=>Uint8Array.from(long).buffer});
+ assert.equal(bounded.truncated,true,"per-page extraction loss must be disclosed");
+ assert.ok(bounded.excerpt.length<=MAX_PDF_CONTEXT);
 });

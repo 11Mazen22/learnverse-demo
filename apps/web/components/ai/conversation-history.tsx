@@ -4,6 +4,7 @@
  * Interaction structure adapted from Open WebUI v0.6.5 Sidebar under BSD-3-Clause.
  * See docs/THIRD_PARTY_NOTICES.md.
  */
+import {NoataLogo} from "@/components/ui/noata-logo";
 import Link from "next/link";
 import { useMemo } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -152,11 +153,9 @@ export function ConversationHistory(p: Props) {
     <aside className="owui-sidebar" aria-label="Noata AI navigation">
       <div className="owui-sidebar-top">
         <div className="owui-brand">
-          <div className="owui-brand-mark" aria-hidden="true">
-            n<span>·</span>
-          </div>
+          <NoataLogo size={44}/>
           <div>
-            <strong>noata ai.</strong>
+            <strong>Noäta AI</strong>
             <small>مساحة أفكارك الذكية</small>
           </div>
         </div>
@@ -193,9 +192,9 @@ export function ConversationHistory(p: Props) {
       </label>
 
       <div className="owui-sidebar-links">
-        <Link href="/">
+        <Link href="/" className="aura-home-return">
           <Icon name="home" size={16} />
-          <span>الرجوع إلى Noata</span>
+          <span><strong>مساحة التعلّم</strong><small>العودة إلى الرئيسية</small></span>
         </Link>
         <button
           type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {ModuleWelcome} from "@/components/ui/module-welcome";
 import { createClient } from "@/lib/supabase/client";
 
 type BossQuestion = {
@@ -42,8 +43,13 @@ export function BossLive() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [error, setError] = useState("");
 
+  const [loading,setLoading]=useState(true);
+  const [reload,setReload]=useState(0);
   useEffect(() => {
+    let active=true;
+    setLoading(true);setError("");
     void (async () => {
+      try{
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -52,11 +58,12 @@ export function BossLive() {
         return;
       }
       setSignedIn(true);
-      const { data: units } = await supabase
+      const { data:units, error:readError } = await supabase
         .from("units")
         .select("id,title_ar,metadata")
         .eq("boss_enabled", true)
         .order("position");
+      if(readError)throw readError;
       const selected = units?.find(
         (row) =>
           !(
@@ -68,7 +75,7 @@ export function BossLive() {
       );
       if (!selected) return;
       setUnit({ id: selected.id, title_ar: selected.title_ar });
-      const { data: q } = await supabase
+      const { data:q, error:questionError } = await supabase
         .from("questions")
         .select("id,unit_id,position,question_type,prompt_ar,choices_ar")
         .eq("unit_id", selected.id)
@@ -76,9 +83,12 @@ export function BossLive() {
         .in("publication_status", ["published_demo", "published"])
         .order("position")
         .limit(3);
+      if(questionError)throw questionError;
       setQuestions((q ?? []) as BossQuestion[]);
-    })();
-  }, [supabase]);
+      }catch{if(active)setError("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.");}
+      finally{if(active)setLoading(false);}
+    })();return()=>{active=false;};
+  }, [supabase,reload]);
 
   const current = questions[idx];
 
@@ -156,26 +166,16 @@ export function BossLive() {
     setBusy(false);
   }
 
-  if (signedIn === false)
-    return (
-      <section className="panel" style={{ textAlign: "center", padding: 32 }}>
-        <h2>Unit Boss محتاج حساب.</h2>
-        <a
-          className="btn"
-          href="/login"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
-        >
-          دخول
-        </a>
-      </section>
-    );
+  if(loading)return <section className="aura-loading-state" role="status"><span/><h2>بنجهّز مساحتك…</h2><p>لحظات ونرتّب خطوتك التالية.</p></section>;
+  if(error && !questions.length)return <section className="aura-load-error" role="alert"><strong>{error}</strong><button type="button" onClick={()=>setReload(n=>n+1)}>إعادة المحاولة</button></section>;
+  if (signedIn === false)return <ModuleWelcome title="اجمع كل اللي اتعلمته." description="تحدّي الوحدة يربط المهارات في تجربة واحدة. الإنجاز والمكافآت يُسجّلان من نتائجك، دون تكرار المكافأة." icon="boss" route="/boss" eyebrow="تحدّي الوحدة" steps={["تأكد من استعدادك", "طبّق مهاراتك معًا", "احتفل بإنجازك"]}/>;
 
   if (bossResult)
     return (
       <section className="hero" style={{ textAlign: "center", padding: 46 }}>
-        <div className="eyebrow">UNIT BOSS RESULT</div>
+        <div className="eyebrow">نتيجة تحدّي الوحدة</div>
         <h1>
-          {bossResult.passed ? "Boss defeated 🔥" : "لسه الـ Boss واقف 👀"}
+          {bossResult.passed ? "اجتزت تحدّي الوحدة!" : "فرصة جديدة لفهم أعمق"}
         </h1>
         <p>
           نتيجتك {bossResult.score ?? 0}/3.{" "}
@@ -203,7 +203,7 @@ export function BossLive() {
             className="btn btn-primary"
             style={{ marginTop: 22 }}
           >
-            🎁 افتح Mystery Box
+            افتح صندوق المكافآت
           </button>
         )}
         {box && (
@@ -240,7 +240,7 @@ export function BossLive() {
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
             UNIT BOSS
           </div>
-          <h1 style={{ margin: "6px 0 0" }}>{unit?.title_ar ?? "Loading…"}</h1>
+          <h1 style={{ margin: "6px 0 0" }}>{unit?.title_ar ?? "تحدّي الوحدة"}</h1>
         </div>
         <span className="pill">{questions.length ? idx + 1 : 0}/3</span>
       </header>
@@ -254,7 +254,7 @@ export function BossLive() {
       </section>
       <section className="panel" style={{ padding: 28 }}>
         {!current ? (
-          <p>Loading Boss…</p>
+          <p>لا يوجد تحدّي منشور لهذه الوحدة بعد.</p>
         ) : (
           <form onSubmit={submit}>
             <h2 style={{ lineHeight: 1.6 }}>{current.prompt_ar}</h2>

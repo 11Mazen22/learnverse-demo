@@ -92,7 +92,8 @@ function paragraphs(xml:string):string[] {
 }
 export async function extractDocxDocument(file:{
   name:string;type:string;size:number;arrayBuffer():Promise<ArrayBuffer>;
-}):Promise<{excerpt:string;truncated:boolean;paragraphs:number;tables:number}> {
+},maxCharacters=MAX_DOC_TEXT):Promise<{excerpt:string;truncated:boolean;paragraphs:number;tables:number}> {
+  const limit=Math.max(1,Math.min(maxCharacters,200000));
   if(!isDocxDocument(file)||file.size<1||file.size>MAX_DOCX_INPUT)throw new Error("Unsupported or oversized DOCX");
   const xml=await readDocumentXml(await file.arrayBuffer());
   if(/<!DOCTYPE|<!ENTITY/i.test(xml))throw new Error("Unsafe DOCX XML");
@@ -118,9 +119,9 @@ export async function extractDocxDocument(file:{
       count+=para.length;
       chunks.push(...para);
     }
-    if(chunks.join("\n").length > MAX_DOC_TEXT+100)break;
+    if(chunks.join("\n").length > limit+100)break;
   }
   const text=chunks.join("\n").trim();
   if(!text)throw new Error("DOCX contains no readable text");
-  return {excerpt:text.slice(0,MAX_DOC_TEXT),truncated:text.length>MAX_DOC_TEXT,paragraphs:count,tables};
+  return {excerpt:text.slice(0,limit),truncated:text.length>limit,paragraphs:count,tables};
 }
