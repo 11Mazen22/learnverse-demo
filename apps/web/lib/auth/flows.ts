@@ -33,3 +33,25 @@ export function validRecoveryGrant(value: string | null, userId: string, now: nu
     return false;
   }
 }
+
+/** A short-lived display receipt; never used as proof of backend authorization. */
+export const AUTH_COMPLETION_KEY = "noata-auth-completion-v1";
+export type AuthCompletionType = "verified" | "password-updated";
+export function authCompletionValue(type: AuthCompletionType, userId: string, now: number) {
+  return JSON.stringify({ type, userId, issuedAt: now });
+}
+export function validAuthCompletion(
+  value: string | null, type: AuthCompletionType, userId: string, now: number,
+): boolean {
+  if (!value || !userId) return false;
+  try {
+    const payload: unknown = JSON.parse(value);
+    if (!payload || typeof payload !== "object") return false;
+    const fields = payload as Record<string, unknown>;
+    return fields.type === type && fields.userId === userId &&
+      typeof fields.issuedAt === "number" && Number.isFinite(fields.issuedAt) &&
+      fields.issuedAt <= now && now - fields.issuedAt <= 10 * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
