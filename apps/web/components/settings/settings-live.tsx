@@ -1,330 +1,204 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
+import {type FormEvent,useEffect,useMemo,useState} from "react";
+import Link from "next/link";
+import {createClient} from "@/lib/supabase/client";
+import {Icon} from "@/components/ui/icon";
+import {CHAT_MODEL_CARDS} from "@/lib/ai/model-routing";
 
-type Settings = {
-  theme: string;
-  locale: string;
-  reduced_motion: boolean;
-  default_ai_model: string;
-  ai_memory_enabled: boolean;
+type Settings={
+  theme:"system"|"light"|"dark";
+  locale:"ar"|"en";
+  reduced_motion:boolean;
+  default_ai_model:string;
+  ai_memory_enabled:boolean;
 };
+const DEFAULT:Settings={
+  theme:"system",locale:"ar",reduced_motion:false,default_ai_model:"auto",ai_memory_enabled:true
+};
+type Notice={kind:"success"|"error";message:string};
+function normalizeSettings(row:Record<string,unknown>|null):Settings{
+ const validModel=row?.default_ai_model==="auto"||CHAT_MODEL_CARDS.some(m=>m.id===row?.default_ai_model);
+ return {
+  theme:row?.theme==="dark"||row?.theme==="light"?row.theme:"system",
+  locale:row?.locale==="en"?"en":"ar",
+  reduced_motion:row?.reduced_motion===true,
+  default_ai_model:validModel?String(row?.default_ai_model):"auto",
+  ai_memory_enabled:row?.ai_memory_enabled!==false,
+ };
+}
+function applySettings(settings:Settings){
+ try{
+  localStorage.setItem("noata-theme",settings.theme);
+  localStorage.setItem("noata-locale",settings.locale);
+ }catch{/* Account persistence still succeeded. */}
+ document.documentElement.lang=settings.locale;
+ document.documentElement.dir=settings.locale==="ar"?"rtl":"ltr";
+ document.documentElement.dataset.theme=settings.theme==="system"
+  ? window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"
+  :settings.theme;
+ document.documentElement.dataset.reducedMotion=settings.reduced_motion?"true":"false";
+}
+export function SettingsLive(){
+ const supabase=useMemo(()=>createClient(),[]);
+ const [userId,setUserId]=useState("");
+ const [email,setEmail]=useState("");
+ const [name,setName]=useState("");
+ const [settings,setSettings]=useState<Settings>(DEFAULT);
+ const [initial,setInitial]=useState("");
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState("");
+ const [saving,setSaving]=useState(false);
+ const [notice,setNotice]=useState<Notice|null>(null);
+ const [password,setPassword]=useState("");
+ const [passwordBusy,setPasswordBusy]=useState(false);
+ const [showPassword,setShowPassword]=useState(false);
+ const [securityNotice,setSecurityNotice]=useState<Notice|null>(null);
+ const [reload,setReload]=useState(0);
 
-export function SettingsLive() {
-  const supabase = useMemo(() => createClient(), []);
-  const [userId, setUserId] = useState("");
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [settings, setSettings] = useState<Settings>({
-    theme: "system",
-    locale: "ar",
-    reduced_motion: false,
-    default_ai_model: "auto",
-    ai_memory_enabled: true,
-  });
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      setUserId(user.id);
-      setEmail(user.email ?? "");
-      const [{ data: profile }, { data: row }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("display_name,preferred_language")
-          .eq("id", user.id)
-          .single(),
-        supabase
-          .from("user_settings")
-          .select(
-            "theme,locale,reduced_motion,default_ai_model,ai_memory_enabled",
-          )
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
-      setName(profile?.display_name ?? "");
-      if (row) setSettings(row as Settings);
-      else
-        await supabase
-          .from("user_settings")
-          .upsert({ user_id: user.id }, { onConflict: "user_id" });
-    })();
-  }, [supabase]);
-
-  async function save(e: FormEvent) {
-    e.preventDefault();
-    if (!userId) return;
-    setStatus("Saving…");
-    const [profileResult, settingsResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .update({ display_name: name, preferred_language: settings.locale })
-        .eq("id", userId),
-      supabase
-        .from("user_settings")
-        .upsert({ user_id: userId, ...settings }, { onConflict: "user_id" }),
+ useEffect(()=>{
+  let active=true;
+  void(async()=>{
+   setLoading(true);setError("");
+   try{
+    const {data:{user},error:authError}=await supabase.auth.getUser();
+    if(authError)throw authError;
+    if(!active)return;
+    if(!user){setUserId("");return;}
+    setUserId(user.id);
+    setEmail(user.email??"");
+    const [profile,preferences]=await Promise.all([
+      supabase.from("profiles").select("display_name,preferred_language").eq("id",user.id).single(),
+      supabase.from("user_settings").select("theme,locale,reduced_motion,default_ai_model,ai_memory_enabled").eq("user_id",user.id).maybeSingle()
     ]);
-    if (profileResult.error || settingsResult.error) {
-      setStatus(
-        profileResult.error?.message ??
-          settingsResult.error?.message ??
-          "Could not save",
-      );
-      return;
-    }
-    localStorage.setItem("noata-theme", settings.theme);
-    localStorage.setItem("noata-locale", settings.locale);
-    document.documentElement.lang = settings.locale;
-    document.documentElement.dir = settings.locale === "ar" ? "rtl" : "ltr";
-    if (settings.theme !== "system")
-      document.documentElement.dataset.theme = settings.theme;
-    else
-      document.documentElement.dataset.theme = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches
-        ? "dark"
-        : "light";
-    document.documentElement.dataset.reducedMotion = settings.reduced_motion
-      ? "true"
-      : "false";
-    setStatus("Saved ✓");
+    if(profile.error||preferences.error)throw profile.error??preferences.error;
+    if(!active)return;
+    const next=normalizeSettings(preferences.data as Record<string,unknown>|null);
+    const displayName=profile.data?.display_name??"";
+    setName(displayName);setSettings(next);
+    setInitial(JSON.stringify({name:displayName,settings:next}));
+   }catch{
+    if(active)setError("تعذّر تحميل إعدادات حسابك. حاول مجددًا بعد التحقق من الاتصال.");
+   }finally{if(active)setLoading(false);}
+  })();
+  return()=>{active=false;};
+ },[supabase,reload]);
+
+ const dirty=JSON.stringify({name,settings})!==initial;
+ async function save(e:FormEvent){
+  e.preventDefault();
+  if(!userId||saving)return;
+  const cleanName=name.trim();
+  if(cleanName.length<2||cleanName.length>80){
+   setNotice({kind:"error",message:"اسم العرض لازم يكون بين حرفين و٨٠ حرفًا."});return;
   }
-
-  async function updatePassword() {
-    if (password.length < 8) {
-      setStatus("Password must be at least 8 characters.");
-      return;
-    }
-    setStatus("Updating password…");
-    const { error } = await supabase.auth.updateUser({ password });
-    setStatus(error ? error.message : "Password updated ✓");
-    if (!error) setPassword("");
+  setSaving(true);setNotice(null);
+  try{
+   // Two distinct RLS-protected records. Never report success if either write fails.
+   const profileResult=await supabase.from("profiles").update({
+    display_name:cleanName,preferred_language:settings.locale
+   }).eq("id",userId);
+   if(profileResult.error)throw Error("تعذّر تحديث الملف الشخصي. لم تُحفظ كل الإعدادات.");
+   const settingResult=await supabase.from("user_settings").upsert({
+    user_id:userId,...settings,updated_at:new Date().toISOString()
+   },{onConflict:"user_id"});
+   if(settingResult.error)throw Error("اتحفظ الاسم، لكن تفضيلات الجهاز والذكاء الاصطناعي لم تُحفظ. حاول مرة أخرى.");
+   applySettings(settings);
+   setName(cleanName);
+   setInitial(JSON.stringify({name:cleanName,settings}));
+   setNotice({kind:"success",message:"تم حفظ إعداداتك في حسابك بنجاح."});
+  }catch(err){
+   setNotice({kind:"error",message:err instanceof Error?err.message:"تعذّر حفظ الإعدادات."});
+  }finally{setSaving(false);}
+ }
+ async function updatePassword(){
+  if(passwordBusy)return;
+  if(password.length<8){
+   setSecurityNotice({kind:"error",message:"اكتب كلمة مرور مكوّنة من ٨ أحرف على الأقل."});return;
   }
-
-  if (!userId) {
-    return (
-      <section className="panel" style={{ textAlign: "center", padding: 32 }}>
-        <h2>سجّل الدخول لإدارة إعداداتك.</h2>
-        <a
-          className="btn"
-          href="/login"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
-        >
-          دخول
-        </a>
-      </section>
-    );
-  }
-
-  return (
-    <>
-      <header className="topbar" style={{ marginBottom: 18 }}>
-        <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            SETTINGS
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>حسابك وتجربتك</h1>
-        </div>
-        <span className="pill">{email}</span>
-      </header>
-
-      <form onSubmit={save} className="content-grid">
-        <section className="panel">
-          <div className="panel-head">
-            <h2>Profile</h2>
-            <span className="pill">Synced</span>
-          </div>
-          <div style={{ display: "grid", gap: 12 }}>
-            <label>
-              <small>Display name</small>
-              <input
-                className="search"
-                style={{ width: "100%", marginTop: 6 }}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
-            <label>
-              <small>Language</small>
-              <select
-                className="model-select"
-                style={{ width: "100%", marginTop: 6 }}
-                value={settings.locale}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, locale: e.target.value }))
-                }
-              >
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-              </select>
-            </label>
-            <label>
-              <small>Theme</small>
-              <select
-                className="model-select"
-                style={{ width: "100%", marginTop: 6 }}
-                value={settings.theme}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, theme: e.target.value }))
-                }
-              >
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-            <label
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "center",
-              }}
-            >
-              <span>
-                <b>Reduced motion</b>
-                <small style={{ display: "block", color: "var(--muted)" }}>
-                  قلّل الحركات والانتقالات.
-                </small>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.reduced_motion}
-                onChange={(e) =>
-                  setSettings((s) => ({
-                    ...s,
-                    reduced_motion: e.target.checked,
-                  }))
-                }
-              />
-            </label>
-          </div>
-        </section>
-
-        <aside className="panel">
-          <div className="panel-head">
-            <h2>Noata AI</h2>
-          </div>
-          <div style={{ display: "grid", gap: 12 }}>
-            <label>
-              <small>Default model</small>
-              <select
-                className="model-select"
-                style={{ width: "100%", marginTop: 6 }}
-                value={settings.default_ai_model}
-                onChange={(e) =>
-                  setSettings((s) => ({
-                    ...s,
-                    default_ai_model: e.target.value,
-                  }))
-                }
-              >
-                <option value="auto">Auto · Smart Router</option>
-                {FANAR_CAPABILITIES.filter((x) => x.visibleInPicker).map(
-                  (x) => (
-                    <option value={x.id} key={x.id}>
-                      {x.label}
-                    </option>
-                  ),
-                )}
-              </select>
-            </label>
-            <label
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                alignItems: "center",
-              }}
-            >
-              <span>
-                <b>AI conversation memory</b>
-                <small style={{ display: "block", color: "var(--muted)" }}>
-                  احفظ محادثاتك في حسابك.
-                </small>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.ai_memory_enabled}
-                onChange={(e) =>
-                  setSettings((s) => ({
-                    ...s,
-                    ai_memory_enabled: e.target.checked,
-                  }))
-                }
-              />
-            </label>
-          </div>
-        </aside>
-
-        <section className="panel">
-          <div className="panel-head">
-            <h2>Security</h2>
-          </div>
-          <label>
-            <small>New password</small>
-            <input
-              className="search"
-              style={{ width: "100%", marginTop: 6 }}
-              type="password"
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="8+ characters"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => void updatePassword()}
-            disabled={!password}
-            className="btn"
-            style={{
-              background: "var(--accent)",
-              color: "var(--surface)",
-              marginTop: 12,
-            }}
-          >
-            Update password
-          </button>
-        </section>
-
-        <aside className="panel">
-          <div className="panel-head">
-            <h2>Save changes</h2>
-          </div>
-          <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
-            الإعدادات دي مرتبطة بحسابك، وتكمل معاك على أي جهاز تسجّل منه.
-          </p>
-          <button
-            className="btn"
-            style={{
-              background: "var(--accent)",
-              color: "var(--surface)",
-              width: "100%",
-            }}
-          >
-            Save settings
-          </button>
-          {status && (
-            <small
-              style={{
-                display: "block",
-                marginTop: 10,
-                color: status.includes("✓") ? "var(--success)" : "var(--muted)",
-              }}
-            >
-              {status}
-            </small>
-          )}
-        </aside>
-      </form>
-    </>
-  );
+  setPasswordBusy(true);setSecurityNotice(null);
+  try{
+   const {error}=await supabase.auth.updateUser({password});
+   if(error)throw error;
+   setPassword("");
+   setSecurityNotice({kind:"success",message:"تم تحديث كلمة المرور. حافظ عليها في مكان آمن."});
+  }catch{
+   setSecurityNotice({kind:"error",message:"تعذّر تحديث كلمة المرور. قد تحتاج لتسجيل الدخول مجددًا."});
+  }finally{setPasswordBusy(false);}
+ }
+ if(loading)return <section className="aura-settings-state" role="status"><Icon name="settings" size={29}/><h1>بنحمّل إعداداتك…</h1><p>البيانات مرتبطة بحسابك الشخصي.</p></section>;
+ if(error)return <section className="aura-settings-state" role="alert"><h1>في مشكلة في تحميل الإعدادات</h1><p>{error}</p><button type="button" onClick={()=>setReload(n=>n+1)}>حاول مرة أخرى</button></section>;
+ if(!userId)return <section className="aura-settings-state"><h1>خلّي Noata على مزاجك.</h1><p>سجّل دخولك علشان تحفظ تفضيلاتك بين الأجهزة.</p><Link href="/login?next=/settings">تسجيل الدخول</Link></section>;
+ return <div className="aura-settings-page">
+  <header className="aura-settings-heading">
+   <div><span className="eyebrow">إعدادات الحساب · Noata Aura</span><h1>مساحتك، بطريقتك.</h1>
+    <p>تحكم في شكل التطبيق، تفضيلات الذكاء الاصطناعي وحماية حسابك من مكان واحد.</p>
+   </div><span className="aura-settings-email" title={email}>{email}</span>
+  </header>
+  <nav className="aura-settings-nav" aria-label="أقسام الإعدادات">
+   <a href="#aura-profile">الملف الشخصي</a><a href="#aura-appearance">المظهر</a>
+   <a href="#aura-ai">Noata AI</a><a href="#aura-security">الأمان</a>
+  </nav>
+  <form className="aura-settings-content" onSubmit={e=>void save(e)}>
+   <section id="aura-profile" className="aura-settings-section">
+    <div className="aura-settings-section-top"><Icon name="settings" size={21}/><div><h2>الملف الشخصي</h2><p>الاسم واللغة الأساسية لحسابك</p></div></div>
+    <label className="aura-settings-label"><span>اسم العرض</span><input maxLength={80} value={name} onChange={e=>setName(e.target.value)} placeholder="اسمك داخل Noata"/></label>
+    <label className="aura-settings-label"><span>لغة الواجهة</span>
+     <select value={settings.locale} onChange={e=>setSettings(s=>({...s,locale:e.target.value==="en"?"en":"ar"}))}>
+      <option value="ar">العربية — الواجهة الأساسية</option>
+      <option value="en">English — جزئية</option>
+     </select><small>بعض الصفحات ما زالت عربية حتى عند اختيار الإنجليزية.</small>
+    </label>
+   </section>
+   <section id="aura-appearance" className="aura-settings-section">
+    <div className="aura-settings-section-top"><Icon name="sun" size={21}/><div><h2>المظهر والحركة</h2><p>اقرأ براحة وخلّي التنقل مناسبًا لك</p></div></div>
+    <div className="aura-settings-theme-options" role="group" aria-label="اختر المظهر">
+     {([{value:"system",label:"تلقائي",icon:"screen"},{value:"light",label:"فاتح",icon:"sun"},{value:"dark",label:"داكن",icon:"moon"}] as const).map(o=>
+      <button type="button" key={o.value} aria-pressed={settings.theme===o.value}
+       onClick={()=>setSettings(s=>({...s,theme:o.value}))}>
+       <Icon name={o.icon} size={20}/>{o.label}
+      </button>)}
+    </div>
+    <label className="aura-settings-switch"><span><strong>تقليل الحركة</strong><small>قلّل التحولات البصرية والرسوم المتحركة.</small></span>
+     <input type="checkbox" checked={settings.reduced_motion} onChange={e=>setSettings(s=>({...s,reduced_motion:e.target.checked}))}/>
+    </label>
+   </section>
+   <section id="aura-ai" className="aura-settings-section">
+    <div className="aura-settings-section-top"><Icon name="ai" size={21}/><div><h2>Noata AI</h2><p>اختار تفضيلات الدردشة والنماذج المهيأة</p></div></div>
+    <label className="aura-settings-label"><span>نموذج الذكاء الاصطناعي الافتراضي</span>
+     <select value={settings.default_ai_model} onChange={e=>setSettings(s=>({...s,default_ai_model:e.target.value}))}>
+      <option value="auto">تلقائي · توجيه حسب نوع السؤال</option>
+      {CHAT_MODEL_CARDS.map(o=><option key={o.id} value={o.id}>{o.arabic} · {o.subtitle}</option>)}
+     </select><small>وجود النموذج في القائمة يعني أنه مهيّأ؛ توفّره الفعلي يعتمد على الخدمة.</small>
+    </label>
+    <label className="aura-settings-switch"><span><strong>حفظ محادثات الذكاء الاصطناعي</strong>
+     <small>عند إيقافها تستخدم المحادثات الجديدة الوضع المؤقت. لا تُحذف المحادثات القديمة تلقائيًا.</small></span>
+     <input type="checkbox" checked={settings.ai_memory_enabled} onChange={e=>setSettings(s=>({...s,ai_memory_enabled:e.target.checked}))}/>
+    </label>
+   </section>
+   <div className="aura-settings-savebar">
+    <div><strong>{dirty?"عندك تغييرات لسه متحفظتش":"تفضيلاتك الحالية"}</strong>
+     <small>الحفظ يتأكد من تحديث حسابك قبل ظهور رسالة النجاح.</small></div>
+    <button type="submit" disabled={!dirty||saving}>{saving?"جارٍ الحفظ…":"حفظ التغييرات"}</button>
+   </div>
+   {notice&&<div className={"aura-settings-notice "+notice.kind} role={notice.kind==="error"?"alert":"status"}>{notice.message}</div>}
+  </form>
+  <section id="aura-security" className="aura-settings-section aura-settings-security">
+   <div className="aura-settings-section-top"><Icon name="pin" size={21}/><div><h2>حماية الحساب</h2><p>تغيير كلمة المرور بشكل مستقل عن بقية التفضيلات</p></div></div>
+   <label className="aura-settings-label"><span>كلمة مرور جديدة</span>
+    <span className="aura-settings-password">
+     <input type={showPassword?"text":"password"} autoComplete="new-password" minLength={8}
+      value={password} onChange={e=>setPassword(e.target.value)}
+      placeholder="٨ أحرف على الأقل" />
+     <button type="button" onClick={()=>setShowPassword(x=>!x)} aria-label={showPassword?"إخفاء كلمة المرور":"إظهار كلمة المرور"}>{showPassword?"إخفاء":"إظهار"}</button>
+    </span>
+   </label>
+   <button type="button" className="aura-settings-password-action"
+    disabled={password.length<8||passwordBusy} onClick={()=>void updatePassword()}>
+    {passwordBusy?"جارٍ التحديث…":"تحديث كلمة المرور"}
+   </button>
+   {securityNotice&&<p role={securityNotice.kind==="error"?"alert":"status"} className={"aura-settings-notice "+securityNotice.kind}>{securityNotice.message}</p>}
+   <p className="aura-settings-security-foot">لا تشارك كلمة المرور مع أي شخص. صلاحيات حسابك تتحكم فيها سياسات قاعدة البيانات على الخادم، وليس هذه الصفحة.</p>
+  </section>
+ </div>;
 }
