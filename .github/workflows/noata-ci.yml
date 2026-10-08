@@ -41,6 +41,8 @@ jobs:
           node --check scripts/browser-launch-smoke.mjs
       - name: Browser startup fault regressions
         run: node --test scripts/qa-browser.test.mjs
+      - name: Verify branded Arabic Auth emails
+        run: node --test scripts/email-templates.test.mjs
       - run: pnpm modern:test
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
       - name: Base migrations and database authorization regressions
