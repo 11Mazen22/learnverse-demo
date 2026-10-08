@@ -34,12 +34,7 @@ export function UserMenu() {
   if (!email) {
     return (
       <a
-        className="btn"
-        style={{
-          background: "var(--accent-soft)",
-          color: "var(--accent)",
-          minHeight: 40,
-        }}
+        className="btn noata-sign-in"
         href="/login"
       >
         دخول
