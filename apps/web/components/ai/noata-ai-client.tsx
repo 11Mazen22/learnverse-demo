@@ -15,6 +15,7 @@ import { TOOLS } from "@/lib/ai/workspace";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
 import { WritingStudio } from "./writing-studio";
+import { EducationPanel } from "./education-panel";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
 import { ThemeControl } from "@/components/preferences/theme-control";
@@ -104,6 +105,7 @@ export function NoataAIClient() {
   const [dragging, setDragging] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [studioSource, setStudioSource] = useState<string | null>(null);
+  const [educationOpen,setEducationOpen] = useState(false);
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeId),
@@ -343,6 +345,9 @@ export function NoataAIClient() {
             >
               <Icon name="edit" />
             </button>
+            <button type="button" className="owui-icon" title="ورشة المذاكرة" aria-label="افتح ورشة المذاكرة" onClick={()=>setEducationOpen(true)}>
+              <Icon name="book" size={18}/>
+            </button>
             <ThemeControl />
           </div>
         </header>
@@ -398,6 +403,9 @@ export function NoataAIClient() {
                   </button>
                 ))}
               </div>
+              <button type="button" className="aura-education-entry" onClick={()=>setEducationOpen(true)}>
+                <Icon name="book" size={19}/> افتح ورشة المذاكرة: اختبارات، ملخصات، وبطاقات مراجعة
+              </button>
               {signedIn === false && (
                 <Link className="owui-primary-action" href="/login?next=/ai">
                   سجّل الدخول وابدأ
@@ -986,6 +994,13 @@ export function NoataAIClient() {
         </div>
       </Dialog>
 
+      <Dialog open={educationOpen} onClose={()=>setEducationOpen(false)} title="ورشة المذاكرة · Noata Aura">
+        <EducationPanel onUse={(prompt)=>{
+          setInput(prompt);
+          setEducationOpen(false);
+          window.setTimeout(()=>composer.current?.focus(),0);
+        }}/>
+      </Dialog>
       <WritingStudio
         open={studioSource !== null}
         source={studioSource ?? ""}
