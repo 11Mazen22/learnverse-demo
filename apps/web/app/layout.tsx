@@ -9,6 +9,7 @@ export const viewport: Viewport = {
 };
 import "katex/dist/katex.min.css";
 import "./globals.css";
+import "./aura-finish.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 
