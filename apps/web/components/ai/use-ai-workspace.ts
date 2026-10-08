@@ -12,6 +12,7 @@ import { createVoiceGenerationGuard } from "@/lib/ai/voice-generation";
 import { isTextDocument, extractTextDocument } from "@/lib/ai/document-text";
 import { isDocxDocument, extractDocxDocument } from "@/lib/ai/docx-ingest";
 import { createAiMessageContext } from "@/lib/ai/context-budget";
+import { isSupportedDocument,validateDocumentBatch,extractDocumentBatch } from "@/lib/ai/multi-document";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
 import {
   AI_FUNCTION,
@@ -53,6 +54,7 @@ export function useAIWorkspace() {
     [archiveView, setArchiveView] = useState(false),
     [mobileHistory, setMobileHistory] = useState(false),
     [showTools, setShowTools] = useState(false);
+  const [documentFiles,setDocumentFiles] = useState<File[]>([]);
   const [attachment, setAttachment] = useState<File | null>(null),
     [preview, setPreview] = useState(""),
     [recording, setRecording] = useState(false),
@@ -248,6 +250,8 @@ export function useAIWorkspace() {
   function newChat(temp = temporary) {
     if (lock.current) return;
     stopVoice();
+    setDocumentFiles([]);
+    setAttachment(null);
     ++openSequence.current;
     setActiveId(null);
     setMessages([]);
@@ -416,8 +420,8 @@ export function useAIWorkspace() {
   ) {
     e?.preventDefault();
     if (lock.current || recording) return;
-    if (attachment && (tool || mode !== "send")) {
-      setError("لإرسال صورة، ابدأ رسالة عادية. الأدوات وإعادة التوليد لا تدعم مرفقًا جديدًا حاليًا.");
+    if ((attachment || documentFiles.length>0) && (tool || mode !== "send")) {
+      setError("المرفقات الجديدة تدعم الرسالة العادية فقط. أرسل الملفات أولًا قبل استخدام الأدوات أو إعادة توليد رد.");
       return;
     }
     if (!signedIn) {
@@ -429,7 +433,7 @@ export function useAIWorkspace() {
         ? "كمّل شرحك من النقطة اللي وقفت عندها."
         : mode === "retry"
           ? (messages.at(-1)?.content ?? "")
-          : input.trim() || (attachment && (isTextDocument(attachment)||isDocxDocument(attachment)) ? "اقرأ المستند المرفق وقدم لي شرحًا واضحًا لمحتواه." : attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
+          : input.trim() || (documentFiles.length>0 || attachment && (isTextDocument(attachment)||isDocxDocument(attachment)) ? "قارن الملفات المرفقة واشرح ما يدعمه كل مصدر، مع الاستشهاد بأسماء الملفات." : attachment?.type.startsWith("image/") ? "حلّل الصورة المرفقة." : "");
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
@@ -455,6 +459,9 @@ export function useAIWorkspace() {
       let path: string | undefined;
       let documentExcerpt: string | undefined;
       let documentTruncated = false;
+      const documentSources = documentFiles.length
+        ? await extractDocumentBatch(documentFiles)
+        : [];
       if (attachment) {
         if (isTextDocument(attachment) || isDocxDocument(attachment)) {
           setNotice("بنقرأ محتوى المستند…");
@@ -480,14 +487,15 @@ export function useAIWorkspace() {
           conversation_id: conversationId,
           role: "user",
           content: text,
-          metadata: attachment
-            ? {
-                ...(path ? { attachmentPath: path } : {}),
-                attachmentName: attachment.name,
-                attachmentMime: attachment.type || "text/plain",
-                ...(documentExcerpt ? {documentExcerpt,documentTruncated}:{}),
-              }
-            : {},
+          metadata: {
+            ...(attachment ? {
+              ...(path ? { attachmentPath: path } : {}),
+              attachmentName: attachment.name,
+              attachmentMime: attachment.type || "text/plain",
+              ...(documentExcerpt ? {documentExcerpt,documentTruncated}:{}),
+            } : {}),
+            ...(documentSources.length ? {documentSources} : {}),
+          },
           model: null,
           status: "complete",
           created_at: new Date().toISOString(),
@@ -565,6 +573,7 @@ export function useAIWorkspace() {
       setMessages([...history, assistant]);
       savedResponse = true;
       setAttachment(null);
+      setDocumentFiles([]);
       if (picker.current) picker.current.value = "";
       setShowTools(false);
       if (!temporary) {
@@ -704,15 +713,40 @@ export function useAIWorkspace() {
   function selectFile(file: File | undefined) {
     if (!file || lock.current) return;
     const invalid = validateAttachment(file);
-    if (invalid) {
-      setError(invalid);
+    if (invalid) {setError(invalid);return;}
+    if (file.type.startsWith("audio/")) {void transcribe(file);return;}
+    if (isSupportedDocument(file)) {
+      const proposed=[...documentFiles,file];
+      const rejected=validateDocumentBatch(proposed);
+      if(rejected){setError(rejected);return;}
+      setDocumentFiles(proposed);
+    }else{
+      // Backend supports one vision image per request at present.
+      setAttachment(file);
+    }
+    setError("");
+  }
+  function selectFiles(files:FileList|File[]|null|undefined){
+    if(!files||lock.current)return;
+    const incoming=Array.from(files);
+    const documents=incoming.filter(isSupportedDocument);
+    const others=incoming.filter(f=>!isSupportedDocument(f));
+    const next=[...documentFiles,...documents];
+    const bad=validateDocumentBatch(next);
+    if(bad){setError(bad);return;}
+    if(others.length>1 || (others.length && others[0].type.startsWith("audio/") && documents.length)){
+      setError("المسموح صورة واحدة مع عدة مستندات، أو ملف صوت منفصل للتفريغ.");
       return;
     }
-    if (file.type.startsWith("audio/")) {
-      void transcribe(file);
-      return;
+    if(others.length){
+      const error=validateAttachment(others[0]);
+      if(error){setError(error);return;}
     }
-    setAttachment(file);
+    setDocumentFiles(next);
+    if(others.length){
+      if(others[0].type.startsWith("audio/")) void transcribe(others[0]);
+      else setAttachment(others[0]);
+    }
     setError("");
   }
   async function captureScreen() {
@@ -961,6 +995,9 @@ export function useAIWorkspace() {
     audioPlayback,
     error,
     attachment,
+    documentFiles,
+    setDocumentFiles,
+    selectFiles,
     preview,
     setAttachment,
     showTools,
