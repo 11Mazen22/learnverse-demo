@@ -10,6 +10,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
+import { CHAT_MODEL_CARDS, resolveSuggestedModel } from "@/lib/ai/model-routing";
 import { TOOLS } from "@/lib/ai/workspace";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
@@ -240,49 +241,54 @@ export function NoataAIClient() {
                   <strong>
                     {model === "auto"
                       ? "تلقائي · الأنسب لسؤالك"
-                      : FANAR_CAPABILITIES.find((c) => c.id === model)?.label ?? model}
+                      : CHAT_MODEL_CARDS.find((c) => c.id === model)?.arabic ?? model}
                   </strong>
                 </span>
                 <Icon name="chevron" size={15} />
               </button>
               {modelMenuOpen && (
-                <div className="owui-model-menu" role="menu">
+                <div className="owui-model-menu aura-model-gallery" role="group" aria-label="النماذج المهيأة على خادم Noata">
+                  <div className="aura-model-gallery-head">
+                    <strong>اختار مساعدك</strong>
+                    <span>فنار · النماذج المهيأة بالخادم</span>
+                  </div>
                   <button
                     type="button"
-                    className={model === "auto" ? "active" : ""}
-                    onClick={() => {
-                      setModel("auto");
-                      setModelMenuOpen(false);
-                    }}
+                    className={"aura-model-card aura-model-auto "+(model==="auto"?"active":"")}
+                    aria-pressed={model==="auto"}
+                    onClick={() => { setModel("auto");setModelMenuOpen(false); }}
                   >
-                    <span className="owui-model-dot auto" />
-                    <span>
-                      <strong>تلقائي</strong>
-                      <small>Noata يختار أنسب قدرة Fanar تلقائيًا</small>
+                    <span className="aura-model-card-symbol"><Icon name="ai" size={20}/></span>
+                    <span className="aura-model-card-copy">
+                      <strong>تلقائي · Aura Smart</strong>
+                      <small>اختيار مبني على نوع السؤال، وليس نموذجًا ثابتًا</small>
+                      <span className="aura-model-features">{
+                        input.trim() ? "المقترح لهذا السؤال: "+(CHAT_MODEL_CARDS.find(c=>c.id===resolveSuggestedModel(input, Boolean(attachment && attachment.type.startsWith("image/"))))?.arabic??"فنار")
+                         : "محادثة · منطق · أسئلة إسلامية · رؤية"
+                      }</span>
                     </span>
+                    {model==="auto"&&<Icon name="check" size={17}/>}
                   </button>
-                  {FANAR_CAPABILITIES.filter((c) => c.visibleInPicker).map((c) => (
-                    <button
-                      type="button"
-                      key={c.id}
-                      className={model === c.id ? "active" : ""}
-                      onClick={() => {
-                        setModel(c.id);
-                        setModelMenuOpen(false);
-                      }}
-                    >
-                      <span className={"owui-model-dot " + c.category} />
-                      <span>
-                        <strong>{c.label}</strong>
-                        <small>{c.use} · {c.quota}</small>
-                      </span>
-                    </button>
-                  ))}
-                  <div className="owui-model-menu-foot">
-                    <button type="button" onClick={() => setSettingsOpen(true)}>
-                      <Icon name="settings" size={14} />
-                      إعدادات النماذج
-                    </button>
+                  <div className="aura-model-gallery-list">
+                    {CHAT_MODEL_CARDS.map(c=>(
+                      <button type="button" key={c.id}
+                        className={"aura-model-card "+(model===c.id?"active":"")}
+                        aria-pressed={model===c.id}
+                        onClick={()=>{setModel(c.id);setModelMenuOpen(false);}}
+                      >
+                        <span className="aura-model-card-symbol"><Icon name={c.bestFor==="vision"?"image":c.bestFor==="islamic"?"book":c.bestFor==="fast"?"target":"ai"} size={20}/></span>
+                        <span className="aura-model-card-copy">
+                          <strong>{c.arabic}<span>{c.subtitle}</span></strong>
+                          <small>{c.description}</small>
+                          <span className="aura-model-features">{c.features.join(" · ")}</span>
+                        </span>
+                        {model===c.id&&<Icon name="check" size={17}/>}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="owui-model-menu-foot aura-model-info">
+                    <small>مهيّأ على Edge Function، والتوفر الفعلي يتضح عند إرسال الطلب. لا يوجد اختبار صحة مباشر لكل نموذج هنا.</small>
+                    <button type="button" onClick={()=>{setSettingsOpen(true);setModelMenuOpen(false);}}><Icon name="settings" size={14}/> الإعدادات</button>
                   </div>
                 </div>
               )}
