@@ -51,9 +51,11 @@ async function navigate(path) {
   location.path=path;
   location.stage="Page.navigate";
   await command("Page.navigate",{url:base+path});
+  const expected = new URL(path, base);
   await waitFor(async()=> {
-    const state=await evaluate("({ready: document.readyState, path: location.pathname, size: document.body?.innerText?.length || 0})");
-    return state.ready === "complete" && state.path === path && state.size > 30;
+    const state=await evaluate("({ready: document.readyState, path: location.pathname, search: location.search, size: document.body?.innerText?.length || 0})");
+    return state.ready === "complete" && state.path === expected.pathname &&
+      state.search === expected.search && state.size > 30;
   }, path);
   await waitFor(async()=>await evaluate(`!document.querySelector('.aura-loading-state,.aura-progress-loading,.owui-loading,[aria-busy="true"]') && !Array.from(document.querySelectorAll('[role="status"]')).some(el=>/بنحمّل|بنجهّز|نتحقق من الحساب/.test(el.textContent))`),path+" settled loading/error/guest state",30000);
   // Never await document.fonts.ready unbounded in a CDP evaluate call: slow
