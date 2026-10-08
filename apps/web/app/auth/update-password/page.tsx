@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AuthJourney } from "@/components/auth/auth-journey";
 import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError } from "@/lib/i18n/auth-errors";
-import { RECOVERY_GRANT_KEY, validRecoveryGrant } from "@/lib/auth/flows";
+import { RECOVERY_GRANT_KEY, validRecoveryGrant, AUTH_COMPLETION_KEY, authCompletionValue } from "@/lib/auth/flows";
 
 type PageStatus = "checking" | "ready" | "invalid" | "unavailable";
 
@@ -59,6 +59,7 @@ export default function UpdatePasswordPage() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) { setError(localizeAuthError(updateError)); return; }
       sessionStorage.removeItem(RECOVERY_GRANT_KEY);
+      sessionStorage.setItem(AUTH_COMPLETION_KEY, authCompletionValue("password-updated", data.user.id, Date.now()));
       setPassword(""); setConfirm("");
       window.location.replace("/auth/complete?type=password-updated");
     } catch {
