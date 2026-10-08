@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Icon } from "@/components/ui/icon";
 
 type Row = {
   mastery_score: number;
@@ -10,133 +12,179 @@ type Row = {
   next_review_at: string | null;
   skills: { title_ar: string; title_en: string } | null;
 };
+type View = "all" | "due" | "learning" | "mastered";
 
-export function ProgressLive() {
-  const supabase = useMemo(() => createClient(), []);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+const LABELS: Record<string,string> = {
+  mastered:"متقن",
+  provisional_mastery:"إتقان مبدئي",
+  practicing:"قيد التدريب",
+  developing:"قيد التطور",
+  emerging:"في البداية",
+  struggling:"تحتاج دعمًا",
+};
+function scoreOf(row:Row){
+  const score=Number(row.mastery_score);
+  return Number.isFinite(score)?Math.max(0,Math.min(100,Math.round(score))):0;
+}
+function isMastered(row:Row){
+  return row.state==="mastered" || row.state==="provisional_mastery";
+}
+function isDue(row:Row,time:number){
+  return Boolean(row.next_review_at && Date.parse(row.next_review_at)<=time);
+}
 
-  useEffect(() => {
-    void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setSignedIn(false);
-        return;
-      }
+export function ProgressLive(){
+  const supabase=useMemo(()=>createClient(),[]);
+  const [rows,setRows]=useState<Row[]>([]);
+  const [signedIn,setSignedIn]=useState<boolean|null>(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  const [view,setView]=useState<View>("all");
+  const [search,setSearch]=useState("");
+  const [refetch,setRefetch]=useState(0);
+
+  const load=useCallback(async(alive:()=>boolean)=>{
+    setLoading(true);setError("");
+    try{
+      const {data:{user},error:authError}=await supabase.auth.getUser();
+      if(authError)throw authError;
+      if(!alive())return;
+      if(!user){setSignedIn(false);setRows([]);return;}
       setSignedIn(true);
-      const { data } = await supabase
-        .from("skill_evidence")
-        .select(
-          "mastery_score,state,independent_distinct_count,next_review_at,skills(title_ar,title_en)",
-        )
-        .eq("user_id", user.id)
-        .order("mastery_score", { ascending: true });
-      setRows((data ?? []) as Row[]);
-    })();
-  }, [supabase]);
+      const {data,error:queryError}=await supabase.from("skill_evidence")
+        .select("mastery_score,state,independent_distinct_count,next_review_at,skills(title_ar,title_en)")
+        .eq("user_id",user.id)
+        .order("mastery_score",{ascending:true})
+        .limit(300);
+      if(queryError)throw queryError;
+      if(alive())setRows((data??[]) as Row[]);
+    }catch{
+      if(alive())setError("تعذّر تحميل سجل الإتقان الآن. تحقق من الاتصال ثم حاول مجددًا.");
+    }finally{
+      if(alive())setLoading(false);
+    }
+  },[supabase]);
+  useEffect(()=>{
+    let live=true;
+    void load(()=>live);
+    return()=>{live=false;};
+  },[load,refetch]);
 
-  if (signedIn === false) {
-    return (
-      <section className="panel" style={{ padding: 32, textAlign: "center" }}>
-        <h1>تقدّمك بيتبني من أدائك الحقيقي.</h1>
-        <p style={{ color: "var(--muted)" }}>
-          سجّل الدخول علشان Noata يحفظ الـ mastery والمراجعات ويفصلها عن XP
-          والمكافآت.
-        </p>
-        <a
-          className="btn"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
-          href="/login"
-        >
-          سجّل الدخول
-        </a>
-      </section>
-    );
-  }
+  const now=Date.now();
+  const average=rows.length
+    ? Math.round(rows.reduce((sum,row)=>sum+scoreOf(row),0)/rows.length):0;
+  const due=rows.filter(row=>isDue(row,now));
+  const mastered=rows.filter(isMastered);
+  const evidence=rows.reduce((sum,row)=>sum+Math.max(0,Number(row.independent_distinct_count)||0),0);
+  const filtered=rows.filter(row=>{
+    if(view==="due"&&!isDue(row,now))return false;
+    if(view==="learning"&&(isMastered(row)||isDue(row,now)))return false;
+    if(view==="mastered"&&!isMastered(row))return false;
+    return (row.skills?.title_ar??row.skills?.title_en??"").toLowerCase().includes(search.trim().toLowerCase());
+  }).slice().sort((a,b)=>scoreOf(a)-scoreOf(b));
 
-  const avg = rows.length
-    ? Math.round(
-        rows.reduce((s, x) => s + Number(x.mastery_score), 0) / rows.length,
-      )
-    : 0;
-  const due = rows.filter(
-    (x) => x.next_review_at && new Date(x.next_review_at) <= new Date(),
-  ).length;
-  const mastered = rows.filter(
-    (x) => x.state === "mastered" || x.state === "provisional_mastery",
-  ).length;
-  const evidence = rows.reduce(
-    (s, x) => s + Number(x.independent_distinct_count),
-    0,
-  );
+  if(loading && signedIn===null)return <section className="aura-progress-loading" role="status" aria-live="polite">
+    <span className="aura-progress-loading-mark" aria-hidden="true"/>
+    <h1>بنرتّب خريطة مهاراتك…</h1>
+    <p>بنقرأ الدليل الفعلي من تدريباتك، مش مجرد النقاط والمكافآت.</p>
+  </section>;
 
-  return (
-    <>
-      <header className="topbar" style={{ marginBottom: 18 }}>
-        <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            MASTERY
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>تقدمك الحقيقي</h1>
+  if(!loading && signedIn===false)return <section className="aura-progress-guest">
+    <span className="eyebrow">رحلتك مع Noata</span>
+    <h1>كل محاولة بتكشف خطوة جديدة.</h1>
+    <p>سجّل الدخول علشان تعرف المهارات اللي أتقنتها، والمراجعات المستحقة، والأسئلة المستقلة اللي حلّيتها.</p>
+    <Link href="/login?next=/progress" className="aura-progress-primary">سجّل الدخول <Icon name="arrow" size={17}/></Link>
+  </section>;
+
+  if(error && !rows.length)return <section className="aura-progress-guest" role="alert">
+    <h1>التقدّم غير متاح مؤقتًا</h1>
+    <p>{error}</p>
+    <button type="button" onClick={()=>setRefetch(x=>x+1)} className="aura-progress-primary">إعادة المحاولة</button>
+  </section>;
+
+  return <div className="aura-progress-page">
+    <header className="aura-progress-hero">
+      <div className="aura-progress-intro">
+        <span className="eyebrow">لوحة الإتقان · دليل حقيقي من التعلم</span>
+        <h1>تقدّمك مش رقم. دي مهارات بتكبر معاك.</h1>
+        <p>بنقيس الفهم والتدريب المستقل، وبنرجّعلك المهارات اللي محتاجة تثبيت وقتها. ده منفصل عن الـ XP والـ Coins.</p>
+        <div className="aura-progress-actions">
+          <Link href={due.length?"/review":"/missions"} className="aura-progress-primary">
+            {due.length?"ابدأ المراجعات المستحقة":"استكشف مهمة جديدة"}
+            <Icon name="arrow" size={17}/>
+          </Link>
+          <Link href="/learn" className="aura-progress-secondary">افتح رحلة التعلّم</Link>
         </div>
-        <span className="pill">Evidence-based</span>
-      </header>
-      <section className="grid-4">
-        <article className="metric-card">
-          <span>Mastery score</span>
-          <strong>{avg}%</strong>
-          <small>across tracked skills</small>
-        </article>
-        <article className="metric-card">
-          <span>Review queue</span>
-          <strong>{due}</strong>
-          <small>مستحق الآن</small>
-        </article>
-        <article className="metric-card">
-          <span>Strong skills</span>
-          <strong>{mastered}</strong>
-          <small>provisional/mastered</small>
-        </article>
-        <article className="metric-card">
-          <span>Independent evidence</span>
-          <strong>{evidence}</strong>
-          <small>distinct questions</small>
-        </article>
-      </section>
-      <section className="panel" style={{ marginTop: 18 }}>
-        <div className="panel-head">
-          <h2>خريطة المهارات</h2>
-          <span className="pill">Explainable mastery</span>
+      </div>
+      <div className="aura-progress-ring" role="img" aria-label={"متوسط الإتقان "+average+" بالمئة"}>
+        <svg viewBox="0 0 180 180" aria-hidden="true">
+          <circle cx="90" cy="90" r="72" fill="none" stroke="currentColor" strokeOpacity=".12" strokeWidth="14"/>
+          <circle cx="90" cy="90" r="72" fill="none" stroke="currentColor" strokeWidth="14"
+            strokeLinecap="round" strokeDasharray={2*Math.PI*72}
+            strokeDashoffset={2*Math.PI*72*(1-average/100)} transform="rotate(-90 90 90)"/>
+        </svg>
+        <div><strong>{average}%</strong><span>متوسط الإتقان</span></div>
+      </div>
+    </header>
+    <section className="aura-progress-statstrip" aria-label="مؤشرات إتقانك">
+      <div><span>المهارات المتتبعة</span><strong>{rows.length}</strong><small>حسب محاولاتك</small></div>
+      <div><span>تحتاج مراجعة الآن</span><strong>{due.length}</strong><small>على جدول المراجعة</small></div>
+      <div><span>مهارات قوية</span><strong>{mastered.length}</strong><small>مبدئيًا أو بالكامل</small></div>
+      <div><span>دلائل الإجابة المستقلة</span><strong>{evidence}</strong><small>أسئلة متنوعة</small></div>
+    </section>
+    <section className="aura-progress-map" aria-labelledby="aura-skill-title">
+      <div className="aura-progress-map-heading">
+        <div><span className="eyebrow">تفاصيل التعلم</span><h2 id="aura-skill-title">خريطة المهارات</h2>
+          <p>ابدأ بالأضعف، وارجع للمستحق، واحتفظ بما أتقنته.</p></div>
+        <button type="button" onClick={()=>setRefetch(x=>x+1)} disabled={loading} aria-label="تحديث خريطة المهارات">
+          <Icon name="refresh" size={17}/> تحديث
+        </button>
+      </div>
+      <div className="aura-progress-filters">
+        <div role="group" aria-label="تصفية المهارات">
+          {([
+            ["all","الكل",rows.length],
+            ["due","للمراجعة",due.length],
+            ["learning","قيد التطور",rows.length-mastered.length-due.filter(x=>!isMastered(x)).length],
+            ["mastered","متقنة",mastered.length],
+          ] as const).map(([value,label,count])=><button key={value} type="button"
+            aria-pressed={view===value} onClick={()=>setView(value)}>
+            {label}<small>{Math.max(0,count)}</small>
+          </button>)}
         </div>
-        <div className="quest-list">
-          {rows.map((row, i) => (
-            <div className="quest" key={(row.skills?.title_ar ?? "skill") + i}>
-              <div className="quest-icon">
-                {Math.round(Number(row.mastery_score))}
+        <input type="search" aria-label="البحث في المهارات" value={search} onChange={e=>setSearch(e.target.value)} placeholder="دور على مهارة…"/>
+      </div>
+      {error&&<p role="alert" className="aura-progress-error">{error}</p>}
+      {loading&&<p role="status" className="aura-progress-refreshing">بنحدّث المعلومات…</p>}
+      <div className="aura-progress-skill-list">
+        {filtered.map((row,index)=>{
+          const score=scoreOf(row);
+          const review=isDue(row,now);
+          return <article key={(row.skills?.title_ar??"skill")+"-"+index} className="aura-progress-skill">
+            <div className="aura-progress-skill-num">{String(index+1).padStart(2,"0")}</div>
+            <div className="aura-progress-skill-body">
+              <div className="aura-progress-skill-top">
+                <div><h3>{row.skills?.title_ar??"مهارة غير مسماة"}</h3>
+                  <p>{LABELS[row.state]??"قيد التقييم"} · {Math.max(0,Number(row.independent_distinct_count)||0)} إجابات مستقلة</p></div>
+                <span className={"aura-progress-skill-status "+(review?"due":"")}>
+                  {review?"مراجعة مستحقة":isMastered(row)?"متقنة":"قيد التعلّم"}
+                </span>
               </div>
-              <div>
-                <h3>{row.skills?.title_ar ?? "مهارة"}</h3>
-                <p>
-                  {row.state.replaceAll("_", " ")} ·{" "}
-                  {row.independent_distinct_count} independent
-                </p>
-                <div className="progress">
-                  <i style={{ width: Number(row.mastery_score) + "%" }} />
-                </div>
+              <div className="aura-progress-skill-meter" role="progressbar" aria-label={"إتقان "+(row.skills?.title_ar??"المهارة")}
+                aria-valuemin={0} aria-valuemax={100} aria-valuenow={score}>
+                <span style={{width:score+"%"}}/>
               </div>
-              <b>{Math.round(Number(row.mastery_score))}%</b>
             </div>
-          ))}
-          {!rows.length && (
-            <div style={{ padding: 18, color: "var(--muted)" }}>
-              لسه مفيش evidence كفاية. ابدأ أول Mission علشان Noata يبني خريطة
-              إتقانك.
-            </div>
-          )}
-        </div>
-      </section>
-    </>
-  );
+            <strong className="aura-progress-skill-percent">{score}%</strong>
+          </article>;
+        })}
+        {!filtered.length&&<div className="aura-progress-empty">
+          <Icon name="book" size={28}/>
+          <h3>{rows.length?"مفيش مهارات بنفس التصفية دي":"خريطة مهاراتك لسه بتتكوّن"}</h3>
+          <p>{rows.length?"جرّب تصفية مختلفة أو امسح كلمة البحث.":"ابدأ مهمة أو درس. مع الوقت هتظهر هنا أدلة الإتقان الحقيقية."}</p>
+          {!rows.length&&<Link href="/missions" className="aura-progress-secondary">اختار مهمة للبدء</Link>}
+        </div>}
+      </div>
+    </section>
+  </div>;
 }
