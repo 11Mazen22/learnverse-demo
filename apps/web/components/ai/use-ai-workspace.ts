@@ -36,6 +36,7 @@ import {
   validateAttachment,
   parseStreamFrames,
   friendlyError,
+  aiResponseFailure,
   type Conversation,
   type Message,
 } from "@/lib/ai/workspace";
@@ -449,13 +450,39 @@ export function useAIWorkspace() {
     }
     return path;
   }
+  async function assertFanarConfigured(token: number, signal: AbortSignal) {
+    // Check availability before creating a conversation or writing messages.
+    // This checks credentials presence, not live inference or provider health.
+    const { data, error } = await supabase.functions.invoke(AI_FUNCTION, {
+      body: { action: "readiness" },
+      signal,
+    });
+    assertSession(token);
+    if (error) {
+      const context = (error as { context?: unknown }).context;
+      if (context instanceof Response) {
+        const body = await context.json().catch(() => null);
+        throw Error(aiResponseFailure(context.status, body));
+      }
+      throw error;
+    }
+    if (data?.configured === false) throw Error("FANAR_NOT_CONFIGURED");
+    if (data?.configured !== true) throw Error("FANAR_UNAVAILABLE");
+  }
   async function invoke(payload: Record<string, unknown>) {
     const { data, error } = await supabase.functions.invoke(AI_FUNCTION, {
       body: { ...payload, requestId: crypto.randomUUID() },
       signal: abort.current?.signal,
       timeout: 180000,
     });
-    if (error) throw error;
+    if (error) {
+      const context = (error as { context?: unknown }).context;
+      if (context instanceof Response) {
+        const body = await context.json().catch(() => null);
+        throw Error(aiResponseFailure(context.status, body));
+      }
+      throw error;
+    }
     if (data?.error) throw Error(String(data.error));
     return data;
   }
@@ -492,7 +519,10 @@ export function useAIWorkspace() {
       },
     );
     assertSession(token);
-    if (!response.ok) throw Error(String(response.status));
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw Error(aiResponseFailure(response.status, body));
+    }
     if (!response.headers.get("content-type")?.includes("text/event-stream")) {
       const data = await response.json();
       assertSession(token);
@@ -612,6 +642,8 @@ export function useAIWorkspace() {
     let retainedDocumentIds: string[] = [];
     let sourcesSaved = false;
     try {
+      await assertFanarConfigured(token, controller.signal);
+      assertSession(token);
       conversationId = await ensureConversation(
         text || messages[0]?.content || "محادثة",
         token,
