@@ -162,8 +162,23 @@ export function parseStreamFrames(buffer: string) {
     .filter(Boolean);
   return { data, rest };
 }
+/** Translate a provider HTTP failure into a stable, non-sensitive UI error. */
+export function aiResponseFailure(status: number, body: unknown): string {
+  const value = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  if (status === 503 &&
+      (value.code === "FANAR_NOT_CONFIGURED" ||
+       value.error === "AI backend is not configured"))
+    return "FANAR_NOT_CONFIGURED";
+  if (status === 503) return "FANAR_UNAVAILABLE";
+  return String(status);
+}
+
 export function friendlyError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("FANAR_NOT_CONFIGURED"))
+    return "مساعد Noata AI غير متاح في بيئة الاختبار حاليًا لأن ربط Fanar لم يكتمل بعد. لم تُرسل رسالتك إلى النموذج؛ احتفظ بها لحين تفعيل الخدمة.";
+  if (/FANAR_UNAVAILABLE|\b503\b/.test(message))
+    return "خدمة Fanar غير متاحة مؤقتًا. لم نتمكن من إكمال الرد؛ حاول لاحقًا.";
   if (/429|quota|rate/i.test(message))
     return "وصلت لحد الاستخدام الحالي. جرّب بعد شوية.";
   if (/401|jwt|sign in|auth|session/i.test(message))
