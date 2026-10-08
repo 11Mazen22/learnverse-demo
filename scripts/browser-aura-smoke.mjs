@@ -165,6 +165,14 @@ async function verifyQuranControls(){
     await evaluate('document.querySelector("[aria-label=\\\"تكبير خط القرآن\\\"]")?.click()');
     const changed=await evaluate('document.querySelector(".aura-quran-verse")?.style.fontSize');
     invariant(original!==changed,"Quran font sizing");
+    const reading=await evaluate('(()=>{const b=document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]");const p=document.querySelector(".aura-quran-verse");return {label:b?.textContent?.trim(),font:p?.style.fontSize,persisted:localStorage.getItem("noata-quran-reading-percent-v2")}})()');
+    invariant(reading.label.includes("١١٠")&&reading.persisted==="110"&&Math.abs(parseFloat(reading.font)-35.2)<0.2,"Quran percentage matches rendered font and stored size");
+    await navigate("/quran");
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===2'),"Quran size persisted on reload");
+    invariant(await evaluate('document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.textContent?.includes("١١٠")'),"Quran percentage restores from persistent state");
+    await evaluate('document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.click()');
+    const reset=await evaluate('(()=>({value:document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.textContent,px:parseFloat(getComputedStyle(document.querySelector(".aura-quran-verse")).fontSize)}))()');
+    invariant(reset.value.includes("١٠٠")&&Math.abs(reset.px-32)<0.2,"Quran reset returns to exact 100 percent font size");
     await evaluate('(()=>{const s=document.querySelector("select[aria-label=\\\"اختيار سورة\\\"]");s.value="2";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
     await waitFor(async()=>await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran chapter navigation");
     invariant(await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran surah chooser");
