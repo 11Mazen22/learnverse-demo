@@ -42,6 +42,28 @@ The archives contain historical account/authentication/chat data and must remain
 - Image uploads now precede user-message persistence; message metadata records the actual private storage path, filename and MIME type. The chat history refreshes private signed preview links when reopened. Standalone image analysis is enabled, and unsupported image+tool combinations explicitly fail rather than pretending to process a file.
 - No new external AI provider, model capability, production database migration, or destructive action.
 
+## Noata Aura milestone 2: functional AI, export and browser QA
+
+The following implementation is on this branch:
+
+- `apps/web/lib/ai/document-text.ts`: bounded (512 KiB file; 9000 text characters) TXT, MD, CSV and JSON extraction. Excerpts are actually included in the Fanar message context and preserved in private per-message metadata for later turns. Original text document bytes are **not** kept in Storage because the current production bucket allowlist only permits images/audio. This is deliberate; no live bucket settings were changed.
+- `apps/web/components/ai/attachment-message.tsx`: accessible image and text-excerpt preview dialog with filename, authorized signed image links, truncation disclosure, and no fake binary-document preview.
+- `apps/web/lib/ai/docx-export.ts`: genuine editable Word/OOXML ZIP export (UTF-8 paragraphs, Arabic RTL and basic heading styles). ZIP archive integrity is tested. Complex HTML-to-Word fidelity is **not** claimed.
+- `apps/web/components/ai/writing-studio.tsx`: a real response editor with live Markdown preview, Word and Markdown export, plus print-to-PDF through the user's native browser dialog. Native PDF file generation is **not yet available**.
+- `apps/web/components/ai/conversation-history.tsx`: keyboard/touch-accessible RTL conversation action menu.
+- `apps/web/components/ai/noata-ai-client.tsx`: connected writing studio, document preview, text attachment picker, refined AI controls and a bounded composer.
+- `apps/web/components/dashboard/dashboard-live.tsx`: a real recommended-next-step action from due reviews or the next incomplete lesson, not fabricated metrics.
+- `apps/web/app/globals.css`: shared Noata Aura learning shell and AI workspace styling for Arabic typography, responsive navigation, cards, dialogs, reading width, interactions and reduced motion.
+- `scripts/browser-aura-smoke.mjs` and `.github/workflows/noata-ci.yml`: actual headless Chrome CDP checks with screenshots, no Playwright dependency.
+
+Independent successful browser CI evidence (commit `07527748`, workflow run `37706092602`): 58 public-browser assertions, 11 routes, desktop/tablet/mobile 320/390/768/1440, light/dark mode, 8 PNG screenshots. Overall CI completed successfully with 95 tests passed. Later commits require their own exact-head validation; do not treat earlier success as proof of their behavior.
+
+### Remaining verification limits
+
+Authenticated student/teacher/admin browser sessions, real positive Fanar inference with an authorized QA account, live TTS playback and image-understanding responses, attachment lifecycle deletion under RLS, fully automated PDF generation, binary document reading (PDF/DOCX/XLSX/PPTX), Quran canonical data and licensing integration, per-model provider-health checks, and genuinely complete route-by-route UI audit are not certified by this milestone.
+
+We did not import historical Open WebUI private data or use old credentials. We did not merge the branch or change the official domain.
+
 ## Still required for the complete brief
 
 1. Real end-to-end browser tests of audio playback/navigation, on desktop/mobile, with authenticated test accounts.
