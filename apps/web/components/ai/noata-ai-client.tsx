@@ -1433,16 +1433,16 @@ export function NoataAIClient() {
         title="ورشة المذاكرة · Noata Aura"
       >
         <EducationPanel
-          canSend={!busy && !attachment && documentFiles.length === 0}
+          canSend={signedIn && !busy && !loading && !attachment && documentFiles.length === 0}
           onUse={(prompt) => {
             setInput(prompt);
             setEducationOpen(false);
             window.setTimeout(() => composer.current?.focus(), 0);
           }}
           onSend={(prompt) => {
-            setInput(prompt);
             setEducationOpen(false);
-            window.setTimeout(() => composer.current?.form?.requestSubmit(), 0);
+            // Send the exact workshop prompt, independent of React state timing.
+            void send(undefined, "send", undefined, prompt);
           }}
         />
       </Dialog>
