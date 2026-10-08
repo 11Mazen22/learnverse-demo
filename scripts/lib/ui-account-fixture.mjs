@@ -390,6 +390,41 @@ export async function verifyUiAccountContracts({
     );
     invariant(true, "Notification marks require returned records");
     await auditView("notifications");
+    // Account avatar MUST open a menu; it must never sign the user out.
+    await waitFor(
+      () => evaluate('!!document.querySelector(".noata-account-trigger")'),
+      "synthetic authenticated account trigger",
+    );
+    const logoutsBefore = await evaluate(
+      'window.__noataUiFixture.state.calls.filter(c=>c.path.includes("/auth/v1/logout")).length',
+    );
+    await evaluate('document.querySelector(".noata-account-trigger").click()');
+    await waitFor(
+      () => evaluate('!!document.querySelector("#noata-account-menu")'),
+      "avatar opens account menu",
+    );
+    invariant(
+      await evaluate('!!document.querySelector("#noata-account-menu a[href="/settings"]") && !!document.querySelector("#noata-account-menu .noata-account-logout")'),
+      "Account menu separates settings and explicit sign-out",
+    );
+    invariant(
+      (await evaluate('window.__noataUiFixture.state.calls.filter(c=>c.path.includes("/auth/v1/logout")).length')) === logoutsBefore,
+      "Opening avatar does not terminate an authenticated session",
+    );
+    await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}))');
+    await waitFor(
+      () => evaluate('!document.querySelector("#noata-account-menu")'),
+      "account menu closes with Escape",
+    );
+    await navigate("/settings");
+    await waitFor(
+      () => evaluate('!!document.querySelector("#aura-account .aura-settings-signout")'),
+      "independent settings session actions",
+    );
+    invariant(
+      await evaluate('document.querySelector("#aura-account")?.textContent.includes("تسجيل الخروج من حسابي")'),
+      "Settings includes explicit Arabic logout control",
+    );
     await navigate("/teacher");
     await waitFor(
       () => evaluate('document.body.innerText.includes("مش متاحة لحسابك")'),
