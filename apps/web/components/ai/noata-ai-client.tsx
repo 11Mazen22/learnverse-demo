@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
 import { TOOLS } from "@/lib/ai/workspace";
+import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
@@ -127,10 +128,20 @@ export function NoataAIClient() {
     return () => window.removeEventListener("keydown", handler);
   }, [composer, newChat]);
 
-  function exportConversation(format: "markdown" | "json") {
+  function exportConversation(format: "markdown" | "json" | "docx") {
     const stamp = new Date().toISOString().slice(0, 10);
     const title = (activeConversation?.title || "noata-ai-chat").replace(/[\\/:*?"<>|]/g, "-");
-    if (format === "json") {
+    if (format === "docx") {
+      const body = "# " + (activeConversation?.title ?? "محادثة Noata AI") + "\n\n" +
+        messages.filter(m => m.role !== "system")
+          .map(m => (m.role === "user" ? "## أنت" : "## Noata AI") + "\n" + m.content)
+          .join("\n\n");
+      if (body.length > 200000) {
+        setNotice("المحادثة طويلة جدًا لملف واحد. صدّرها بصيغة Markdown.");
+        return;
+      }
+      downloadNoataDocx(body, title + "-" + stamp + ".docx");
+    } else if (format === "json") {
       downloadText(
         title + "-" + stamp + ".json",
         JSON.stringify(
@@ -923,6 +934,7 @@ export function NoataAIClient() {
                 <div className="owui-export-actions">
                   <button type="button" disabled={!messages.length} onClick={() => exportConversation("markdown")}>Markdown</button>
                   <button type="button" disabled={!messages.length} onClick={() => exportConversation("json")}>JSON</button>
+                  <button type="button" disabled={!messages.length} onClick={() => exportConversation("docx")}>Word DOCX</button>
                 </div>
               </>
             )}
