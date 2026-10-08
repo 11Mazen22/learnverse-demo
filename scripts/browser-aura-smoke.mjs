@@ -68,7 +68,7 @@ async function screenshot(file) {
 }
 async function auditView(kind) {
 await evaluate(axeSource);
-        const audit=await evaluate('Promise.race([axe.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21aa","wcag22aa"]}}).then(r=>({violations:r.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),incomplete:r.incomplete.map(v=>v.id)})),new Promise((_,reject)=>setTimeout(()=>reject(Error("axe audit exceeded 16 seconds")),16000))])',"axe accessibility audit",22000);
+        const audit=await evaluate('Promise.race([axe.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21aa","wcag22aa"]}}).then(r=>({violations:r.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),incomplete:r.incomplete.map(v=>v.id),manualReview:r.incomplete.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))})),new Promise((_,reject)=>setTimeout(()=>reject(Error("axe audit exceeded 16 seconds")),16000))])',"axe accessibility audit",22000);
         accessibility.push({...location,kind,...audit});
 }
 async function auditSyntheticView(name) {

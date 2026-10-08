@@ -1,6 +1,6 @@
 # Noata isolated staging provisioning proposal
 
-Prepared 2026-10-08. **AWAITING EXPLICIT CREATION APPROVAL. No resource created.**
+Prepared 2026-10-08. **CREATION APPROVED: Free only, $0 additional monthly ceiling. No resource created by this cloud agent; execution is blocked by the unavailable management connection.**
 
 | Setting | Proposed value |
 | --- | --- |
@@ -26,6 +26,9 @@ Before executing an approved creation, recheck eligibility and the $0 estimate. 
 5. Prepare disposable student A/B, teacher A/B and admin fixtures using ordinary authentication. Exercise the full role/storage/provider matrix in `TESTING.md` and `AI_CAPABILITY_MATRIX.md`; the current opt-in authenticated smoke is only a subset. Apply no migration or fixture mutation to production.
 6. Validate real byte cleanup, 30-day expiry, owner/conversation quotas, revoked access, short signed-link lifetimes and scheduler behavior before advertising retained-document storage.
 
-## Requested decision
+## Recorded approval and next action
 
-Approve creation of **only** `noata-staging` in organization `sbvcxdwcawkddndptsuh`, region `eu-west-2`, on Free with a $0 additional monthly ceiling. Explicit approval is required by the user's instruction: **“Do not create the project or accept any paid upgrade until I explicitly approve.”** Even with approval, execution needs an authorized callable Supabase connection; this session currently has none.
+The user approved creation of **only** `noata-staging` in organization `sbvcxdwcawkddndptsuh`, region `eu-west-2`, on Free with a $0 additional monthly ceiling. The approval satisfies the earlier user instruction: **“Do not create the project or accept any paid upgrade until I explicitly approve.”** Execution still needs an authorized callable Supabase connection; this session currently has none.
+
+
+The user additionally authorized safe staging configuration and authenticated testing after creation, while keeping production untouched and PR #3 draft. Recheck the $0 quote before executing; stop if payment is required. This session has no callable Supabase connector or management credential. Return the **new** public reference/status through the connected session; store keys/passwords only in secure staging settings. The private-document migration remains unapplied and retention stays off. An approved creation is not evidence that a project exists or that authenticated QA passed.

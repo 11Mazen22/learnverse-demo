@@ -57,7 +57,7 @@ Evidence is ignored locally and uploaded by CI:
 
 ## Isolated staging contract
 
-1. Provision an explicitly authorized separate Supabase project. Connected `learnverse-demo` is not approved for QA. After explicit provisioning and migration authorization, review/apply existing migrations plus `20261008150000_private_ai_documents.sql` there; verify bucket privacy and real `metadata.mimetype`/`metadata.size` matching. Do not apply to production.
+1. Execute the approved $0 Free-only creation for `noata-staging` when a management connection is available; recheck cost first. Connected `learnverse-demo` is not approved for QA. After verified isolated provisioning and appropriate migration authorization, review/apply existing migrations plus `20261008150000_private_ai_documents.sql` there; verify bucket privacy and real `metadata.mimetype`/`metadata.size` matching. Do not apply to production.
 2. Set public staging URL/key at build time: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Keep passwords/service keys in secure settings. Enable `NOATA_DOCUMENT_STORAGE_ENABLED=true` only after policy checks. Runner preflight requires deployed `NOATA_STAGING_QA_ENABLED=true` and matching `AURA_STAGING_DB_REF`.
 3. Configure the real staging AI backend/provider secrets and quotas. Seed disposable student A/B, teacher A/B and admin fixtures. Keep ordinary auth; no bypasses. The QA student must enable memory for persistence checks.
 4. Run `authenticated-aura-smoke.mjs` with `AURA_ALLOW_QA_RUN=YES`, accessible HTTPS `AURA_STAGING_ORIGIN` on `vercel.app`, matching `AURA_STAGING_DB_REF`, `AURA_QA_EMAIL` and `AURA_QA_PASSWORD`. Preview protection must allow the preflight/browser; this runner does not bypass it. No configured run performed here.

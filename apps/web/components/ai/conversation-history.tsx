@@ -218,7 +218,7 @@ export function ConversationHistory(p: Props) {
         </button>
       </div>
 
-      <div className="owui-history" aria-label={p.archived ? "المحادثات المؤرشفة" : "المحادثات"}>
+      <div className="owui-history" role="region" aria-label={p.archived ? "المحادثات المؤرشفة" : "المحادثات"}>
         {grouped.pinned.length > 0 && (
           <section className="owui-chat-group">
             <h3>مثبّتة</h3>
