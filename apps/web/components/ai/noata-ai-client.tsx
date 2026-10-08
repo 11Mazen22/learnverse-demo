@@ -1431,6 +1431,7 @@ export function NoataAIClient() {
         open={educationOpen}
         onClose={() => setEducationOpen(false)}
         title="ورشة المذاكرة · Noata Aura"
+        variant="workshop"
       >
         <EducationPanel
           canSend={Boolean(signedIn) && !busy && !loading && !attachment && documentFiles.length === 0}
