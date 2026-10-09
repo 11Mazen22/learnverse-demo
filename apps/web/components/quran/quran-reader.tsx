@@ -21,7 +21,8 @@ type Source = {
   edition: string;
   reference: string;
   terms: string;
-  audioEdition: string;
+  audioEdition: string | null;
+  requestedAudioEdition?: string;
   reciterName?: string;
 };
 const LOCAL_KEY = "noata-quran-bookmarks-v1";
@@ -57,6 +58,7 @@ export function QuranReader() {
   const [expanded,setExpanded]=useState(false);
   const [chapter, setChapter] = useState<Chapter>(INITIAL);
   const [source, setSource] = useState<Source | null>(null);
+  const [audioAvailability, setAudioAvailability] = useState<{available: boolean; reason: string | null}>({available:false,reason:null});
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
   const [searchError, setSearchError] = useState("");
@@ -119,6 +121,7 @@ export function QuranReader() {
     setActiveAudio(null);
     playbackMode.current="single";
     setVerses([]);
+    setAudioAvailability({available:false,reason:null});
     setExpanded(Boolean(targetAyah?.startsWith(selected+":") && Number(targetAyah.split(":")[1])>5));
     setLoading(true);
     setError("");
@@ -135,6 +138,7 @@ export function QuranReader() {
         setVerses(data.verses);
         setChapter(data.surah);
         setSource(data.source);
+        setAudioAvailability({available: Boolean(data.audioAvailable),reason: typeof data.audioUnavailableReason==="string" ? data.audioUnavailableReason : null});
       } catch (e) {
         if (!controller.signal.aborted)
           setError(
@@ -332,6 +336,7 @@ export function QuranReader() {
           {playbackMode.current==="surah"&&activeAudio!==null?"إيقاف السورة":"استمع للسورة كاملة"}
         </button>
         <small aria-live="polite">{activeAudio===null?"التشغيل يبدأ باختيارك؛ لا تشغيل تلقائي": "تُتلى الآية "+activeAudio.toLocaleString("ar-EG")+" · "+(playbackMode.current==="surah"?"تلاوة متتابعة":"آية واحدة")}</small>
+        {!loading && !error && !audioAvailability.available && audioAvailability.reason && <small role="status" className="noata-quran-audio-unavailable">{audioAvailability.reason}</small>}
       </section>
       <div className="aura-quran-toolbar">
         <label>
