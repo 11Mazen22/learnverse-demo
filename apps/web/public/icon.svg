@@ -1,17 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" aria-hidden="true">
-<rect width="512" height="512" rx="104" fill="#081F46"/>
-<!-- Graduation cap stays above the monogram with clear negative space. -->
-<path d="M89 106 256 42l167 64-167 67L89 106Z" fill="#FFFFFF"/>
-<path d="M161 152v36c48 28 142 28 190 0v-36l-95 38-95-38Z" fill="#FFFFFF" opacity=".86"/>
-<path d="M108 120v87" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
-<circle cx="108" cy="213" r="11" fill="#139CFA"/>
-<path d="m108 222-13 41h26l-13-41Z" fill="#139CFA"/>
-<!-- Clear N silhouette: two vertical stems and a distinct blue diagonal. -->
-<path d="M149 246v91" stroke="#FFFFFF" stroke-width="43" stroke-linecap="round"/>
-<path d="M363 246v91" stroke="#FFFFFF" stroke-width="43" stroke-linecap="round"/>
-<path d="m162 233 192 119" stroke="#139CFA" stroke-width="49" stroke-linecap="round"/>
-<!-- Separate, open-book base: top edge below N; no collision or overlap. -->
-<path d="M66 393c70-21 131-12 190 25 59-37 120-46 190-25v52c-65-18-132-9-190 29-58-38-125-47-190-29v-52Z" fill="#FFFFFF"/>
-<path d="M256 420v48" stroke="#139CFA" stroke-width="9" stroke-linecap="round"/>
-<path d="M90 410c61-11 114 0 151 25m181-25c-61-11-114 0-151 25" stroke="#8BD4FF" stroke-width="11" stroke-linecap="round" opacity=".9"/>
+<defs><linearGradient id="noata-blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2F7CFF"/><stop offset="1" stop-color="#78D7FF"/></linearGradient></defs>
+<rect width="512" height="512" rx="128" fill="#06111F"/>
+<rect x="70" y="70" width="372" height="372" rx="108" fill="url(#noata-blue)"/>
+<path d="M162 354V158h54l80 111V158h54v196h-49l-85-117v117z" fill="#FFFFFF"/>
 </svg>
