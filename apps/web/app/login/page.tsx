@@ -1,11 +1,13 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
+import { canonicalAuthOrigin, canonicalLoginDestination } from "@/lib/auth/canonical-origin";
+import { authCallbackUrl, type AuthFlow } from "@/lib/auth/flows";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 
@@ -53,12 +55,25 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<"" | "form" | "google" | "resend">("");
 
+  const authCanonicalOrigin = () =>
+    canonicalAuthOrigin(window.location.origin, process.env.NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN);
+  const beginOnCanonicalHost = () => {
+    const target = canonicalLoginDestination(window.location.href, process.env.NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN);
+    if (!target) return false;
+    window.location.replace(target);
+    return true;
+  };
+  useEffect(() => {
+    // Same-origin PKCE verifier and callback; avoid unallowlisted immutable Preview URLs.
+    if (beginOnCanonicalHost()) return;
+    const requestedMode = new URLSearchParams(window.location.search).get("mode");
+    if (requestedMode === "signup") setMode("signup");
+    if (requestedMode === "forgot") window.location.replace("/auth/forgot-password");
+  }, []);
   const nextPath = () =>
     safeNextPath(new URLSearchParams(window.location.search).get("next"));
-  const callbackUrl = () =>
-    window.location.origin +
-    "/auth/callback?next=" +
-    encodeURIComponent(nextPath());
+  const callbackUrl = (flow: AuthFlow = "signup") =>
+    authCallbackUrl(authCanonicalOrigin(), flow, nextPath());
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -67,14 +82,14 @@ export default function LoginPage() {
   }
 
   async function signInWithGoogle() {
-    if (busy) return;
+    if (busy || beginOnCanonicalHost()) return;
     setBusy("google");
     setError("");
     try {
       const { error } = await createClient().auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: callbackUrl(),
+          redirectTo: callbackUrl("oauth"),
           queryParams: { prompt: "select_account" },
         },
       });
@@ -89,7 +104,7 @@ export default function LoginPage() {
   }
 
   async function resendVerification() {
-    if (busy || !email.trim()) return;
+    if (busy || !email.trim() || beginOnCanonicalHost()) return;
     setBusy("resend");
     setError("");
     setMessage("");
@@ -97,7 +112,7 @@ export default function LoginPage() {
       const { error } = await createClient().auth.resend({
         type: "signup",
         email,
-        options: { emailRedirectTo: callbackUrl() },
+        options: { emailRedirectTo: callbackUrl("signup") },
       });
       if (error) setError(localizeAuthError(error));
       else setMessage("أرسلنا رسالة تأكيد جديدة. قد تستغرق دقيقة للوصول.");
@@ -110,6 +125,7 @@ export default function LoginPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (beginOnCanonicalHost()) return;
     setBusy("form");
     setError("");
     setMessage("");
@@ -118,7 +134,7 @@ export default function LoginPage() {
 
     if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + "/auth/callback?next=" + encodeURIComponent("/auth/update-password"),
+        redirectTo: callbackUrl("recovery"),
       });
       setBusy("");
       if (error) {
@@ -136,14 +152,14 @@ export default function LoginPage() {
       if (error) {
         if (error.code === "email_not_confirmed") {
           setBusy("");
-          setMode("verify");
+          window.location.assign("/auth/check-email?type=signup");
           return;
         }
         setError(localizeAuthError(error));
         setBusy("");
         return;
       }
-      window.location.href = nextPath();
+      window.location.assign(nextPath());
       return;
     }
 
@@ -158,7 +174,7 @@ export default function LoginPage() {
       password,
       options: {
         data: { display_name: name.trim() },
-        emailRedirectTo: callbackUrl(),
+        emailRedirectTo: callbackUrl("signup"),
       },
     });
     if (error) {
@@ -167,11 +183,11 @@ export default function LoginPage() {
       return;
     }
     if (data.session) {
-      window.location.href = nextPath();
+      window.location.assign(nextPath());
       return;
     }
     setBusy("");
-    setMode("verify");
+    window.location.assign("/auth/check-email?type=signup");
     } catch {
       setError("تعذّر الاتصال بالخادم الآن. تحقّق من اتصالك ثم أعد المحاولة.");
       setBusy("");
@@ -271,7 +287,7 @@ export default function LoginPage() {
                   <span className="auth-field-row">
                     كلمة المرور
                     {mode === "signin" && (
-                      <button type="button" className="auth-inline-link" onClick={() => switchMode("forgot")}>
+                      <button type="button" className="auth-inline-link" onClick={() => window.location.assign("/auth/forgot-password")}>
                         نسيت كلمة المرور؟
                       </button>
                     )}

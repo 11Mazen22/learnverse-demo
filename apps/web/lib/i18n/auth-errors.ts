@@ -22,6 +22,7 @@ const BY_CODE: Record<string, string> = {
   session_not_found: "انتهت جلستك لحمايتك. سجّل الدخول مرة أخرى للمتابعة.",
   refresh_token_not_found: "انتهت جلستك لحمايتك. سجّل الدخول مرة أخرى للمتابعة.",
   provider_disabled: "تسجيل الدخول بهذه الطريقة غير مفعّل حاليًا. استخدم البريد الإلكتروني.",
+  STAGING_CONFIGURATION_MISMATCH: "إعدادات الاتصال ببيئة Noata التجريبية غير مطابقة. لم تُرسل بياناتك؛ حاول لاحقًا بعد تصحيح الربط.",
   validation_failed: "تحقّق من البيانات المدخلة وحاول مرة أخرى.",
   email_address_invalid: "صيغة البريد الإلكتروني غير صحيحة.",
   signup_disabled: "إنشاء الحسابات الجديدة متوقف مؤقتًا.",
@@ -44,6 +45,7 @@ const BY_MESSAGE: [RegExp, string][] = [
   [/invalid.*email|unable to validate email/i, BY_CODE.email_address_invalid],
   [/signups? not allowed/i, BY_CODE.signup_disabled],
   [/fetch|network|failed to fetch/i, "تعذّر الاتصال بالخادم. تحقّق من اتصالك بالإنترنت وحاول مجددًا."],
+  [/STAGING_CONFIGURATION_MISMATCH|unapproved.*project|project.*mismatch/i, BY_CODE.STAGING_CONFIGURATION_MISMATCH],
 ];
 
 export const GENERIC_AUTH_ERROR = "حدث خطأ غير متوقع. حاول مرة أخرى بعد لحظات.";
@@ -54,6 +56,8 @@ export function localizeAuthError(error: AuthLikeError): string {
   const message = error.message ?? "";
   for (const [pattern, copy] of BY_MESSAGE) if (pattern.test(message)) return copy;
   if (error.status === 429) return BY_CODE.over_request_rate_limit;
+  if (error.status === 503 || error.status === 502 || error.status === 504) return "خدمة تسجيل الدخول غير متاحة مؤقتًا في بيئة الاختبار. لن نعيد محاولة تسجيل الدخول دون إذنك.";
+  if (error.status === 500) return "تعذّر إكمال طلب تسجيل الدخول على الخادم. يُرجى المحاولة لاحقًا.";
   return GENERIC_AUTH_ERROR;
 }
 

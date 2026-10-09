@@ -51,9 +51,11 @@ async function navigate(path) {
   location.path=path;
   location.stage="Page.navigate";
   await command("Page.navigate",{url:base+path});
+  const expected = new URL(path, base);
   await waitFor(async()=> {
-    const state=await evaluate("({ready: document.readyState, path: location.pathname, size: document.body?.innerText?.length || 0})");
-    return state.ready === "complete" && state.path === path && state.size > 30;
+    const state=await evaluate("({ready: document.readyState, path: location.pathname, search: location.search, size: document.body?.innerText?.length || 0})");
+    return state.ready === "complete" && state.path === expected.pathname &&
+      state.search === expected.search && state.size > 30;
   }, path);
   await waitFor(async()=>await evaluate(`!document.querySelector('.aura-loading-state,.aura-progress-loading,.owui-loading,[aria-busy="true"]') && !Array.from(document.querySelectorAll('[role="status"]')).some(el=>/بنحمّل|بنجهّز|نتحقق من الحساب/.test(el.textContent))`),path+" settled loading/error/guest state",30000);
   // Never await document.fonts.ready unbounded in a CDP evaluate call: slow
@@ -165,6 +167,14 @@ async function verifyQuranControls(){
     await evaluate('document.querySelector("[aria-label=\\\"تكبير خط القرآن\\\"]")?.click()');
     const changed=await evaluate('document.querySelector(".aura-quran-verse")?.style.fontSize');
     invariant(original!==changed,"Quran font sizing");
+    const reading=await evaluate('(()=>{const b=document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]");const p=document.querySelector(".aura-quran-verse");return {label:b?.textContent?.trim(),font:p?.style.fontSize,persisted:localStorage.getItem("noata-quran-reading-percent-v2")}})()');
+    invariant(reading.label.includes("١١٠")&&reading.persisted==="110"&&Math.abs(parseFloat(reading.font)-35.2)<0.2,"Quran percentage matches rendered font and stored size");
+    await navigate("/quran");
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===2'),"Quran size persisted on reload");
+    invariant(await evaluate('document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.textContent?.includes("١١٠")'),"Quran percentage restores from persistent state");
+    await evaluate('document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.click()');
+    const reset=await evaluate('(()=>({value:document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.textContent,px:parseFloat(getComputedStyle(document.querySelector(".aura-quran-verse")).fontSize)}))()');
+    invariant(reset.value.includes("١٠٠")&&Math.abs(reset.px-32)<0.2,"Quran reset returns to exact 100 percent font size");
     await evaluate('(()=>{const s=document.querySelector("select[aria-label=\\\"اختيار سورة\\\"]");s.value="2";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
     await waitFor(async()=>await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran chapter navigation");
     invariant(await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran surah chooser");
@@ -373,7 +383,44 @@ async function main() {
     invariant(ar.overflow<=3&&ar.left>=-3&&ar.right<=ar.viewport+3,"Auth "+authWidth+" overflow");
     await screenshot("artifacts/noata-browser/auth-"+authWidth+".png");
   }
+  // Real public browser audit for every stage of the Arabic recovery journey.
+  // Never request actual reset emails from this non-authenticated browser fixture.
+  for (const width of [1440,390,320]) {
+    location.width=width;
+    await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
+    for(const [route,expected] of [
+      ["/auth/forgot-password","رابط الاستعادة"],
+      ["/auth/check-email?type=signup","حسابك"],
+      ["/auth/check-email?type=recovery","الاستعادة"],
+      ["/auth/error?reason=expired","صلاحية"],
+      ["/auth/error?reason=invalid","صالح"],
+      ["/auth/complete?type=verified","حسابك"],
+      ["/auth/update-password","الاستعادة"],
+    ]) {
+      await navigate(route);
+      await waitFor(async()=>await evaluate('!!document.querySelector(".auth-journey-card h1")'),"account journey "+route);
+      const result=await evaluate('(()=>{const card=document.querySelector(".auth-journey-card");const r=card.getBoundingClientRect();return {title:card.querySelector("h1")?.textContent,scroll:document.documentElement.scrollWidth-innerWidth,left:r.left,right:r.right,viewport:innerWidth}})()');
+      invariant(result.title&&result.scroll<=3&&result.left>=-3&&result.right<=result.viewport+3,"Broken "+route+" at "+width);
+      await screenshot("artifacts/noata-browser/auth-flow-"+route.split("?")[0].split("/").at(-1)+"-"+width+(route.includes("?")?"-"+new URLSearchParams(route.split("?")[1]).values().next().value:"")+".png");
+    }
+    await navigate("/auth/update-password");
+    await waitFor(async()=>await evaluate('!document.querySelector(".auth-journey-card h1")?.textContent.includes("جارٍ التحقق")'),"untrusted reset session denied");
+    invariant(await evaluate('!document.querySelector(".auth-journey-card input[type=password]")'),"Password reset cannot be used without recovery verification");
+  }
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+
+  // Confirm dialogue must be centered in the actual browser top layer in both modes.
+  for (const [width,height] of [[1440,900],[390,844],[320,700]]) {
+    await command("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile:width<=768});
+    const rect=await evaluate('(()=>{const d=document.createElement("dialog");d.className="noata-confirm";d.innerHTML="<div class=noata-confirm-body><h2>مراجعة مغادرة الصفحة</h2><p>هل تريد المغادرة؟</p><div class=noata-confirm-actions><button>مغادرة الصفحة</button><button>البقاء</button></div></div>";document.body.appendChild(d);d.showModal();const r=d.getBoundingClientRect(),b=getComputedStyle(d);const v={left:r.left,top:r.top,width:r.width,height:r.height,viewportWidth:innerWidth,viewportHeight:innerHeight,overflow:b.overflowY};d.close();d.remove();return v})()');
+    invariant(Math.abs(rect.left+(rect.width/2)-rect.viewportWidth/2)<4 && Math.abs(rect.top+(rect.height/2)-rect.viewportHeight/2)<4,"Confirm modal not centered at "+width);
+    invariant(rect.left>=6&&rect.left+rect.width<=width-6,"Confirm modal clipped at "+width);
+  }
+  await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+  await navigate("/");
+  await waitFor(async()=>await evaluate('!!document.querySelector(".notification-bell")'),"Notification bell visible");
+  const badge=await evaluate('(()=>{const bell=document.querySelector(".notification-bell"),count=document.createElement("b");count.textContent="٩٩+";count.dataset.qa="count";bell.appendChild(count);const a=bell.getBoundingClientRect(),b=count.getBoundingClientRect(),sty=getComputedStyle(count);const r={height:b.height,width:b.width,inBellCorner:b.top<a.top+8&&b.right>a.left+4,fontSize:parseFloat(sty.fontSize),rounded:sty.borderRadius};count.remove();return r})()');
+  invariant(badge.height>=20 && badge.width>=20 && badge.fontSize>=10 && badge.inBellCorner,"Notification badge alignment and size");
   await navigate("/help");
   await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-help-topic").length>5'),"Help topics");
   const countBefore=await evaluate('document.querySelectorAll(".aura-help-topic").length');

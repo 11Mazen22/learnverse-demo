@@ -23,6 +23,12 @@ type Source = {
   audioEdition: string;
 };
 const LOCAL_KEY = "noata-quran-bookmarks-v1";
+const READING_SIZE_KEY = "noata-quran-reading-percent-v2";
+const MIN_READING_PERCENT = 80;
+const MAX_READING_PERCENT = 160;
+function boundedReadingPercent(value: number) {
+  return Number.isFinite(value) ? Math.round(Math.max(MIN_READING_PERCENT, Math.min(MAX_READING_PERCENT, value)) / 10) * 10 : 100;
+}
 const INITIAL: Chapter = {
   number: 1,
   name: "الفاتحة",
@@ -62,10 +68,19 @@ export function QuranReader() {
   const [activeAudio, setActiveAudio] = useState<number | null>(null);
   const [targetAyah, setTargetAyah] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
-  const [readerSize, setReaderSize] = useState(1);
+  const [readerSize, setReaderSize] = useState(100);
+  function changeReadingSize(next: number) {
+    const percent = boundedReadingPercent(next);
+    setReaderSize(percent);
+    try { localStorage.setItem(READING_SIZE_KEY, String(percent)); } catch { /* Device storage may be disabled. */ }
+  }
   const audio = useRef<HTMLAudioElement | null>(null);
   const currentRequest = useRef(0);
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(READING_SIZE_KEY);
+      if (saved !== null && /^\d{2,3}$/.test(saved)) setReaderSize(boundedReadingPercent(Number(saved)));
+    } catch { /* Private browsing may disable storage. */ }
     setBookmarks(bookmarksRead());
     void (async () => {
       try {
@@ -279,21 +294,24 @@ export function QuranReader() {
           <span>حجم القراءة</span>
           <button
             type="button"
-            onClick={() => setReaderSize((x) => Math.max(0.85, x - 0.1))}
+            onClick={() => changeReadingSize(readerSize - 10)}
+            disabled={readerSize <= MIN_READING_PERCENT}
             aria-label="تصغير خط القرآن"
           >
             −
           </button>
           <button
             type="button"
-            onClick={() => setReaderSize(1)}
-            aria-label="إعادة حجم خط القرآن"
+            onClick={() => changeReadingSize(100)}
+            aria-label={`حجم القراءة ${readerSize}%، إعادة الضبط إلى ١٠٠٪`}
+            aria-live="polite"
           >
-            ١٠٠٪
+            {readerSize.toLocaleString("ar-EG")}٪
           </button>
           <button
             type="button"
-            onClick={() => setReaderSize((x) => Math.min(1.6, x + 0.1))}
+            onClick={() => changeReadingSize(readerSize + 10)}
+            disabled={readerSize >= MAX_READING_PERCENT}
             aria-label="تكبير خط القرآن"
           >
             +
@@ -422,11 +440,7 @@ export function QuranReader() {
                   lang="ar"
                   style={{
                     fontSize:
-                      "clamp(" +
-                      Math.round(24 * readerSize) +
-                      "px,3vw," +
-                      Math.round(34 * readerSize) +
-                      "px)",
+                      `${(32 * readerSize / 100).toFixed(1)}px`,
                   }}
                 >
                   {v.text}
