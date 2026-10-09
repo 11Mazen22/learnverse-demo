@@ -1323,6 +1323,7 @@ export type Database = {
           created_at: string
           default_ai_model: string
           locale: string
+          palette: string | null
           reduced_motion: boolean
           theme: string
           updated_at: string
@@ -1333,6 +1334,7 @@ export type Database = {
           created_at?: string
           default_ai_model?: string
           locale?: string
+          palette?: string | null
           reduced_motion?: boolean
           theme?: string
           updated_at?: string
@@ -1343,6 +1345,7 @@ export type Database = {
           created_at?: string
           default_ai_model?: string
           locale?: string
+          palette?: string | null
           reduced_motion?: boolean
           theme?: string
           updated_at?: string
