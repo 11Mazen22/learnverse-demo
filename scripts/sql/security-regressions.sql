@@ -65,6 +65,15 @@ set local role authenticated;
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
 select qa.check((select count(*)=1 from public.profiles),'student cannot read another profile');
 select qa.check((select count(*)=1 from public.ai_conversations),'conversation owner isolation');
+-- Account-owned AI palette, tested with deterministic local-only UUID.
+insert into public.user_theme_designs(id,user_id,name,description,tokens)
+values('99000000-0000-0000-0000-000000000001',auth.uid(),'QA Ocean','Isolated theme',
+  '{"accent":"#24508c","deep":"#10243b","bright":"#58a9c1"}'::jsonb);
+select qa.check((select count(*)=1 from public.user_theme_designs),'own AI palette visible');
+update public.user_settings set active_design_id='99000000-0000-0000-0000-000000000001'
+where user_id=auth.uid();
+select qa.check((select active_design_id='99000000-0000-0000-0000-000000000001' from public.user_settings where user_id=auth.uid()),'owner can activate own AI design');
+
 select qa.check((select count(*)=1 from public.ai_messages),'message owner isolation');
 select qa.check((select count(*)=0 from public.question_keys),'student answer keys denied');
 select qa.check((select count(*)=1 from public.assignments),'student sees published assignments in own class only');
@@ -114,6 +123,22 @@ select qa.check((public.equip_cosmetic('51784f92-e172-59ea-9298-d7b7bac522be')->
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
 select qa.check((select count(*)=0 from storage.objects),'other student storage is private');
 select qa.check((select count(*)=0 from public.ai_attachments),'other student attachment rows are private');
+select qa.check((select count(*)=0 from public.user_theme_designs),'AI palette rows invisible to other account');
+with changed as(update public.user_theme_designs set name='STOLEN'
+  where id='99000000-0000-0000-0000-000000000001' returning id)
+select qa.check((select count(*)=0 from changed),'cross-account palette mutation is blocked');
+do $
+begin
+  begin
+    update public.user_settings
+      set active_design_id='99000000-0000-0000-0000-000000000001'
+      where user_id=auth.uid();
+    raise exception 'QA FAIL: cross-account AI design activation succeeded';
+  exception when foreign_key_violation then
+    raise notice 'QA PASS: cross-account AI design activation is rejected by database integrity';
+  end;
+end $;
+
 -- This student's actual first attempt on all three questions is correct.
 -- A forged p_score value cannot affect the backend-computed mastery result.
 select public.submit_attempt('05c00c64-b9b8-5736-b996-86dd82a3dd83','{"value":"1"}',false,'qa-gem-first',false);
