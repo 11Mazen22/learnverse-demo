@@ -4,7 +4,7 @@ export const STAGING_REF="vpfpjvhafkmygetjkfcp";
 export const STAGING_URL="https://"+STAGING_REF+".supabase.co";
 export const QA_SCOPE="staging-v1";
 export const ROLES=Object.freeze(["student","teacher","admin"]);
-const validEmail=/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const validEmail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function qaPlan(env){
   if(env.AURA_STAGING_DB_REF!==STAGING_REF)
     throw Error("Refusing to provision outside the explicitly authorized staging project");
