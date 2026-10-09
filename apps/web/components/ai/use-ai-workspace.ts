@@ -188,6 +188,28 @@ export function useAIWorkspace() {
           "prompt",
         );
         if (prompt) setInput(prompt.slice(0, 4000));
+        // Consume the short-lived, owner-bound mastery context handed off by
+        // /progress. No private educational evidence appears in the URL or a
+        // referrer. Prefill is user-editable and is NEVER auto-submitted.
+        try {
+          const key = "noata-ai-pending-context-v1";
+          const raw = sessionStorage.getItem(key);
+          if (raw) {
+            sessionStorage.removeItem(key);
+            const pending: unknown = JSON.parse(raw);
+            if (pending && typeof pending === "object") {
+              const entry = pending as Record<string, unknown>;
+              const age = Date.now() - Number(entry.createdAt);
+              if (user && entry.owner === user.id &&
+                  typeof entry.prompt === "string" &&
+                  Number.isFinite(age) && age >= 0 && age <= 120000) {
+                setInput(entry.prompt.slice(0, 2700));
+              }
+            }
+          }
+        } catch {
+          // Private mode may forbid sessionStorage. Chat itself still works.
+        }
         if (user) {
           const { data } = await sessionStep(
             supabase
