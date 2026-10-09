@@ -1046,3 +1046,9 @@ html[data-theme="dark"] a.notification-bell b {
 .noata-reward-card .btn{width:100%;min-height:46px;justify-content:center}
 .noata-reward-card .btn:disabled{opacity:.58}
 @media(max-width:640px){.noata-empty{padding:24px 19px;border-radius:20px}.noata-section-head{gap:8px}}
+
+.noata-rewards-hero{min-height:215px;display:grid;grid-template-columns:minmax(0,1fr) 150px;align-items:center;gap:20px}
+.noata-rewards-hero h2{font-size:clamp(23px,3vw,35px)!important;line-height:1.35}
+.noata-rewards-hero>div:last-child{height:130px!important;min-width:0}
+.noata-rewards-hero p{line-height:1.9;font-size:14px}
+@media(max-width:660px){.noata-rewards-hero{grid-template-columns:1fr;min-height:0;gap:16px}.noata-rewards-hero>div:last-child{height:75px!important;font-size:36px!important}.noata-rewards-hero>div:last-child svg{width:37px;height:37px}}
