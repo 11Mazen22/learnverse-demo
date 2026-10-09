@@ -1,21 +1,20 @@
-export const APPROVED_STAGING_URL = "https://vpfpjvhafkmygetjkfcp.supabase.co";
-export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? APPROVED_STAGING_URL;
-export const SUPABASE_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+import { createGuardedSupabaseFetch, resolveSupabaseConfiguration, authorizedSupabaseUrl } from "./network-policy.ts";
 
-export const stagingFetch: typeof fetch = async (input, init) => {
-  const target = new URL(input instanceof Request ? input.url : String(input));
-  if (
-    SUPABASE_URL.replace(/\/$/, "") !== APPROVED_STAGING_URL ||
-    target.origin !== APPROVED_STAGING_URL ||
-    !SUPABASE_PUBLISHABLE_KEY ||
-    target.username || target.password
-  ) {
-    return Response.json(
-      { message: "اتصال بيئة الاختبار غير مطابق للمشروع المعتمد. لم يتم إرسال الطلب.", code: "STAGING_CONFIGURATION_MISMATCH" },
-      { status: 503 },
-    );
-  }
-  return fetch(input, init);
+export const supabaseConfiguration = resolveSupabaseConfiguration({
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  key: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  deploymentEnvironment: process.env.NEXT_PUBLIC_NOATA_DEPLOYMENT_ENV,
+  productionProjectRef: process.env.NEXT_PUBLIC_NOATA_PRODUCTION_PROJECT_REF,
+});
+export const SUPABASE_URL = supabaseConfiguration.origin ?? "";
+export const SUPABASE_PUBLISHABLE_KEY = supabaseConfiguration.key;
+
+// The SDK requires nonempty constructor arguments even to show a local error.
+// This reserved .invalid origin is NOT a fallback backend: the guarded transport
+// refuses every request, and OAuth navigation is separately checked below.
+export const supabaseSdkConfiguration = {
+  url: SUPABASE_URL || "https://supabase.disabled.invalid",
+  key: SUPABASE_PUBLISHABLE_KEY || "disabled",
 };
+export const supabaseFetch = createGuardedSupabaseFetch(supabaseConfiguration);
+export const isAuthorizedSupabaseUrl = (url: unknown) => authorizedSupabaseUrl(url, supabaseConfiguration);

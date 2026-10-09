@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from "react";
 import {originalDocument} from "@/lib/ai/original-documents";
 import {extractDocxDocument} from "@/lib/ai/docx-ingest";
 import {safeStorageLink} from "@/lib/ai/workspace";
-import {SUPABASE_URL} from "@/lib/supabase/config";
+import {SUPABASE_URL,supabaseFetch} from "@/lib/supabase/config";
 import type {RenderTask,PDFDocumentLoadingTask} from "pdfjs-dist/legacy/build/pdf.mjs";
 import {Icon} from "@/components/ui/icon";
 
@@ -20,7 +20,7 @@ export function OriginalDocumentPreview({source}:{source:{name:string;format:str
      const r=await fetch("/api/documents?id="+encodeURIComponent(source.documentId),{signal:controller.signal});const data=await r.json();
      if(!r.ok)throw Error(data.error || "تعذّر فتح المستند.");
      const signed=safeStorageLink(data.url,SUPABASE_URL,"noata-documents");if(!signed)throw Error("رابط المستند غير صالح.");
-     const response=await fetch(signed,{signal:controller.signal});if(!response.ok)throw Error("انتهت صلاحية الرابط. أعد فتح المعاينة.");
+     const response=await supabaseFetch(signed,{signal:controller.signal});if(!response.ok)throw Error("انتهت صلاحية الرابط. أعد فتح المعاينة.");
      const blob=await response.blob();if(blob.size>8*1024*1024)throw Error("الملف كبير جدًا للمعاينة.");
      original=new File([blob],data.name,{type:data.mime});
     }

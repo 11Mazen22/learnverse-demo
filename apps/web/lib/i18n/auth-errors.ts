@@ -23,6 +23,7 @@ const BY_CODE: Record<string, string> = {
   refresh_token_not_found: "انتهت جلستك لحمايتك. سجّل الدخول مرة أخرى للمتابعة.",
   provider_disabled: "تسجيل الدخول بهذه الطريقة غير مفعّل حاليًا. استخدم البريد الإلكتروني.",
   STAGING_CONFIGURATION_MISMATCH: "إعدادات الاتصال ببيئة Noata التجريبية غير مطابقة. لم تُرسل بياناتك؛ حاول لاحقًا بعد تصحيح الربط.",
+  SUPABASE_CONFIGURATION_INVALID: "إعدادات اتصال Noata غير معتمدة أو غير مكتملة. لم تُرسل بياناتك؛ يُرجى تصحيح الربط قبل المحاولة.",
   validation_failed: "تحقّق من البيانات المدخلة وحاول مرة أخرى.",
   email_address_invalid: "صيغة البريد الإلكتروني غير صحيحة.",
   signup_disabled: "إنشاء الحسابات الجديدة متوقف مؤقتًا.",
@@ -62,7 +63,7 @@ export function localizeAuthError(error: AuthLikeError): string {
 }
 
 export function safeNextPath(raw: string | null | undefined, fallback = "/") {
-  return raw && raw.startsWith("/") && !raw.startsWith("//") && !raw.includes("\\")
+  return raw && raw.startsWith("/") && !raw.startsWith("//") && !/[\\\u0000-\u0020\u007f]/.test(raw)
     ? raw
     : fallback;
 }

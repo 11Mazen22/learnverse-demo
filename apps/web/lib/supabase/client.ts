@@ -1,9 +1,9 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, stagingFetch } from "./config";
+import { supabaseSdkConfiguration, supabaseFetch } from "./config";
 
 export function createClient() {
-  return createBrowserClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createBrowserClient<Database>(supabaseSdkConfiguration.url, supabaseSdkConfiguration.key, {
     global: {
       fetch: async (input, init) => {
         const url = String(input instanceof Request ? input.url : input);
@@ -17,13 +17,13 @@ export function createClient() {
           : url.includes("/storage/v1/")
             ? 60000
             : 45000;
-        return stagingFetch(
+        return supabaseFetch(
           input,
           boundedService
             ? {
                 ...init,
                 signal: AbortSignal.any([
-                  ...(init?.signal ? [init.signal] : []),
+                  ...(init?.signal ? [init.signal] : input instanceof Request ? [input.signal] : []),
                   AbortSignal.timeout(timeout),
                 ]),
               }

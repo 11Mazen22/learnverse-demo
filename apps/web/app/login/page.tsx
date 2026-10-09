@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
 import { canonicalAuthOrigin, canonicalLoginDestination } from "@/lib/auth/canonical-origin";
 import { authCallbackUrl, type AuthFlow } from "@/lib/auth/flows";
+import { isAuthorizedSupabaseUrl, supabaseConfiguration } from "@/lib/supabase/config";
+import { CONFIGURATION_ERROR_MESSAGE } from "@/lib/supabase/network-policy";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 
@@ -73,7 +75,7 @@ export default function LoginPage() {
   const nextPath = () =>
     safeNextPath(new URLSearchParams(window.location.search).get("next"));
   const callbackUrl = (flow: AuthFlow = "signup") =>
-    authCallbackUrl(authCanonicalOrigin(), flow, nextPath());
+    authCallbackUrl(authCanonicalOrigin(), flow, nextPath(), process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL);
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -86,14 +88,22 @@ export default function LoginPage() {
     setBusy("google");
     setError("");
     try {
-      const { error } = await createClient().auth.signInWithOAuth({
+      if (supabaseConfiguration.error) {
+        setError(supabaseConfiguration.error);
+        return;
+      }
+      const { data, error } = await createClient().auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: callbackUrl("oauth"),
           queryParams: { prompt: "select_account" },
+          skipBrowserRedirect: true,
         },
       });
       if (error) setError(localizeAuthError(error));
+      else if (isAuthorizedSupabaseUrl(data.url) && new URL(data.url!).pathname === "/auth/v1/authorize")
+        window.location.assign(data.url!);
+      else setError(CONFIGURATION_ERROR_MESSAGE);
     } catch {
       setError("تعذّر الاتصال بخدمة Google الآن. تحقّق من اتصالك أو استخدم البريد الإلكتروني.");
     } finally {
@@ -125,7 +135,7 @@ export default function LoginPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (beginOnCanonicalHost()) return;
+    if (busy || beginOnCanonicalHost()) return;
     setBusy("form");
     setError("");
     setMessage("");

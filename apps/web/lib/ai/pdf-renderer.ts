@@ -1,5 +1,6 @@
 import {readFile, access} from "node:fs/promises";
 import {join} from "node:path";
+import {tmpdir} from "node:os";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import {documentHtml, escapeHtml} from "./pdf-export.ts";
@@ -17,7 +18,13 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
     try { await access(root); } catch { root = join(process.cwd(), "apps/web/public/fonts"); }
     const [arabic, latin] = await Promise.all([readFile(join(root,"cairo-arabic.woff2")),readFile(join(root,"cairo-latin.woff2"))]);
     const executablePath = process.env.NOATA_CHROMIUM_PATH || await chromium.executablePath();
-    browser = await puppeteer.launch({executablePath, args:chromium.args, headless:true, timeout:15_000});
+    const environment = {...process.env};
+    // Packaged Chromium extracts its fonts even outside Lambda, but only Lambda
+    // gets FONTCONFIG_PATH automatically. Without it, embedded fonts can fail
+    // silently and the renderer emits a valid PDF containing no text.
+    if (!process.env.NOATA_CHROMIUM_PATH && !environment.FONTCONFIG_PATH)
+      environment.FONTCONFIG_PATH = join(tmpdir(), "fonts");
+    browser = await puppeteer.launch({executablePath, args:chromium.args, env:environment, headless:true, timeout:15_000});
     const currentBrowser = browser;
     deadline = setTimeout(() => { void currentBrowser.close(); }, 25_000);
     const page = await browser.newPage();
@@ -30,6 +37,8 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
     });
     await page.setContent(await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64")}),{waitUntil:"networkidle0",timeout:15_000});
     await page.evaluate(() => document.fonts.ready);
+    const fontsLoaded = await page.evaluate(() => [...document.fonts].length === 2 && [...document.fonts].every(font => font.status === "loaded"));
+    if (!fontsLoaded) throw new Error("PDF fonts failed to load; refusing a blank document");
     if(screenshotPath) { await page.setViewport({width:794,height:1123}); await page.screenshot({path:screenshotPath as `${string}.png`,fullPage:false}); }
     const template = `<style>@font-face{font-family:Noata;src:url(data:font/woff2;base64,${arabic.toString("base64")})}body{font-family:Noata,sans-serif;font-feature-settings:"rlig" 0,"liga" 0,"clig" 0}</style>`;
     const bytes = await page.pdf({format:"A4",printBackground:true,preferCSSPageSize:true,displayHeaderFooter:true,

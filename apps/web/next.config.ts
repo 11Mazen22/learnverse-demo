@@ -11,6 +11,12 @@ const securityHeaders=[
 
 const nextConfig:NextConfig={
   reactStrictMode:true,
+  env: {
+    NEXT_PUBLIC_NOATA_DEPLOYMENT_ENV: process.env.VERCEL_ENV ?? "development",
+    NEXT_PUBLIC_NOATA_PRODUCTION_PROJECT_REF: process.env.VERCEL_ENV === "production"
+      ? process.env.NOATA_PRODUCTION_SUPABASE_REF ?? ""
+      : "",
+  },
   poweredByHeader:false,
   compress:true,
   serverExternalPackages:["@sparticuz/chromium","puppeteer-core"],

@@ -315,9 +315,10 @@ export async function verifyUiAccountContracts({
   base,
   auditView = async () => {},
 }) {
-  const origin =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    "https://jdkfqdzgphzqbbzmerzr.supabase.co";
+  const origin = "https://vpfpjvhafkmygetjkfcp.supabase.co";
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL !== origin ||
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY !== "sb_publishable_network_isolation_fixture_only")
+    throw Error("Synthetic UI suite requires the explicit approved-origin fixture build; real credentials are forbidden.");
   let interceptionError;
   const listener = (event) => {
     const message = JSON.parse(String(event.data));
@@ -411,11 +412,21 @@ export async function verifyUiAccountContracts({
       (await evaluate('window.__noataUiFixture.state.calls.filter(c=>c.path.includes("/auth/v1/logout")).length')) === logoutsBefore,
       "Opening avatar does not terminate an authenticated session",
     );
+    invariant(await evaluate('document.activeElement?.getAttribute("role")==="menuitem"'), "Account menu moves focus into its actions");
+    await evaluate('document.querySelector("#noata-account-menu").dispatchEvent(new KeyboardEvent("keydown",{key:"End",bubbles:true}))');
+    invariant(await evaluate('document.activeElement?.classList.contains("noata-account-logout")'), "Account menu End reaches explicit logout");
+    await evaluate('document.querySelector(".noata-account-logout").click()');
+    await waitFor(() => evaluate('!!document.querySelector("dialog.noata-confirm[open]")'), "account-menu logout confirmation");
+    invariant((await evaluate('window.__noataUiFixture.state.calls.filter(c=>c.path.includes("/auth/v1/logout")).length')) === logoutsBefore, "Opening confirmation sends no logout request");
+    await evaluate('document.querySelector(".noata-confirm-secondary").click()');
+    await waitFor(() => evaluate('!document.querySelector("dialog.noata-confirm[open]")'), "cancel logout confirmation");
+    invariant((await evaluate('window.__noataUiFixture.state.calls.filter(c=>c.path.includes("/auth/v1/logout")).length')) === logoutsBefore, "Cancel preserves authenticated session");
     await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}))');
     await waitFor(
       () => evaluate('!document.querySelector("#noata-account-menu")'),
       "account menu closes with Escape",
     );
+    invariant(await evaluate('document.activeElement?.classList.contains("noata-account-trigger")'), "Escape returns focus to account avatar");
     await navigate("/settings");
     await waitFor(
       () => evaluate('!!document.querySelector("#aura-account .aura-settings-signout")'),

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { safeNextPath } from "../i18n/auth-errors.ts";
 import {
   authCallbackUrl, normalizedAuthFlow,
   recoveryGrantValue, validRecoveryGrant, RECOVERY_GRANT_LIFETIME_MS,
@@ -12,6 +13,23 @@ test("email verification, OAuth and recovery each get their own exact safe callb
   assert.equal(new URL(authCallbackUrl("https://noata.example","signup","/progress")).searchParams.get("next"),"/progress");
   assert.equal(new URL(authCallbackUrl("https://noata.example","oauth","//untrusted.example")).searchParams.get("next"),"/");
   assert.equal(new URL(authCallbackUrl("https://noata.example","signup","/\\evil")).searchParams.get("next"),"/");
+});
+test("preview redirect proxy preserves routing and flow without accepting untrusted hosts", () => {
+  const proxy = "https://v0.app/api/supabase/callback?session=fixture";
+  const callback = new URL(authCallbackUrl("https://preview.example", "recovery", "/ai", proxy));
+  assert.equal(callback.origin, "https://v0.app");
+  assert.equal(callback.searchParams.get("session"), "fixture");
+  assert.equal(callback.searchParams.get("flow"), "recovery");
+  assert.equal(callback.searchParams.get("next"), "/auth/update-password");
+  for (const invalid of ["https://attacker.invalid", "https://v0.app.attacker.invalid", "https://name:password@v0.app/callback", "http://v0.app/callback"]) {
+    assert.throws(() => authCallbackUrl("https://preview.example", "signup", "/", invalid));
+  }
+  assert.equal(new URL(authCallbackUrl("https://noata.example", "signup", "/\n//attacker.invalid")).searchParams.get("next"), "/");
+});
+test("login next-path rejects browser-normalized external redirects", () => {
+  for (const invalid of ["//attacker.invalid", "/\\\\attacker.invalid", "/\n/attacker.invalid", "/\t/attacker.invalid", "javascript:alert(1)"])
+    assert.equal(safeNextPath(invalid), "/");
+  assert.equal(safeNextPath("/ai?chat=123"), "/ai?chat=123");
 });
 test("callback flow cannot be forced to unknown or arbitrary action",()=>{
   assert.equal(normalizedAuthFlow("recovery"),"recovery");

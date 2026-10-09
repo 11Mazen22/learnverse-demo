@@ -240,8 +240,9 @@ export function SettingsLive() {
   }
   async function logoutFromSettings() {
     if (!userId || logoutBusy || saving || mutating) return;
+    const revision = account.revision.current;
     const approved = await confirmAction({
-      title: "تسجيل الخروج من Noata؟",
+      title: "تسجيل ال��روج من Noata؟",
       description: dirty
         ? "لديك تغييرات غير محفوظة في إعدادات الحساب. سيؤدي تسجيل الخروج إلى فقد هذه التغييرات."
         : "يمكنك العودة في أي وقت وتسجيل الدخول إلى حسابك لاستكمال رحلتك.",
@@ -250,7 +251,7 @@ export function SettingsLive() {
       tone: "danger",
       icon: "user",
     });
-    if (!approved) return;
+    if (!approved || revision !== account.revision.current) return;
     setLogoutBusy(true);
     setLogoutError("");
     try {
@@ -419,7 +420,7 @@ export function SettingsLive() {
             <Icon name="ai" size={21} />
             <div>
               <h2>Noata AI</h2>
-              <p>اختار تفضيلات الدردشة والنماذج المهيأة</p>
+              <p>اختار تفضيلا�� الدردشة والنماذج المهيأة</p>
             </div>
           </div>
           <label className="aura-settings-label">

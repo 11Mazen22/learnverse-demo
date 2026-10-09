@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
+import { confirmAction } from "@/components/ui/confirm-dialog";
 import {
   boundedRead,
   useVerifiedAccount,
@@ -22,14 +23,21 @@ export function UserMenu() {
     [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     if (!menuOpen) return;
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
     function outside(event: PointerEvent) {
+      if (document.querySelector("dialog[open]")) return;
       if (event.target instanceof Node && !menuRef.current?.contains(event.target)) setMenuOpen(false);
     }
     function escape(event: KeyboardEvent) {
-      if (event.key === "Escape") setMenuOpen(false);
+      if (document.querySelector("dialog[open]")) return;
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+        triggerRef.current?.focus();
+      }
     }
     document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", escape);
@@ -90,10 +98,20 @@ export function UserMenu() {
   async function logout() {
     if (lock.current) return;
     lock.current = true;
-    setBusy(true);
+    const revision = account.revision.current;
     setError("");
-    setMenuOpen(false);
     try {
+      const approved = await confirmAction({
+        title: "تسجيل الخروج من Noata؟",
+        description: "ستظل بياناتك محفوظة في حسابك. احفظ أي عمل غير مكتمل قبل تسجيل الخروج.",
+        confirmLabel: "تسجيل الخروج",
+        cancelLabel: "البقاء في حسابي",
+        tone: "danger",
+        icon: "user",
+      });
+      if (!approved || revision !== account.revision.current) return;
+      setBusy(true);
+      setMenuOpen(false);
       const { error } = await createClient().auth.signOut();
       if (error) throw error;
       window.location.href = "/login";
@@ -118,6 +136,13 @@ export function UserMenu() {
         <button
           type="button"
           className="avatar noata-account-trigger"
+          ref={triggerRef}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              setMenuOpen(true);
+            }
+          }}
           onClick={() => setMenuOpen((open) => !open)}
           disabled={busy}
           aria-label={"فتح قائمة حساب " + name}
@@ -130,20 +155,29 @@ export function UserMenu() {
         </button>
       </div>
       {menuOpen && (
-        <div id="noata-account-menu" className="noata-account-menu" role="menu" aria-label="خيارات الحساب">
+        <div id="noata-account-menu" className="noata-account-menu" role="menu" aria-label="خيارات الحساب"
+          onKeyDown={(event) => {
+            const items = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+            const index = items.indexOf(document.activeElement as HTMLElement);
+            if (event.key === "Tab") { setMenuOpen(false); triggerRef.current?.focus(); return; }
+            const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
+              event.key === "ArrowDown" ? (index + 1) % items.length :
+              event.key === "ArrowUp" ? (index - 1 + items.length) % items.length : null;
+            if (next !== null) { event.preventDefault(); items[next]?.focus(); }
+          }}>
           <div className="noata-account-menu-identity">
             <strong>{name}</strong>
             <small dir="ltr">{account.user.email ?? "حساب Noata"}</small>
             <span>{profile ? roles[profile.role] : "الحساب الشخصي"}</span>
           </div>
-          <Link href="/settings#aura-profile" role="menuitem" onClick={() => setMenuOpen(false)}>
+          <Link href="/settings#aura-profile" role="menuitem" tabIndex={-1} onClick={() => setMenuOpen(false)}>
             <Icon name="user" size={18} /> الملف الشخصي
           </Link>
-          <Link href="/settings" role="menuitem" onClick={() => setMenuOpen(false)}>
+          <Link href="/settings" role="menuitem" tabIndex={-1} onClick={() => setMenuOpen(false)}>
             <Icon name="settings" size={18} /> إعدادات الحساب
           </Link>
           <div className="noata-account-menu-separator" />
-          <button type="button" role="menuitem" className="noata-account-logout" onClick={() => void logout()} disabled={busy}>
+          <button type="button" role="menuitem" tabIndex={-1} className="noata-account-logout" onClick={() => void logout()} disabled={busy}>
             <Icon name="arrow" size={18} />
             {busy ? "جارٍ تسجيل الخروج…" : "تسجيل الخروج"}
           </button>

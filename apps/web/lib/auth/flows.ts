@@ -1,10 +1,13 @@
 /** Pure auth flow helpers, safe in browser, CI and server contexts. */
 export type AuthFlow = "signup" | "recovery" | "oauth";
 
-export function authCallbackUrl(origin: string, flow: AuthFlow, next = "/") {
-  const url = new URL("/auth/callback", origin);
+export function authCallbackUrl(origin: string, flow: AuthFlow, next = "/", redirectProxy?: string) {
+  const url = new URL(redirectProxy || "/auth/callback", origin);
+  if (redirectProxy && (url.protocol !== "https:" || url.username || url.password || url.hash ||
+      !["v0.dev", "v0.app"].some(host => url.hostname === host || url.hostname.endsWith("." + host))))
+    throw new Error("Invalid authentication redirect proxy");
   url.searchParams.set("flow", flow);
-  const allowed = next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") && !/[\r\n]/.test(next);
+  const allowed = next.startsWith("/") && !next.startsWith("//") && !/[\\\u0000-\u0020\u007f]/.test(next);
   url.searchParams.set("next", flow === "recovery" ? "/auth/update-password" : allowed ? next : "/");
   return url.toString();
 }

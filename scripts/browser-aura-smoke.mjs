@@ -15,7 +15,9 @@ import { setTimeout as sleep } from "node:timers/promises";
 const testedRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim();
 const initiallyDirty=!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim();
 const binary = findQaChrome();
-const base = "http://127.0.0.1:3000";
+const qaPort = Number(process.env.NOATA_QA_PORT ?? "3000");
+if (!Number.isInteger(qaPort) || qaPort < 1024 || qaPort > 65535) throw Error("Invalid local browser QA port");
+const base = "http://127.0.0.1:" + qaPort;
 let app, browser, socket, appLog="";
 const browserErrors=[];
 const location={path:"",width:null,theme:"",stage:"setup"};
@@ -264,7 +266,7 @@ async function verifyDocuments(){
 }
 async function main() {
   await mkdir("artifacts/noata-browser",{recursive:true});
-  app=spawn("pnpm",["--filter","@noata/web","start"],{stdio:"pipe",detached:true,env:{...process.env,PORT:"3000"}});
+  app=spawn("pnpm",["--filter","@noata/web","start"],{stdio:"pipe",detached:true,env:{...process.env,PORT:String(qaPort)}});
 
   app.stdout.on("data",chunk=>appLog+=String(chunk));
   app.stderr.on("data",chunk=>appLog+=String(chunk));

@@ -1,6 +1,7 @@
 import { isTextDocument, MAX_TEXT_DOCUMENT_BYTES } from "./document-text.ts";
 import { isDocxDocument, MAX_DOCX_INPUT } from "./docx-ingest.ts";
 import { isPdfDocument, MAX_PDF_BYTES } from "./pdf-ingest.ts";
+import { CONFIGURATION_ERROR_CODE, CONFIGURATION_ERROR_MESSAGE } from "../supabase/network-policy.ts";
 export type Conversation = {
   id: string;
   title: string;
@@ -120,7 +121,7 @@ export function safeStorageLink(
   if (typeof link !== "string") return null;
   try {
     const candidate = new URL(link);
-    if (candidate.protocol !== "https:") return null;
+    if (candidate.protocol !== "https:" || candidate.username || candidate.password || candidate.hash) return null;
     if (candidate.origin !== new URL(supabaseOrigin).origin) return null;
     if (
       !candidate.pathname.startsWith("/storage/v1/object/sign/" + bucket + "/")
@@ -165,6 +166,7 @@ export function parseStreamFrames(buffer: string) {
 /** Translate a provider HTTP failure into a stable, non-sensitive UI error. */
 export function aiResponseFailure(status: number, body: unknown): string {
   const value = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  if (value.code === CONFIGURATION_ERROR_CODE) return CONFIGURATION_ERROR_CODE;
   if (status === 503 &&
       (value.code === "FANAR_NOT_CONFIGURED" ||
        value.error === "AI backend is not configured"))
@@ -175,6 +177,7 @@ export function aiResponseFailure(status: number, body: unknown): string {
 
 export function friendlyError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
+  if (message.includes(CONFIGURATION_ERROR_CODE)) return CONFIGURATION_ERROR_MESSAGE;
   if (message.includes("FANAR_NOT_CONFIGURED"))
     return "مساعد Noata AI غير متاح في بيئة الاختبار حاليًا لأن ربط Fanar لم يكتمل بعد. لم تُرسل رسالتك إلى النموذج؛ احتفظ بها لحين تفعيل الخدمة.";
   if (/FANAR_UNAVAILABLE|\b503\b/.test(message))

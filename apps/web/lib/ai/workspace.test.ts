@@ -78,6 +78,12 @@ test("image-preview links must target our private Supabase upload bucket", () =>
     origin +
     "/storage/v1/object/sign/noata-uploads/user/chat/picture.png?token=opaque";
   assert.equal(safeStorageLink(signed, origin), signed);
+  assert.equal(safeStorageLink(signed.replace("https://", "https://name:password@"), origin), null);
+  assert.equal(safeStorageLink(signed + "#fragment", origin), null);
+  assert.equal(safeStorageLink(signed, ""), null);
+  const audio = signed.replace("noata-uploads", "noata-generated").replace("picture.png", "voice.mp3");
+  assert.equal(safeStorageLink(audio, origin, "noata-generated"), audio);
+  assert.equal(safeStorageLink(audio.replace("example.supabase.co", "other.supabase.co"), origin, "noata-generated"), null);
 });
 
 test("text document attachments have their own safe MIME and size limits", () => {
@@ -164,4 +170,6 @@ test("Fanar configuration failures remain distinguishable from upstream outages"
   assert.match(friendlyError(new Error("FANAR_NOT_CONFIGURED")), /Fanar.*لم يكتمل/);
   assert.match(friendlyError(new Error("FANAR_UNAVAILABLE")), /غير متاحة مؤقتًا/);
   assert.match(friendlyError(new Error("401")), /الجلسة انتهت/);
+  assert.equal(aiResponseFailure(503, { code: "SUPABASE_CONFIGURATION_INVALID" }), "SUPABASE_CONFIGURATION_INVALID");
+  assert.match(friendlyError(new Error("SUPABASE_CONFIGURATION_INVALID")), /لم تُرسل بياناتك إلى أي مشروع/);
 });

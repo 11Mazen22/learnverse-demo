@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
     try {
       const origin = canonicalAuthOrigin(window.location.origin, process.env.NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN);
       const { error: issue } = await createClient().auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: authCallbackUrl(origin, "recovery"),
+        redirectTo: authCallbackUrl(origin, "recovery", "/", process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL),
       });
       if (issue) { setError(localizeAuthError(issue)); return; }
       window.location.assign("/auth/check-email?type=recovery");

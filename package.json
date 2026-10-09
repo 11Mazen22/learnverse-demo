@@ -9,7 +9,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "check": "pnpm typecheck && pnpm build",
     "legacy:check": "node --check server.mjs && node --test --test-isolation=none",
-    "modern:test": "node --test apps/web/lib/ai/*.test.ts apps/web/lib/auth/*.test.ts apps/web/lib/quran/*.test.ts packages/core/src/core.test.ts",
+    "modern:test": "node --test apps/web/lib/ai/*.test.ts apps/web/lib/auth/*.test.ts apps/web/lib/supabase/*.test.ts apps/web/lib/quran/*.test.ts packages/core/src/core.test.ts",
     "verify": "pnpm typecheck && pnpm modern:test && pnpm build && pnpm legacy:check"
   },
   "workspaces": [

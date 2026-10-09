@@ -29,7 +29,7 @@ import {
   validateDocumentBatch,
   extractDocumentBatch,
 } from "@/lib/ai/multi-document";
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase/config";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseFetch } from "@/lib/supabase/config";
 import {
   AI_FUNCTION,
   titleFrom,
@@ -37,6 +37,7 @@ import {
   parseStreamFrames,
   friendlyError,
   aiResponseFailure,
+  safeStorageLink,
   type Conversation,
   type Message,
 } from "@/lib/ai/workspace";
@@ -498,7 +499,7 @@ export function useAIWorkspace() {
     } = await supabase.auth.getSession();
     assertSession(token);
     if (!session) throw Error("auth expired");
-    const response = await fetch(
+    const response = await supabaseFetch(
       SUPABASE_URL + "/functions/v1/" + AI_FUNCTION,
       {
         method: "POST",
@@ -1321,11 +1322,12 @@ export function useAIWorkspace() {
       });
       if (!voiceGeneration.current.isCurrent(sequence)) return;
       if (error || data?.error) throw error ?? Error(String(data.error));
-      if (typeof data?.asset?.signedUrl !== "string") throw Error("No audio");
+      const audioUrl = safeStorageLink(data?.asset?.signedUrl, SUPABASE_URL, "noata-generated");
+      if (!audioUrl) throw Error("No authorized audio");
       setAudioPlayback({
         messageId,
         conversationId,
-        url: data.asset.signedUrl,
+        url: audioUrl,
       });
     } catch (e) {
       if (voiceGeneration.current.isCurrent(sequence))

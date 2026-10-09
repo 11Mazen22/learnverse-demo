@@ -17,6 +17,9 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://vpfpjvhafkmygetjkfcp.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_network_isolation_fixture_only
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

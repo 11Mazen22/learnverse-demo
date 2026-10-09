@@ -19,7 +19,7 @@ const origin=process.env.AURA_STAGING_ORIGIN??"";
 const email=process.env.AURA_QA_EMAIL??"";
 const password=process.env.AURA_QA_PASSWORD??"";
 const ref=process.env.AURA_STAGING_DB_REF??"";
-if(process.env.AURA_ALLOW_QA_RUN!=="YES"||!email||!password||!ref||ref==="jdkfqdzgphzqbbzmerzr"||!/^[a-z0-9]{20}$/.test(ref)){
+if(process.env.AURA_ALLOW_QA_RUN!=="YES"||!email||!password||ref!=="vpfpjvhafkmygetjkfcp"){
   console.error("QA not executed: opt-in, separate Supabase staging ref and dedicated QA credentials are required.");
   process.exit(2);
 }

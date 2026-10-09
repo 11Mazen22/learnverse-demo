@@ -32,11 +32,11 @@ function CheckEmailContent() {
       const origin = canonicalAuthOrigin(window.location.origin, process.env.NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN);
       const result = recovery
         ? await createClient().auth.resetPasswordForEmail(email.trim(), {
-            redirectTo: authCallbackUrl(origin, "recovery"),
+            redirectTo: authCallbackUrl(origin, "recovery", "/", process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL),
           })
         : await createClient().auth.resend({
             type: "signup", email: email.trim(),
-            options: { emailRedirectTo: authCallbackUrl(origin, "signup") },
+            options: { emailRedirectTo: authCallbackUrl(origin, "signup", "/", process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL) },
           });
       if (result.error) { setError(localizeAuthError(result.error)); return; }
       setMessage("لو البريد مرتبط بحساب مؤهل، هتصلك رسالة جديدة قريبًا. راجع البريد الوارد والرسائل غير المرغوب فيها.");
