@@ -63,11 +63,12 @@ test("success page requires a matching recently confirmed server-side action rec
 
 test("PKCE callback never strips the code through Next-patched history before terminal navigation", () => {
   const source = readFileSync("apps/web/app/auth/callback/page.tsx", "utf8");
-  assert.doesNotMatch(source, /window\\.history\\.(?:replaceState|pushState)\\s*\\(/);
-  assert.match(source, /auth\\.exchangeCodeForSession\\(code\\)/);
-  assert.match(source, /window\\.location\\.replace\\("\/auth\/update-password"\\)/);
-  assert.match(source, /window\\.location\\.replace\\("\/auth\/complete\\?type=verified"\\)/);
-  assert.match(source, /window\\.location\\.replace\\("\/auth\/error\\?reason=invalid"\\)/);
+  assert.equal(source.includes("window.history.replaceState("), false);
+  assert.equal(source.includes("window.history.pushState("), false);
+  assert.ok(source.includes("exchangeCodeForSession(code)"));
+  assert.ok(source.includes('window.location.replace("/auth/update-password")'));
+  assert.ok(source.includes('window.location.replace("/auth/complete?type=verified")'));
+  assert.ok(source.includes('window.location.replace("/auth/error?reason=invalid")'));
 });
 
 test("Supabase browser transport cannot auto-redeem the PKCE code before the explicit callback", () => {
