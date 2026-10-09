@@ -16,8 +16,17 @@ const KEY = "noata-palette";
 function valid(p: string | null): p is Palette {
   return PRESETS.some((item) => item.id === p);
 }
+/** Keep browser/PWA chrome aligned with the selected page palette where supported. */
+export function syncBrowserThemeColor() {
+  const color = getComputedStyle(document.documentElement).getPropertyValue("--surface-soft").trim();
+  if (!color) return;
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    meta.content = color;
+  });
+}
 export function applyPalette(value: string | null) {
   document.documentElement.dataset.palette = valid(value) ? value : "classic";
+  syncBrowserThemeColor();
 }
 function storedPalette(): Palette {
   try {
