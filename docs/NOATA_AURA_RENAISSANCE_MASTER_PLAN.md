@@ -3,6 +3,8 @@
 **Revision:** 2.0 — 9 October 2026
 **Status:** Engineering specification and implementation backlog, NOT a claim that the platform is complete.
 
+> **ABSOLUTE COVERAGE CONTRACT — ALL SYSTEMS, ALL PAGES, ALL FILES:** This master specification is NOT limited to Quran, Missions, Review, or the route examples below. It covers every system and every page — including unseen nested states, original legacy applications, runtime APIs, every RPC and SQL migration, UI component, dashboard, event, error screen, PWA behavior, roles, integrations, emails, static assets, support documentation, deployment workflows and tests. Consult [THE COMPLETE, FILE-BY-FILE INVENTORY](NOATA_AURA_EXHAUSTIVE_SCOPE_MANIFEST.md), generated from the actual branch tree. It enumerates **26 Next.js page routes and 281 tracked file blobs** at the initial audit, including modern/legacy frontends and services. An added or modified file automatically enters scope, and every user-visible action needs a backed and tested acceptance ledger. Do not interpret these counts as assertions of successful testing.
+
 > **Mission:** Transform Noata Aura into an unusually beautiful, fast, reliable, bilingual, Arabic-first, deeply interactive educational platform. It must feel like a cohesive, sophisticated product — not a collection of attractive mockups. Upgrade EVERY CURRENT ROUTE, BACKEND WORKFLOW, ROLE, STATE, AND CROSS-PLATFORM INTERACTION. Deliver authentic learning, real services, accountable rewards, excellent accessibility, and flawless-looking but restrained motion. No placeholders presented as real functionality; no “finished” claims without evidence.
 
 # 0. OPERATING INSTRUCTIONS TO THE IMPLEMENTING ENGINEERING AGENT
