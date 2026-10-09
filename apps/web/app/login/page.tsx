@@ -220,8 +220,16 @@ export default function LoginPage() {
         </div>
         <div className="auth-aside-stage" aria-hidden="true">
           <span className="auth-aside-stage-glow" />
-          <span className="auth-aside-stage-mark"><NoataBrand size={76} compact /></span>
-          <span className="auth-aside-stage-caption">مساحة معمولة علشان طموحك</span>
+          <div className="noata-auth-journey-visual">
+            <NoataBrand size={83} compact tagline={null} />
+            <div className="noata-auth-journey-copy">
+              <small>LEARN · PRACTICE · GROW</small>
+              <strong>تعليم منظم. أفكار جديدة. إنجاز بتعبك.</strong>
+            </div>
+          </div>
+          <div className="noata-auth-milestones">
+            <span>01 · افهم</span><span>02 · جرّب</span><span>03 · تقدّم</span>
+          </div>
         </div>
         <ul className="auth-aside-points">
           <li><Icon name="ai" size={18} /> مذاكرة أذكى في ورشة Noata</li>
