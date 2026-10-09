@@ -255,12 +255,15 @@ async function verifyPaletteBrandConsistency(){
   // Regresses the reported Forest screenshot defect using real computed styles.
   const palettes=["classic","aura","ocean","forest","sunset","rose","midnight"],seen=new Map();
   await navigate("/settings");
+  await evaluate('localStorage.setItem("noata-theme","light")');
+  invariant(await evaluate('!!document.querySelector("#noata-ai-design-studio") && !!document.querySelector("#noata-ai-design-studio textarea")'),"Guest AI Design Studio includes user-editable prompt and login guidance");
   await evaluate('(()=>{if(!document.querySelector(".aura-theme-menu"))document.querySelector(".aura-theme-picker>button").click()})()');
   await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-palette-grid button").length===7'),"seven theme choices");
   for(const name of palettes){
     const selected=await evaluate('(()=>{const el=Array.from(document.querySelectorAll(".noata-palette-grid button")).find(b=>b.getAttribute("aria-label")?.toLowerCase().endsWith('+JSON.stringify(name)+'));if(!el)return false;el.click();return true})()',"select palette "+name);
     invariant(selected,"Palette "+name+" has an actual selector");
     await waitFor(async()=>await evaluate('document.documentElement.dataset.palette==='+JSON.stringify(name)),"palette applied "+name);
+    invariant(await evaluate('document.documentElement.dataset.theme==='+JSON.stringify(name==="midnight"?"dark":"light")),"Midnight is dark-only while every other world respects light");
     invariant(await evaluate('localStorage.getItem("noata-palette")==='+JSON.stringify(name)),"palette persisted "+name);
     await navigate("/");
     await waitFor(async()=>await evaluate('!!document.querySelector(".dashboard-hero .noata-logo-vector")'),"original brand visible "+name);
@@ -273,7 +276,10 @@ async function verifyPaletteBrandConsistency(){
     await evaluate('(()=>{if(!document.querySelector(".aura-theme-menu"))document.querySelector(".aura-theme-picker>button").click()})()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-palette-grid button").length===7'),"selector restored "+name);
   }
-  for(const [a,b] of [["forest","ocean"],["aura","forest"],["midnight","rose"]]){
+  await navigate("/login");
+  await waitFor(async()=>await evaluate('!!document.querySelector(".auth-aside .noata-auth-journey-visual")'),"redesigned Noata auth illustration");
+  invariant(await evaluate('getComputedStyle(document.querySelector(".auth-aside")).backgroundImage.includes("linear-gradient")'),"auth background follows new responsive design");
+    for(const [a,b] of [["forest","ocean"],["aura","forest"],["midnight","rose"]]){
     invariant(seen.get(a).background!==seen.get(b).background,"hero is distinctly themed "+a+" "+b);
     invariant(seen.get(a).ribbon!==seen.get(b).ribbon,"original Noata logo ribbon follows theme "+a+" "+b);
   }
