@@ -4,6 +4,12 @@
 
 **NOT READY — SPECIFIC RELEASE BLOCKERS REMAIN.** This checkpoint supersedes conflicting historical gate states below; it does not turn synthetic sessions into authenticated verification.
 
+### Latest candidate evidence — 2026-10-09
+
+Candidate `354adadc7184543872465ba88ef386c8ec67a065` on `v0/approved-staging-guard` passed the complete [clean exact-revision CI run 37940069074](https://github.com/11Mazen22/learnverse-demo/actions/runs/37940069074), including the previously failing production appearance step and all artifact revision/dirty checks. Independently downloaded artifacts confirm 843 public/synthetic browser assertions and 216 appearance assertions, 42 palette/mode public views, all nine picker widths, and no uncaught browser errors. The stable candidate alias `noata-git-v0-approved-staging-guard-noata.vercel.app` resolves READY preview deployment `dpl_831cxrGEo25fg3GX2UehY9Bc7zAy`, immutable URL `noata-93u6jcdhw-noata.vercel.app`; Git metadata matches that exact source SHA. Authorized public HTTP health/source checks passed. This is not hosted interactive or real account/provider acceptance.
+
+Fresh approved-project metadata access is still permission denied; the connected Supabase resource and injected browser/server URLs remain unapproved `qvfywwpoktmbjsunqizr`. No database queries or changes were made. The existing opt-in authenticated runner's secure QA configuration remains absent from the injected environment; a retained branch-specific file is only partially aligned and was not applied. Full role/receipt/provider/manual acceptance remains BLOCKED or NOT STARTED as recorded in the [repository-wide acceptance ledger](NOATA_AURA_ACCEPTANCE_LEDGER.md). PR #3 remains OPEN/DRAFT at authoritative `ec1534be81855916a19e9c6ba8fcdf785bdef45a`; the candidate is not merged or promoted. The ledger records the next authorized staging slice and evidence boundaries. Saving this documentation creates another revision; require its own clean CI and hosted identity rather than reusing the predecessor's result.
+
 ### Integrated implementation and defects repaired
 
 The authorized development branches were reconciled at `c4f95d35eb2931cbb7cd1e1afb2f0230f4da39db`; PR #3 remains OPEN/DRAFT against `master`. The guard, account/workshop/PDF corrections and Quran contrast repair are integrated, not disconnected branch implementations. Production has not been modified or deployed.
