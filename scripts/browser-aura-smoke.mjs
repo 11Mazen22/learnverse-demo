@@ -155,7 +155,7 @@ async function verifyQuranControls(){
         }
         const n=Number(params.get("surah")??1);
         window.__noataLastQuranReciter=params.get("reciter");
-        return new Response(JSON.stringify({surah:{number:n,name:n===1?"الفاتحة":"البقرة",englishName:"Example",numberOfAyahs:n===1?2:8},verses:n===1?${JSON.stringify(fixture)}:${JSON.stringify(longFixture)},source:{name:"CI TEST FIXTURE",edition:"fixture",reference:"https://alquran.cloud/api",audioEdition:"fixture"}}),{status:200,headers:{"Content-Type":"application/json"}});
+        return new Response(JSON.stringify({surah:{number:n,name:n===1?"الفاتحة":"البقرة",englishName:"Example",numberOfAyahs:n===1?2:8},verses:n===1?${JSON.stringify(fixture)}:${JSON.stringify(longFixture)},source:{name:"CI TEST FIXTURE",edition:"fixture",reference:"https://alquran.cloud/api",audioEdition:"fixture"},audioAvailable:false,audioUnavailableReason:"اختبار: هذا المصدر لا يتضمن ملفات صوت"}),{status:200,headers:{"Content-Type":"application/json"}});
       }
       return originalFetch(input,options);
     };
