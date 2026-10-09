@@ -32,7 +32,11 @@ for (const valid of [false, true]) {
     await server.auth.getUser("test_access_token");
     if (valid) assert.deepEqual(seen, ["/auth/v1/user", "/rest/v1/profiles", "/rest/v1/rpc/submit_attempt",
       "/storage/v1/object/list/noata-uploads", "/functions/v1/noata-ai-v2", "/auth/v1/user"]);
-    else assert.deepEqual(seen, []);
+    else {
+      const result = await db.auth.signInWithPassword({ email: "fixture@example.invalid", password: "not-a-real-password" });
+      assert.equal(result.error?.code, "SUPABASE_CONFIGURATION_INVALID");
+      assert.deepEqual(seen, []);
+    }
   });
 }
 

@@ -62,8 +62,10 @@ export function authorizedSupabaseUrl(input: unknown, config: SupabaseConfigurat
 }
 
 export function blockedSupabaseResponse(): Response {
-  return Response.json({ message: CONFIGURATION_ERROR_MESSAGE, code: CONFIGURATION_ERROR_CODE },
-    { status: 503, headers: { "Cache-Control": "no-store" } });
+  // Auth discards 5xx bodies and retries them; an authorization denial must
+  // retain its Arabic error code and must never be treated as provider downtime.
+  return Response.json({ message: CONFIGURATION_ERROR_MESSAGE, code: CONFIGURATION_ERROR_CODE, error_code: CONFIGURATION_ERROR_CODE },
+    { status: 403, headers: { "Cache-Control": "no-store" } });
 }
 
 export function createGuardedSupabaseFetch(

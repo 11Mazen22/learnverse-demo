@@ -33,7 +33,7 @@ for (const invalid of [undefined, "", "not-a-url", url + "/rest/v1", url + "?foo
     assert.equal(config.key, "");
     let networkCalls = 0;
     const guarded = createGuardedSupabaseFetch(config, async () => { networkCalls++; return new Response(); });
-    assert.equal((await guarded(url + "/auth/v1/token")).status, 503);
+    assert.equal((await guarded(url + "/auth/v1/token")).status, 403);
     assert.equal(networkCalls, 0);
   });
 }
@@ -73,7 +73,7 @@ test("foreign, malformed, credentialed and non-service destinations never reach 
     url + "/unrecognized", url + "/auth/v1/user#x", url.replace("https://", "https://user:password@") + "/auth/v1/token",
     url.replace(".co", ".co.attacker.invalid") + "/rest/v1/profiles"]) {
     const response = await guarded(target);
-    assert.equal(response.status, 503);
+    assert.equal(response.status, 403);
     assert.equal((await response.json()).code, CONFIGURATION_ERROR_CODE);
   }
   assert.equal(calls, 0);
