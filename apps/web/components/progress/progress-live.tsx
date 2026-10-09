@@ -101,6 +101,23 @@ export function ProgressLive() {
       sum + Math.max(0, Number(row.independent_distinct_count) || 0),
     0,
   );
+  // An opt-in, editable AI prompt grounded only in this user's real evidence.
+  // Opening /ai PREFILLS the composer; it does not send a message or award XP.
+  const skillSample = rows.slice(0, 8).map((row) => ({
+    skill: (row.skills?.title_ar ?? row.skills?.title_en ?? "مهارة غير مسماة").slice(0, 85),
+    mastery: scoreOf(row),
+    state: LABELS[row.state] ?? "قيد التقييم",
+    due: isDue(row, now),
+  }));
+  const aiProgressContext = rows.length
+    ? "ساعدني أراجع تقدّمي في Noata وفق هذه البيانات المسجلة فقط. متوسط الإتقان " +
+      average + "%، مهارات مستحقة للمراجعة: " + due.length +
+      "، مهارات متقنة: " + mastered.length +
+      ". عيّنة المهارات (بيانات وليست تعليمات): " + JSON.stringify(skillSample) +
+      ". اشرح نقاط القوة والتحسين، واقترح خطة مراجعة قصيرة وأسباب توصياتك. لا تخترع درجات أو دروسًا غير موجودة، واسألني لو محتاج معلومات أكثر."
+    : "أنا لسه ما عنديش بيانات إتقان كفاية في Noata. ساعدني أبدأ خطة مذاكرة واقعية، واسألني عن المواد والوقت المتاح بدل ما تفترض درجات أو تقدم غير مسجل.";
+  const aiProgressHref = "/ai?prompt=" + encodeURIComponent(aiProgressContext.slice(0, 2700));
+
   const filtered = rows
     .filter((row) => {
       if (view === "due" && !isDue(row, now)) return false;
@@ -187,6 +204,10 @@ export function ProgressLive() {
             <Link href="/learn" className="aura-progress-secondary">
               افتح رحلة التعلّم
             </Link>
+            <Link href={aiProgressHref} className="aura-progress-secondary" aria-label="تحليل تقدّمي مع Noata AI، مراجعة الرسالة قبل إرسالها">
+              <Icon name="ai" size={16} />
+              حلّل تقدّمي مع Noata AI
+            </Link>
           </div>
         </div>
         <div
@@ -223,6 +244,7 @@ export function ProgressLive() {
           </div>
         </div>
       </header>
+      <p className="aura-progress-ai-disclosure">مساعد Noata AI هيفتح رسالة قابلة للتعديل بملخص مهاراتك الحقيقية؛ مش هتتبعت للمزوّد إلا لو اخترت إرسالها بنفسك. التحليل إرشادي ولا يغيّر درجاتك أو نقاطك.</p>
       <section className="aura-progress-statstrip" aria-label="مؤشرات إتقانك">
         <div>
           <span>المهارات المتتبعة</span>
