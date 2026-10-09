@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { resolveAppearance, safeAppearance } from "@/lib/appearance/mode";
+import {clearCustomDesign} from "@/lib/appearance/theme";
+import {SavedDesignChoices} from "@/components/preferences/design-studio";
 
 type Palette = "classic" | "aura" | "ocean" | "forest" | "sunset" | "rose" | "midnight";
 const PRESETS: { id: Palette; ar: string; en: string; swatch: string }[] = [
@@ -29,6 +31,7 @@ export function syncBrowserThemeColor() {
 }
 export function applyPalette(value: string | null) {
   const palette = valid(value) ? value : "classic";
+  clearCustomDesign();
   document.documentElement.dataset.palette = palette;
   let wanted: string | null = null;
   try { wanted = localStorage.getItem("noata-theme"); } catch { /* private device */ }
@@ -52,6 +55,7 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
   const saveSequence = useRef(0);
   useEffect(() => {
     const update = () => {
+      if(document.documentElement.dataset.palette==="custom")return;
       const value = storedPalette();
       setSelected(value);
       applyPalette(value);
@@ -72,7 +76,8 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
     void (async () => {
       try {
         const { data } = await supabase.from("user_settings")
-          .select("palette").eq("user_id", account.user!.id).maybeSingle();
+          .select("palette,active_design_id").eq("user_id", account.user!.id).maybeSingle();
+        if(data?.active_design_id)return;
         if (!alive || seq !== saveSequence.current || !valid(data?.palette)) return;
         setSelected(data.palette);
         applyPalette(data.palette);
@@ -100,7 +105,7 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
     setNotice("جارٍ مزامنة الطابع مع حسابك…");
     try {
       const {data,error}=await supabase.from("user_settings")
-        .upsert({user_id:user.id,palette:value,updated_at:new Date().toISOString()},
+        .upsert({user_id:user.id,palette:value,active_design_id:null,updated_at:new Date().toISOString()},
           {onConflict:"user_id"})
         .select("palette").single();
       if (seq !== saveSequence.current) return;
@@ -127,6 +132,7 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
           </button>
         ))}
       </div>
+      {compact&&<SavedDesignChoices/>}
       {notice && <small role="status" className="noata-palette-notice">{notice}</small>}
       <small className="noata-palette-local">{account.user ? "اختيارك يتزامن مع حسابك عند تأكيد الاتصال؛ الجهاز يحتفظ بنسخته المحلية." : "اختيارك محفوظ على هذا الجهاز؛ سجّل الدخول لتفعيل مزامنة الحساب."}</small>
     </div>

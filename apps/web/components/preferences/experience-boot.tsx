@@ -5,6 +5,7 @@ import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { applyPalette, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 import { resolveAppearance, safeAppearance } from "@/lib/appearance/mode";
+import {applyCustomDesign,isDesignRecord} from "@/lib/appearance/theme";
 
 export function ExperienceBoot() {
   const account = useVerifiedAccount();
@@ -35,7 +36,7 @@ export function ExperienceBoot() {
         if (!user) return;
         const { data } = await supabase
           .from("user_settings")
-          .select("theme,locale,reduced_motion,palette")
+          .select("theme,locale,reduced_motion,palette,active_design_id")
           .eq("user_id", user.id)
           .maybeSingle();
         if (!alive || !data) return;
@@ -53,6 +54,19 @@ export function ExperienceBoot() {
           applyPalette(data.palette);
           try { localStorage.setItem("noata-palette", data.palette); } catch { /* device storage is optional */ }
           window.dispatchEvent(new Event("noata-palette-change"));
+        }
+        if (data.active_design_id) {
+          const response=await supabase.from("user_theme_designs")
+            .select("id,user_id,name,description,tokens,visible")
+            .eq("id",data.active_design_id).eq("user_id",user.id).maybeSingle();
+          if (alive && isDesignRecord(response.data) && response.data.user_id===user.id) {
+            applyCustomDesign(response.data.tokens);
+            document.documentElement.dataset.theme=resolveAppearance(
+              safeAppearance(data.theme),"custom",window.matchMedia("(prefers-color-scheme: dark)").matches
+            );
+            syncBrowserThemeColor();
+            window.dispatchEvent(new Event("noata-custom-theme-change"));
+          }
         }
         document.documentElement.lang = data.locale;
         document.documentElement.dir = data.locale === "ar" ? "rtl" : "ltr";

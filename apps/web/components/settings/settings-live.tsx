@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/icon";
 import { confirmAction } from "@/components/ui/confirm-dialog";
 import { CHAT_MODEL_CARDS } from "@/lib/ai/model-routing";
 import {resolveAppearance} from "@/lib/appearance/mode";
+import {DesignStudio} from "@/components/preferences/design-studio";
 
 type Settings = {
   theme: "system" | "light" | "dark";
@@ -403,6 +404,7 @@ export function SettingsLive() {
             ))}
           </div>
           <PaletteGallery />
+          <DesignStudio />
           <label className="aura-settings-switch">
             <span>
               <strong>تقليل الحركة</strong>

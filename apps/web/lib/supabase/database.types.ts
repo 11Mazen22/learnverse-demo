@@ -1317,8 +1317,42 @@ export type Database = {
           },
         ]
       }
+      user_theme_designs: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string
+          tokens: Json
+          visible: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string
+          tokens: Json
+          visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string
+          tokens?: Json
+          visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
+          active_design_id: string | null
           ai_memory_enabled: boolean
           created_at: string
           default_ai_model: string
@@ -1330,6 +1364,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
           default_ai_model?: string
@@ -1341,6 +1376,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
           default_ai_model?: string
