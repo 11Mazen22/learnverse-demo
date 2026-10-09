@@ -507,3 +507,33 @@ Noata Aura is ready only when:
 - The owner has reviewed and explicitly approved release; no automatic merge or production mutation.
 
 **Primary command to implementation agent:** Execute this plan against the existing Noata Aura repository. Start with an evidence-backed gap matrix and P0 broken functionality. Implement real end-to-end improvements in coherent tested vertical slices. Preserve what is already correct. Show only VERIFIED status for evidence matching the exact source SHA and deployed environment. DO NOT stop at a pretty prototype, redesign alone, or synthetic UI tests. Do not call the system “completed” until the entire release contract is satisfied.
+
+
+# ADDENDUM — Noata Global Theme Fidelity and Original Brand Preservation (9 October 2026)
+
+**Scope is every visible and interactive element on every route, not the home page alone.** Forest, Ocean, Aura, Sunset, Rose, Midnight and Classic must meaningfully recolor the entire platform including the original Noata SVG's cap/book outlines, paper and N ribbon, while preserving the owner's approved logo geometry. Do not substitute a plain N, generic graduation-cap icon, filter-distorted SVG, or a different lockup. Browser/PWA chrome should follow palette where supported. The immutable app/manifest icons need an explicit plan for platform-limited runtime theming rather than a false claim of automatic updates.
+
+The connected code currently implements semantic palette tokens, a page-wide hero/brand/AI/rewards/auth overrides layer, a palette-aware inline SVG using the original art paths, and a browser-regression contract. The full scope remains unverified until visual inspection and acceptance of each route and mode on the exact deployed commit; **do not label it complete based on one screenshot or a passing stylesheet test**.
+
+### Mandatory per-element visual token families
+
+1. **Brand:** original SVG vector, wordmark and tagline, sidebar/header/sidebar AI badge, login, guest landing, public terms/privacy/help, Noata AI avatar and mascot treatments, full-Surah player artwork, email/PWA/metadata variants with clear platform constraints.
+2. **Surfaces:** page backgrounds, raised cards, navigational panels, input fills, popovers, context menus, skeletons, skeleton shimmer, toolbar backplates, sticky player bars, scrollbar thumb, mobile navigation, modals, drawers and overlays.
+3. **Actions:** primary/secondary/tertiary/ghost buttons, compact/icon buttons, links, pill filters, tabs, toggles, checkboxes, selected options, sliders, keyboard shortcuts, file controls, search matches and focus rings; use legible on-accent tokens for all color modes.
+4. **Feedback:** loading, empty, disabled, hover, pressed, focus, active navigation, authenticated/unauthenticated, partial/offline, warning, destructive, permission-denied and errors. Semantic success/warning/danger meanings must remain perceptible across palettes; do not blindly recolor warnings green/blue.
+5. **Education:** course/lesson/skill cards, mastery maps, streak/XP/Coins/Gems, mission and boss stage displays, teacher/admin data tables, progress chart lines/legends, rewards inventory, achievement celebrations and source-linked AI recommendations.
+6. **AI:** new chat, send/stop, model selection, prompt suggestions, message avatars/bubbles, source badges, voice controls, streaming indicator, writing studio, file chips, markdown/code, charts and exported document preview.
+7. **Quran:** reading controls, Surah selector/search, full-Surah player, individual Ayah controls, source attribution, bookmark states and **a soft actual-playback-driven Ayah glow** sampled from the active palette. Sacred text readability and authenticity are never compromised for theme fidelity.
+8. **Responsive:** 320/360/390/430/768/1024/1280/1440/1920px, dark/light/system where compatible, RTL/LTR, 200–400% zoom, mobile tap target size, OS and user reduced motion.
+9. **Motion:** theme transitions occur on composited layers and within a bounded, nonblocking time; never trigger flashing or unreadable intermediate contrast, never obscure text; use static fallback under reduced-motion settings.
+
+### Automated + human acceptance
+
+- Select each world through the real UI, refresh, navigate across every available route and verify the selected palette persists correctly on the device; account/cross-device sync remains a separately gated server change.
+- Capture screenshot sets for critical home, Learn, Progress, Rewards, Missions, Review, Boss, AI, Quran, Assignments, Teacher, Admin, Auth, Help, Settings and Legal screens, then expand to every nested feature/state listed in the exhaustive repository manifest.
+- Assert **computed styles** on representative high-contrast controls and the brand SVG (not just existence of CSS variables). Fail if Forest retains an unrelated fixed blue hero or if ribbon coloring remains frozen.
+- Verify no color pairing fails WCAG 2.2 AA, including browser focus and disabled controls; investigate accidental CSS hard-coded color islands and preserve authentic provider/semantic icon colors only where context demands them.
+- If a new design component bypasses semantic tokens or cannot be themed without sacrificing accessibility, explicitly identify it and correct it before release.
+- Block release on old-commit alias, incomplete Quran provider functionality, unsupported AI promises, unreconciled XP/Gems, or missing staging-backed authenticated test evidence.
+
+**This addendum is an implementation and acceptance contract, NOT proof that every page is already redesigned or verified.**
