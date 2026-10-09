@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
+import { PaletteGallery } from "@/components/preferences/palette-gallery";
 
 type Theme = "light" | "dark" | "system";
 const choices: {
@@ -217,6 +218,7 @@ export function ThemeControl() {
           ))}
         </div>
       )}
+      {open && <PaletteGallery compact />}
       {notice && (
         <span className="aura-theme-notice" role="status">
           {notice}
