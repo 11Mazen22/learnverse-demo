@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
+import { resolveAppearance, safeAppearance } from "@/lib/appearance/mode";
 
 type Palette = "classic" | "aura" | "ocean" | "forest" | "sunset" | "rose" | "midnight";
 const PRESETS: { id: Palette; ar: string; en: string; swatch: string }[] = [
@@ -27,7 +28,11 @@ export function syncBrowserThemeColor() {
   });
 }
 export function applyPalette(value: string | null) {
-  document.documentElement.dataset.palette = valid(value) ? value : "classic";
+  const palette = valid(value) ? value : "classic";
+  document.documentElement.dataset.palette = palette;
+  let wanted: string | null = null;
+  try { wanted = localStorage.getItem("noata-theme"); } catch { /* private device */ }
+  document.documentElement.dataset.theme = resolveAppearance(safeAppearance(wanted),palette,window.matchMedia("(prefers-color-scheme: dark)").matches);
   syncBrowserThemeColor();
 }
 function storedPalette(): Palette {

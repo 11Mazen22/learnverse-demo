@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
+import { resolveAppearance } from "@/lib/appearance/mode";
 import { Icon } from "@/components/ui/icon";
 import { PaletteGallery, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 
@@ -36,12 +37,7 @@ function isTheme(value: unknown): value is Theme {
   return value === "light" || value === "dark" || value === "system";
 }
 function apply(theme: Theme) {
-  document.documentElement.dataset.theme =
-    theme === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : theme;
+  document.documentElement.dataset.theme = resolveAppearance(theme, document.documentElement.dataset.palette, window.matchMedia("(prefers-color-scheme: dark)").matches);
   syncBrowserThemeColor();
 }
 export function ThemeControl() {
@@ -201,6 +197,7 @@ export function ThemeControl() {
           aria-label="اختيار المظهر"
         >
           <strong>المظهر</strong>
+          <p className="noata-theme-guidance">اختار إضاءة واجهتك ثم عالم الألوان. منتصف الليل يظل داكنًا دائمًا.</p>
           {choices.map((choice) => (
             <button
               type="button"
@@ -218,6 +215,7 @@ export function ThemeControl() {
             </button>
           ))}
           <PaletteGallery compact />
+          <a className="noata-theme-studio-link" href="/settings#noata-ai-design-studio" onClick={()=>setOpen(false)}><Icon name="sparkles" size={17}/> ابتكر تصميمك مع Noata AI <Icon name="arrow" size={15}/></a>
         </div>
       )}
       {notice && (

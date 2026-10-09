@@ -11,6 +11,7 @@ import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { Icon } from "@/components/ui/icon";
 import { confirmAction } from "@/components/ui/confirm-dialog";
 import { CHAT_MODEL_CARDS } from "@/lib/ai/model-routing";
+import {resolveAppearance} from "@/lib/appearance/mode";
 
 type Settings = {
   theme: "system" | "light" | "dark";
@@ -49,12 +50,10 @@ function applySettings(settings: Settings) {
   }
   document.documentElement.lang = settings.locale;
   document.documentElement.dir = settings.locale === "ar" ? "rtl" : "ltr";
-  document.documentElement.dataset.theme =
-    settings.theme === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : settings.theme;
+  document.documentElement.dataset.theme = resolveAppearance(
+    settings.theme,document.documentElement.dataset.palette,
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
   document.documentElement.dataset.reducedMotion = settings.reduced_motion
     ? "true"
     : "false";

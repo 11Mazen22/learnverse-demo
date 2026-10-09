@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { applyPalette, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
+import { resolveAppearance, safeAppearance } from "@/lib/appearance/mode";
 
 export function ExperienceBoot() {
   const account = useVerifiedAccount();
@@ -14,15 +15,10 @@ export function ExperienceBoot() {
     try {
       applyPalette(localStorage.getItem("noata-palette"));
       const localTheme = localStorage.getItem("noata-theme");
-      if (localTheme === "light" || localTheme === "dark") {
-        document.documentElement.dataset.theme = localTheme;
-      } else {
-        document.documentElement.dataset.theme = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches
-          ? "dark"
-          : "light";
-      }
+      document.documentElement.dataset.theme = resolveAppearance(
+        safeAppearance(localTheme), document.documentElement.dataset.palette,
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      );
 
       syncBrowserThemeColor();
       const localLocale = localStorage.getItem("noata-locale");
@@ -47,13 +43,10 @@ export function ExperienceBoot() {
         localStorage.setItem("noata-theme", data.theme);
         localStorage.setItem("noata-locale", data.locale);
 
-        const resolved =
-          data.theme === "system"
-            ? window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light"
-            : data.theme;
-        document.documentElement.dataset.theme = resolved;
+        document.documentElement.dataset.theme = resolveAppearance(
+          safeAppearance(data.theme),document.documentElement.dataset.palette,
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        );
         syncBrowserThemeColor();
         if (typeof data.palette === "string" &&
             ["classic","aura","ocean","forest","sunset","rose","midnight"].includes(data.palette)) {
