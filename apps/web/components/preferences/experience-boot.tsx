@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
-import { applyPalette } from "@/components/preferences/palette-gallery";
+import { applyPalette, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 
 export function ExperienceBoot() {
   const account = useVerifiedAccount();
@@ -24,6 +24,7 @@ export function ExperienceBoot() {
           : "light";
       }
 
+      syncBrowserThemeColor();
       const localLocale = localStorage.getItem("noata-locale");
       if (localLocale === "ar" || localLocale === "en") {
         document.documentElement.lang = localLocale;
@@ -53,6 +54,7 @@ export function ExperienceBoot() {
               : "light"
             : data.theme;
         document.documentElement.dataset.theme = resolved;
+        syncBrowserThemeColor();
         document.documentElement.lang = data.locale;
         document.documentElement.dir = data.locale === "ar" ? "rtl" : "ltr";
         document.documentElement.dataset.reducedMotion = data.reduced_motion
