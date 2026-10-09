@@ -30,7 +30,6 @@ export default function AuthCallbackPage() {
       const flow = normalizedAuthFlow(params.get("flow"));
       const providerError = params.get("error_code") || hash.get("error_code");
       if (providerError || params.has("error") || hash.has("error")) {
-        window.history.replaceState(null, "", "/auth/callback");
         window.location.replace("/auth/error?reason=" + (providerError ? reasonFromCode(providerError) : "cancelled"));
         return;
       }
@@ -41,8 +40,10 @@ export default function AuthCallbackPage() {
       }
       try {
         const { data, error } = await createClient().auth.exchangeCodeForSession(code);
-        // Remove the one-time code from browser history as soon as it is consumed.
-        window.history.replaceState(null, "", "/auth/callback");
+        // Do not use history.replaceState here: Next's App Router patches it
+        // and can remount the callback without the code before navigation,
+        // misclassifying a successfully verified link as invalid. Every final
+        // window.location.replace below removes the one-time code from history.
         if (error) {
           window.location.replace("/auth/error?reason=" + reasonFromCode(error.code));
           return;
@@ -73,8 +74,9 @@ export default function AuthCallbackPage() {
         }
         window.location.replace(safeNextPath(params.get("next")));
       } catch {
-        window.history.replaceState(null, "", "/auth/callback");
-        setState({ status: "error", message: "تعذّر الاتصال بخدمة التحقق الآن. يُرجى طلب رابط جديد أو المحاولة بعد قليل." });
+        // Discard an unexchanged one-time code without triggering a Next router
+        // reconciliation against an empty /auth/callback query.
+        window.location.replace("/auth/error?reason=service");
       }
     })();
   }, []);
