@@ -1,13 +1,13 @@
 {
   "name": "Noata — Learn. Grow. Achieve.",
   "short_name": "Noata",
-  "description": "AI-native gamified learning platform.",
+  "description": "منصة نوتة: تعلّم وتدرّب وراجع وتابع تقدمك بمساعدة Noata AI.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#06111f",
-  "theme_color": "#06111f",
+  "background_color": "#0a2450",
+  "theme_color": "#0b3769",
   "lang": "ar",
   "dir": "rtl",
   "icons": [
@@ -15,7 +15,7 @@
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -25,13 +25,13 @@
       "url": "/ai"
     },
     {
-      "name": "Review",
-      "short_name": "Review",
+      "name": "المراجعة",
+      "short_name": "المراجعة",
       "url": "/review"
     },
     {
-      "name": "Learn",
-      "short_name": "Learn",
+      "name": "التعلّم",
+      "short_name": "تعلّم",
       "url": "/learn"
     }
   ]
