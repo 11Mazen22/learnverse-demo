@@ -127,7 +127,7 @@ select qa.check((select count(*)=0 from public.user_theme_designs),'AI palette r
 with changed as(update public.user_theme_designs set name='STOLEN'
   where id='99000000-0000-0000-0000-000000000001' returning id)
 select qa.check((select count(*)=0 from changed),'cross-account palette mutation is blocked');
-do $
+do $noata_ai_owner$
 begin
   begin
     update public.user_settings
@@ -137,7 +137,7 @@ begin
   exception when foreign_key_violation then
     raise notice 'QA PASS: cross-account AI design activation is rejected by database integrity';
   end;
-end $;
+end $noata_ai_owner$;
 
 -- This student's actual first attempt on all three questions is correct.
 -- A forged p_score value cannot affect the backend-computed mastery result.
