@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
 import { canonicalAuthOrigin, canonicalLoginDestination } from "@/lib/auth/canonical-origin";
 import { authCallbackUrl, type AuthFlow } from "@/lib/auth/flows";
+import {newPasswordProblem,MIN_NEW_PASSWORD_LENGTH} from "@/lib/auth/password-policy";
 import { isAuthorizedSupabaseUrl, supabaseConfiguration } from "@/lib/supabase/config";
 import { CONFIGURATION_ERROR_MESSAGE } from "@/lib/supabase/network-policy";
 
@@ -175,8 +176,9 @@ export default function LoginPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("استخدم كلمة مرور من 8 أحرف على الأقل.");
+    const passwordError = newPasswordProblem(password);
+    if (passwordError) {
+      setError(passwordError);
       setBusy("");
       return;
     }
@@ -317,12 +319,12 @@ export default function LoginPage() {
                     <input
                       type={showPassword ? "text" : "password"}
                       required
-                      minLength={mode === "signup" ? 8 : undefined}
+                      minLength={mode === "signup" ? MIN_NEW_PASSWORD_LENGTH : undefined}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete={mode === "signup" ? "new-password" : "current-password"}
                       dir="ltr"
-                      placeholder={mode === "signup" ? "8 أحرف على الأقل" : "••••••••"}
+                      placeholder={mode === "signup" ? "12 حرفًا على الأقل" : "••••••••"}
                     />
                     <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
                       {showPassword ? "إخفاء" : "إظهار"}
