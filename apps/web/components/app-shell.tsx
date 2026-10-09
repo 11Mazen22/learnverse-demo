@@ -8,6 +8,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { StaffNav } from "@/components/auth/staff-nav";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
+import { ContextualCoach } from "@/components/ai/contextual-coach";
 
 type Route = [label: string, href: string, icon: string, description: string];
 const navGroups: { title: string; routes: Route[] }[] = [
@@ -152,6 +153,7 @@ export function AppShell({
               <span>انتقل إلى…</span>
               <kbd>⌘ K</kbd>
             </button>
+            <ContextualCoach active={active} />
             <ThemeControl />
             <NotificationBell />
             <UserMenu />
