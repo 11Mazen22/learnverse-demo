@@ -1,0 +1,24 @@
+name: Sudais Live Audio Provider QA
+on:
+  push:
+    branches:
+      - noata-aura-platform-overhaul-20261008
+    paths:
+      - "apps/web/lib/quran/source.ts"
+      - "apps/web/app/api/quran/route.ts"
+      - "scripts/quran-sudais-provider-live.mjs"
+      - ".github/workflows/quran-sudais-provider-live.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-sudais:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Live external provider and playable MP3 sample (no fixtures)
+        run: node scripts/quran-sudais-provider-live.mjs
