@@ -3739,7 +3739,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .aura-quran-search-results>button{padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--surface-soft);display:grid;text-align:start;gap:3px}
 .aura-quran-search-results>button strong{font-size:12px;color:var(--accent)}
 .aura-quran-search-results>button span{font-size:14px;line-height:1.85}
-.aura-quran-attribution{max-width:920px;margin-inline:auto;color:var(--muted);font-size:12px;line-height:2}
+.aura-quran-attribution{max-width:920px;margin-inline:auto;color:var(--ink);font-size:12px;line-height:2}
 .aura-quran-attribution a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;margin-inline:5px}
 @media(max-width:720px){.aura-quran-header{flex-wrap:wrap}.aura-quran-ai-link{width:100%}.aura-quran-toolbar>*{flex:1 1 100%}.aura-quran-toolbar label{min-width:0}.aura-quran-font{justify-content:center}.aura-quran-ayah{padding-block:22px}.aura-quran-verse{line-height:2.45}}
 @media(prefers-reduced-motion:reduce){.aura-quran *, .aura-quran *::before{transition:none!important}}

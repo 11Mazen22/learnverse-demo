@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { AuthJourney } from "@/components/auth/auth-journey";
 import { createClient } from "@/lib/supabase/client";
+import { supabaseConfiguration } from "@/lib/supabase/config";
 import { localizeAuthError } from "@/lib/i18n/auth-errors";
 import { authCallbackUrl } from "@/lib/auth/flows";
 import { canonicalAuthOrigin, canonicalLoginDestination } from "@/lib/auth/canonical-origin";
@@ -27,6 +28,7 @@ function CheckEmailContent() {
     if (busy) return;
     const target = canonical();
     if (target) { window.location.replace(target); return; }
+    if (supabaseConfiguration.error) { setError(supabaseConfiguration.error); return; }
     setError(""); setMessage(""); setBusy(true);
     try {
       const origin = canonicalAuthOrigin(window.location.origin, process.env.NEXT_PUBLIC_AUTH_CANONICAL_ORIGIN);

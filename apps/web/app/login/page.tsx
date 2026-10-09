@@ -115,6 +115,7 @@ export default function LoginPage() {
 
   async function resendVerification() {
     if (busy || !email.trim() || beginOnCanonicalHost()) return;
+    if (supabaseConfiguration.error) { setError(supabaseConfiguration.error); return; }
     setBusy("resend");
     setError("");
     setMessage("");
@@ -136,6 +137,7 @@ export default function LoginPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy || beginOnCanonicalHost()) return;
+    if (supabaseConfiguration.error) { setError(supabaseConfiguration.error); return; }
     setBusy("form");
     setError("");
     setMessage("");
@@ -222,7 +224,7 @@ export default function LoginPage() {
         </div>
         <ul className="auth-aside-points">
           <li><Icon name="ai" size={18} /> ورشة مذاكرة: شرح، اختبارات، وبطاقات مراجعة</li>
-          <li><Icon name="chart" size={18} /> تقدّم ومكافآت تُحفظ مع حسابك</li>
+          <li><Icon name="chart" size={18} /> تقدّم ومكافآت ت��حفظ مع حسابك</li>
           <li><Icon name="check" size={18} /> واجبات ومتابعة مباشرة من معلّمك</li>
         </ul>
       </aside>
