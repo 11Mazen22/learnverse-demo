@@ -311,6 +311,7 @@ export function SettingsLive() {
           </div>
           <ThemeControl />
         </section>
+        <DesignStudio />
       </>
     );
 
