@@ -13,12 +13,33 @@ await mkdir(directory,{recursive:true});
 const outcome={revision:spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),passed:false,
  dirty:!!spawnSync('git',['status','--porcelain'],{encoding:'utf8'}).stdout.trim(),
  scope:'Local PostgreSQL; simulated auth claims and storage schemas. Not live Supabase Auth, Storage or provider verification.',image,migrations:[],retentionApplied:false};
-let log='',started=false;
+let log='',started=false,engine='docker',localStarted=false;
 function docker(args,input){
  const r=spawnSync('docker',args,{encoding:'utf8',input,maxBuffer:8*1024*1024,timeout:120000});
  log+=r.stdout??'';log+=r.stderr??'';
  if(r.error||r.status!==0)throw Error(`Docker ${args[0]} failed: ${r.error?.message||r.stderr||r.stdout}`);
  return r.stdout;
+}
+function postgres(args,input){
+  if(engine==='docker')return docker(['exec','-i',container,'psql','-U','postgres',...args],input);
+  const r=spawnSync('sudo',['-n','-u','postgres','psql',...args],{
+    encoding:'utf8',input,maxBuffer:8*1024*1024,timeout:120000
+  });
+  log+=r.stdout??'';log+=r.stderr??'';
+  if(r.error||r.status!==0)throw Error('Local PostgreSQL failed: '+(r.error?.message||r.stderr||r.stdout));
+  return r.stdout;
+}
+function startLocalPostgres(){
+  const r=spawnSync('sudo',['-n','systemctl','start','postgresql.service'],{
+    encoding:'utf8',timeout:30000
+  });
+  log+=r.stdout??'';log+=r.stderr??'';
+  if(r.error||r.status!==0)throw Error('Runner PostgreSQL could not start: '+(r.error?.message||r.stderr));
+  engine='local';localStarted=true;started=true;
+  const version=spawnSync('psql',['--version'],{encoding:'utf8'}).stdout.trim();
+  outcome.image='runner-preinstalled-'+version;
+  outcome.localRunnerFallback=true;
+  console.warn('Using isolated GitHub runner PostgreSQL service; version recorded in QA evidence.');
 }
 try{
  const startArgs=['run','--detach','--rm','--network','none','--memory','512m','--cpus','2','--name',container,'-e','POSTGRES_HOST_AUTH_METHOD=trust'];
@@ -32,18 +53,26 @@ try{
    runningImage=rateLimitMirror;
    outcome.image=runningImage;
    outcome.imageMirrorFallback=true;
-   docker([...startArgs,runningImage]);started=true;
+   try{
+     docker([...startArgs,runningImage]);started=true;
+   }catch(mirrorError){
+     if(!/toomanyrequests|rate exceeded|pull rate limit/i.test(String(mirrorError)))throw mirrorError;
+     startLocalPostgres();
+   }
  }
  let ready=false;
  for(let i=0;i<60;i++){
   // The image's temporary initialization server accepts only Unix sockets.
   // TCP readiness identifies the final server after that process exits.
-  if(spawnSync('docker',['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],{stdio:'ignore'}).status===0){ready=true;break;}
+  const check=engine==='docker'
+    ? spawnSync('docker',['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],{stdio:'ignore'})
+    : spawnSync('sudo',['-n','-u','postgres','pg_isready'],{stdio:'ignore'});
+  if(check.status===0){ready=true;break;}
   await delay(250);
  }
  if(!ready)throw Error('Local PostgreSQL did not become ready');
  const bootstrap=await readFile('scripts/sql/local-supabase-fixture.sql','utf8');
- docker(['exec','-i',container,'psql','-U','postgres','-v','ON_ERROR_STOP=1'],bootstrap);
+ postgres(['-v','ON_ERROR_STOP=1'],bootstrap);
  const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')&&!f.endsWith('_private_ai_documents.sql')).sort();
  let sql='BEGIN;\n';
  for(const file of files){
@@ -52,16 +81,18 @@ try{
   sql+=`\n\\echo Applying ${file}\n`+source+'\n';
  }
  sql+='COMMIT;\n';
- docker(['exec','-i',container,'psql','-U','postgres','-v','ON_ERROR_STOP=1'],sql);
+ postgres(['-v','ON_ERROR_STOP=1'],sql);
  const tests=await readFile('scripts/sql/security-regressions.sql','utf8');
- const result=docker(['exec','-i',container,'psql','-U','postgres','-v','ON_ERROR_STOP=1'],tests);
+ const result=postgres(['-v','ON_ERROR_STOP=1'],tests);
  outcome.assertions=(result.match(/QA PASS:/g)||[]).length;
  // Two real PostgreSQL sessions hit the same idempotency key concurrently.
- docker(['exec','-i',container,'psql','-U','postgres','-v','ON_ERROR_STOP=1'],"insert into auth.users(id) values('00000000-0000-0000-0000-000000000010');");
+ postgres(['-v','ON_ERROR_STOP=1'],"insert into auth.users(id) values('00000000-0000-0000-0000-000000000010');");
  const concurrentQuery=`begin;set local role authenticated;set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000010';
  select public.submit_attempt('05c00c64-b9b8-5736-b996-86dd82a3dd83','{"value":"1"}',false,'concurrent-same-answer',false);commit;`;
  const simultaneous=()=>new Promise((resolve,reject)=>{
-  const p=spawn('docker',['exec','-i',container,'psql','-U','postgres','-At','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']});
+  const p=spawn(engine==='docker'?'docker':'sudo',engine==='docker'
+   ? ['exec','-i',container,'psql','-U','postgres','-At','-v','ON_ERROR_STOP=1']
+   : ['-n','-u','postgres','psql','-At','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']});
   let output='',errors='';p.stdout.on('data',c=>{output+=c;});p.stderr.on('data',c=>{errors+=c;});p.on('error',reject);
   p.on('close',code=>{log+=output+errors;code===0?resolve(output):reject(Error('Concurrent PostgreSQL session failed: '+errors));});
   p.stdin.end(concurrentQuery);
@@ -69,13 +100,21 @@ try{
  const responses=await Promise.all([simultaneous(),simultaneous()]);
  const duplicates=responses.map(s=>JSON.parse(s.split('\n').find(line=>line.startsWith('{'))).duplicate).sort();
  if(JSON.stringify(duplicates)!=='[false,true]')throw Error('Concurrent attempts must return one original and one duplicate receipt');
- const count=docker(['exec','-i',container,'psql','-U','postgres','-At','-v','ON_ERROR_STOP=1'],"select count(*) from public.attempts where user_id='00000000-0000-0000-0000-000000000010';select count(*) from public.ledger where user_id='00000000-0000-0000-0000-000000000010';").trim();
+ const count=postgres(['-At','-v','ON_ERROR_STOP=1'],"select count(*) from public.attempts where user_id='00000000-0000-0000-0000-000000000010';select count(*) from public.ledger where user_id='00000000-0000-0000-0000-000000000010';").trim();
  if(count!=='1\n1')throw Error('Concurrent attempt duplicated a grade or reward');
  outcome.assertions+=2;
  outcome.passed=true;console.log(`PASS: ${files.length} migrations; ${outcome.assertions} local PostgreSQL assertions`);
 }catch(error){outcome.error=error.message;console.error(error);process.exitCode=1;}
 finally{
- if(started){try{docker(['rm','--force',container]);}catch(error){outcome.passed=false;outcome.cleanupError=error.message;process.exitCode=1;}}
+ if(started){
+   try{
+     if(engine==='docker')docker(['rm','--force',container]);
+     else if(localStarted){
+       const stop=spawnSync('sudo',['-n','systemctl','stop','postgresql.service'],{encoding:'utf8',timeout:20000});
+       if(stop.status!==0)throw Error('Unable to stop runner-local PostgreSQL service');
+     }
+   }catch(error){outcome.passed=false;outcome.cleanupError=error.message;process.exitCode=1;}
+ }
  await writeFile(directory+'/postgres.log',log);
  await writeFile(directory+'/outcome.json',JSON.stringify(outcome,null,2));
 }
