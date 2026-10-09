@@ -1,13 +1,14 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import { normalizeQuranQuery as normalize, type Chapter } from "@/lib/quran/reciters";
+import type { Chapter } from "@/lib/quran/reciters";
+import { searchChapters } from "@/lib/quran/search";
 export function QuranNavigator({ chapters, selected, onSelect, bookmarks, onBookmark, loading, error, retry }: {
   chapters: Chapter[]; selected: number; onSelect: (number: number) => void; bookmarks: string[]; onBookmark: (id: string) => void; loading: boolean; error: boolean; retry: () => void;
 }) {
   const [filter, setFilter] = useState("");
   const [tab, setTab] = useState<"surahs" | "saved">("surahs");
-  const filtered = useMemo(() => chapters.filter(s => normalize(`${s.name} ${s.englishName} ${s.number}`).includes(normalize(filter.trim()))), [chapters, filter]);
+  const filtered = useMemo(() => searchChapters(chapters, filter), [chapters, filter]);
   return <aside className="mushaf-navigator" aria-label="فهرس المصحف">
     <div className="mushaf-section-heading"><span className="mushaf-icon"><Icon name="book" size={20}/></span><div><h2>رحلتك مع القرآن</h2><p>اختر السورة، وخذ وقتك.</p></div></div>
     <div className="mushaf-segmented" aria-label="عرض الفهرس">
@@ -15,7 +16,7 @@ export function QuranNavigator({ chapters, selected, onSelect, bookmarks, onBook
       <button type="button" aria-pressed={tab === "saved"} onClick={() => setTab("saved")}>العلامات <span>{bookmarks.length.toLocaleString("ar-EG")}</span></button>
     </div>
     {tab === "surahs" ? <>
-      <label className="mushaf-index-search"><Icon name="search" size={17}/><input value={filter} onChange={e => setFilter(e.target.value)} placeholder="اسم السورة أو رقمها" aria-label="تصفية السور" /></label>
+      <label className="mushaf-index-search"><Icon name="search" size={17}/><input value={filter} maxLength={80} onChange={e => setFilter(e.target.value)} onKeyDown={e => { if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (e.key === "Enter" && filtered[0]) { e.preventDefault(); onSelect(filtered[0].number); } if (e.key === "ArrowDown") { e.preventDefault(); e.currentTarget.closest("aside")?.querySelector<HTMLButtonElement>(".mushaf-surah-item")?.focus(); } }} placeholder="اسم السورة، رقمها، أو اسمها بالإنجليزية" aria-label="تصفية السور" /></label>
       <div className="mushaf-surah-list">
         {loading && <p role="status" className="mushaf-empty">جارٍ تحميل الفهرس…</p>}
         {error && <div className="mushaf-empty" role="status">تعذّر تحميل الفهرس.<button type="button" onClick={retry}>إعادة المحاولة</button></div>}

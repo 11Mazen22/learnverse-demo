@@ -55,6 +55,24 @@ export function canonicalIndex(value: unknown) {
     };
   });
 }
+export function canonicalCorpus(value: unknown, metadata: unknown) {
+  if (!value || typeof value !== "object") throw Error("Missing Quran corpus");
+  const corpus = value as { edition?: { identifier?: unknown }; surahs?: unknown[] };
+  if (corpus.edition?.identifier !== "quran-uthmani" || !Array.isArray(corpus.surahs) || corpus.surahs.length !== 114) throw Error("Unexpected Quran corpus");
+  const chapters = canonicalIndex(metadata);
+  let global = 0;
+  const rows = chapters.flatMap(chapter => {
+    const raw = corpus.surahs![chapter.number - 1];
+    if (!raw || typeof raw !== "object") throw Error("Missing chapter");
+    // The whole-Quran endpoint omits numberOfAyahs; verify against the independent Surah index.
+    return canonicalSurah({ ...raw, numberOfAyahs: chapter.numberOfAyahs }, chapter.number).map(verse => {
+      if (verse.globalNumber !== ++global) throw Error("Non-contiguous Quran corpus");
+      return { surah: chapter.number, surahName: chapter.name, number: verse.number, text: verse.text };
+    });
+  });
+  if (global !== 6236) throw Error("Incomplete Quran corpus");
+  return rows;
+}
 export function recitationLink(value: unknown): string | null {
   if (typeof value !== "string") return null;
   try {

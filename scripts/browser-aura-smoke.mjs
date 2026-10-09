@@ -149,17 +149,21 @@ async function verifyQuranControls(){
         if(params.get("reciters")==="1"){
           return new Response(JSON.stringify({reciters:${JSON.stringify(REQUESTED_RECITERS.map(({providerId,...r})=>({...r,server:`https://cdn.mp3quran.net/audio/ci-fixture-${r.id}/`,surahs:[1,2],style:"CI TEST FIXTURE"})))} }),{status:200,headers:{"Content-Type":"application/json"}});
         }
+        if(params.has("verseReciter")){
+          return new Response(JSON.stringify({reciter:params.get("verseReciter"),surah:Number(params.get("surah")),verses:[],label:null}),{status:200,headers:{"Content-Type":"application/json"}});
+        }
         if(params.get("list")==="1"){
           return new Response(JSON.stringify({surahs:[
             {number:1,name:"الفاتحة",englishName:"Al-Faatiha",numberOfAyahs:2},
-            {number:2,name:"البقرة",englishName:"Al-Baqara",numberOfAyahs:2}
+            {number:2,name:"البقرة",englishName:"Al-Baqara",numberOfAyahs:7}
           ]}),{status:200,headers:{"Content-Type":"application/json"}});
         }
         if(params.has("search")){
           return new Response(JSON.stringify({results:[{surah:1,surahName:"الفاتحة",number:2,text:"آية تجريبية ثانية"}],total:1}),{status:200,headers:{"Content-Type":"application/json"}});
         }
         const n=Number(params.get("surah")??1);
-        return new Response(JSON.stringify({surah:{number:n,name:n===1?"الفاتحة":"البقرة",englishName:"Example",numberOfAyahs:2},verses:${JSON.stringify(fixture)},source:{name:"CI TEST FIXTURE",edition:"fixture",reference:"https://alquran.cloud/api",audioEdition:"fixture"}}),{status:200,headers:{"Content-Type":"application/json"}});
+        const verses=n===2?Array.from({length:7},(_,i)=>({number:i+1,globalNumber:i+3,text:"نص تجريبي وليس آية قرآنية "+(i+1),audio:null})):${JSON.stringify(fixture)};
+        return new Response(JSON.stringify({surah:{number:n,name:n===1?"الفاتحة":"البقرة",englishName:"Example",numberOfAyahs:verses.length},verses,source:{name:"CI TEST FIXTURE",edition:"fixture",reference:"https://alquran.cloud/api",audioEdition:"fixture"}}),{status:200,headers:{"Content-Type":"application/json"}});
       }
       return originalFetch(input,options);
     };
@@ -186,6 +190,17 @@ async function verifyQuranControls(){
     await evaluate('(()=>{const s=document.querySelector("select[aria-label=\\\"اختيار سورة\\\"]");s.value="2";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
     await waitFor(async()=>await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran chapter navigation");
     invariant(await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran surah chooser");
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"first five Ayahs only");
+    invariant(await evaluate('document.querySelector(".mushaf-player").compareDocumentPosition(document.querySelector(".mushaf-reading")) & Node.DOCUMENT_POSITION_FOLLOWING'),"player precedes reading independent of expansion");
+    await evaluate('document.querySelector(".mushaf-expand button").click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===7'),"full Surah expansion");
+    await evaluate('document.querySelector(".mushaf-expand button").click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"collapse restores first five");
+    await evaluate('(()=>{const el=document.querySelector("#mushaf-jump");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"٧");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
+    await evaluate('document.querySelector(".mushaf-jump form").requestSubmit()');
+    await waitFor(async()=>await evaluate('document.activeElement?.id==="ayah-2-7"'),"hidden target is expanded and focused");
+    invariant(await evaluate('document.querySelectorAll(".aura-quran-ayah").length===7 && location.search.includes("ayah=7")'),"Arabic-digit jump produces deep link");
+    await evaluate('document.querySelector(".mushaf-expand button").click()');
     await evaluate('(()=>{const el=document.querySelector("input[aria-label=\\\"البحث في القرآن\\\"]");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"التجريبية");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
     await evaluate('document.querySelector(".aura-quran-search")?.requestSubmit()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-search-results button").length>0'),"Quran search matches");
@@ -203,14 +218,11 @@ async function verifyQuranControls(){
     await evaluate("document.querySelector('.mushaf-player-controls [aria-label=\"تكرار السورة\"]')?.click()");
     await waitFor(async()=>await evaluate('document.querySelector(".mushaf-player audio")?.loop'),"Surah repetition");
     invariant(await evaluate('document.querySelector(".mushaf-player audio")?.loop'),"repeat maps to real media loop");
-    await evaluate('document.querySelector(".aura-quran-ayah-actions button:nth-of-type(2)")?.click()');
-    await waitFor(async()=>await evaluate('!!document.querySelector(".mushaf-verse-recitation [role=alert]")'),"unavailable individual verse audio");
-    invariant(await evaluate('document.querySelector(".mushaf-verse-recitation")?.textContent.includes("تلاوة الآية غير متاحة") && !document.querySelector(".mushaf-verse-recitation audio") && document.querySelector(".mushaf-player audio")?.paused && document.querySelectorAll(".aura-quran-ayah").length===2'),"unavailable verse media never replaces sacred text or silently plays another source");
-    await evaluate("document.querySelector('[aria-label=\"إغلاق تلاوة الآية\"]')?.click()");
-    await waitFor(async()=>await evaluate('!document.querySelector(".mushaf-verse-recitation")'),"single verse player closes");
+    await waitFor(async()=>await evaluate('!!document.querySelector(".aura-quran-ayah-actions button:nth-of-type(2)")?.disabled'),"unavailable Ayah stays disabled");
+    invariant(await evaluate('document.querySelectorAll("audio").length===1 && document.querySelector("audio").paused && !document.querySelector(".mushaf-playing") && document.querySelector(".mushaf-recording-note").textContent.includes("٠ من ٧")'),"unavailable verse has no competing player, false glow or substituted reciter");
     await evaluate('document.querySelectorAll(".mushaf-reader-controls .mushaf-segmented button")[1]?.click()');
     await waitFor(async()=>await evaluate('!!document.querySelector(".mushaf-flow")'),"continuous reading mode");
-    invariant(await evaluate('document.querySelectorAll(".mushaf-flow .aura-quran-ayah").length===2'),"continuous mode preserves source verse count");
+    invariant(await evaluate('document.querySelectorAll(".mushaf-flow .aura-quran-ayah").length===5'),"continuous mode preserves compact source verse count");
     await evaluate('document.querySelector(".mushaf-focus-button")?.click()');
     await waitFor(async()=>await evaluate('!document.querySelector(".mushaf-navigator")'),"focused reading");
     invariant(await evaluate('!!document.querySelector(".mushaf-focused") && !document.querySelector(".mushaf-navigator")'),"focus mode removes index without leaving reader");

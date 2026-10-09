@@ -1,55 +1,32 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { Icon } from "@/components/ui/icon";
 import { mediaTime, type Chapter } from "@/lib/quran/reciters";
-export function RecitationPlayer({ url, chapter, reciterName, unavailable, onChapter, onStart, pauseSignal }: { url: string | null; chapter: Chapter; reciterName: string; unavailable: string; onChapter: (number: number) => void; onStart: () => void; pauseSignal: number }) {
-  const audio = useRef<HTMLAudioElement>(null);
-  const request = useRef(0);
-  const playbackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [speed, setSpeed] = useState(1);
-  const [repeat, setRepeat] = useState(false);
-  const [failure, setFailure] = useState("");
-  useEffect(() => {
-    const element = audio.current;
-    if (element && url) element.src = url;
-    return () => { ++request.current; if (playbackTimeout.current) clearTimeout(playbackTimeout.current); element?.pause(); element?.removeAttribute("src"); element?.load(); };
-  }, [url]);
-  useEffect(() => {
-    ++request.current;
-    if (playbackTimeout.current) clearTimeout(playbackTimeout.current);
-    audio.current?.pause(); setPending(false); setPlaying(false);
-  }, [pauseSignal]);
-  async function toggle() {
-    const element = audio.current;
-    if (!element || !url) return;
-    if (!element.paused || pending) { ++request.current; if (playbackTimeout.current) clearTimeout(playbackTimeout.current); element.pause(); setPending(false); setPlaying(false); return; }
-    onStart();
-    const sequence = ++request.current;
-    setFailure(""); setPending(true);
-    playbackTimeout.current = setTimeout(() => {
-      if (sequence !== request.current) return;
-      ++request.current; element.pause(); setPending(false); setPlaying(false);
-      setFailure("استغرق تحميل التلاوة وقتًا طويلًا. أعد المحاولة أو اختر قارئًا آخر.");
-    }, 15000);
-    try { if (element.error) element.load(); element.playbackRate = speed; await element.play(); }
-    catch { if (sequence === request.current) setFailure("تعذّر تشغيل التلاوة. أعد المحاولة؛ يمكنك متابعة القراءة."); }
-    finally { if (sequence === request.current) { if (playbackTimeout.current) clearTimeout(playbackTimeout.current); setPending(false); } }
-  }
-  return <section className="mushaf-player" aria-label="مشغل التلاوة">
-    <div className="mushaf-player-heading"><span className={`mushaf-sound-mark ${playing ? "is-playing" : ""}`} aria-hidden="true"><i/><i/><i/><i/><i/></span><div><strong>{chapter.name}</strong><span>{reciterName} · تلاوة السورة كاملة</span></div><span className="mushaf-player-tag">الاستماع</span></div>
-    <div className="mushaf-player-timeline"><input aria-label="موضع التلاوة" type="range" min={0} max={duration || 1} step={1} value={Math.min(elapsed, duration || 1)} disabled={!duration || !url} dir="ltr" onChange={e => { if (audio.current) { audio.current.currentTime = Number(e.target.value); setElapsed(Number(e.target.value)); } }}/><div dir="ltr"><time>{mediaTime(elapsed)}</time><time>{mediaTime(duration)}</time></div></div>
+import type { PlaybackState, QuranAudioEngine } from "@/lib/quran/audio-engine";
+
+export function RecitationPlayer({ chapter, reciterName, unavailable, onChapter, onFull, onVerse, canPrevious, canNext, sequence, onSequence, audioRef, engine, state, verseNote }: {
+  chapter: Chapter; reciterName: string; unavailable: string; onChapter: (number: number) => void; onFull: () => void; onVerse: (number: number) => void;
+  canPrevious: boolean; canNext: boolean; sequence: boolean; onSequence: (enabled: boolean) => void; audioRef: RefObject<HTMLAudioElement | null>;
+  engine: QuranAudioEngine; state: PlaybackState; verseNote: string;
+}) {
+  const verse = state.track?.mode === "ayah" ? state.track.ayah : undefined;
+  const busy = state.status === "loading" || state.status === "buffering";
+  const playing = state.status === "playing";
+  const available = !!state.track?.url;
+  const status = state.error || (!available ? unavailable : state.status === "buffering" ? "جارٍ تخزين الصوت مؤقتًا…" : busy ? "جارٍ بدء التلاوة…" : playing ? "تُشغّل الآن · إضاءة الآية تتبع الصوت الفعلي" : state.status === "ended" ? "انتهت التلاوة" : state.status === "paused" ? "التلاوة متوقفة مؤقتًا · تابع من الموضع نفسه" : "اختر التشغيل للاستماع · لا يبدأ الصوت تلقائيًا");
+  return <section className="mushaf-player" aria-label="مشغل التلاوة" data-mode={verse ? "ayah" : "surah"} data-status={state.status}>
+    <div className="mushaf-player-heading"><span className="mushaf-audio-emblem" aria-hidden="true"><Icon name="volume" size={27}/></span><div><span className="mushaf-player-eyebrow">{verse ? `آية بآية · الآية ${verse.toLocaleString("ar-EG")}` : "تلاوة السورة كاملة"}</span><strong>{chapter.name}</strong><span>{reciterName}</span></div><span className="mushaf-player-tag">{verse ? "EveryAyah" : "MP3Quran"}</span></div>
+    <div className="mushaf-player-timeline"><input aria-label="موضع التلاوة" aria-valuetext={`${mediaTime(state.elapsed)} من ${mediaTime(state.duration)}`} type="range" min={0} max={state.duration || 1} step={0.1} value={Math.min(state.elapsed, state.duration || 1)} disabled={!state.duration || !available} dir="ltr" onChange={e => engine.seek(Number(e.target.value))}/><div dir="ltr"><time>{mediaTime(state.elapsed)}</time><time>{state.duration ? mediaTime(state.duration) : "—:—"}</time></div></div>
     <div className="mushaf-player-controls">
-      <button type="button" aria-label="تكرار السورة" aria-pressed={repeat} onClick={() => setRepeat(v => !v)}><Icon name="review" size={19}/></button>
-      <button type="button" aria-label="السورة السابقة في المشغل" disabled={chapter.number <= 1} onClick={() => onChapter(chapter.number - 1)}><Icon name="arrow" size={19} style={{ transform: "rotate(180deg)" }}/></button>
-      <button type="button" className="mushaf-player-play" disabled={!url} aria-label={pending ? "إلغاء تحميل التلاوة" : playing ? "إيقاف التلاوة مؤقتًا" : "تشغيل تلاوة السورة"} onClick={() => void toggle()}><Icon name={pending ? "stop" : playing ? "pause" : "play"} size={23}/></button>
-      <button type="button" aria-label="السورة التالية في المشغل" disabled={chapter.number >= 114} onClick={() => onChapter(chapter.number + 1)}><Icon name="arrow" size={19}/></button>
-      <label><span className="sr-only">سرعة التلاوة</span><select aria-label="سرعة التلاوة" value={speed} onChange={e => { const value = Number(e.target.value); setSpeed(value); if (audio.current) audio.current.playbackRate = value; }}>{[0.75, 1, 1.25, 1.5].map(n => <option value={n} key={n}>{n}×</option>)}</select></label>
+      <button type="button" aria-label={verse ? "تكرار الآية" : "تكرار السورة"} aria-pressed={state.repeat} onClick={() => engine.setRepeat(!state.repeat)}><Icon name="review" size={19}/></button>
+      <button type="button" aria-label={verse ? "الآية السابقة في المشغل" : "السورة السابقة في المشغل"} disabled={verse ? !canPrevious : chapter.number <= 1} onClick={() => verse ? onVerse(verse - 1) : onChapter(chapter.number - 1)}><Icon name="arrow" size={19} style={{ transform: "rotate(180deg)" }}/></button>
+      <button type="button" className="mushaf-player-play" disabled={!available} aria-label={busy ? "إلغاء تحميل التلاوة" : playing ? "إيقاف التلاوة مؤقتًا" : verse ? "تشغيل تلاوة الآية" : "تشغيل تلاوة السورة"} onClick={() => engine.toggle()}><Icon name={busy ? "stop" : playing ? "pause" : "play"} size={25}/></button>
+      <button type="button" aria-label={verse ? "الآية التالية في المشغل" : "السورة التالية في المشغل"} disabled={verse ? !canNext : chapter.number >= 114} onClick={() => verse ? onVerse(verse + 1) : onChapter(chapter.number + 1)}><Icon name="arrow" size={19}/></button>
+      <label><span className="sr-only">سرعة التلاوة</span><select aria-label="سرعة التلاوة" value={state.speed} onChange={e => engine.setSpeed(Number(e.target.value))}>{[0.75, 1, 1.25, 1.5].map(n => <option value={n} key={n}>{n}×</option>)}</select></label>
     </div>
-    <p className="mushaf-player-status" role="status">{failure || (!url ? unavailable : pending ? "جارٍ بدء التلاوة…" : playing ? "تُشغّل الآن · يمكنك متابعة القراءة" : "اضغط التشغيل للاستماع · لا يوجد تشغيل تلقائي")}</p>
-    <audio ref={audio} src={url ?? undefined} preload="none" loop={repeat} onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onTimeUpdate={e => setElapsed(e.currentTarget.currentTime)} onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)} onError={() => { ++request.current; if (playbackTimeout.current) clearTimeout(playbackTimeout.current); setPlaying(false); setPending(false); setFailure("ملف التلاوة غير متاح حاليًا. القراءة متاحة؛ أعد المحاولة أو اختر قارئًا آخر."); }} aria-label="تلاوة السورة"/>
+    <p className="mushaf-player-status" role={state.error ? "alert" : "status"}>{status}</p>
+    <div className="mushaf-player-options">{verse && <button type="button" onClick={onFull}><Icon name="book" size={15}/>العودة إلى مشغل السورة</button>}<label><input type="checkbox" checked={sequence} onChange={e => onSequence(e.target.checked)}/>متابعة الآية التالية</label></div>
+    <p className="mushaf-recording-note">{verseNote}</p>
+    <audio ref={audioRef} preload="none" aria-label="التلاوة المختارة"/>
   </section>;
 }

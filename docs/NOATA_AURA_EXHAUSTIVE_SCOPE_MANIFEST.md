@@ -156,7 +156,9 @@ The repository still contains a separate legacy JSON/Ollama browser app (`server
 - [ ] `apps/web/components/quran/quran-verses.tsx`
 - [ ] `apps/web/components/quran/reciter-picker.tsx`
 - [ ] `apps/web/components/quran/recitation-player.tsx`
-- [ ] `apps/web/components/quran/verse-recitation.tsx`
+- [ ] `apps/web/components/quran/use-quran-audio.ts`
+- [ ] `apps/web/components/quran/quran-search.tsx`
+- [ ] `apps/web/components/quran/quran-sources.tsx`
 - [ ] `apps/web/app/quran/quran.css`
 - [ ] `apps/web/public/fonts/amiri-quran.ttf`
 - [ ] `apps/web/public/fonts/OFL-AmiriQuran.txt`
@@ -223,6 +225,12 @@ The repository still contains a separate legacy JSON/Ollama browser app (`server
 - [ ] `apps/web/lib/quran/reciters.test.ts`
 - [ ] `apps/web/lib/quran/source.test.ts`
 - [ ] `apps/web/lib/quran/source.ts`
+- [ ] `apps/web/lib/quran/audio-engine.ts`
+- [ ] `apps/web/lib/quran/audio-engine.test.ts`
+- [ ] `apps/web/lib/quran/verse-audio.ts`
+- [ ] `apps/web/lib/quran/verse-audio.test.ts`
+- [ ] `apps/web/lib/quran/search.ts`
+- [ ] `apps/web/lib/quran/search.test.ts`
 - [ ] `apps/web/lib/supabase/client.ts`
 - [ ] `apps/web/lib/supabase/config.ts`
 - [ ] `apps/web/lib/supabase/database.types.ts`

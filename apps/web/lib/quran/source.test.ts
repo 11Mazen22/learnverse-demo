@@ -1,6 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canonicalSurah, canonicalIndex, recitationLink } from "./source.ts";
+import { canonicalSurah, canonicalIndex, canonicalCorpus, recitationLink } from "./source.ts";
+
+test("whole-Quran endpoint omits counts; independent index, edition and all global IDs are verified", () => {
+  let global = 0;
+  const metadata = Array.from({ length: 114 }, (_, i) => ({ number: i + 1, name: `CI CHAPTER ${i + 1}`, numberOfAyahs: i === 0 ? 21 : 55 }));
+  const corpus = { edition: { identifier: "quran-uthmani" }, surahs: metadata.map(chapter => ({ number: chapter.number, ayahs: Array.from({ length: chapter.numberOfAyahs }, (_, i) => ({ number: ++global, numberInSurah: i + 1, text: `CI SYNTHETIC TEXT ${global}` })) })) };
+  const rows = canonicalCorpus(corpus, metadata);
+  assert.equal(rows.length, 6236); assert.equal(rows[0].text, corpus.surahs[0].ayahs[0].text);
+  assert.throws(() => canonicalCorpus({ ...corpus, edition: { identifier: "another-edition" } }, metadata));
+  assert.throws(() => canonicalCorpus(corpus, metadata.map((chapter, i) => i === 0 ? { ...chapter, numberOfAyahs: 22 } : chapter)));
+  const broken = structuredClone(corpus); broken.surahs[1].ayahs[0].number = 1;
+  assert.throws(() => canonicalCorpus(broken, metadata));
+});
 // Deliberately synthetic labels: protocol fixtures are not canonical text verification.
 const fixture = {
   number: 1,

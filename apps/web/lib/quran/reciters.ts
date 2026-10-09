@@ -50,7 +50,7 @@ export function mediaTime(seconds: number): string {
   return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, "0")}`;
 }
 export function normalizeQuranQuery(value: string): string {
-  return value.normalize("NFD").replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed]/g, "").replace(/[أإآٱ]/g, "ا").replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x6f0)).toLowerCase();
+  return value.normalize("NFD").replace(/[\u0610-\u061a\u0640\u064b-\u065f\u0670\u06d6-\u06ed]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x6f0)).toLowerCase();
 }
 export type Chapter = { number: number; name: string; englishName: string; numberOfAyahs: number; revelationType?: string };
 export type Verse = { number: number; globalNumber: number; text: string; audio: string | null };
