@@ -1,6 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" aria-hidden="true">
-<defs><linearGradient id="noata-blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2F7CFF"/><stop offset="1" stop-color="#78D7FF"/></linearGradient></defs>
-<rect width="512" height="512" rx="128" fill="#06111F"/>
-<rect x="70" y="70" width="372" height="372" rx="108" fill="url(#noata-blue)"/>
-<path d="M162 354V158h54l80 111V158h54v196h-49l-85-117v117z" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Noata — كتاب مفتوح مع شعار التعلم">
+<defs>
+  <linearGradient id="noata-surface" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071C3B"/><stop offset=".6" stop-color="#0C376E"/><stop offset="1" stop-color="#0868A7"/></linearGradient>
+  <linearGradient id="noata-ribbon" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#83E7FF"/><stop offset=".48" stop-color="#38BCFF"/><stop offset="1" stop-color="#2384F8"/></linearGradient>
+  <linearGradient id="noata-paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#CFECFF"/></linearGradient>
+  <radialGradient id="noata-glow"><stop stop-color="#53C5FF" stop-opacity=".22"/><stop offset="1" stop-color="#53C5FF" stop-opacity="0"/></radialGradient>
+</defs>
+<rect x="8" y="8" width="496" height="496" rx="124" fill="url(#noata-surface)"/>
+<rect x="9.5" y="9.5" width="493" height="493" rx="122.5" fill="none" stroke="#C5E5FF" stroke-opacity=".2" stroke-width="3"/>
+<circle cx="256" cy="252" r="218" fill="url(#noata-glow)"/>
+<!-- Two rising pages carry the identity rather than a detached graduation hat. -->
+<path d="M100 349c54-20 111-15 156 16v72c-46-30-98-35-156-18v-70Z" fill="url(#noata-paper)"/>
+<path d="M412 349c-54-20-111-15-156 16v72c46-30 98-35 156-18v-70Z" fill="url(#noata-paper)"/>
+<path d="M117 368c48-11 86-6 122 17m156-17c-48-11-86-6-122 17" fill="none" stroke="#8BCEFF" stroke-width="8" stroke-linecap="round"/>
+<path d="M256 366v69" stroke="#299FF0" stroke-width="7" stroke-linecap="round"/>
+<!-- Custom folded-ribbon monogram, precisely lifted clear of the page spread. -->
+<path d="M154 305V165c0-11 8-19 19-19s19 8 19 19v140c0 10-8 18-19 18s-19-8-19-18Z" fill="#F4FAFF"/>
+<path d="M320 305V165c0-11 8-19 19-19s19 8 19 19v140c0 10-8 18-19 18s-19-8-19-18Z" fill="#F4FAFF"/>
+<path d="M169 160c8-8 20-8 28 0l151 147c8 8 8 21 0 29-8 9-21 9-29 0L169 190c-9-8-9-21 0-30Z" fill="url(#noata-ribbon)"/>
+<path d="m190 173 141 142" fill="none" stroke="#C7F4FF" stroke-opacity=".34" stroke-width="5" stroke-linecap="round"/>
+<!-- Quiet progress spark; it remains legible at app-icon sizes. -->
+<path d="M397 113c0 16-9 25-25 25 16 0 25 9 25 25 0-16 9-25 25-25-16 0-25-9-25-25Z" fill="#8DEBFF"/>
 </svg>
