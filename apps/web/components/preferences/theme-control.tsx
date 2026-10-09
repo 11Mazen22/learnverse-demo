@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
-import { PaletteGallery } from "@/components/preferences/palette-gallery";
+import { PaletteGallery, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 
 type Theme = "light" | "dark" | "system";
 const choices: {
@@ -42,6 +42,7 @@ function apply(theme: Theme) {
         ? "dark"
         : "light"
       : theme;
+  syncBrowserThemeColor();
 }
 export function ThemeControl() {
   const supabase = useMemo(() => createClient(), []);
