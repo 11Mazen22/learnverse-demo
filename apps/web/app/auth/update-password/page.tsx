@@ -6,6 +6,7 @@ import { AuthJourney } from "@/components/auth/auth-journey";
 import { createClient } from "@/lib/supabase/client";
 import { localizeAuthError } from "@/lib/i18n/auth-errors";
 import { RECOVERY_GRANT_KEY, validRecoveryGrant, AUTH_COMPLETION_KEY, authCompletionValue } from "@/lib/auth/flows";
+import {newPasswordProblem,MIN_NEW_PASSWORD_LENGTH} from "@/lib/auth/password-policy";
 
 type PageStatus = "checking" | "ready" | "invalid" | "unavailable";
 
@@ -38,8 +39,9 @@ export default function UpdatePasswordPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || status !== "ready") return;
-    if (password.length < 8 || password.length > 128) {
-      setError("استخدم كلمة مرور جديدة من ٨ إلى ١٢٨ حرفًا.");
+    const passwordError=newPasswordProblem(password);
+    if(passwordError){
+      setError(passwordError);
       return;
     }
     if (password !== confirm) {
@@ -94,8 +96,8 @@ export default function UpdatePasswordPage() {
              <label className="auth-field">
                <span>كلمة المرور الجديدة</span>
                <span className="auth-password">
-                 <input type={showPassword ? "text" : "password"} autoComplete="new-password" dir="ltr" minLength={8}
-                   maxLength={128} placeholder="٨ أحرف على الأقل" required value={password} disabled={busy}
+                 <input type={showPassword ? "text" : "password"} autoComplete="new-password" dir="ltr" minLength={MIN_NEW_PASSWORD_LENGTH}
+                   maxLength={128} placeholder="١٢ حرفًا على الأقل" required value={password} disabled={busy}
                    onChange={(event) => setPassword(event.target.value)} />
                  <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(x=>!x)}>
                    {showPassword ? "إخفاء" : "إظهار"}
@@ -104,7 +106,7 @@ export default function UpdatePasswordPage() {
              </label>
              <label className="auth-field">
                <span>تأكيد كلمة المرور الجديدة</span>
-               <input type={showPassword ? "text" : "password"} dir="ltr" autoComplete="new-password" minLength={8}
+               <input type={showPassword ? "text" : "password"} dir="ltr" autoComplete="new-password" minLength={MIN_NEW_PASSWORD_LENGTH}
                  maxLength={128} placeholder="أعد كتابة كلمة المرور" required value={confirm} disabled={busy}
                  onChange={(event) => setConfirm(event.target.value)} />
              </label>
