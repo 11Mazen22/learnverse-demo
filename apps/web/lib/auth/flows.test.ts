@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { safeNextPath } from "../i18n/auth-errors.ts";
 import {
   authCallbackUrl, normalizedAuthFlow,
@@ -58,4 +59,13 @@ test("success page requires a matching recently confirmed server-side action rec
   assert.equal(validAuthCompletion(receipt,"password-updated","u2",now+1000),false);
   assert.equal(validAuthCompletion(receipt,"password-updated","u1",now+11*60*1000),false);
   assert.equal(validAuthCompletion(null,"password-updated","u1",now),false);
+});
+
+test("PKCE callback never strips the code through Next-patched history before terminal navigation", () => {
+  const source = readFileSync("apps/web/app/auth/callback/page.tsx", "utf8");
+  assert.doesNotMatch(source, /window\\.history\\.(?:replaceState|pushState)\\s*\\(/);
+  assert.match(source, /auth\\.exchangeCodeForSession\\(code\\)/);
+  assert.match(source, /window\\.location\\.replace\\("\/auth\/update-password"\\)/);
+  assert.match(source, /window\\.location\\.replace\\("\/auth\/complete\\?type=verified"\\)/);
+  assert.match(source, /window\\.location\\.replace\\("\/auth\/error\\?reason=invalid"\\)/);
 });
