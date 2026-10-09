@@ -4,6 +4,7 @@ import {mkdtemp,writeFile,chmod,readFile,rm,mkdir} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import { getEventListeners } from 'node:events';
+import { createContext, runInContext } from 'node:vm';
 import {launchQaBrowser,reloadQaPage,qaChromeArgs,processGroupMembers} from './lib/qa-browser.mjs';
 
 async function fakeChrome(t,name,source){
@@ -47,6 +48,29 @@ test('reload command and browser disconnect errors release listeners without ret
   socket.dispatchEvent(new Event('close'));
   await assert.rejects(work, /disconnected during page reload/);
   assert.equal(getEventListeners(socket, 'close').length, 0);
+});
+
+test('palette storage fault and cleanup return primitives without weakening denial or restoration', async () => {
+  const source = await readFile(new URL('./palette-aura-smoke.mjs', import.meta.url), 'utf8');
+  const expressions = Array.from(source.matchAll(/await evaluate\(("(?:[^"\\]|\\.)*")\)/g), match => JSON.parse(match[1]));
+  const setup = expressions.find(expression => expression.startsWith('window.__paletteStorageDescriptors='));
+  const cleanup = expressions.find(expression => expression.includes('delete window.__paletteStorageDescriptors'));
+  assert.ok(setup);
+  assert.ok(cleanup);
+  class Storage {
+    getItem() { return 'ocean'; }
+    setItem() { return undefined; }
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(Storage.prototype);
+  const context = createContext({ window: {}, Storage });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    assert.equal(runInContext(setup, context), true, 'CDP must not serialize native Storage.prototype');
+    assert.equal(new Storage().getItem(), 'ocean', 'old storage remains readable');
+    assert.throws(() => new Storage().setItem('palette', 'forest'), /QA storage unavailable/);
+    assert.equal(runInContext(cleanup, context), true);
+    assert.deepEqual(Object.getOwnPropertyDescriptors(Storage.prototype), descriptors);
+    assert.equal(Object.hasOwn(context.window, '__paletteStorageDescriptors'), false);
+  }
 });
 
 test('QA Chrome uses a dynamic loopback debugging port and normal multiprocess flags',()=>{

@@ -114,14 +114,14 @@ try {
   await until("document.readyState==='complete' && document.documentElement.dataset.palette==='ocean' && !!document.querySelector('.aura-theme-picker > button')", "persisted palette in the loaded replacement document");
   await openPicker();
   invariant(await evaluate("!!document.querySelector('[data-palette-option=ocean][aria-pressed=true]')"), "Reloaded picker disagrees with palette");
-  await evaluate("window.__paletteStorageDescriptors={get:Object.getOwnPropertyDescriptor(Storage.prototype,'getItem'),set:Object.getOwnPropertyDescriptor(Storage.prototype,'setItem')};Object.defineProperty(Storage.prototype,'setItem',{configurable:true,value(){throw Error('QA storage unavailable')}})");
+  await evaluate("window.__paletteStorageDescriptors={get:Object.getOwnPropertyDescriptor(Storage.prototype,'getItem'),set:Object.getOwnPropertyDescriptor(Storage.prototype,'setItem')};Object.defineProperty(Storage.prototype,'setItem',{configurable:true,value(){throw Error('QA storage unavailable')}});true");
   await choose("forest");
   invariant(await evaluate("document.querySelector('.noata-palette-notice')?.textContent.includes('لهذه الجلسة فقط')"), "Storage denial must disclose session-only appearance");
   await browser.command("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   await until("!document.querySelector('.aura-theme-menu')", "faulted picker closes");
   await openPicker();
   invariant(await evaluate("document.documentElement.dataset.palette==='forest' && !!document.querySelector('[data-palette-option=forest][aria-pressed=true]')"), "Readable old storage must not overwrite the session selection on reopening");
-  await evaluate("Object.defineProperty(Storage.prototype,'getItem',window.__paletteStorageDescriptors.get);Object.defineProperty(Storage.prototype,'setItem',window.__paletteStorageDescriptors.set);delete window.__paletteStorageDescriptors");
+  await evaluate("Object.defineProperty(Storage.prototype,'getItem',window.__paletteStorageDescriptors.get);Object.defineProperty(Storage.prototype,'setItem',window.__paletteStorageDescriptors.set);delete window.__paletteStorageDescriptors;true");
   location = { path: "/", width: 1920, palette: "forest", evidence: "storage-denied-session-only" };
   await capture("storage-denied");
 } catch (error) {
