@@ -48,14 +48,14 @@ function storedPalette(): Palette {
 }
 
 export function PaletteGallery({ compact = false }: { compact?: boolean }) {
-  const [selected, setSelected] = useState<Palette>("classic");
+  const [selected, setSelected] = useState<Palette | null>("classic");
   const [notice, setNotice] = useState("");
   const account = useVerifiedAccount();
   const supabase = useMemo(() => createClient(), []);
   const saveSequence = useRef(0);
   useEffect(() => {
     const update = () => {
-      if(document.documentElement.dataset.palette==="custom")return;
+      if(document.documentElement.dataset.palette==="custom"){setSelected(null);return;}
       const value = storedPalette();
       setSelected(value);
       applyPalette(value);
@@ -63,9 +63,11 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
     update();
     window.addEventListener("storage", update);
     window.addEventListener("noata-palette-change", update);
+    window.addEventListener("noata-custom-theme-change", update);
     return () => {
       window.removeEventListener("storage", update);
       window.removeEventListener("noata-palette-change", update);
+      window.removeEventListener("noata-custom-theme-change", update);
     };
   }, []);
   useEffect(() => {
