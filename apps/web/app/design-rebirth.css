@@ -327,3 +327,20 @@ html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html
 }
 @media(max-width:600px){.noata-quran-preview-toggle{padding:17px 13px}.noata-quran-preview-toggle button{width:100%}}
 @media(prefers-reduced-motion:reduce){.noata-quran-preview-toggle button svg,.aura-quran .aura-quran-ayah[data-playing="true"]{transition:none!important}}
+
+/* Quran player: controls stay above a long Surah even in five-Ayah mode. */
+.noata-quran-audio-dock{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:19px clamp(14px,2vw,26px);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:20px;background:var(--surface);box-shadow:0 9px 30px color-mix(in srgb,var(--ink) 5%,transparent);margin:18px 0}
+.noata-quran-audio-dock>div{display:grid;gap:4px;flex:1 1 210px;min-width:0}
+.noata-quran-audio-dock>div strong{font-size:17px;color:var(--ink)}
+.noata-quran-audio-dock>div span{font-size:11px;color:var(--muted)}
+.noata-quran-audio-dock label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);font-weight:750}
+.noata-quran-audio-dock select{min-width:150px;max-width:240px;padding:9px 12px;border-radius:12px;background:var(--surface-soft);border:1px solid var(--line);color:var(--ink)}
+.noata-quran-audio-dock .btn{min-height:44px;border:1px solid var(--accent);border-radius:13px;padding:10px 14px;background:var(--accent-soft);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.noata-quran-audio-dock>small{flex-basis:100%;color:var(--muted);font-size:11px;line-height:1.6}
+.noata-quran-surah-matches{border:1px solid var(--line);border-radius:18px;padding:15px 18px;background:var(--surface);margin:14px 0}
+.noata-quran-surah-matches>strong{font-size:14px}
+.noata-quran-surah-matches>div{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.noata-quran-surah-matches button{border:1px solid var(--line);background:var(--surface-soft);color:var(--ink);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:start;font-weight:800}
+.noata-quran-surah-matches button:hover{border-color:var(--accent);color:var(--accent)}
+.noata-quran-surah-matches small{font-size:10px;color:var(--muted);font-weight:500}
+@media(max-width:700px){.noata-quran-audio-dock>div{flex-basis:100%}.noata-quran-audio-dock label{flex:1 1 100%;justify-content:space-between}.noata-quran-audio-dock label select{flex:1;max-width:none;min-width:0}.noata-quran-audio-dock .btn{width:100%}}
