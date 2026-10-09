@@ -46,17 +46,17 @@ try{
  try{
    docker([...startArgs,image]);started=true;
  }catch(error){
-   // Official Docker Hub's unauthenticated quota is independent of the test
-   // result. Only that specific registry failure permits an ECR mirror.
-   if(!/toomanyrequests|pull rate limit/i.test(String(error)))throw error;
-   console.warn('Docker Hub pull quota reached. Trying the public AWS ECR mirror of the official PostgreSQL 17 image.');
+   // Registry throttling and transport timeouts are external to PostgreSQL
+   // migration correctness. Do not mask SQL or Docker runtime failures.
+   if(!/(?:toomanyrequests|pull rate limit|rate exceeded|context deadline exceeded|Client\.Timeout|TLS handshake timeout|i\/o timeout|connection reset)/i.test(String(error)))throw error;
+   console.warn('Docker Hub registry unavailable or throttled. Trying the public AWS ECR mirror of PostgreSQL 17.');
    runningImage=rateLimitMirror;
    outcome.image=runningImage;
    outcome.imageMirrorFallback=true;
    try{
      docker([...startArgs,runningImage]);started=true;
    }catch(mirrorError){
-     if(!/toomanyrequests|rate exceeded|pull rate limit/i.test(String(mirrorError)))throw mirrorError;
+     if(!/(?:toomanyrequests|pull rate limit|rate exceeded|context deadline exceeded|Client\.Timeout|TLS handshake timeout|i\/o timeout|connection reset)/i.test(String(mirrorError)))throw mirrorError;
      startLocalPostgres();
    }
  }
