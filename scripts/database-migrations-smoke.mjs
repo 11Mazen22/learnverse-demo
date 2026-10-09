@@ -6,6 +6,8 @@ import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
 import {setTimeout as delay} from 'node:timers/promises';
 const container='noata-sql-qa-'+randomUUID();
 const image='postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24';
+const rateLimitMirror='public.ecr.aws/docker/library/postgres:17-alpine';
+let runningImage=image;
 const directory='artifacts/noata-database';
 await mkdir(directory,{recursive:true});
 const outcome={revision:spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),passed:false,
@@ -19,7 +21,19 @@ function docker(args,input){
  return r.stdout;
 }
 try{
- docker(['run','--detach','--rm','--network','none','--memory','512m','--cpus','2','--name',container,'-e','POSTGRES_HOST_AUTH_METHOD=trust',image]);started=true;
+ const startArgs=['run','--detach','--rm','--network','none','--memory','512m','--cpus','2','--name',container,'-e','POSTGRES_HOST_AUTH_METHOD=trust'];
+ try{
+   docker([...startArgs,image]);started=true;
+ }catch(error){
+   // Official Docker Hub's unauthenticated quota is independent of the test
+   // result. Only that specific registry failure permits an ECR mirror.
+   if(!/toomanyrequests|pull rate limit/i.test(String(error)))throw error;
+   console.warn('Docker Hub pull quota reached. Trying the public AWS ECR mirror of the official PostgreSQL 17 image.');
+   runningImage=rateLimitMirror;
+   outcome.image=runningImage;
+   outcome.imageMirrorFallback=true;
+   docker([...startArgs,runningImage]);started=true;
+ }
  let ready=false;
  for(let i=0;i<60;i++){
   // The image's temporary initialization server accepts only Unix sockets.
