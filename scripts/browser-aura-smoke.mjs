@@ -144,6 +144,9 @@ async function verifyQuranControls(){
       const url=String(input?.url??input);
       if(url.startsWith("/api/quran")){
         const params=new URL(url,location.origin).searchParams;
+        if(params.get("reciters")==="1"){
+          return new Response(JSON.stringify({reciters:[]}),{status:200,headers:{"Content-Type":"application/json"}});
+        }
         if(params.get("list")==="1"){
           return new Response(JSON.stringify({surahs:[
             {number:1,name:"الفاتحة",englishName:"Al-Faatiha",numberOfAyahs:2},

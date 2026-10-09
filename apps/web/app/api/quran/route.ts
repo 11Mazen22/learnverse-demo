@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   canonicalSurah,
   canonicalIndex,
+  canonicalCorpus,
   recitationLink,
   QURAN_RECITERS,
   isQuranReciter,
   audioEditionCandidates,
   matchingSurahs,
 } from "@/lib/quran/source";
+import { reciterCatalogue } from "@/lib/quran/reciters";
+import { createVerseIndex, searchVerses } from "@/lib/quran/search";
 type RawVerse = {
   numberInSurah?: number;
   number?: number;
@@ -20,7 +23,9 @@ async function remote(path: string) {
   const response = await fetch(ORIGIN + path, {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(9500),
-    next: { revalidate: 3600 },
+    redirect: "error",
+    cache: path === "/quran/quran-uthmani" ? "no-store" : undefined,
+    next: path === "/quran/quran-uthmani" ? undefined : { revalidate: 3600 },
   });
   if (!response.ok)
     throw new Error(
@@ -38,9 +43,34 @@ const SOURCE = {
   terms: "https://alquran.cloud/terms-and-conditions",
   audioEdition: "ar.alafasy",
 };
+let indexed: Promise<ReturnType<typeof createVerseIndex>> | null = null;
+let indexExpires = 0;
+async function corpusIndex() {
+  if (!indexed || Date.now() > indexExpires) {
+    indexExpires = Date.now() + 3600_000;
+    indexed = (async () => {
+      const [corpus, metadata] = await Promise.all([remote("/quran/quran-uthmani"), remote("/surah")]);
+      return createVerseIndex(canonicalCorpus(corpus, metadata));
+    })().catch(error => { indexed = null; throw error; });
+  }
+  return indexed;
+}
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   try {
+    if (query.get("reciters") === "1") {
+      const response = await fetch("https://www.mp3quran.net/api/v3/reciters?language=ar", {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(9500),
+        redirect: "error",
+        next: { revalidate: 86400 },
+      });
+      if (!response.ok) throw Error("Reciter catalogue unavailable");
+      return NextResponse.json({
+        reciters: reciterCatalogue(await response.json()),
+        source: { name: "MP3Quran", reference: "https://www.mp3quran.net/ar" },
+      });
+    }
     if (query.get("list") === "1") {
       const data = await remote("/surah");
       const surahs = canonicalIndex(data);
@@ -49,31 +79,25 @@ export async function GET(request: NextRequest) {
     const search = query.get("search");
     if (search !== null) {
       const term = search.trim();
-      if (term.length < 2 || term.length > 50)
+      const selected = Number(query.get("selected") ?? 1);
+      if (term.length < 1 || term.length > 50 || !Number.isInteger(selected) || selected < 1 || selected > 114)
         return NextResponse.json(
-          { error: "اكتب عبارة بحث بين حرفين و٥٠ حرفًا." },
+          { error: "اكتب رقم آية أو عبارة بحث لا تتجاوز ٥٠ حرفًا." },
           { status: 400 },
         );
       const [indexResult,verseResult]=await Promise.allSettled([
         remote("/surah"),
-        remote("/search/" + encodeURIComponent(term) + "/all/quran-uthmani"),
+        corpusIndex(),
       ]);
       const surahMatches=indexResult.status==="fulfilled"
         ? matchingSurahs(canonicalIndex(indexResult.value),term)
         : [];
       if(verseResult.status==="rejected" && !surahMatches.length)throw Error("Search providers unavailable");
-      const data=verseResult.status==="fulfilled"?verseResult.value:null;
-      const items = Array.isArray(data?.matches)
-        ? data.matches.slice(0, 50).map((m: any) => ({
-            surah: Number(m.surah?.number ?? 0),
-            surahName: String(m.surah?.name ?? ""),
-            number: Number(m.numberInSurah ?? 0),
-            text: String(m.text ?? ""),
-          })).filter((m:{surah:number;number:number;text:string})=>m.surah>=1&&m.surah<=114&&m.number>=1&&m.number<=286&&m.text.length>0)
-        : [];
+      const matches = verseResult.status === "fulfilled"
+        ? searchVerses(verseResult.value, term, selected)
+        : { results: [], total: 0 };
       return NextResponse.json({
-        results:items,surahs:surahMatches,
-        total:Number(data?.count??0),
+        ...matches,surahs:surahMatches,
         partial:verseResult.status==="rejected",
         source: SOURCE,
       });

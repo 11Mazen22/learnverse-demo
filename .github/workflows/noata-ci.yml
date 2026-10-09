@@ -51,6 +51,8 @@ jobs:
       - name: Verify branded Arabic Auth emails
         run: node --test scripts/email-templates.test.mjs
       - run: pnpm modern:test
+      - name: Verify authenticated requests stay outside the PWA cache
+        run: node --test scripts/pwa-cache.test.mjs
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
       - name: Base migrations and database authorization regressions
         run: node scripts/database-migrations-smoke.mjs

@@ -13,7 +13,7 @@ const PRESETS: { id: Palette; ar: string; en: string; swatch: string }[] = [
   { id: "aura", ar: "أورا", en: "Aura", swatch: "#6551bd" },
   { id: "ocean", ar: "المحيط", en: "Ocean", swatch: "#06738b" },
   { id: "forest", ar: "الغابة", en: "Forest", swatch: "#18694e" },
-  { id: "sunset", ar: "الغروب", en: "Sunset", swatch: "#ad5330" },
+  { id: "sunset", ar: "الغروب", en: "Sunset", swatch: "#9b4626" },
   { id: "rose", ar: "الورد", en: "Rose", swatch: "#a03065" },
   { id: "midnight", ar: "منتصف الليل", en: "Midnight", swatch: "#8da6ff" },
 ];
@@ -128,7 +128,7 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
         {PRESETS.map((item) => (
           <button key={item.id} type="button" aria-pressed={selected === item.id}
             aria-label={item.ar + " — " + item.en} onClick={() => choose(item.id)}>
-            <span className="noata-palette-swatch" style={{ backgroundColor: item.swatch }} aria-hidden="true">✦</span>
+            <span className="noata-palette-swatch" style={{ backgroundColor: item.swatch, color: item.id === "midnight" ? "#0d1530" : "#fff" }} aria-hidden="true">✦</span>
             <span><b>{item.ar}</b><small lang="en">{item.en}</small></span>
             {selected === item.id && <i aria-hidden="true">✓</i>}
           </button>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 import { QURAN_RECITERS, isQuranReciter, type QuranReciter } from "@/lib/quran/source";
+import { ChapterRecitations } from "./chapter-recitations";
 
 type Chapter = {
   number: number;
@@ -187,6 +188,13 @@ export function QuranReader() {
     }
     setActiveAudio(null);
   }
+  useEffect(() => {
+    const stop = (event: Event) => {
+      if ((event as CustomEvent).detail !== "ayah") stopAudio();
+    };
+    window.addEventListener("noata-quran-playback-start", stop);
+    return () => window.removeEventListener("noata-quran-playback-start", stop);
+  }, []);
   function playVerse(verse: Verse,mode:"single"|"surah"="single") {
     if (!verse.audio) return;
     if (activeAudio === verse.number && mode === "single") {
@@ -195,6 +203,7 @@ export function QuranReader() {
     }
     if (!audio.current) return;
     const sequence = ++audioSequence.current;
+    window.dispatchEvent(new CustomEvent("noata-quran-playback-start", {detail: "ayah"}));
     playbackMode.current=mode;
     setNotice("");
     audio.current.pause();
@@ -237,7 +246,7 @@ export function QuranReader() {
   async function search(event: FormEvent) {
     event.preventDefault();
     const q = query.trim();
-    if (q.length < 2 || q.length > 50) return;
+    if (q.length < 1 || q.length > 50) return;
     searchRequest.current?.abort();
     const controller = new AbortController();
     searchRequest.current = controller;
@@ -246,7 +255,7 @@ export function QuranReader() {
     setMatches([]);
     setSurahMatches([]);
     try {
-      const r = await fetch("/api/quran?search=" + encodeURIComponent(q), {
+      const r = await fetch("/api/quran?search=" + encodeURIComponent(q) + "&selected=" + selected, {
         signal: controller.signal,
       });
       if (!r.ok) throw Error("search failed");
@@ -319,6 +328,7 @@ export function QuranReader() {
           السورة التالية
         </button>
       </nav>
+      <ChapterRecitations surah={selected} name={chapters.find(s => s.number === selected)?.name ?? (chapter.number === selected ? chapter.name : `السورة ${selected}`)} />
       <section className="noata-quran-audio-dock" aria-label="مشغل تلاوة السورة">
         <div><strong>مشغل التلاوة</strong><span>{source?.reciterName ?? QURAN_RECITERS.find(x=>x.id===reciter)?.name} · {chapter.name}</span></div>
         <label>الشيخ
@@ -384,13 +394,13 @@ export function QuranReader() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث عن كلمة في القرآن…"
+            placeholder="ابحث عن كلمة أو آية مثل ١:٧…"
             aria-label="البحث في القرآن"
             maxLength={50}
           />
           <button
             type="submit"
-            disabled={query.trim().length < 2 || searching}
+            disabled={query.trim().length < 1 || searching}
             aria-label="ابحث"
           >
             <Icon name="search" size={18} />

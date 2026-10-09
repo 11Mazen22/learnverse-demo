@@ -1,4 +1,4 @@
-const CACHE="noata-static-v4-official-mark";
+const CACHE="noata-static-v5-network-only";
 const SHELL=["/offline.html","/manifest.webmanifest","/icon.svg","/noata-mark.svg","/noata-mark-light.svg"];
 
 self.addEventListener("install",event=>{
@@ -8,19 +8,20 @@ self.addEventListener("install",event=>{
 self.addEventListener("activate",event=>{
   event.waitUntil(
     caches.keys()
-      .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
+      .then(keys=>Promise.all(keys.filter(key=>key.startsWith("noata-static-")&&key!==CACHE).map(key=>caches.delete(key))))
       .then(()=>self.clients.claim())
   );
 });
 
 self.addEventListener("fetch",event=>{
   const request=event.request;
-  if(request.method!=="GET")return;
+  if(request.method!=="GET"||request.cache==="no-store"||request.cache==="reload")return;
 
   const url=new URL(request.url);
   if(url.origin!==self.location.origin)return;
 
   if(
+    url.pathname === "/sw.js" ||
     url.pathname.startsWith("/auth/") ||
     url.pathname.startsWith("/api/") ||
     url.pathname.includes("supabase")

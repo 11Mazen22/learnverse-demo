@@ -1,11 +1,12 @@
 "use client";
 import { NoataLogo } from "@/components/ui/noata-logo";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
-type State = {
+import { dashboardRecommendation, dashboardVisibility, type DashboardAvailability } from "@/lib/dashboard/visibility";
+type State = DashboardAvailability & {
   signedIn: boolean;
   displayName: string;
   xp: number;
@@ -23,6 +24,13 @@ type State = {
   unread: number;
 };
 const initial: State = {
+  ownerId: null,
+  revision: -1,
+  catalogReady: false,
+  profileReady: false,
+  evidenceReady: false,
+  progressReady: false,
+  notificationsReady: false,
   signedIn: false,
   displayName: "",
   xp: 0,
@@ -37,14 +45,26 @@ const initial: State = {
 };
 export function DashboardLive() {
   const account = useVerifiedAccount();
-  const [state, setState] = useState(initial);
+  const [snapshot, setState] = useState(initial);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const errorRevision = useRef(-1);
   const supabase = useMemo(() => createClient(), []);
+  const visibility = dashboardVisibility(snapshot, {
+    userId: account.user?.id ?? null,
+    revision: account.revision.current,
+    loading: account.loading,
+    error: account.error,
+  }, loading);
+  const state = visibility.current ? snapshot : initial;
+  const signedIn = Boolean(account.user) && !account.loading && !account.error;
+  const unavailable = visibility.waiting ? "بنحمّل رحلتك…" : signedIn ? "البيانات غير متاحة الآن" : "ادخل حسابك لعرض تقدّمك";
   useEffect(() => {
     if (account.loading) return;
     let alive = true;
+    const revision = account.revision.current;
+    errorRevision.current = revision;
     setState(initial);
     void (async () => {
       setLoading(true);
@@ -69,6 +89,9 @@ export function DashboardLive() {
           lessons = lessonsResult.data ?? [];
         const next: State = {
           ...initial,
+          ownerId: user?.id ?? null,
+          revision,
+          catalogReady: true,
           signedIn: Boolean(user),
           lessons: lessons.length,
           courseTitle: coursesResult.data?.[0]?.title_ar ?? initial.courseTitle,
@@ -97,32 +120,35 @@ export function DashboardLive() {
           ]);
           // A missing profile is allowed for a newly created staging user.
           // Optional notifications must never blank the entire learning journey.
-          if (p.error || m.error || progress.error) {
-            if (alive) setError("بعض تفاصيل تقدّم حسابك غير متاحة الآن. يمكنك تصفح دروسك والمحاولة مجددًا.");
-          } else {
+          next.profileReady = !p.error && p.data !== null;
+          next.evidenceReady = !m.error && m.data !== null;
+          next.progressReady = !progress.error && progress.data !== null;
+          next.notificationsReady = !n.error && n.count !== null;
+          if (next.profileReady) Object.assign(next, {
+            displayName: p.data?.display_name || "",
+            xp: Number(p.data?.xp),
+            coins: Number(p.data?.coins),
+            streak: Number(p.data?.streak_days),
+          });
+          if (next.evidenceReady) next.masteryRows = m.data ?? [];
+          if (next.progressReady) {
             const done = new Set(
               (progress.data ?? [])
                 .filter((x) => x.completed_at)
                 .map((x) => x.lesson_id),
             );
-            Object.assign(next, {
-              displayName: p.data?.display_name || "",
-              xp: Number(p.data?.xp ?? 0),
-              coins: Number(p.data?.coins ?? 0),
-              streak: Number(p.data?.streak_days ?? 0),
-              masteryRows: m.data ?? [],
-              completedLessons: lessons.filter((l) => done.has(l.id)).length,
-              nextLesson: lessons.find((l) => !done.has(l.id)) ?? null,
-              unread: n.error ? 0 : (n.count ?? 0),
-            });
-            if (n.error && alive) setError("تقدّمك متاح، لكن عدّاد الإشعارات لم يتحدّث. جرّب تحديث الصفحة لاحقًا.");
+            next.completedLessons = lessons.filter((lesson) => done.has(lesson.id)).length;
+            next.nextLesson = lessons.find((lesson) => !done.has(lesson.id)) ?? null;
           }
+          if (next.notificationsReady) next.unread = n.count ?? 0;
+          if ((!next.profileReady || !next.evidenceReady || !next.progressReady || !next.notificationsReady) && alive && revision === account.revision.current)
+            setError("بعض بيانات حسابك غير متاحة الآن. ما يظهر من تقدّم أو رصيد تم تحميله بنجاح؛ يمكنك تصفّح الدروس وإعادة المحاولة.");
         }
-        if (alive) setState(next);
+        if (alive && revision === account.revision.current) setState(next);
       } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : "تعذّر الاتصال.");
+        if (alive && revision === account.revision.current) setError(e instanceof Error ? e.message : "تعذّر الاتصال.");
       } finally {
-        if (alive) setLoading(false);
+        if (alive && revision === account.revision.current) setLoading(false);
       }
     })();
     return () => {
@@ -142,69 +168,34 @@ export function DashboardLive() {
   const percent = state.lessons
     ? Math.round((state.completedLessons / state.lessons) * 100)
     : 0;
-  const signedIn = Boolean(account.user) && state.signedIn;
-  const nextHref = signedIn && state.nextLesson
-    ? "/lesson/" + state.nextLesson.id
+  const nextHref = visibility.progress && state.nextLesson
+    ? "/lesson/" + encodeURIComponent(state.nextLesson.id)
     : "/learn";
   // Personalized but deterministic: recommendations derive exclusively from
   // the learner's real review queue and course progress.
-  const recommendation =
-    !signedIn
-      ? {
-          href: "/learn",
-          title: "ابدأ رحلة تعلّم تناسبك",
-          description: "استكشف الدروس المتاحة؛ تسجيل الدخول يحفظ تقدّمك وينقل تجربتك بين الأجهزة.",
-          action: "استكشف رحلة التعلّم",
-          icon: "book",
-        }
-      : due > 0
-      ? {
-          href: "/review",
-          title: "راجع اللي محتاج تثبيت",
-          description:
-            "عندك " +
-            due +
-            " مراجعات حان وقتها. المراجعة الأول هتساعدك تبني على فهم ثابت.",
-          action: "ابدأ المراجعة",
-          icon: "review",
-        }
-      : state.nextLesson
-        ? {
-            href: nextHref,
-            title: "كمّل رحلتك من آخر نقطة",
-            description:
-              "درس «" +
-              state.nextLesson.title_ar +
-              "» هو خطوتك التالية في المسار الحالي.",
-            action: "افتح الدرس",
-            icon: "book",
-          }
-        : {
-            href: "/missions",
-            title: "جاهز تتحدّى نفسك؟",
-            description: "اختار تحدّي قصير وجرّب تثبّت اللي عرفته.",
-            action: "استكشف المهام",
-            icon: "target",
-          };
+  const recommendation = dashboardRecommendation(visibility, due, state.nextLesson);
   const metrics = [
-    ["مستواك الحالي", level, state.xp + " نقطة خبرة", "boss"],
+    ["مستواك الحالي", level, state.xp + " نقطة خبرة", "boss", visibility.profile],
     [
       "إتقان المهارات",
       mastery + "%",
       state.masteryRows.length + " مهارات في رحلتك",
       "chart",
+      visibility.evidence,
     ],
     [
       "سلسلة التعلّم",
       state.streak + " أيام",
-      due + " مراجعات مستحقة",
+      visibility.evidence ? due + " مراجعات مستحقة" : "المراجعات غير متاحة الآن",
       "target",
+      visibility.profile,
     ],
     [
       "رصيد المكافآت",
       state.coins.toLocaleString(),
       "عملات كسبتها بتعلّمك",
       "gift",
+      visibility.profile,
     ],
   ] as const;
   return (
@@ -224,14 +215,20 @@ export function DashboardLive() {
           رحلتك تبدأ من هنا
         </span>
       </div>
-      {(error || account.error) && (
-        <div className={account.user || account.error ? "error-banner" : "aura-guest-service-notice"} role={account.user || account.error ? "alert" : "status"}>
-          {account.user || account.error ? error || account.error : "الدروس العامة غير متاحة مؤقتًا بسبب الاتصال. تقدر تتنقل بين الأقسام وتحاول مرة تانية."}{" "}
+      {(account.error || (!account.loading && errorRevision.current === account.revision.current && error)) && (
+        <div className={account.user || account.error ? "error-banner" : "aura-guest-service-notice"} role={account.user || account.error ? "alert" : "status"} data-dashboard-retry>
+          {account.user || account.error ? account.error || error : "الدروس العامة غير متاحة مؤقتًا بسبب الاتصال. تقدر تتنقل بين الأقسام وتحاول مرة تانية."}{" "}
           <button
+            type="button"
             className="btn"
+            disabled={visibility.waiting}
             onClick={() => {
               if (account.error) void account.refresh();
-              else setRetry((x) => x + 1);
+              else {
+                setLoading(true);
+                setState(initial);
+                setRetry((x) => x + 1);
+              }
             }}
           >
             إعادة المحاولة
@@ -248,7 +245,7 @@ export function DashboardLive() {
           </h2>
           <p>
             {Boolean(account.user) && state.signedIn
-              ? state.nextLesson
+              ? visibility.progress && state.nextLesson
                 ? "كمّل «" +
                   state.nextLesson.title_ar +
                   "» وخلّي كل فكرة جديدة خطوة في رحلتك."
@@ -316,7 +313,7 @@ export function DashboardLive() {
           <span>خطوتك المقترحة</span>
           <h2>{recommendation.title}</h2>
           <p>
-            {loading
+            {visibility.waiting
               ? "بنحدد خطوتك بناءً على تقدّمك…"
               : recommendation.description}
           </p>
@@ -325,9 +322,9 @@ export function DashboardLive() {
           {recommendation.action} <Icon name="arrow" size={17} />
         </Link>
       </section>
-      <section className="grid-4" aria-label="تقدمك" aria-busy={loading}>
-        {metrics.map(([label, value, detail, icon]) => (
-          <article className="metric-card" key={label}>
+      <section className="grid-4" aria-label="تقدمك" aria-busy={visibility.waiting}>
+        {metrics.map(([label, value, detail, icon, available]) => (
+          <article className="metric-card" key={label} data-dashboard-available={available}>
             <Icon
               name={icon}
               style={{
@@ -338,8 +335,8 @@ export function DashboardLive() {
               }}
             />
             <span>{label}</span>
-            <strong>{loading || error || !signedIn ? "—" : value}</strong>
-            <small>{loading ? "بنحمّل رحلتك…" : !signedIn ? "سجّل الدخول علشان تشوف بياناتك الحقيقية" : detail}</small>
+            <strong>{available ? value : "—"}</strong>
+            <small>{available ? detail : unavailable}</small>
           </article>
         ))}
       </section>
@@ -379,28 +376,34 @@ export function DashboardLive() {
         <article className="panel">
           <div className="panel-head">
             <h2>رحلتك الحالية</h2>
-            <span className="pill">{signedIn && !error ? percent + "% مكتمل" : "رحلتك التعليمية"}</span>
+            {visibility.progress && <span className="pill">{percent}% مكتمل</span>}
           </div>
           <div className="quest">
             <div className="quest-icon">
               <Icon name="book" />
             </div>
             <div>
-              <h3>{state.courseTitle}</h3>
+              <h3>{visibility.catalog ? "تقدّمك عبر الدروس المتاحة" : "اكتشف مسارك الأول"}</h3>
               <p>
-                {signedIn ? state.completedLessons + " من " + state.lessons + " دروس مكتملة" : "استكشف الدروس وابدأ التعلّم على مهلك"}
+                {visibility.progress
+                  ? state.completedLessons + " من " + state.lessons + " دروس مكتملة"
+                  : unavailable}
               </p>
             </div>
             <Link href={nextHref} className="icon-btn" aria-label="كمّل رحلتك">
               <Icon name="arrow" />
             </Link>
           </div>
-          {signedIn && !error && (
-            <div className="progress" role="progressbar" aria-label="إكمال الدروس"
-              aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-              <i style={{ width: percent + "%" }} />
-            </div>
-          )}
+          {visibility.progress && <div
+            className="progress"
+            role="progressbar"
+            aria-label="إكمال الدروس"
+            aria-valuenow={percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <i style={{ width: percent + "%" }} />
+          </div>}
           <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 18 }}>
             {Boolean(account.user) && state.signedIn
               ? "كل محاولة فرصة للفهم. خُد وقتك وركّز على تقدّمك."
@@ -424,9 +427,11 @@ export function DashboardLive() {
         <aside>
           <div className="rank-card">
             <span className="tiny-label">YOUR NEXT MILESTONE</span>
-            <strong>{signedIn && !error ? "المستوى " + level : "إنجازاتك تبدأ مع حسابك"}</strong>
-            <small>{signedIn && !error ? "باقي " + (100 - (state.xp % 100)) + " نقطة خبرة لخطوتك الجاية" : "سجّل الدخول علشان تشوف نقاطك ومستواك الحقيقي"}</small>
-            {signedIn && !error && <div className="progress"><i style={{ width: (state.xp % 100) + "%" }} /></div>}
+            <strong>{visibility.profile ? "المستوى " + level : "خطوتك القادمة"}</strong>
+            <small>{visibility.profile ? "باقي " + (100 - (state.xp % 100)) + " نقطة خبرة لخطوتك الجاية" : unavailable}</small>
+            {visibility.profile && <div className="progress">
+              <i style={{ width: (state.xp % 100) + "%" }} />
+            </div>}
           </div>
           <Link
             href="/notifications"
@@ -435,11 +440,11 @@ export function DashboardLive() {
           >
             <Icon name="check" />
             <b>
-              {state.unread
+              {visibility.notifications && state.unread
                 ? state.unread + " إشعارات جديدة"
                 : "مساحة آخر الأخبار"}
             </b>
-            <small>الواجبات الجديدة وتحديثات رحلتك.</small>
+            <small>{signedIn && !visibility.notifications ? "عدّاد الإشعارات غير متاح الآن" : "الواجبات الجديدة وتحديثات رحلتك."}</small>
           </Link>
         </aside>
       </section>
