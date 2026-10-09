@@ -152,6 +152,13 @@ The repository still contains a separate legacy JSON/Ollama browser app (`server
 - [ ] `apps/web/components/progress/progress-live.tsx`
 - [ ] `apps/web/components/pwa-register.tsx`
 - [ ] `apps/web/components/quran/quran-reader.tsx`
+- [ ] `apps/web/components/quran/quran-navigator.tsx`
+- [ ] `apps/web/components/quran/quran-verses.tsx`
+- [ ] `apps/web/components/quran/reciter-picker.tsx`
+- [ ] `apps/web/components/quran/recitation-player.tsx`
+- [ ] `apps/web/app/quran/quran.css`
+- [ ] `apps/web/public/fonts/amiri-quran.ttf`
+- [ ] `apps/web/public/fonts/OFL-AmiriQuran.txt`
 - [ ] `apps/web/components/review/review-live.tsx`
 - [ ] `apps/web/components/rewards/rewards-live.tsx`
 - [ ] `apps/web/components/settings/settings-live.tsx`
@@ -211,6 +218,8 @@ The repository still contains a separate legacy JSON/Ollama browser app (`server
 - [ ] `apps/web/lib/auth/flows.test.ts`
 - [ ] `apps/web/lib/auth/flows.ts`
 - [ ] `apps/web/lib/i18n/auth-errors.ts`
+- [ ] `apps/web/lib/quran/reciters.ts`
+- [ ] `apps/web/lib/quran/reciters.test.ts`
 - [ ] `apps/web/lib/quran/source.test.ts`
 - [ ] `apps/web/lib/quran/source.ts`
 - [ ] `apps/web/lib/supabase/client.ts`

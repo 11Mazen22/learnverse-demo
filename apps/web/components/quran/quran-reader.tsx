@@ -1,488 +1,122 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import useSWR from "swr";
 import { Icon } from "@/components/ui/icon";
+import { QuranNavigator } from "./quran-navigator";
+import { ReciterPicker } from "./reciter-picker";
+import { RecitationPlayer } from "./recitation-player";
+import { QuranVerses } from "./quran-verses";
+import { chapterRecitation, quranFetcher, REQUESTED_RECITERS, type Chapter, type ChapterResponse, type Reciter, type ReciterId } from "@/lib/quran/reciters";
 
-type Chapter = {
-  number: number;
-  name: string;
-  englishName: string;
-  numberOfAyahs: number;
-};
-type Verse = {
-  number: number;
-  globalNumber: number;
-  text: string;
-  audio: string | null;
-};
-type Source = {
-  name: string;
-  edition: string;
-  reference: string;
-  terms: string;
-  audioEdition: string;
-};
 const LOCAL_KEY = "noata-quran-bookmarks-v1";
 const READING_SIZE_KEY = "noata-quran-reading-percent-v2";
-const MIN_READING_PERCENT = 80;
-const MAX_READING_PERCENT = 160;
-function boundedReadingPercent(value: number) {
-  return Number.isFinite(value) ? Math.round(Math.max(MIN_READING_PERCENT, Math.min(MAX_READING_PERCENT, value)) / 10) * 10 : 100;
-}
-const INITIAL: Chapter = {
-  number: 1,
-  name: "الفاتحة",
-  englishName: "Al-Faatiha",
-  numberOfAyahs: 7,
-};
-function bookmarksRead(): string[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]");
-    return Array.isArray(value)
-      ? value
-          .filter((x) => typeof x === "string" && /^\d{1,3}:\d{1,3}$/.test(x))
-          .slice(0, 300)
-      : [];
-  } catch {
-    return [];
-  }
-}
+const INITIAL: Chapter = { number: 1, name: "الفاتحة", englishName: "Al-Faatiha", numberOfAyahs: 7 };
+const boundSize = (n: number) => Number.isFinite(n) ? Math.round(Math.max(80, Math.min(160, n)) / 10) * 10 : 100;
+type SearchResponse = { results: { surah: number; surahName: string; number: number; text: string }[]; total: number };
+const options = { revalidateOnFocus: false, shouldRetryOnError: false };
+
 export function QuranReader() {
-  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selected, setSelected] = useState(1);
-  const [verses, setVerses] = useState<Verse[]>([]);
-  const [chapter, setChapter] = useState<Chapter>(INITIAL);
-  const [source, setSource] = useState<Source | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState("");
-  const [searchError, setSearchError] = useState("");
-  const searchRequest = useRef<AbortController | null>(null),
-    audioSequence = useRef(0);
-  const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [matches, setMatches] = useState<
-    { surah: number; surahName: string; number: number; text: string }[]
-  >([]);
+  const [reciterId, setReciterId] = useState<ReciterId>("minshawi");
   const [bookmarks, setBookmarks] = useState<string[]>([]);
-  const [activeAudio, setActiveAudio] = useState<number | null>(null);
-  const [targetAyah, setTargetAyah] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
   const [readerSize, setReaderSize] = useState(100);
-  function changeReadingSize(next: number) {
-    const percent = boundedReadingPercent(next);
-    setReaderSize(percent);
-    try { localStorage.setItem(READING_SIZE_KEY, String(percent)); } catch { /* Device storage may be disabled. */ }
-  }
-  const audio = useRef<HTMLAudioElement | null>(null);
-  const currentRequest = useRef(0);
+  const [notice, setNotice] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [mode, setMode] = useState<"verses" | "flow">("verses");
+  const [targetAyah, setTargetAyah] = useState<string | null>(null);
+  const [highlighted, setHighlighted] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [jump, setJump] = useState("");
+  const [jumpError, setJumpError] = useState("");
+  const index = useSWR<{ surahs: Chapter[] }>("/api/quran?list=1", quranFetcher, options);
+  const reading = useSWR<ChapterResponse>(`/api/quran?surah=${selected}&text=1`, quranFetcher, options);
+  const catalogue = useSWR<{ reciters: Reciter[] }>("/api/quran?reciters=1", quranFetcher, options);
+  const search = useSWR<SearchResponse>(searchTerm ? `/api/quran?search=${encodeURIComponent(searchTerm)}` : null, quranFetcher, options);
+  const chapters = index.data?.surahs ?? [];
+  const chapter = reading.data?.surah ?? chapters.find(s => s.number === selected) ?? (selected === 1 ? INITIAL : { ...INITIAL, number: selected, name: `السورة ${selected.toLocaleString("ar-EG")}`, numberOfAyahs: 0, englishName: "" });
+  const verses = reading.data?.verses ?? [];
+  const reciters = catalogue.data?.reciters ?? [];
+  const reciter = reciters.find(r => r.id === reciterId);
+  const identity = REQUESTED_RECITERS.find(r => r.id === reciterId)!;
+  const audioUrl = chapterRecitation(reciter, selected);
+  const source = reading.data?.source;
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(READING_SIZE_KEY);
-      if (saved !== null && /^\d{2,3}$/.test(saved)) setReaderSize(boundedReadingPercent(Number(saved)));
-    } catch { /* Private browsing may disable storage. */ }
-    setBookmarks(bookmarksRead());
-    void (async () => {
-      try {
-        const r = await fetch("/api/quran?list=1", { cache: "no-store" });
-        if (!r.ok) throw Error("source unavailable");
-        const data = await r.json();
-        if (Array.isArray(data.surahs)) setChapters(data.surahs);
-      } catch {
-        /* Individual Surah access remains available. */
-      }
-    })();
-    return () => {
-      ++audioSequence.current;
-      searchRequest.current?.abort();
-      audio.current?.pause();
-      audio.current?.removeAttribute("src");
-    };
+      if (saved && /^\d{2,3}$/.test(saved)) setReaderSize(boundSize(Number(saved)));
+      const stored: unknown = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]");
+      if (Array.isArray(stored)) setBookmarks(stored.filter((id): id is string => typeof id === "string" && /^\d{1,3}:\d{1,3}$/.test(id) && Number(id.split(":")[0]) >= 1 && Number(id.split(":")[0]) <= 114 && Number(id.split(":")[1]) >= 1 && Number(id.split(":")[1]) <= 286).slice(-300));
+    } catch { /* Preserve the existing explicitly device-local preference fallback. */ }
   }, []);
   useEffect(() => {
-    const controller = new AbortController();
-    const request = ++currentRequest.current;
-    ++audioSequence.current;
-    audio.current?.pause();
-    if (audio.current) {
-      audio.current.removeAttribute("src");
-      audio.current.load();
-    }
-    setActiveAudio(null);
-    setVerses([]);
-    setLoading(true);
-    setError("");
-    void (async () => {
-      try {
-        const r = await fetch("/api/quran?surah=" + selected, {
-          signal: controller.signal,
-        });
-        if (!r.ok) throw Error("source unavailable");
-        const data = await r.json();
-        if (request !== currentRequest.current) return;
-        if (!Array.isArray(data.verses) || data.verses.length < 1)
-          throw Error("missing verses");
-        setVerses(data.verses);
-        setChapter(data.surah);
-        setSource(data.source);
-      } catch (e) {
-        if (!controller.signal.aborted)
-          setError(
-            "تعذّر تحميل نص السورة من المصدر. راجع الاتصال وحاول مرة أخرى.",
-          );
-      } finally {
-        if (request === currentRequest.current) setLoading(false);
-      }
-    })();
-    return () => controller.abort();
-  }, [selected, retryKey]);
-  useEffect(() => {
-    if (!targetAyah || loading || error) return;
-    const target = document.getElementById(
-      "ayah-" + targetAyah.replace(":", "-"),
-    );
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTargetAyah(null);
-    }
-  }, [targetAyah, loading, error, verses]);
-  function toggleBookmark(number: number) {
-    const key = selected + ":" + number;
-    setBookmarks((old) => {
-      const next = old.includes(key)
-        ? old.filter((x) => x !== key)
-        : [...old, key].slice(-300);
-      try {
-        localStorage.setItem(LOCAL_KEY, JSON.stringify(next));
-        setNotice("تم حفظ موضع الآية على هذا الجهاز.");
-      } catch {
-        setNotice("العلامة متاحة خلال هذه الجلسة فقط؛ تعذّر حفظها على الجهاز.");
-      }
-      return next;
-    });
-  }
-  function stopAudio() {
-    ++audioSequence.current;
-    if (audio.current) {
-      audio.current.pause();
-      audio.current.removeAttribute("src");
-      audio.current.load();
-    }
-    setActiveAudio(null);
-  }
-  function playVerse(verse: Verse) {
-    if (!verse.audio) return;
-    if (activeAudio === verse.number) {
-      stopAudio();
-      return;
-    }
-    if (!audio.current) return;
-    const sequence = ++audioSequence.current;
-    setNotice("");
-    audio.current.pause();
-    audio.current.src = verse.audio;
-    void audio.current
-      .play()
-      .then(() => {
-        if (sequence === audioSequence.current) setActiveAudio(verse.number);
-      })
-      .catch(() => {
-        if (sequence === audioSequence.current) {
-          setActiveAudio(null);
-          setNotice(
-            "تعذّر تشغيل التلاوة. جرّب آية أخرى أو أعد المحاولة عند عودة الاتصال.",
-          );
-        }
-      });
-  }
-  async function search(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    if (q.length < 2 || q.length > 50) return;
-    searchRequest.current?.abort();
-    const controller = new AbortController();
-    searchRequest.current = controller;
-    setSearching(true);
-    setSearchError("");
-    setMatches([]);
-    try {
-      const r = await fetch("/api/quran?search=" + encodeURIComponent(q), {
-        signal: controller.signal,
-      });
-      if (!r.ok) throw Error("search failed");
-      const data = await r.json();
-      if (!controller.signal.aborted)
-        setMatches(Array.isArray(data.results) ? data.results : []);
-    } catch {
-      if (!controller.signal.aborted)
-        setSearchError(
-          "البحث غير متاح حاليًا. استخدم اختيار السورة أو حاول لاحقًا.",
-        );
-    } finally {
-      if (searchRequest.current === controller) setSearching(false);
-    }
+    if (!targetAyah || reading.isLoading || reading.error || !reading.data) return;
+    const element = document.getElementById(`ayah-${targetAyah.replace(":", "-")}`);
+    if (!element) { setNotice("هذه العلامة ليست ضمن آيات السورة المتاحة."); setTargetAyah(null); return; }
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.reducedMotion === "true";
+    element.scrollIntoView({ behavior: reduced ? "instant" : "smooth", block: "center" });
+    element.focus({ preventScroll: true });
+    setHighlighted(targetAyah); setTargetAyah(null);
+  }, [targetAyah, reading.isLoading, reading.error, reading.data]);
+  function selectChapter(number: number) {
+    setSelected(number); setHighlighted(null); setTargetAyah(null); setJump(""); setJumpError("");
   }
   function focusVerse(id: string) {
-    const parts = id.split(":").map(Number);
-    if (parts.length !== 2) return;
-    setTargetAyah(id);
-    if (selected !== parts[0]) setSelected(parts[0]);
+    const [surah, ayah] = id.split(":").map(Number);
+    if (!Number.isInteger(surah) || surah < 1 || surah > 114 || !Number.isInteger(ayah) || ayah < 1 || ayah > 286) return;
+    setSelected(surah); setTargetAyah(id); setSearchTerm("");
   }
-  return (
-    <div className="aura-quran">
-      <header className="aura-quran-header">
-        <div>
-          <span className="eyebrow">
-            المصحف · نص موثّق مستقل عن الذكاء الاصطناعي
-          </span>
-          <h1>اقرأ بتأنٍّ. واحفظ موضعك.</h1>
-          <p>
-            آيات القرآن تُحمّل من طبعة Uthmani المعلنة في المصدر، وليست نصوصًا
-            ينشئها Noata AI.
-          </p>
-        </div>
-        <Link
-          className="aura-quran-ai-link"
-          href="/ai?prompt=%D8%B3%D8%A7%D8%B9%D8%AF%D9%86%D9%8A%20%D8%A3%D9%81%D9%87%D9%85%20%D9%85%D8%B9%D9%86%D9%89%20%D8%A2%D9%8A%D8%A9%20%D9%85%D9%86%20%D8%A7%D9%84%D9%82%D8%B1%D8%A2%D9%86"
-        >
-          اسأل Noata عن الشرح <Icon name="arrow" size={17} />
-        </Link>
-      </header>
-      {notice && (
-        <p role="status" className="aura-quran-notice">
-          {notice}
-        </p>
-      )}
-      {searchError && (
-        <p role="alert" className="error-banner">
-          {searchError}
-        </p>
-      )}
-      <nav className="aura-quran-chapter-nav" aria-label="التنقل بين السور">
-        <button
-          type="button"
-          disabled={selected <= 1}
-          onClick={() => setSelected((n) => Math.max(1, n - 1))}
-        >
-          السورة السابقة
-        </button>
-        <span>السورة {selected.toLocaleString("ar-EG")} من ١١٤</span>
-        <button
-          type="button"
-          disabled={selected >= 114}
-          onClick={() => setSelected((n) => Math.min(114, n + 1))}
-        >
-          السورة التالية
-        </button>
-      </nav>
-      <div className="aura-quran-toolbar">
-        <label>
-          <span>السورة</span>
-          <select
-            value={selected}
-            onChange={(e) => setSelected(Number(e.target.value))}
-            aria-label="اختيار سورة"
-          >
-            {(chapters.length ? chapters : [INITIAL]).map((s) => (
-              <option value={s.number} key={s.number}>
-                {s.number}. {s.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="aura-quran-font">
-          <span>حجم القراءة</span>
-          <button
-            type="button"
-            onClick={() => changeReadingSize(readerSize - 10)}
-            disabled={readerSize <= MIN_READING_PERCENT}
-            aria-label="تصغير خط القرآن"
-          >
-            −
-          </button>
-          <button
-            type="button"
-            onClick={() => changeReadingSize(100)}
-            aria-label={`حجم القراءة ${readerSize}%، إعادة الضبط إلى ١٠٠٪`}
-            aria-live="polite"
-          >
-            {readerSize.toLocaleString("ar-EG")}٪
-          </button>
-          <button
-            type="button"
-            onClick={() => changeReadingSize(readerSize + 10)}
-            disabled={readerSize >= MAX_READING_PERCENT}
-            aria-label="تكبير خط القرآن"
-          >
-            +
-          </button>
-        </div>
-        <form className="aura-quran-search" onSubmit={search}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث عن كلمة في القرآن…"
-            aria-label="البحث في القرآن"
-            maxLength={50}
-          />
-          <button
-            type="submit"
-            disabled={query.trim().length < 2 || searching}
-            aria-label="ابحث"
-          >
-            <Icon name="search" size={18} />
-          </button>
-        </form>
-      </div>
-      {!!matches.length && (
-        <section className="aura-quran-search-results" aria-label="نتائج البحث">
-          <div className="panel-head">
-            <h2>نتائج البحث</h2>
-            <button type="button" onClick={() => setMatches([])}>
-              إغلاق النتائج
-            </button>
-          </div>
-          {matches.map((m, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => focusVerse(m.surah + ":" + m.number)}
-            >
-              <strong>
-                {m.surahName} · {m.number}
-              </strong>
-              <span dir="rtl">{m.text}</span>
-            </button>
-          ))}
+  function changeReadingSize(next: number) {
+    const percent = boundSize(next); setReaderSize(percent);
+    try { localStorage.setItem(READING_SIZE_KEY, String(percent)); }
+    catch { setNotice("حجم الخط متاح لهذه الجلسة فقط؛ تعذّر حفظه على الجهاز."); }
+  }
+  function toggleBookmark(number: number) {
+    const id = `${selected}:${number}`;
+    const removing = bookmarks.includes(id);
+    const next = removing ? bookmarks.filter(item => item !== id) : [...bookmarks, id].slice(-300);
+    setBookmarks(next);
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)); setNotice(removing ? "أُزيلت علامة الآية." : "حُفظ موضع الآية على هذا الجهاز فقط."); }
+    catch { setNotice("العلامة متاحة خلال هذه الجلسة فقط؛ تعذّر حفظها على الجهاز."); }
+  }
+  function submitSearch(event: FormEvent) {
+    event.preventDefault(); const term = query.trim();
+    if (term.length >= 2 && term.length <= 50) { if (term === searchTerm) void search.mutate(); else setSearchTerm(term); }
+  }
+  function submitJump(event: FormEvent) {
+    event.preventDefault(); const number = Number(jump);
+    if (!Number.isInteger(number) || number < 1 || number > verses.length) { setJumpError(`اختر آية بين ١ و${verses.length.toLocaleString("ar-EG")}.`); return; }
+    setJumpError(""); focusVerse(`${selected}:${number}`);
+  }
+  return <div className={`aura-quran mushaf ${focused ? "mushaf-focused" : ""}`} dir="rtl" lang="ar">
+    <header className="mushaf-hero">
+      <div className="mushaf-hero-copy"><span className="mushaf-eyebrow"><span/> مساحة للقراءة والتلاوة</span><h1>القرآن الكريم<span>لحظة سكينة، في يومك.</span></h1><p>اقرأ بتأنٍّ، واستمع بصوت تُحبّه، وعد إلى موضعك بسهولة.</p><div className="mushaf-hero-facts"><span><Icon name="book" size={15}/> ١١٤ سورة</span><span><Icon name="volume" size={15}/> ٩ قرّاء</span><span><Icon name="check" size={15}/> نص بالرسم العثماني</span></div></div>
+      <div className="mushaf-hero-seal" aria-hidden="true"><Icon name="book" size={46}/><span>المصحف</span><small>قراءة · استماع · تدبّر</small></div>
+    </header>
+    <form className="aura-quran-search mushaf-global-search" onSubmit={submitSearch}>
+      <Icon name="search" size={20}/><input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && (e.nativeEvent.isComposing || e.keyCode === 229)) e.preventDefault(); }} placeholder="ابحث عن كلمة أو عبارة في القرآن الكريم…" aria-label="البحث في القرآن" maxLength={50}/><button type="submit" disabled={query.trim().length < 2 || search.isLoading}>{search.isLoading ? "جارٍ البحث…" : "بحث في الآيات"}<Icon name="arrow" size={16}/></button>
+    </form>
+    {notice && <div className="mushaf-notice" role="status"><Icon name="pin" size={16}/><span>{notice}</span><button type="button" aria-label="إغلاق التنبيه" onClick={() => setNotice("")}><Icon name="close" size={16}/></button></div>}
+    {searchTerm && <section className="aura-quran-search-results" aria-label="نتائج البحث"><div className="panel-head"><h2>نتائج البحث {search.data ? `· ${search.data.total?.toLocaleString("ar-EG") ?? search.data.results.length.toLocaleString("ar-EG")}` : ""}</h2><button type="button" onClick={() => setSearchTerm("")}>إغلاق النتائج</button></div>{search.isLoading && <p role="status">جارٍ البحث في المصدر…</p>}{search.error && <div role="alert">تعذّر البحث حاليًا. <button type="button" onClick={() => void search.mutate()}>إعادة المحاولة</button></div>}{search.data?.results.length === 0 && <p role="status">لا توجد نتائج. جرّب كلمة أخرى دون تشكيل.</p>}{search.data?.results.map(m => <button type="button" key={`${m.surah}:${m.number}`} onClick={() => focusVerse(`${m.surah}:${m.number}`)}><strong>{m.surahName} · الآية {m.number.toLocaleString("ar-EG")}</strong><span dir="rtl">{m.text}</span></button>)}{search.data && search.data.total > 50 && <p>تُعرض أول ٥٠ نتيجة؛ استخدم عبارة أدق لتضييق البحث.</p>}</section>}
+    <div className="mushaf-workspace">
+      {!focused && <div className="mushaf-side"><QuranNavigator chapters={chapters} selected={selected} onSelect={selectChapter} bookmarks={bookmarks} onBookmark={focusVerse} loading={index.isLoading} error={!!index.error} retry={() => void index.mutate()}/><div className="mushaf-source-note"><Icon name="check" size={18}/><div><strong>قراءة من مصدرها</strong><p>نص الآيات من AlQuran Cloud، لا يولّده الذكاء الاصطناعي.</p></div></div></div>}
+      <div className="mushaf-main">
+        <ReciterPicker reciters={reciters} selected={reciterId} onSelect={setReciterId} loading={catalogue.isLoading} error={!!catalogue.error} retry={() => void catalogue.mutate()}/>
+        <section className="aura-quran-reading mushaf-reading" aria-busy={reading.isLoading} aria-label="قراءة السورة">
+          <div className="mushaf-reading-tools"><label className="mushaf-surah-select"><span className="sr-only">السورة</span><select value={selected} onChange={e => selectChapter(Number(e.target.value))} aria-label="اختيار سورة">{(chapters.length ? chapters : [chapter]).map(s => <option key={s.number} value={s.number}>{s.number.toLocaleString("ar-EG")}. {s.name}</option>)}</select></label><button className="mushaf-focus-button" type="button" aria-pressed={focused} onClick={() => setFocused(v => !v)}><Icon name="screen" size={16}/>{focused ? "إظهار الفهرس" : "قراءة مركزة"}</button></div>
+          <header className="aura-quran-chapter mushaf-chapter"><span className="mushaf-chapter-kicker">المصحف الشريف · السورة {selected.toLocaleString("ar-EG")}</span><h2>{chapter.name}</h2><p>{chapter.numberOfAyahs > 0 ? `${chapter.numberOfAyahs.toLocaleString("ar-EG")} آيات` : "جارٍ تحميل السورة"}{chapter.revelationType === "Meccan" ? " · مكية" : chapter.revelationType === "Medinan" ? " · مدنية" : ""}</p><span className="mushaf-chapter-rule" aria-hidden="true"/></header>
+          <div className="mushaf-reader-controls"><div className="mushaf-segmented" aria-label="طريقة القراءة"><button type="button" aria-pressed={mode === "verses"} onClick={() => setMode("verses")}>آية بآية</button><button type="button" aria-pressed={mode === "flow"} onClick={() => setMode("flow")}>قراءة متصلة</button></div><div className="aura-quran-font"><span className="sr-only">حجم القراءة</span><button type="button" onClick={() => changeReadingSize(readerSize - 10)} disabled={readerSize <= 80} aria-label="تصغير خط القرآن">−</button><button type="button" onClick={() => changeReadingSize(100)} aria-label={`حجم القراءة ${readerSize}%، إعادة الضبط إلى ١٠٠٪`}>{readerSize.toLocaleString("ar-EG")}٪</button><button type="button" onClick={() => changeReadingSize(readerSize + 10)} disabled={readerSize >= 160} aria-label="تكبير خط القرآن">+</button></div></div>
+          {reading.isLoading && <div className="mushaf-loading" role="status"><span/><span/><span/><p>جارٍ جلب النص القرآني من مصدره…</p></div>}
+          {reading.error && <div className="mushaf-reading-error" role="alert"><Icon name="book" size={30}/><h3>تعذّر تحميل السورة</h3><p>راجع الاتصال وحاول مرة أخرى. لا نعرض نصًا بديلًا عن المصدر.</p><button type="button" onClick={() => void reading.mutate()}>إعادة تحميل السورة</button></div>}
+          {!reading.isLoading && !reading.error && <QuranVerses verses={verses} surah={selected} bookmarks={bookmarks} size={readerSize} mode={mode} highlighted={highlighted} onBookmark={toggleBookmark}/>}
+          <div className="mushaf-jump"><form onSubmit={submitJump}><label htmlFor="mushaf-jump">انتقل إلى آية</label><input id="mushaf-jump" type="number" min={1} max={verses.length || 286} inputMode="numeric" value={jump} onChange={e => setJump(e.target.value)} aria-invalid={!!jumpError} aria-describedby={jumpError ? "mushaf-jump-error" : undefined}/><button type="submit" disabled={!verses.length || !jump}>انتقال<Icon name="arrow" size={15}/></button></form>{jumpError && <p id="mushaf-jump-error" role="alert">{jumpError}</p>}</div>
+          <nav className="aura-quran-chapter-nav mushaf-chapter-nav" aria-label="التنقل بين السور"><button type="button" disabled={selected <= 1} onClick={() => selectChapter(selected - 1)}>السورة السابقة</button><span>{selected.toLocaleString("ar-EG")} / ١١٤</span><button type="button" disabled={selected >= 114} onClick={() => selectChapter(selected + 1)}>السورة التالية</button></nav>
         </section>
-      )}
-      {bookmarks.length > 0 && (
-        <div className="aura-quran-bookmarks">
-          <strong>مواضعك المحفوظة على هذا الجهاز</strong>
-          {bookmarks
-            .slice(-8)
-            .reverse()
-            .map((id) => (
-              <button type="button" key={id} onClick={() => focusVerse(id)}>
-                {id}
-              </button>
-            ))}
-        </div>
-      )}
-      <section className="aura-quran-reading" aria-busy={loading}>
-        <div className="aura-quran-chapter">
-          <span>سورة</span>
-          <h2>{chapter.name}</h2>
-          <p>
-            {chapter.englishName} · {chapter.numberOfAyahs} آيات
-          </p>
-        </div>
-        {loading && (
-          <p role="status" className="aura-quran-state">
-            جارٍ جلب النص القرآني من مصدره…
-          </p>
-        )}
-        {error && (
-          <div className="error-banner" role="alert">
-            {error}
-            <button type="button" onClick={() => setRetryKey((x) => x + 1)}>
-              إعادة تحميل السورة
-            </button>
-          </div>
-        )}
-        {!loading &&
-          !error &&
-          verses.map((v) => {
-            const key = selected + ":" + v.number;
-            return (
-              <article
-                id={"ayah-" + selected + "-" + v.number}
-                className="aura-quran-ayah"
-                key={v.number}
-              >
-                <div className="aura-quran-ayah-actions">
-                  <span className="aura-ayah-number">
-                    {v.number.toLocaleString("ar-EG")}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => toggleBookmark(v.number)}
-                    aria-pressed={bookmarks.includes(key)}
-                    aria-label={
-                      bookmarks.includes(key)
-                        ? "إزالة العلامة"
-                        : "حفظ موضع الآية"
-                    }
-                  >
-                    <Icon name="pin" size={17} />
-                  </button>
-                  {v.audio && (
-                    <button
-                      type="button"
-                      onClick={() => playVerse(v)}
-                      aria-pressed={activeAudio === v.number}
-                      aria-label={
-                        activeAudio === v.number
-                          ? "إيقاف التلاوة"
-                          : "استمع لتلاوة الآية"
-                      }
-                    >
-                      <Icon
-                        name={activeAudio === v.number ? "close" : "volume"}
-                        size={17}
-                      />
-                    </button>
-                  )}
-                </div>
-                <p
-                  className="aura-quran-verse"
-                  dir="rtl"
-                  lang="ar"
-                  style={{
-                    fontSize:
-                      `${(32 * readerSize / 100).toFixed(1)}px`,
-                  }}
-                >
-                  {v.text}
-                  <span className="aura-quran-verse-number">
-                    {" "}
-                    ﴿{v.number.toLocaleString("ar-EG")}﴾
-                  </span>
-                </p>
-              </article>
-            );
-          })}
-      </section>
-      <audio
-        ref={audio}
-        preload="none"
-        onEnded={() => setActiveAudio(null)}
-        onError={() => {
-          setActiveAudio(null);
-          setNotice("ملف التلاوة غير متاح حاليًا؛ يمكنك متابعة قراءة النص.");
-        }}
-        aria-label="مشغل تلاوة الآيات"
-      />
-      <footer className="aura-quran-attribution">
-        المصدر:{" "}
-        <a
-          href={source?.reference ?? "https://alquran.cloud/api"}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          AlQuran Cloud
-        </a>{" "}
-        · النص: {source?.edition ?? "quran-uthmani"} · التلاوة، عند توفرها:{" "}
-        {source?.audioEdition ?? "ar.alafasy"}.
-        <a
-          href="https://alquran.cloud/terms-and-conditions"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          حقوق الاستخدام والتلاوات
-        </a>
-        . الشروح التي يقدمها الذكاء الاصطناعي منفصلة ولا تُعتبر آيات قرآنية.
-      </footer>
+        <RecitationPlayer key={`${selected}:${reciterId}:${audioUrl}`} url={audioUrl} chapter={chapter} reciterName={identity.name} onChapter={selectChapter} unavailable={catalogue.isLoading ? "جارٍ تحميل مصدر التلاوة…" : catalogue.error ? "تعذّر تحميل مصدر التلاوة. أعد المحاولة من اختيار القارئ." : "تلاوة هذه السورة غير متاحة لهذا القارئ حاليًا."}/>
+        <footer className="aura-quran-attribution mushaf-attribution"><p><Icon name="check" size={15}/><span>النص: <a href={source?.reference ?? "https://alquran.cloud/api"} target="_blank" rel="noopener noreferrer">AlQuran Cloud</a> · <bdi>{source?.edition ?? "quran-uthmani"}</bdi> · <a href="https://alquran.cloud/terms-and-conditions" target="_blank" rel="noopener noreferrer">حقوق الاستخدام</a>. التلاوة: <a href="https://mp3quran.net/ar" target="_blank" rel="noopener noreferrer">MP3Quran</a>.</span></p><p>الشروح منفصلة عن نص المصحف، وقد يخطئ الذكاء الاصطناعي. راجع أهل العلم في التفسير والأحكام.</p><Link href="/ai?prompt=%D8%B3%D8%A7%D8%B9%D8%AF%D9%86%D9%8A%20%D8%A3%D9%81%D9%87%D9%85%20%D9%85%D8%B9%D9%86%D9%89%20%D8%A2%D9%8A%D8%A9">انتقل إلى Noata AI للشرح <Icon name="arrow" size={15}/></Link></footer>
+      </div>
     </div>
-  );
+  </div>;
 }

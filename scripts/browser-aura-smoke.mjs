@@ -4,6 +4,7 @@ import {resolve} from "node:path";
 import {launchQaBrowser,findQaChrome,diagnosticError} from "./lib/qa-browser.mjs";
 import {verifyUiAccountContracts} from "./lib/ui-account-fixture.mjs";
 import {verifyPublicCurriculum} from "./lib/public-curriculum-fixture.mjs";
+import {REQUESTED_RECITERS} from "../apps/web/lib/quran/reciters.ts";
 import {createRequire} from "node:module";
 const require=createRequire(new URL("../apps/web/package.json",import.meta.url));
 const axeSource=await readFile(require.resolve("axe-core/axe.min.js"),"utf8");
@@ -145,6 +146,9 @@ async function verifyQuranControls(){
       const url=String(input?.url??input);
       if(url.startsWith("/api/quran")){
         const params=new URL(url,location.origin).searchParams;
+        if(params.get("reciters")==="1"){
+          return new Response(JSON.stringify({reciters:${JSON.stringify(REQUESTED_RECITERS.map(({providerId,...r})=>({...r,server:`https://cdn.mp3quran.net/audio/ci-fixture-${r.id}/`,surahs:[1,2],style:"CI TEST FIXTURE"})))} }),{status:200,headers:{"Content-Type":"application/json"}});
+        }
         if(params.get("list")==="1"){
           return new Response(JSON.stringify({surahs:[
             {number:1,name:"الفاتحة",englishName:"Al-Faatiha",numberOfAyahs:2},
@@ -186,7 +190,28 @@ async function verifyQuranControls(){
     await evaluate('document.querySelector(".aura-quran-search")?.requestSubmit()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-search-results button").length>0'),"Quran search matches");
     invariant(await evaluate('document.querySelectorAll(".aura-quran-search-results button").length>0'),"Quran search UI");
-    console.log("[browser] Quran interactions verified with deterministic test-only API fixture");
+    await evaluate('document.querySelector(".aura-quran-search-results .panel-head button")?.click()');
+    await waitFor(async()=>await evaluate('!document.querySelector(".aura-quran-search-results")'),"Quran search closed");
+    await evaluate('document.querySelector(".mushaf-reciters summary")?.click()');
+    await waitFor(async()=>await evaluate('document.querySelector(".mushaf-reciters")?.open && document.querySelectorAll(".mushaf-reciter-card").length===9'),"nine reciter choices");
+    invariant(await evaluate('document.querySelectorAll(".mushaf-reciter-card").length===9'),"all requested reciters present");
+    for(let i=0;i<9;i++){
+      await evaluate(`document.querySelectorAll(".mushaf-reciter-card")[${i}].click()`);
+      await waitFor(async()=>await evaluate(`document.querySelectorAll(".mushaf-reciter-card")[${i}]?.getAttribute("aria-pressed")==="true"`),"selected reciter state");
+      invariant(await evaluate(`document.querySelector(".mushaf-player audio")?.getAttribute("src")?.includes("ci-fixture-${REQUESTED_RECITERS[i].id}") && document.querySelector(".mushaf-player audio")?.paused`),"selected reciter binds correct media without autoplay");
+    }
+    await evaluate('document.querySelector(".mushaf-player-controls [aria-label=\"تكرار السورة\"]")?.click()');
+    await waitFor(async()=>await evaluate('document.querySelector(".mushaf-player audio")?.loop'),"Surah repetition");
+    invariant(await evaluate('document.querySelector(".mushaf-player audio")?.loop'),"repeat maps to real media loop");
+    await evaluate('document.querySelectorAll(".mushaf-reader-controls .mushaf-segmented button")[1]?.click()');
+    await waitFor(async()=>await evaluate('!!document.querySelector(".mushaf-flow")'),"continuous reading mode");
+    invariant(await evaluate('document.querySelectorAll(".mushaf-flow .aura-quran-ayah").length===2'),"continuous mode preserves source verse count");
+    await evaluate('document.querySelector(".mushaf-focus-button")?.click()');
+    await waitFor(async()=>await evaluate('!document.querySelector(".mushaf-navigator")'),"focused reading");
+    invariant(await evaluate('!!document.querySelector(".mushaf-focused") && !document.querySelector(".mushaf-navigator")'),"focus mode removes index without leaving reader");
+    await evaluate('document.querySelector(".mushaf-focus-button")?.click()');
+    await waitFor(async()=>await evaluate('!!document.querySelector(".mushaf-navigator")'),"index returns");
+    console.log("[browser] Quran navigation, source preservation, preferences and nine-reciter media bindings verified with synthetic protocol fixtures; not real audio playback or sacred-text certification");
   } finally {
     await command("Page.removeScriptToEvaluateOnNewDocument",{identifier:install.identifier});
   }

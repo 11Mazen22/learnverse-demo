@@ -4,6 +4,7 @@ import {
   canonicalIndex,
   recitationLink,
 } from "@/lib/quran/source";
+import { reciterCatalogue } from "@/lib/quran/reciters";
 type RawVerse = {
   numberInSurah?: number;
   number?: number;
@@ -37,6 +38,15 @@ const SOURCE = {
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   try {
+    if (query.get("reciters") === "1") {
+      const response = await fetch("https://mp3quran.net/api/v3/reciters?language=ar", {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(9500),
+        next: { revalidate: 86400 },
+      });
+      if (!response.ok) throw Error("Reciter catalogue unavailable");
+      return NextResponse.json({ reciters: reciterCatalogue(await response.json()), source: { name: "MP3Quran", reference: "https://mp3quran.net/ar" } });
+    }
     if (query.get("list") === "1") {
       const data = await remote("/surah");
       const surahs = canonicalIndex(data);
@@ -77,6 +87,11 @@ export async function GET(request: NextRequest) {
     const verses = canonicalSurah(text, surah);
     let recitation: Record<number, string> = {};
     try {
+      if (query.get("text") === "1") return NextResponse.json({
+        surah: { number: surah, name: String(text.name), englishName: String(text.englishName ?? ""), numberOfAyahs: verses.length, revelationType: String(text.revelationType ?? "") },
+        verses: verses.map(v => ({ ...v, audio: null })),
+        source: { ...SOURCE, audioEdition: "none" },
+      });
       const audio = await remote("/surah/" + surah + "/ar.alafasy");
       const audioVerses = canonicalSurah(audio, surah);
       if (
