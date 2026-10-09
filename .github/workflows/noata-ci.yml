@@ -32,6 +32,8 @@ jobs:
         with:
           deno-version: v2.x
       - run: pnpm install --frozen-lockfile
+      - name: Repository-wide scope and discovery contracts
+        run: pnpm scope:check && node --test scripts/renaissance-scope.test.mjs scripts/pwa-cache.test.mjs
       - run: pnpm typecheck
       - name: Validate staging and browser runner syntax (no accounts used)
         run: |
@@ -80,6 +82,8 @@ jobs:
             exit 1
           fi
 
+          NOATA_PALETTE_QA_RUNTIME=production node scripts/palette-aura-smoke.mjs
+
           for path in / /learn /ai /missions /review /boss /progress /rewards /assignments /settings /help /quran /notifications /teacher /admin /login /privacy /terms; do
             curl -fsS -o /dev/null "http://127.0.0.1:3000$path"
           done
@@ -100,6 +104,8 @@ jobs:
           import {execFileSync} from 'node:child_process';
           const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
           for (const path of [
+            'artifacts/noata-scope/outcome.json',
+            'artifacts/noata-palettes/outcome.json',
             'artifacts/noata-browser/outcome.json',
             'artifacts/noata-database/outcome.json',
             'artifacts/noata-documents/pdf-readback.json',

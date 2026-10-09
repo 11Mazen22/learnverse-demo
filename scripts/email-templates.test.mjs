@@ -36,7 +36,7 @@ test("Official cap/N/book SVG stays recognizable and is not obscured by old PWA 
   }
   assert.notEqual(light,dark,"Light and dark logo treatments must stay distinct");
   const worker=read("sw.js");
-  assert.match(worker,/noata-static-v4-official-mark/);
+  assert.match(worker,/noata-static-v5-network-only/);
   assert.match(worker,/noata-mark-light.svg/);
   assert.match(worker,/noata-mark.svg/);
 });

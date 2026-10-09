@@ -1,5 +1,5 @@
 # NOATA AURA — EXHAUSTIVE REPOSITORY-WIDE COVERAGE MANIFEST
-**Discovery:** noata-aura-platform-overhaul-20261008 at 2026-10-09. **Source tree:** 367 tracked entries including 281 file blobs. **Status:** scope only; listings are NOT certification of function.
+**Discovery:** noata-aura-platform-overhaul-20261008 at 2026-10-09. **Source tree at initial audit:** 367 tracked entries including 281 file blobs. Current candidate coverage is checked exhaustively by `pnpm scope:check`; additions are listed below. **Status:** scope only; listings are NOT certification of function.
 
 ## The literal no-exceptions rule
 EVERY current file, user-visible route, nested state, dialog, role, backend contract, migration, helper, email, theme, worker, export, service integration, historical MVP path, test and operational instruction is within investigation scope. The list below documents the entire branch tree, not a claim each file needs rewritten. Keep correct code; change defective or inconsistent code. Any new/renamed/deleted file updates this manifest. No milestone is complete based on only the example modules (Quran, Missions, Review, Boss, AI).
@@ -376,6 +376,19 @@ The repository still contains a separate legacy JSON/Ollama browser app (`server
 - [ ] `apps/web/public/offline.html`
 - [ ] `apps/web/public/sw.js`
 - [ ] `apps/web/tsconfig.json`
+## Executable discovery and current acceptance ledger
+
+Run `pnpm scope:check`. The checker reconciles every tracked/nonignored candidate file with this manifest, hashes source contents, discovers every Next page/handler and follows static component imports to enumerate controls and backend operations. Missing, stale or duplicate entries fail CI. `artifacts/noata-scope/outcome.json` is **static discovery only**, not authenticated, live schema or functional certification. Dynamic and delegated interactions require manual completion; [the current acceptance ledger](NOATA_AURA_ACCEPTANCE_LEDGER.md) identifies the full route/system worklist and outstanding real-world gates.
+
+- [ ] `docs/NOATA_AURA_EXHAUSTIVE_SCOPE_MANIFEST.md`
+- [ ] `docs/NOATA_AURA_ACCEPTANCE_LEDGER.md`
+- [ ] `apps/web/lib/preferences/palette.ts`
+- [ ] `apps/web/lib/preferences/palette.test.ts`
+- [ ] `scripts/renaissance-scope.mjs`
+- [ ] `scripts/renaissance-scope.test.mjs`
+- [ ] `scripts/palette-aura-smoke.mjs`
+- [ ] `scripts/pwa-cache.test.mjs`
+
 ## Acceptance ledger format — mandatory per user action
 | Field | Required proof |
 |---|---|

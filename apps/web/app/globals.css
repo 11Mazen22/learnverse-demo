@@ -25,7 +25,7 @@
   --accent-soft: #e6f3ff;
   --lime: #d7edff;
   --success: #227857;
-  --warning: #966a25;
+  --warning: #80571b;
   --danger: #b74242;
   --blue-500: #0065b5;
   --blue-400: #008ddd;
@@ -37,6 +37,9 @@
   --shadow-soft: 0 12px 35px #273d2a08;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
+html[data-theme="light"] {
+  color-scheme: light;
+}
 html[data-theme="dark"] {
   color-scheme: dark;
   --ink: #edf4ff;
@@ -47,6 +50,7 @@ html[data-theme="dark"] {
   --accent: #63beff;
   --accent-soft: #153252;
   --success: #9bd0a5;
+  --warning: #f2c77d;
   --danger: #ffadad;
   --shadow-soft: 0 12px 35px #0002;
 }
