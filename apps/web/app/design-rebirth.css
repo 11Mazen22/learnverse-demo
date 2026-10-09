@@ -269,3 +269,43 @@ html[data-theme="dark"] .auth-shell .auth-aside-points li{color:#f4f7ff}
 @media(max-width:640px){.page-content .dashboard-hero{padding:25px 20px}.page-content .dashboard-hero h2{font-size:clamp(28px,8vw,39px)}.page-content .dashboard-hero .hero-actions .btn{flex:1 1 150px}.noata-design-studio{padding:17px 13px}.noata-design-studio-header{align-items:flex-start;gap:10px}.noata-design-studio-crest{flex-basis:44px;height:44px}.noata-design-saved-list{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.page-content .dashboard-hero .btn,.noata-design-studio *, .noata-design-studio *::before,.noata-design-studio *::after{animation:none!important;transition:none!important;transform:none!important}}
 html[data-reduced-motion="true"] :is(.page-content .dashboard-hero .btn,.noata-design-studio,.noata-design-studio *){animation:none!important;transition:none!important;transform:none!important}
+
+/* New appearance command-center structure: clear hierarchy and comfortable
+ * anchored navigation, independently of the signed-in palette choice. */
+.aura-settings-page .aura-settings-heading{
+ min-height:180px;
+ background:
+   radial-gradient(ellipse at 88% 6%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 50%),
+   linear-gradient(124deg,var(--surface),var(--surface-soft));
+ border-color:color-mix(in srgb,var(--accent) 25%,var(--line));
+ box-shadow:0 20px 55px color-mix(in srgb,var(--ink) 6%,transparent);
+ position:relative;overflow:hidden;
+}
+.aura-settings-page .aura-settings-heading::before{
+ content:"";position:absolute;pointer-events:none;border:1px solid color-mix(in srgb,var(--accent) 16%,transparent);
+ width:170px;height:170px;aspect-ratio:1;border-radius:50%;
+ inset-inline-start:-90px;inset-block-end:-100px;
+ box-shadow:0 0 0 37px color-mix(in srgb,var(--accent) 4%,transparent);
+}
+.aura-settings-page .aura-settings-heading>*{position:relative;z-index:1}
+.aura-settings-page .aura-settings-heading h1{font-size:clamp(30px,3vw,43px);letter-spacing:-.065em}
+.aura-settings-page .aura-settings-email{background:var(--surface);border-color:color-mix(in srgb,var(--accent) 20%,var(--line))}
+.aura-settings-page .aura-settings-nav{border-radius:18px;min-height:57px;box-shadow:0 10px 27px color-mix(in srgb,var(--ink) 5%,transparent);scroll-padding:15px}
+.aura-settings-page .aura-settings-nav>a{display:inline-flex;align-items:center;min-height:41px;font-size:12px;border:1px solid transparent}
+.aura-settings-page .aura-settings-nav>a:hover,.aura-settings-page .aura-settings-nav>a:focus-visible{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.aura-settings-page .aura-settings-section{border-radius:23px;transition:border-color .22s ease,box-shadow .22s ease,transform .22s cubic-bezier(.22,1,.36,1)}
+.aura-settings-page .aura-settings-section:hover{border-color:color-mix(in srgb,var(--accent) 28%,var(--line));box-shadow:0 13px 33px color-mix(in srgb,var(--ink) 5%,transparent)}
+.aura-settings-page .aura-settings-section:focus-within{border-color:color-mix(in srgb,var(--accent) 43%,var(--line))}
+.aura-settings-theme-options button{min-height:82px;border-radius:16px;transition:background-color .2s ease,border-color .2s ease,transform .2s ease}
+.aura-settings-theme-options button:hover{transform:translateY(-2px);border-color:var(--accent)}
+.aura-settings-theme-options button[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--accent),0 9px 19px color-mix(in srgb,var(--accent) 9%,transparent)}
+.noata-appearance-footnote{padding:12px 14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 19%,var(--line));border-radius:12px;line-height:1.85;color:var(--muted);font-size:11px;margin:0}
+.aura-settings-page .aura-settings-savebar{box-shadow:0 13px 37px color-mix(in srgb,var(--accent) 7%,transparent)}
+.aura-settings-page .aura-settings-savebar button{color:var(--on-accent)}
+.aura-settings-page .aura-settings-label :is(input,select):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 30%,transparent);outline-offset:2px;border-color:var(--accent)}
+html[data-theme="dark"] .aura-settings-page .aura-settings-heading{
+ background:radial-gradient(ellipse at 78% 18%,color-mix(in srgb,var(--accent) 13%,transparent),transparent 48%),var(--surface);
+}
+@media(max-width:760px){.aura-settings-page .aura-settings-heading{min-height:auto}.aura-settings-page .aura-settings-nav{top:0}.aura-settings-page .aura-settings-section{padding:18px}}
+@media(prefers-reduced-motion:reduce){.aura-settings-page .aura-settings-section,.aura-settings-theme-options button{transition:none!important;transform:none!important}}
+html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html[data-reduced-motion="true"] .aura-settings-theme-options button{transition:none!important;transform:none!important}
