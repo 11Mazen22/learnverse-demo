@@ -290,7 +290,7 @@ async function verifyPaletteBrandConsistency(){
     invariant(seen.get(a).background!==seen.get(b).background,"hero is distinctly themed "+a+" "+b);
     invariant(seen.get(a).ribbon!==seen.get(b).ribbon,"original Noata logo ribbon follows theme "+a+" "+b);
   }
-  await evaluate('localStorage.removeItem("noata-palette");document.documentElement.dataset.palette="classic";window.dispatchEvent(new Event("noata-palette-change"))');
+  await evaluate('localStorage.removeItem("noata-palette");localStorage.removeItem("noata-theme");document.documentElement.dataset.palette="classic";window.dispatchEvent(new Event("noata-palette-change"))');
 }
 async function verifyDocuments(){
   for(const [name,marker] of [["source.txt","مصدر فعلي"],["source.md","محتوى Markdown"],["source.csv","المفهوم"],["source.json","محتوى JSON"],["arabic-longform.docx","تجربة تعلّم"],["arabic-longform.pdf",null]]){
