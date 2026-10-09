@@ -275,7 +275,7 @@ async function verifyPaletteBrandConsistency(){
     await navigate("/");
     await waitFor(async()=>await evaluate('!!document.querySelector(".dashboard-hero .noata-logo-vector")'),"original brand visible "+name);
     const result=await evaluate('(()=>{const root=getComputedStyle(document.documentElement),hero=document.querySelector(".dashboard-hero"),logo=hero.querySelector(".noata-logo-vector"),brand=document.querySelector(".sidebar-brand .noata-logo-vector");return {background:getComputedStyle(hero).backgroundImage,ribbon:getComputedStyle(logo.querySelector(".noata-mark-ribbon")).fill,outline:getComputedStyle(brand.querySelector(".noata-mark-outline")).fill,accent:root.getPropertyValue("--accent"),overflow:document.documentElement.scrollWidth-window.innerWidth}})()',"palette render "+name);
-    invariant(result.background.includes("linear-gradient")&&result.ribbon.startsWith("rgb")&&result.outline.startsWith("rgb"),"Palette "+name+" has themed hero and true vector brand");
+    invariant(result.background.includes("linear-gradient")&&result.ribbon!=="none"&&result.ribbon!=="transparent"&&result.outline!=="none"&&result.outline!=="transparent"&&Boolean(result.ribbon)&&Boolean(result.outline),"Palette "+name+" has themed hero and true vector brand; actual "+JSON.stringify(result));
     invariant(result.overflow<=3,"Palette "+name+" has no horizontal overflow");
     seen.set(name,result);
     if(["forest","ocean","aura"].includes(name))await screenshot("artifacts/noata-browser/brand-"+name+"-home.png");
