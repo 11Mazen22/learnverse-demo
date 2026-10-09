@@ -43,7 +43,7 @@ async function click(selector) {
 }
 async function openPicker() {
   if (!await evaluate("!!document.querySelector('.aura-theme-menu')")) await click(".aura-theme-picker > button");
-  await until("!!document.querySelector('.noata-palette-grid button')", "hydrated palette picker");
+  await until("Array.from(document.querySelectorAll('[data-palette-option]')).some(el=>el.dataset.paletteOption===document.documentElement.dataset.palette&&el.getAttribute('aria-pressed')==='true')", "hydrated picker selection agrees with applied palette");
 }
 async function choose(palette) {
   await click(`[data-palette-option="${palette}"]`);

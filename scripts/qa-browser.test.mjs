@@ -73,6 +73,39 @@ test('palette storage fault and cleanup return primitives without weakening deni
   }
 });
 
+test('palette picker readiness rejects an unsynchronized selection without accepting a storage overwrite', async () => {
+  const source = await readFile(new URL('./palette-aura-smoke.mjs', import.meta.url), 'utf8');
+  const picker = source.match(/async function openPicker\(\) \{([\s\S]*?)\n\}/)?.[1];
+  const expression = picker?.match(/await until\(("(?:[^"\\]|\\.)*")/)?.[1];
+  assert.ok(expression);
+  let applied = 'forest', selected = 'classic', mounted = true;
+  const context = createContext({ document: {
+    documentElement: { get dataset() { return { palette: applied }; } },
+    querySelectorAll(selector) {
+      assert.equal(selector, '[data-palette-option]');
+      return mounted ? ['classic', 'ocean', 'forest'].map(palette => ({
+        dataset: { paletteOption: palette },
+        getAttribute(name) {
+          assert.equal(name, 'aria-pressed');
+          return String(palette === selected);
+        },
+      })) : [];
+    },
+  } });
+  const readiness = () => runInContext(JSON.parse(expression), context);
+  assert.equal(readiness(), false, 'a mounted picker alone is not synchronized');
+  selected = 'forest';
+  assert.equal(readiness(), true);
+  applied = 'ocean';
+  assert.equal(readiness(), false, 'selection and applied palette must agree');
+  selected = 'ocean';
+  assert.equal(readiness(), true);
+  mounted = false;
+  assert.equal(readiness(), false);
+  assert.match(source, /invariant\(await evaluate\("document.documentElement.dataset.palette==='forest' &&/,
+    'the session-only assertion must still reject an old-storage overwrite');
+});
+
 test('QA Chrome uses a dynamic loopback debugging port and normal multiprocess flags',()=>{
   const args=qaChromeArgs('/tmp/isolated-profile');
   assert.ok(args.includes('--remote-debugging-port=0'));
