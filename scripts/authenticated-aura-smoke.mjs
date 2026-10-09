@@ -89,6 +89,39 @@ async function main(){
   assert(await evalJS('[...document.querySelectorAll(".owui-message.user")].some(x=>x.innerText.includes('+JSON.stringify(question)+'))'),"user message persisted");
   const pdf=await evalJS(`fetch('/api/documents/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'اختبار بيئة معزولة',text:'## مستند اختبار\\n\\nنص عربي وEnglish.'})}).then(async r=>({status:r.status,type:r.headers.get('Content-Type'),signature:r.ok?new TextDecoder().decode(new Uint8Array(await r.arrayBuffer()).slice(0,5)):''}))`);
   assert(pdf.status===200&&pdf.type?.includes('application/pdf')&&pdf.signature==='%PDF-',"authenticated native PDF endpoint");
+
+  // Explicit opt-in: one real, quota-bearing Fanar request and verified
+  // persistence. No mock data, no production host, no secrets logged.
+  if(process.env.AURA_QA_TEST_DESIGN_STUDIO==="YES"){
+    await navigate("/settings");
+    await retry(()=>evalJS('!!document.querySelector("#noata-ai-design-prompt")'),"Design Studio form");
+    const before=await evalJS('document.querySelectorAll(".noata-design-saved-card").length');
+    assert(before<8,"Staging design collection has room");
+    function fillDesign(id,value){
+      return "(()=>{const el=document.querySelector("+JSON.stringify(id)+");const set=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set;set.call(el,"+JSON.stringify(value)+");el.dispatchEvent(new Event('input',{bubbles:true}));})()";
+    }
+    await evalJS(fillDesign("#noata-ai-design-prompt","Luxury ocean learning colors: dark navy, legible cool blue, pale silver and white for accessibility."));
+    await retry(()=>evalJS('!document.querySelector(".noata-design-primary")?.disabled'),"design generation enabled");
+    await evalJS('document.querySelector(".noata-design-primary").click()');
+    const first=await retry(()=>evalJS('(()=>{const e=document.querySelector(".noata-design-error")?.textContent;return e?{error:e}:document.querySelector(".noata-design-preview-card")?{ready:true}:null})()'),"live Fanar palette",95000);
+    assert(first.ready&&!first.error,"Fanar produced validated palette");
+    await evalJS(fillDesign("#noata-ai-design-refinement","Keep navy dark and make the secondary blue less saturated."));
+    await evalJS('document.querySelector(".noata-design-primary").click()');
+    const refined=await retry(()=>evalJS('(()=>{const e=document.querySelector(".noata-design-error")?.textContent;if(e)return {error:e};return document.querySelector(".noata-design-notice")?.textContent.includes("جهّز Fanar")?{ready:true}:null})()'),"live Fanar refinement",95000);
+    assert(refined.ready&&!refined.error,"Fanar refinement returned valid tokens");
+    await evalJS('Array.from(document.querySelectorAll(".noata-design-result-actions button")).find(b=>b.textContent.includes("حفظ"))?.click()');
+    await retry(()=>evalJS('document.querySelectorAll(".noata-design-saved-card").length>'+before),"server-confirmed design save");
+    assert(await evalJS('document.documentElement.dataset.palette==="custom"'),"AI design active");
+    await navigate("/settings");
+    await retry(()=>evalJS('document.querySelectorAll(".noata-design-saved-card").length>'+before),"saved palette survives navigation");
+    await evalJS('document.querySelector(".noata-design-saved-card .noata-design-saved-actions button:nth-child(3)")?.click()');
+    await retry(()=>evalJS('document.querySelector(".noata-design-notice")?.textContent.includes("إخفاء")'),"hide persisted");
+    await evalJS('document.querySelector(".noata-design-saved-card .noata-design-saved-actions button:nth-child(3)")?.click()');
+    await retry(()=>evalJS('document.querySelector(".noata-design-notice")?.textContent.includes("ظاهر")'),"unhide persisted");
+    await evalJS('window.confirm=()=>true;document.querySelector(".noata-design-saved-card .noata-design-saved-actions button:last-child")?.click()');
+    await retry(()=>evalJS('document.querySelectorAll(".noata-design-saved-card").length==='+before),"QA design cleanup confirmed");
+    console.log("PASS: real Fanar design generation, refinement, contrast validation, account persistence and cleanup.");
+  }
   console.log("Authenticated staging QA: login, completed provider reply, persistence and native PDF passed; no credentials logged.");
   // Test flow deliberately leaves cleanup to dedicated QA accounts or a reviewed DELETE path.
   console.log("Authenticated QA checks:",checks);
