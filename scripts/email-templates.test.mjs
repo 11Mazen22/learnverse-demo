@@ -11,7 +11,7 @@ for(const kind of templates) {
     assert.match(html,/<html lang="ar" dir="rtl">/);
     assert.match(html,/meta name="viewport"/);
     assert.match(html,/Noata/);
-    assert.match(html, /src="{{ \\.SiteURL }}\/noata-mark-light\\.svg"/, "Email must display the actual official Noata emblem");
+    assert.ok(html.includes('src="{{ .SiteURL }}/noata-mark-light.svg"'), "Email must display the actual official Noata emblem");
     assert.match(html, /alt="شعار Noata"/);
     assert.doesNotMatch(html, />N<\/span>/, "Emails must not substitute an N-only square for the official logo");
     assert.match(html,/role="presentation"/);
