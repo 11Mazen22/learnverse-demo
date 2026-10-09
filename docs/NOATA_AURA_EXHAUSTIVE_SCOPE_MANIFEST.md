@@ -388,6 +388,8 @@ Run `pnpm scope:check`. The checker reconciles every tracked/nonignored candidat
 - [ ] `scripts/renaissance-scope.test.mjs`
 - [ ] `scripts/palette-aura-smoke.mjs`
 - [ ] `scripts/pwa-cache.test.mjs`
+- [ ] `apps/web/lib/dashboard/visibility.ts`
+- [ ] `apps/web/lib/dashboard/visibility.test.ts`
 
 ## Acceptance ledger format — mandatory per user action
 | Field | Required proof |

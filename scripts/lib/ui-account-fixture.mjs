@@ -18,6 +18,10 @@ function installFixture(origin) {
     delayHistory: false,
     historyRelease: null,
     stream: null,
+    dashboardFaults: [],
+    dashboardProfileMissing: false,
+    holdDashboardProfile: false,
+    dashboardProfileReleases: [],
   };
   const encode = (text) =>
     btoa(unescape(encodeURIComponent(text)))
@@ -101,6 +105,10 @@ function installFixture(origin) {
     },
     releaseHistory() {
       state.historyRelease?.();
+    },
+    releaseDashboardProfiles() {
+      state.holdDashboardProfile = false;
+      for (const release of state.dashboardProfileReleases.splice(0)) release();
     },
     completeStream() {
       try {
@@ -186,6 +194,9 @@ function installFixture(origin) {
     if (!url.pathname.startsWith("/rest/v1/"))
       throw Error("Unexpected synthetic fixture endpoint: " + url.pathname);
     const table = url.pathname.split("/").at(-1);
+    const dashboardProfile = table === "profiles" && url.searchParams.get("select")?.includes("streak_days");
+    if (state.dashboardFaults.includes(table) && (table !== "profiles" || dashboardProfile))
+      return reply({ message: "Synthetic dashboard read denial", code: "42501" }, 403);
     const owner = state.account.id;
     const suffix = owner.endsWith("1") ? "A" : "B";
     const conversations = [1, 2].map((i) => ({
@@ -201,14 +212,20 @@ function installFixture(origin) {
       id: owner,
       display_name: "CI " + state.account.role,
       role: state.account.role,
-      xp: 100,
-      coins: 10,
+      xp: suffix === "A" ? 100 : 200,
+      coins: suffix === "A" ? 10 : 20,
       streak_days: 1,
     };
     const classId = "20000000-0000-4000-8000-000000000001",
       questionId = "30000000-0000-4000-8000-000000000001";
+    if (dashboardProfile && state.holdDashboardProfile) {
+      const rows = state.dashboardProfileMissing ? [] : [profile];
+      return new Promise(resolve => state.dashboardProfileReleases.push(() => resolve(reply(single ? (rows[0] ?? null) : rows))));
+    }
     const tables = {
-      profiles: [profile],
+      profiles: dashboardProfile && state.dashboardProfileMissing ? [] : [profile],
+      courses: [],
+      lesson_progress: [],
       user_settings: [
         {
           user_id: owner,
@@ -314,6 +331,7 @@ export async function verifyUiAccountContracts({
   screenshot,
   base,
   auditView = async () => {},
+  dashboardOnly = false,
 }) {
   const origin = "https://vpfpjvhafkmygetjkfcp.supabase.co";
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== origin ||
@@ -360,6 +378,39 @@ export async function verifyUiAccountContracts({
     },
   );
   try {
+    const clickDashboardRetry = async () => {
+      const point = await evaluate('(()=>{const b=document.querySelector("[data-dashboard-retry] button");if(!b||b.disabled)return null;b.scrollIntoView({block:"center"});const r=b.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()');
+      invariant(point, "Dashboard retry is actionable");
+      await browser.command("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...point });
+      await browser.command("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...point });
+    };
+    await navigate("/");
+    await waitFor(() => evaluate('document.querySelectorAll(".metric-card[data-dashboard-available=true]").length===4'), "confirmed synthetic dashboard indicators");
+    invariant(await evaluate('document.querySelector(".metric-card:last-child strong")?.textContent==="10"'), "Dashboard reads the first account's confirmed wallet");
+    await evaluate('window.__noataUiFixture.state.dashboardFaults=["notifications"];window.__noataUiFixture.switchAccount("student","00000000-0000-4000-8000-000000000002")');
+    await waitFor(() => evaluate('!!document.querySelector("[data-dashboard-retry]") && document.querySelector(".metric-card:last-child strong")?.textContent==="20"'), "new account dashboard with optional notifications denied");
+    invariant(await evaluate('document.querySelectorAll(".metric-card[data-dashboard-available=true]").length===4 && document.body.innerText.includes("عدّاد الإشعارات غير متاح الآن")'), "Optional notification failure preserves confirmed wallet and learning indicators");
+    await evaluate('window.__noataUiFixture.state.dashboardFaults=["lesson_progress"]');
+    await clickDashboardRetry();
+    await waitFor(() => evaluate('!!document.querySelector("[data-dashboard-retry]") && !document.querySelector(".grid-4[aria-busy=true]")'), "partial lesson progress denial");
+    invariant(await evaluate('!document.querySelector("[role=progressbar]") && document.querySelector(".aura-next-step-action")?.getAttribute("href")==="/learn"'), "Unknown progress does not claim completion or a resume recommendation");
+    await evaluate('window.__noataUiFixture.state.dashboardFaults=[];window.__noataUiFixture.state.dashboardProfileMissing=true');
+    await clickDashboardRetry();
+    await waitFor(() => evaluate('document.querySelectorAll(".metric-card[data-dashboard-available=false]").length===3 && !document.querySelector(".grid-4[aria-busy=true]")'), "missing profile is explicitly unknown");
+    invariant(await evaluate('document.querySelector(".metric-card:last-child strong")?.textContent==="—" && !document.querySelector(".rank-card")?.textContent.includes("المستوى 1")'), "Absent profile never fabricates level one or a zero balance");
+    await auditView("dashboard-partial");
+    await evaluate('window.__noataUiFixture.state.dashboardProfileMissing=false;window.__noataUiFixture.state.holdDashboardProfile=true');
+    await clickDashboardRetry();
+    await waitFor(() => evaluate('window.__noataUiFixture.state.dashboardProfileReleases.length>0 && document.querySelectorAll(".metric-card[data-dashboard-available=true]").length===0'), "deferred dashboard read hides old personal indicators");
+    await evaluate('window.__noataUiFixture.switchAccount("student","00000000-0000-4000-8000-000000000001")');
+    await waitFor(() => evaluate('window.__noataUiFixture.state.dashboardProfileReleases.length>1 && document.querySelectorAll(".metric-card[data-dashboard-available=true]").length===0'), "account switch invalidates pending dashboard responses");
+    await evaluate('window.__noataUiFixture.signOut();window.__noataUiFixture.releaseDashboardProfiles()');
+    await waitFor(() => evaluate('!document.querySelector(".grid-4[aria-busy=true]") && !!document.querySelector(".noata-sign-in")'), "guest dashboard after sign-out and late read completion");
+    invariant(await evaluate('document.querySelectorAll(".metric-card[data-dashboard-available=true]").length===0 && !document.querySelector("[role=progressbar]") && !document.querySelector(".rank-card")?.textContent.includes("نقطة خبرة")'), "Sign-out cannot resurrect late balances, progress or milestones");
+    await evaluate('window.__noataUiFixture.switchAccount("student","00000000-0000-4000-8000-000000000001")');
+    await waitFor(() => evaluate('document.querySelectorAll(".metric-card[data-dashboard-available=true]").length===4'), "dashboard recovers for the active account");
+    await auditView("dashboard-confirmed");
+    if (dashboardOnly) return;
     await navigate("/notifications");
     await waitFor(
       () =>

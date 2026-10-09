@@ -15,6 +15,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 const testedRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim();
 const initiallyDirty=!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim();
 const binary = findQaChrome();
+const dashboardOnly = process.env.NOATA_DASHBOARD_QA_ONLY === "1";
+const evidenceDirectory = dashboardOnly ? "artifacts/noata-dashboard" : "artifacts/noata-browser";
 const qaPort = Number(process.env.NOATA_QA_PORT ?? "3000");
 if (!Number.isInteger(qaPort) || qaPort < 1024 || qaPort > 65535) throw Error("Invalid local browser QA port");
 const base = "http://127.0.0.1:" + qaPort;
@@ -265,7 +267,7 @@ async function verifyDocuments(){
   invariant(result===401,"Unauthenticated PDF generation must be denied, received "+result);
 }
 async function main() {
-  await mkdir("artifacts/noata-browser",{recursive:true});
+  await mkdir(evidenceDirectory,{recursive:true});
   app=spawn("pnpm",["--filter","@noata/web","start"],{stdio:"pipe",detached:true,env:{...process.env,PORT:String(qaPort)}});
 
   app.stdout.on("data",chunk=>appLog+=String(chunk));
@@ -293,6 +295,26 @@ async function main() {
   // Full-session tracing introduces excessive renderer overhead across
   // route axe audits. Collect a focused final interaction trace instead.
 
+  if (dashboardOnly) {
+    await command("Emulation.setDeviceMetricsOverride", {width:1440,height:900,deviceScaleFactor:1,mobile:false});
+    await command("Emulation.setEmulatedMedia", {features:[{name:"prefers-color-scheme",value:"light"}]});
+    const auditDashboard = async name => {
+      for (const width of [320, 390, 1440]) {
+        location.width = width;
+        location.theme = "light";
+        await command("Emulation.setDeviceMetricsOverride", {width,height:900,deviceScaleFactor:1,mobile:width<=768});
+        invariant(await evaluate("document.documentElement.scrollWidth-innerWidth<=3"), name + " overflow at " + width);
+        await auditView("synthetic-ui-only");
+        await screenshot(evidenceDirectory + "/" + name + "-" + width + ".png");
+      }
+      await command("Emulation.setDeviceMetricsOverride", {width:1440,height:900,deviceScaleFactor:1,mobile:false});
+    };
+    await verifyUiAccountContracts({browser,evaluate,navigate,waitFor,invariant,screenshot,base,auditView:auditDashboard,dashboardOnly:true});
+    invariant(accessibility.every(view => view.violations.length === 0), "Dashboard accessibility violations");
+    invariant(browserErrors.length === 0, "Uncaught dashboard browser exceptions");
+    console.log("Dashboard browser contracts PASS:", checks, "assertions. Synthetic data only; real authentication/RLS NOT verified.");
+    return;
+  }
   const routes=["/","/ai","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/settings","/help","/quran","/notifications","/teacher","/admin"];
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:"light"}]});
@@ -474,14 +496,14 @@ let failure = null;
 try { await main(); }
 catch(error) { failure = error; console.error(error); }
 finally {
-  await writeFile("artifacts/noata-browser/accessibility.json",JSON.stringify(accessibility,null,2)).catch(()=>{});
-  await writeFile("artifacts/noata-browser/performance.json",JSON.stringify(performanceResults,null,2)).catch(()=>{});
-  await writeFile("artifacts/noata-browser/captures.json",JSON.stringify(captures,null,2)).catch(()=>{});
-  await writeFile("artifacts/noata-browser/server.log",appLog).catch(()=>{});
+  await writeFile(evidenceDirectory+"/accessibility.json",JSON.stringify(accessibility,null,2)).catch(()=>{});
+  await writeFile(evidenceDirectory+"/performance.json",JSON.stringify(performanceResults,null,2)).catch(()=>{});
+  await writeFile(evidenceDirectory+"/captures.json",JSON.stringify(captures,null,2)).catch(()=>{});
+  await writeFile(evidenceDirectory+"/server.log",appLog).catch(()=>{});
   try{await browser?.close();}catch(error){failure??=error;console.error(error);}
   const endingRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim();
   if(endingRevision!==testedRevision)failure??=Error("Repository revision changed during browser QA");
-  await writeFile("artifacts/noata-browser/outcome.json",JSON.stringify({passed:!failure,revision:testedRevision,endingRevision,dirty:initiallyDirty||!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,routeViews:accessibility.filter(a=>a.kind==="public").length,syntheticUiViews:accessibility.filter(a=>a.kind==="synthetic-ui-only").length,screenshots:new Set(captures.map(c=>c.file)).size,browserErrors,failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2)).catch(()=>{});
+  await writeFile(evidenceDirectory+"/outcome.json",JSON.stringify({passed:!failure,scope:dashboardOnly?"synthetic-dashboard-contracts-only":"full-public-and-synthetic-browser-suite",revision:testedRevision,endingRevision,dirty:initiallyDirty||!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),assertions:checks,routeViews:accessibility.filter(a=>a.kind==="public").length,syntheticUiViews:accessibility.filter(a=>a.kind==="synthetic-ui-only").length,screenshots:new Set(captures.map(c=>c.file)).size,browserErrors,failure:diagnosticError(failure),chrome:browser?.diagnostics??failure?.diagnostics??null},null,2)).catch(()=>{});
   if(app){try{process.kill(-app.pid,"SIGTERM");}catch{app.kill("SIGTERM");}}
   // pnpm/Next can leave inherited pipe handles open after child termination.
   // Exit explicitly AFTER reporting the actual pass/fail result to CI.

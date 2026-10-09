@@ -2,7 +2,7 @@ name: Noata CI
 
 on:
   push:
-    branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008]
+    branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008, v0/approved-staging-guard]
   pull_request:
     branches: [master]
 
