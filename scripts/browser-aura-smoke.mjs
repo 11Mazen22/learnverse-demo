@@ -206,7 +206,7 @@ async function verifyContextualCoach(){
   await waitFor(async()=>await evaluate('!!document.querySelector(".noata-context-coach-trigger")'),"Context-aware AI survives navigation");
   await evaluate('document.querySelector(".noata-context-coach-trigger").click()');
   await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .noata-context-coach")'),"Learn context opens");
-  invariant(await evaluate('document.querySelector("dialog[open] .noata-context-coach").textContent.includes("رفيق رحلة التعلّم")'),"Learn receives a different pedagogical AI context");
+  invariant(await evaluate('document.querySelector("dialog[open] .dialog-heading h2")?.textContent.includes("رفيق رحلة التعلّم")'),"Learn receives a different pedagogical AI context");
   await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
 }
 async function verifyWritingAndTheme(){
