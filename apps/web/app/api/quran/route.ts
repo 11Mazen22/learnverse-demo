@@ -5,6 +5,7 @@ import {
   recitationLink,
   QURAN_RECITERS,
   isQuranReciter,
+  audioEditionCandidates,
   matchingSurahs,
 } from "@/lib/quran/source";
 type RawVerse = {
@@ -89,22 +90,36 @@ export async function GET(request: NextRequest) {
     const text = await remote("/surah/" + surah + "/quran-uthmani");
     const verses = canonicalSurah(text, surah);
     let recitation: Record<number, string> = {};
-    try {
-      const audio = await remote("/surah/" + surah + "/" + requested);
-      const audioVerses = canonicalSurah(audio, surah);
-      if (
-        audioVerses.some((v, i) => v.globalNumber !== verses[i]?.globalNumber)
-      )
-        throw Error("Recitation does not match the requested chapter");
-      if (Array.isArray(audio.ayahs)) {
-        for (const v of audio.ayahs as RawVerse[]) {
-          const n = Number(v.numberInSurah);
-          const safe = recitationLink(v.audio);
-          if (Number.isInteger(n) && n > 0 && safe) recitation[n] = safe;
+    let usedAudioEdition: string | null = null;
+    // Alternative editions are only permitted when they belong to the same
+    // requested Sheikh. A successful Quran-text response must never mask a
+    // silent switch to a different Sheikh when audio is missing.
+    for (const edition of audioEditionCandidates(requested)) {
+      try {
+        const audio = await remote("/surah/" + surah + "/" + edition);
+        const identifier = audio?.edition?.identifier;
+        if (typeof identifier === "string" && identifier !== edition)
+          throw Error("Unexpected reciter edition");
+        const audioVerses = canonicalSurah(audio, surah);
+        if (audioVerses.some((v, i) => v.globalNumber !== verses[i]?.globalNumber))
+          throw Error("Recitation does not match the requested chapter");
+        const validated: Record<number, string> = {};
+        if (Array.isArray(audio.ayahs)) {
+          for (const v of audio.ayahs as RawVerse[]) {
+            const n = Number(v.numberInSurah);
+            const safe = recitationLink(v.audio);
+            if (Number.isInteger(n) && n >= 1 && n <= verses.length && safe)
+              validated[n] = safe;
+          }
         }
+        if (Object.keys(validated).length > 0) {
+          recitation = validated;
+          usedAudioEdition = edition;
+          break;
+        }
+      } catch {
+        // Unavailable edition: try the next edition of THIS SAME reciter.
       }
-    } catch {
-      // Audio is optional; never hide canonical reading text when the media service is unavailable.
     }
     return NextResponse.json({
       surah: {
@@ -119,10 +134,14 @@ export async function GET(request: NextRequest) {
       })),
       source: {
         ...SOURCE,
-        audioEdition:requested,
+        audioEdition:usedAudioEdition,
+        requestedAudioEdition:requested,
         reciterName:QURAN_RECITERS.find(r=>r.id===requested)?.name??requested,
       },
       audioAvailable:Object.keys(recitation).length>0,
+      audioUnavailableReason: usedAudioEdition === null
+        ? "لا يوجد تسجيل متاح من المصدر للشيخ المحدد حاليًا. اختر شيخًا آخر بنفسك أو حاول لاحقًا."
+        : null,
     });
   } catch {
     return NextResponse.json(
