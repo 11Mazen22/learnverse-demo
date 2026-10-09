@@ -235,6 +235,7 @@ async function verifyPaletteBrandConsistency(){
   // Regresses the reported Forest screenshot defect using real computed styles.
   const palettes=["classic","aura","ocean","forest","sunset","rose","midnight"],seen=new Map();
   await navigate("/settings");
+  await evaluate('(()=>{if(!document.querySelector(".aura-theme-menu"))document.querySelector(".aura-theme-picker>button").click()})()');
   await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-palette-grid button").length===7'),"seven theme choices");
   for(const name of palettes){
     const selected=await evaluate('(()=>{const el=Array.from(document.querySelectorAll(".noata-palette-grid button")).find(b=>b.getAttribute("aria-label")?.toLowerCase().endsWith('+JSON.stringify(name)+'));if(!el)return false;el.click();return true})()',"select palette "+name);
@@ -249,6 +250,7 @@ async function verifyPaletteBrandConsistency(){
     seen.set(name,result);
     if(["forest","ocean","aura"].includes(name))await screenshot("artifacts/noata-browser/brand-"+name+"-home.png");
     await navigate("/settings");
+    await evaluate('(()=>{if(!document.querySelector(".aura-theme-menu"))document.querySelector(".aura-theme-picker>button").click()})()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-palette-grid button").length===7'),"selector restored "+name);
   }
   for(const [a,b] of [["forest","ocean"],["aura","forest"],["midnight","rose"]]){
