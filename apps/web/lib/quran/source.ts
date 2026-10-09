@@ -73,3 +73,44 @@ export function recitationLink(value: unknown): string | null {
     return null;
   }
 }
+
+/** Reciters intentionally restricted to identifiers documented by AlQuran Cloud.
+ * No arbitrary user-supplied URL, edition or unsupported recording is accepted.
+ */
+export const QURAN_RECITERS = [
+  { id: "ar.alafasy", name: "مشاري راشد العفاسي" },
+  { id: "ar.husary", name: "محمود خليل الحصري" },
+  { id: "ar.minshawi", name: "محمد صديق المنشاوي" },
+  { id: "ar.sudais", name: "عبد الرحمن السديس" },
+] as const;
+export type QuranReciter = typeof QURAN_RECITERS[number]["id"];
+export function isQuranReciter(value: unknown): value is QuranReciter {
+  return typeof value==="string" && QURAN_RECITERS.some(r=>r.id===value);
+}
+/** Used for LOOKUP only. Never normalize or alter canonical Uthmani text. */
+export function normalizedQuranLookup(value: string): string {
+  return value.normalize("NFKD").toLowerCase()
+    .replace(/[\u064b-\u065f\u0670\u06d6-\u06ed\u0640]/g,"")
+    .replace(/[\u0622\u0623\u0625\u0671]/g,"ا")
+    .replace(/\u0649/g,"ي")
+    .replace(/\u0629/g,"ه")
+    .replace(/[\u200c\u200d]/g,"")
+    .replace(/^\s*سوره\s*/,"")
+    .replace(/[^\p{L}\p{N}]+/gu," ").trim();
+}
+export function matchingSurahs(
+ index: ReturnType<typeof canonicalIndex>, term: string,
+) {
+ const target=normalizedQuranLookup(term);
+ if(target.length<2)return [];
+ return index.map(s=>({
+   ...s,rank:Math.max(
+      normalizedQuranLookup(s.name)===target?3:0,
+      normalizedQuranLookup(s.name).startsWith(target)?2:0,
+      normalizedQuranLookup(s.name).includes(target)?1:0,
+      normalizedQuranLookup(s.englishName)===target?3:0,
+      normalizedQuranLookup(s.englishName).startsWith(target)?2:0,
+      normalizedQuranLookup(s.englishName).includes(target)?1:0,
+   ),
+ })).filter(s=>s.rank>0).sort((a,b)=>b.rank-a.rank||a.number-b.number).slice(0,14);
+}

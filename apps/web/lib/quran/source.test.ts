@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canonicalSurah, canonicalIndex, recitationLink } from "./source.ts";
+import { canonicalSurah, canonicalIndex, recitationLink, isQuranReciter, normalizedQuranLookup, matchingSurahs } from "./source.ts";
 // Deliberately synthetic labels: protocol fixtures are not canonical text verification.
 const fixture = {
   number: 1,
@@ -60,4 +60,20 @@ test("recitation URLs are confined to HTTPS canonical-source hosts", () => {
     "https://user:password@cdn.islamic.network/a.mp3",
   ])
     assert.equal(recitationLink(value), null);
+});
+
+test("reciter catalog rejects unrecognized and arbitrary external identifiers",()=>{
+ assert.equal(isQuranReciter("ar.alafasy"),true);
+ assert.equal(isQuranReciter("ar.husary"),true);
+ assert.equal(isQuranReciter("ar.minshawi"),true);
+ assert.equal(isQuranReciter("ar.sudais"),true);
+ assert.equal(isQuranReciter("https://evil.invalid/x.mp3"),false);
+ assert.equal(isQuranReciter("ar.unchecked"),false);
+});
+test("Arabic search normalization is lookup-only and ranks exact Surah above partial",()=>{
+ const ayah="سُورَةُ ٱلْكَهْف";
+ assert.equal(normalizedQuranLookup(ayah),"الكهف");
+ const index=[{number:18,name:ayah,englishName:"Al-Kahf",numberOfAyahs:110,revelationType:"Meccan"},{number:19,name:"سورة مريم",englishName:"Maryam",numberOfAyahs:98,revelationType:"Meccan"}];
+ assert.equal(matchingSurahs(index,"الكهف")[0].number,18);
+ assert.equal(matchingSurahs(index,"al kahf")[0].number,18);
 });

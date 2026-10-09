@@ -3,6 +3,9 @@ import {
   canonicalSurah,
   canonicalIndex,
   recitationLink,
+  QURAN_RECITERS,
+  isQuranReciter,
+  matchingSurahs,
 } from "@/lib/quran/source";
 type RawVerse = {
   numberInSurah?: number;
@@ -50,20 +53,27 @@ export async function GET(request: NextRequest) {
           { error: "اكتب عبارة بحث بين حرفين و٥٠ حرفًا." },
           { status: 400 },
         );
-      const data = await remote(
-        "/search/" + encodeURIComponent(term) + "/all/quran-uthmani",
-      );
+      const [indexResult,verseResult]=await Promise.allSettled([
+        remote("/surah"),
+        remote("/search/" + encodeURIComponent(term) + "/all/quran-uthmani"),
+      ]);
+      const surahMatches=indexResult.status==="fulfilled"
+        ? matchingSurahs(canonicalIndex(indexResult.value),term)
+        : [];
+      if(verseResult.status==="rejected" && !surahMatches.length)throw Error("Search providers unavailable");
+      const data=verseResult.status==="fulfilled"?verseResult.value:null;
       const items = Array.isArray(data?.matches)
         ? data.matches.slice(0, 50).map((m: any) => ({
             surah: Number(m.surah?.number ?? 0),
             surahName: String(m.surah?.name ?? ""),
             number: Number(m.numberInSurah ?? 0),
             text: String(m.text ?? ""),
-          }))
+          })).filter((m:{surah:number;number:number;text:string})=>m.surah>=1&&m.surah<=114&&m.number>=1&&m.number<=286&&m.text.length>0)
         : [];
       return NextResponse.json({
-        results: items,
-        total: Number(data?.count ?? 0),
+        results:items,surahs:surahMatches,
+        total:Number(data?.count??0),
+        partial:verseResult.status==="rejected",
         source: SOURCE,
       });
     }
@@ -73,11 +83,14 @@ export async function GET(request: NextRequest) {
         { error: "رقم السورة يجب أن يكون بين ١ و١١٤." },
         { status: 400 },
       );
+    const requested=query.get("reciter")??"ar.alafasy";
+    if(!isQuranReciter(requested))
+      return NextResponse.json({error:"قارئ غير مدعوم"},{status:400});
     const text = await remote("/surah/" + surah + "/quran-uthmani");
     const verses = canonicalSurah(text, surah);
     let recitation: Record<number, string> = {};
     try {
-      const audio = await remote("/surah/" + surah + "/ar.alafasy");
+      const audio = await remote("/surah/" + surah + "/" + requested);
       const audioVerses = canonicalSurah(audio, surah);
       if (
         audioVerses.some((v, i) => v.globalNumber !== verses[i]?.globalNumber)
@@ -104,7 +117,12 @@ export async function GET(request: NextRequest) {
         ...v,
         audio: recitation[v.number] ?? null,
       })),
-      source: SOURCE,
+      source: {
+        ...SOURCE,
+        audioEdition:requested,
+        reciterName:QURAN_RECITERS.find(r=>r.id===requested)?.name??requested,
+      },
+      audioAvailable:Object.keys(recitation).length>0,
     });
   } catch {
     return NextResponse.json(
