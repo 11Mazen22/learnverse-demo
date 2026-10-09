@@ -189,6 +189,26 @@ async function verifyQuranControls(){
     await command("Page.removeScriptToEvaluateOnNewDocument",{identifier:install.identifier});
   }
 }
+async function verifyContextualCoach(){
+  await navigate("/");
+  await waitFor(async()=>await evaluate('!!document.querySelector(".noata-context-coach-trigger")'),"contextual AI trigger is available");
+  await evaluate('document.querySelector(".noata-context-coach-trigger").click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .noata-context-coach")'),"contextual AI dialog opens");
+  invariant(await evaluate('document.querySelectorAll("dialog[open] .noata-context-coach-options button").length===3'),"Homepage has three purposeful, editable AI prompts");
+  const previous=await evaluate('document.querySelector("dialog[open] .noata-context-coach textarea").value');
+  await evaluate('document.querySelectorAll("dialog[open] .noata-context-coach-options button")[1].click()');
+  invariant(await evaluate('document.querySelector("dialog[open] .noata-context-coach textarea").value')!==previous,"Choosing a purpose changes editable AI context");
+  invariant(await evaluate('!document.querySelector("dialog[open] .noata-context-coach-submit").disabled'),"Contextual AI action enabled for valid prompt");
+  invariant(await evaluate('!document.querySelector("dialog[open] .noata-context-coach").textContent.includes("تم الإرسال")'),"No accidental send claim before user confirms");
+  await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
+  await waitFor(async()=>await evaluate('!document.querySelector("dialog[open] .noata-context-coach")'),"AI dialog Escape close and focus safe");
+  await navigate("/learn");
+  await waitFor(async()=>await evaluate('!!document.querySelector(".noata-context-coach-trigger")'),"Context-aware AI survives navigation");
+  await evaluate('document.querySelector(".noata-context-coach-trigger").click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .noata-context-coach")'),"Learn context opens");
+  invariant(await evaluate('document.querySelector("dialog[open] .noata-context-coach").textContent.includes("رفيق رحلة التعلّم")'),"Learn receives a different pedagogical AI context");
+  await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
+}
 async function verifyWritingAndTheme(){
   await navigate("/ai");
   await waitFor(async()=>await evaluate('!!document.querySelector(".aura-writing-entry")'),"writing entry");
@@ -464,6 +484,7 @@ async function main() {
   invariant(await evaluate('!!document.querySelector(".aura-help-answer")'),"Help answer not rendered");
   await verifyToolThemeContrast();
   await verifyWritingAndTheme();
+  await verifyContextualCoach();
   await verifyPaletteBrandConsistency();
   await verifyDocuments();
   await verifyQuranControls();
