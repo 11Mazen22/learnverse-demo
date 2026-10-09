@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
+import { applyPalette } from "@/components/preferences/palette-gallery";
 
 export function ExperienceBoot() {
   const account = useVerifiedAccount();
@@ -11,6 +12,7 @@ export function ExperienceBoot() {
   useEffect(() => {
     let alive = true;
     try {
+      applyPalette(localStorage.getItem("noata-palette"));
       const localTheme = localStorage.getItem("noata-theme");
       if (localTheme === "light" || localTheme === "dark") {
         document.documentElement.dataset.theme = localTheme;
