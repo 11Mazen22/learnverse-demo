@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
+import { createClient } from "@/lib/supabase/client";
 
 type Palette = "classic" | "aura" | "ocean" | "forest" | "sunset" | "rose" | "midnight";
 const PRESETS: { id: Palette; ar: string; en: string; swatch: string }[] = [
@@ -40,6 +42,9 @@ function storedPalette(): Palette {
 export function PaletteGallery({ compact = false }: { compact?: boolean }) {
   const [selected, setSelected] = useState<Palette>("classic");
   const [notice, setNotice] = useState("");
+  const account = useVerifiedAccount();
+  const supabase = useMemo(() => createClient(), []);
+  const saveSequence = useRef(0);
   useEffect(() => {
     const update = () => {
       const value = storedPalette();
@@ -54,7 +59,27 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
       window.removeEventListener("noata-palette-change", update);
     };
   }, []);
-  function choose(value: Palette) {
+  useEffect(() => {
+    if (account.loading) return;
+    const seq = ++saveSequence.current;
+    if (!account.user) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const { data } = await supabase.from("user_settings")
+          .select("palette").eq("user_id", account.user!.id).maybeSingle();
+        if (!alive || seq !== saveSequence.current || !valid(data?.palette)) return;
+        setSelected(data.palette);
+        applyPalette(data.palette);
+        try { localStorage.setItem(KEY, data.palette); } catch { /* session preference still works */ }
+        window.dispatchEvent(new Event("noata-palette-change"));
+      } catch {
+        /* Device preference is the safe fallback if the account is offline. */
+      }
+    })();
+    return () => { alive = false; };
+  }, [account.loading, account.user, supabase]);
+  async function choose(value: Palette) {
     setSelected(value);
     applyPalette(value);
     try {
@@ -64,6 +89,25 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
       setNotice("الطابع يعمل لهذه الجلسة فقط");
     }
     window.dispatchEvent(new Event("noata-palette-change"));
+    const user = account.user;
+    const seq = ++saveSequence.current;
+    if (!user) return;
+    setNotice("جارٍ مزامنة الطابع مع حسابك…");
+    try {
+      const {data,error}=await supabase.from("user_settings")
+        .upsert({user_id:user.id,palette:value,updated_at:new Date().toISOString()},
+          {onConflict:"user_id"})
+        .select("palette").single();
+      if (seq !== saveSequence.current) return;
+      if (error || data?.palette !== value) {
+        setNotice("الطابع يعمل على هذا الجهاز، لكن لم تتأكد مزامنته مع حسابك. حاول مجددًا.");
+      } else {
+        setNotice("تم حفظ الطابع على حسابك وتأكيده من الخادم.");
+      }
+    } catch {
+      if (seq === saveSequence.current)
+        setNotice("الطابع محفوظ على الجهاز؛ المزامنة غير متاحة حاليًا.");
+    }
   }
   return (
     <div className={compact ? "noata-palette-gallery compact" : "noata-palette-gallery"} role="group" aria-label="Noata themes">
@@ -79,7 +123,7 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
         ))}
       </div>
       {notice && <small role="status" className="noata-palette-notice">{notice}</small>}
-      <small className="noata-palette-local">الألوان محفوظة على هذا الجهاز حاليًا، وليست متزامنة بين الأجهزة.</small>
+      <small className="noata-palette-local">{account.user ? "اختيارك يتزامن مع حسابك عند تأكيد الاتصال؛ الجهاز يحتفظ بنسخته المحلية." : "اختيارك محفوظ على هذا الجهاز؛ سجّل الدخول لتفعيل مزامنة الحساب."}</small>
     </div>
   );
 }

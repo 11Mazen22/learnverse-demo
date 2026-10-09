@@ -39,7 +39,7 @@ export function ExperienceBoot() {
         if (!user) return;
         const { data } = await supabase
           .from("user_settings")
-          .select("theme,locale,reduced_motion")
+          .select("theme,locale,reduced_motion,palette")
           .eq("user_id", user.id)
           .maybeSingle();
         if (!alive || !data) return;
@@ -55,6 +55,12 @@ export function ExperienceBoot() {
             : data.theme;
         document.documentElement.dataset.theme = resolved;
         syncBrowserThemeColor();
+        if (typeof data.palette === "string" &&
+            ["classic","aura","ocean","forest","sunset","rose","midnight"].includes(data.palette)) {
+          applyPalette(data.palette);
+          try { localStorage.setItem("noata-palette", data.palette); } catch { /* device storage is optional */ }
+          window.dispatchEvent(new Event("noata-palette-change"));
+        }
         document.documentElement.lang = data.locale;
         document.documentElement.dir = data.locale === "ar" ? "rtl" : "ltr";
         document.documentElement.dataset.reducedMotion = data.reduced_motion
