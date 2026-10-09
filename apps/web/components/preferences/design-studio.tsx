@@ -173,7 +173,7 @@ export function DesignStudio(){
    <div className="noata-design-preview-zone" aria-live="polite">
      {draft?<div className="noata-design-result">
        <div className="noata-design-preview-card" style={{borderColor:draft.tokens.accent}}>
-         <div className="noata-design-preview-top" style={{background: \`linear-gradient(120deg,\${draft.tokens.deep},\${draft.tokens.bright})\`}}>
+         <div className="noata-design-preview-top" style={{background:"linear-gradient(120deg,"+draft.tokens.deep+","+draft.tokens.bright+")"}}>
            <span>NOATA DESIGN PREVIEW</span><strong>{draft.name}</strong>
            <div className="noata-design-preview-dots"><span/><span/><span/></div>
          </div>
