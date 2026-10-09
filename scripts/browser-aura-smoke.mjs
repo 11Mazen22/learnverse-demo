@@ -154,6 +154,7 @@ async function verifyQuranControls(){
           return new Response(JSON.stringify({results:[{surah:1,surahName:"الفاتحة",number:2,text:"آية تجريبية ثانية"}],total:1}),{status:200,headers:{"Content-Type":"application/json"}});
         }
         const n=Number(params.get("surah")??1);
+        window.__noataLastQuranReciter=params.get("reciter");
         return new Response(JSON.stringify({surah:{number:n,name:n===1?"الفاتحة":"البقرة",englishName:"Example",numberOfAyahs:n===1?2:8},verses:n===1?${JSON.stringify(fixture)}:${JSON.stringify(longFixture)},source:{name:"CI TEST FIXTURE",edition:"fixture",reference:"https://alquran.cloud/api",audioEdition:"fixture"}}),{status:200,headers:{"Content-Type":"application/json"}});
       }
       return originalFetch(input,options);
@@ -187,6 +188,11 @@ async function verifyQuranControls(){
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===8'),"Full Surah expansion reveals all verified verses");
     await evaluate('document.querySelector(".noata-quran-preview-toggle button").click()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"Surah collapse restores five-Ayah view");
+    await evaluate('(()=>{const e=document.querySelector("select[aria-label=\\\"اختيار الشيخ للتلاوة\\\"]");e.value="ar.sudais";e.dispatchEvent(new Event("change",{bubbles:true}));})()');
+    await waitFor(async()=>await evaluate('window.__noataLastQuranReciter==="ar.sudais"'),"Sudais selection triggers own audio API edition");
+    await waitFor(async()=>await evaluate('!!document.querySelector(".noata-quran-audio-dock .noata-quran-audio-unavailable")'),"Unavailable recitation announced without fake playback");
+    invariant(await evaluate('document.querySelectorAll(".aura-quran-ayah-actions button[aria-label=\\\"استمع لتلاوة الآية\\\"]").length===0'),"Unavailable Sudais fixture never invents playable verse buttons");
+
     await evaluate('(()=>{const el=document.querySelector("input[aria-label=\\\"البحث في القرآن\\\"]");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"التجريبية");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
     await evaluate('document.querySelector(".aura-quran-search")?.requestSubmit()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-search-results button").length>0'),"Quran search matches");
