@@ -76,7 +76,7 @@ export function RewardsLive() {
         { data: eq, error: equippedError },
         { data: boxRows, error: boxesError },
       ] = await Promise.all([
-        supabase.from("profiles").select("xp,coins").eq("id", user.id).single(),
+        supabase.from("profiles").select("xp,coins").eq("id", user.id).maybeSingle(),
         supabase.from("inventory").select("item_id").eq("user_id", user.id),
         supabase
           .from("equipped_cosmetics")
@@ -89,14 +89,15 @@ export function RewardsLive() {
           .order("created_at", { ascending: false }),
       ]);
       if (token !== account.revision.current) return;
-      if (profileError || inventoryError || equippedError || boxesError)
-        throw profileError ?? inventoryError ?? equippedError ?? boxesError;
+      if (profileError || inventoryError || equippedError)
+        throw profileError ?? inventoryError ?? equippedError;
+      if (boxesError) setError("المتجر متاح لكن صندوق المكافآت مش متاح حاليًا. جرّب تحديث الصفحة.");
       setProfile(p as Profile | null);
       setOwned(new Set((inventory ?? []).map((x) => x.item_id)));
       setEquipped(
         new Map(((eq ?? []) as Equipped[]).map((x) => [x.slot, x.item_id])),
       );
-      setBoxes((boxRows ?? []) as Box[]);
+      setBoxes(boxesError ? [] : (boxRows ?? []) as Box[]);
     } catch {
       if (token === account.revision.current)
         setError(
@@ -187,12 +188,10 @@ export function RewardsLive() {
     );
   return (
     <>
-      <header className="topbar" style={{ marginBottom: 18 }}>
-        <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            مساحة إنجازاتك
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>شخصيتك ومكافآتك</h1>
+      <header className="noata-section-head">
+        <div><p className="noata-eyebrow">رحلتك تستحق الاحتفال</p>
+          <h1>مكافآتك وإنجازاتك</h1>
+          <p>كل مكافأة هنا نتيجة لتقدم حقيقي. اجمع العملات من التعلّم واختار مظهر يعبر عنك.</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <span className="pill">
@@ -206,23 +205,14 @@ export function RewardsLive() {
         </div>
       </header>
 
-      <section
-        className="hero"
-        style={{
-          minHeight: 240,
-          display: "grid",
-          gridTemplateColumns: "1fr minmax(170px,260px)",
-          alignItems: "center",
-        }}
-      >
+      <section className="hero noata-rewards-hero">
         <div>
           <div className="eyebrow">مكافآت التعلّم</div>
           <h2 style={{ fontSize: 34, margin: "8px 0" }}>
-            ابني شخصيتك من إنجازاتك.
+            تعلّم أكتر. افتح مكافآت أكتر.
           </h2>
           <p>
-            XP للتقدم فقط. عملات للـ cosmetics فقط. لا شراء ولا Mystery Box
-            يغيّر الـ mastery — لأن الفهم لازم يفضل حقيقي.
+            نقاط الخبرة تعكس تعلمك، والعملات تقدر تستخدمها لمظاهر شخصيتك فقط. المشتريات ما بتغيّرش نتيجة أي اختبار أو مستوى إتقان.
           </p>
         </div>
         <div
@@ -269,6 +259,21 @@ export function RewardsLive() {
         </div>
       )}
 
+      {!loading && account.user && unclaimed.length === 0 && !error && (
+        <section className="noata-empty" style={{ marginTop: 18 }}>
+          <span className="noata-empty-icon" aria-hidden="true">🎁</span>
+          <h2>مفيش صناديق مستحقة دلوقتي</h2>
+          <p>الصناديق بتظهر لما تستحقها من مهام ونتائج حقيقية. مفيش صندوق مجاني وهمي أو زر فتح من غير مكافأة على حسابك.</p>
+          <a className="btn btn-primary" href="/missions">شوف المهام المتاحة</a>
+        </section>
+      )}
+      {!loading && !account.user && (
+        <section className="noata-empty" style={{ marginTop: 18 }}>
+          <h2>احتفظ بمكافآتك على حسابك</h2>
+          <p>تقدر تتصفح المتجر بحرية. سجّل الدخول عشان يظهر رصيدك الحقيقي وتقدر تستخدم مكافآتك.</p>
+          <a className="btn btn-primary" href="/login?next=/rewards">تسجيل الدخول</a>
+        </section>
+      )}
       {unclaimed.length > 0 && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
@@ -282,8 +287,8 @@ export function RewardsLive() {
                   <Icon name="gift" size={22} />
                 </div>
                 <div>
-                  <h3>{box.tier.toUpperCase()} Box</h3>
-                  <p>Earned from {box.source.replaceAll("_", " ")}</p>
+                  <h3>صندوق {box.tier === "gold" ? "ذهبي" : box.tier === "silver" ? "فضي" : box.tier === "bronze" ? "برونزي" : "مكافآت"}</h3>
+                  <p>مكافأة مُكتسبة من تقدمك في التعلّم</p>
                 </div>
                 <button
                   className="btn"
@@ -349,39 +354,24 @@ export function RewardsLive() {
         </div>
       </section>
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
-          gap: 14,
-          marginTop: 18,
-        }}
-      >
+      {!loading && items.length === 0 && !error && <section className="noata-empty"><h2>متجر المظاهر قيد التجهيز</h2><p>لسه مفيش عناصر منشورة للشراء. مكافآتك الحالية محفوظة في حسابك.</p></section>}
+      <section className="noata-reward-grid" aria-label="متجر المظاهر">
         {items.map((item) => {
           const isOwned = owned.has(item.id);
           const isEquipped = equipped.get(item.item_type) === item.id;
           const canAfford = Number(profile?.coins ?? 0) >= item.price;
           return (
-            <article className="panel" key={item.id}>
-              <div
-                style={{
-                  height: 120,
-                  borderRadius: 16,
-                  background: "linear-gradient(145deg,#edf5ff,#dfeaff)",
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: 44,
-                }}
-              >
+            <article className="noata-reward-card" key={item.id}>
+              <div className="noata-reward-visual">
                 <Icon name="gift" size={42} />
               </div>
               <h3>{item.title_ar}</h3>
               <p style={{ color: "var(--muted)", fontSize: 12 }}>
-                {item.item_type} · {item.title_en}
+                {item.item_type === "avatar" ? "صورة شخصية" : item.item_type === "outfit" ? "زي مميز" : item.item_type === "companion" ? "رفيق" : "مظهر إضافي"}
               </p>
               {!isOwned ? (
                 <button
-                  disabled={mutating || busy === "buy:" + item.id}
+                  disabled={mutating || loading || Boolean(account.user && !profile) || busy === "buy:" + item.id}
                   onClick={() => void buy(item)}
                   className="btn"
                   style={{
@@ -398,7 +388,7 @@ export function RewardsLive() {
                 </button>
               ) : (
                 <button
-                  disabled={isEquipped || busy === "equip:" + item.id}
+                  disabled={mutating || isEquipped || busy === "equip:" + item.id}
                   onClick={() => void equip(item)}
                   className="btn"
                   style={{
