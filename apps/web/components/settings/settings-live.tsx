@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeControl } from "@/components/preferences/theme-control";
-import { PaletteGallery } from "@/components/preferences/palette-gallery";
+import { PaletteGallery, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { Icon } from "@/components/ui/icon";
 import { confirmAction } from "@/components/ui/confirm-dialog";
@@ -58,6 +58,7 @@ function applySettings(settings: Settings) {
   document.documentElement.dataset.reducedMotion = settings.reduced_motion
     ? "true"
     : "false";
+  syncBrowserThemeColor();
 }
 export function SettingsLive() {
   const supabase = useMemo(() => createClient(), []);
