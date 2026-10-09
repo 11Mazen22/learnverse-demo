@@ -69,3 +69,10 @@ test("PKCE callback never strips the code through Next-patched history before te
   assert.match(source, /window\\.location\\.replace\\("\/auth\/complete\\?type=verified"\\)/);
   assert.match(source, /window\\.location\\.replace\\("\/auth\/error\\?reason=invalid"\\)/);
 });
+
+test("Supabase browser transport cannot auto-redeem the PKCE code before the explicit callback", () => {
+  const client = readFileSync("apps/web/lib/supabase/client.ts", "utf8");
+  assert.match(client, /auth:\s*\{\s*detectSessionInUrl:\s*false\s*\}/);
+  const callback = readFileSync("apps/web/app/auth/callback/page.tsx", "utf8");
+  assert.match(callback, /exchangeCodeForSession\(code\)/);
+});
