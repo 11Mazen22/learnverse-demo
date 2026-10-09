@@ -309,3 +309,21 @@ html[data-theme="dark"] .aura-settings-page .aura-settings-heading{
 @media(max-width:760px){.aura-settings-page .aura-settings-heading{min-height:auto}.aura-settings-page .aura-settings-nav{top:0}.aura-settings-page .aura-settings-section{padding:18px}}
 @media(prefers-reduced-motion:reduce){.aura-settings-page .aura-settings-section,.aura-settings-theme-options button{transition:none!important;transform:none!important}}
 html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html[data-reduced-motion="true"] .aura-settings-theme-options button{transition:none!important;transform:none!important}
+
+/* Respectful Mushaf compact reader with explicit expansion and real-audio glow. */
+.noata-quran-preview-toggle{display:flex;justify-content:space-between;align-items:center;gap:17px;flex-wrap:wrap;padding:21px clamp(16px,3vw,29px);margin:18px 0 4px;background:color-mix(in srgb,var(--surface) 86%,var(--accent-soft));border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));border-radius:21px}
+.noata-quran-preview-toggle>div{min-width:0;flex:1 1 220px}
+.noata-quran-preview-toggle strong{font-size:14px;color:var(--ink)}
+.noata-quran-preview-toggle p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.8}
+.noata-quran-preview-toggle button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:1px solid var(--accent);border-radius:13px;background:var(--accent);color:var(--on-accent);font-weight:850;padding:9px 17px;font-size:13px}
+.noata-quran-preview-toggle button svg{transition:transform .25s ease}
+.noata-quran-preview-toggle button[aria-expanded="true"] svg{transform:rotate(180deg)}
+.noata-quran-preview-toggle button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.aura-quran .aura-quran-ayah[data-playing="true"]{
+ border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));
+ background:radial-gradient(ellipse at 80% 25%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 71%),var(--surface);
+ box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 14%,transparent),0 17px 42px color-mix(in srgb,var(--accent) 15%,transparent);
+ transition:background .24s ease,box-shadow .24s ease,border-color .24s ease;
+}
+@media(max-width:600px){.noata-quran-preview-toggle{padding:17px 13px}.noata-quran-preview-toggle button{width:100%}}
+@media(prefers-reduced-motion:reduce){.noata-quran-preview-toggle button svg,.aura-quran .aura-quran-ayah[data-playing="true"]{transition:none!important}}
