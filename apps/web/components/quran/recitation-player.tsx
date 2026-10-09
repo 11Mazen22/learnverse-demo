@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { mediaTime, type Chapter } from "@/lib/quran/reciters";
-export function RecitationPlayer({ url, chapter, reciterName, unavailable, onChapter }: { url: string | null; chapter: Chapter; reciterName: string; unavailable: string; onChapter: (number: number) => void }) {
+export function RecitationPlayer({ url, chapter, reciterName, unavailable, onChapter, onStart, pauseSignal }: { url: string | null; chapter: Chapter; reciterName: string; unavailable: string; onChapter: (number: number) => void; onStart: () => void; pauseSignal: number }) {
   const audio = useRef<HTMLAudioElement>(null);
   const request = useRef(0);
   const playbackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -18,10 +18,16 @@ export function RecitationPlayer({ url, chapter, reciterName, unavailable, onCha
     if (element && url) element.src = url;
     return () => { ++request.current; if (playbackTimeout.current) clearTimeout(playbackTimeout.current); element?.pause(); element?.removeAttribute("src"); element?.load(); };
   }, [url]);
+  useEffect(() => {
+    ++request.current;
+    if (playbackTimeout.current) clearTimeout(playbackTimeout.current);
+    audio.current?.pause(); setPending(false); setPlaying(false);
+  }, [pauseSignal]);
   async function toggle() {
     const element = audio.current;
     if (!element || !url) return;
     if (!element.paused || pending) { ++request.current; if (playbackTimeout.current) clearTimeout(playbackTimeout.current); element.pause(); setPending(false); setPlaying(false); return; }
+    onStart();
     const sequence = ++request.current;
     setFailure(""); setPending(true);
     playbackTimeout.current = setTimeout(() => {
@@ -44,6 +50,6 @@ export function RecitationPlayer({ url, chapter, reciterName, unavailable, onCha
       <label><span className="sr-only">سرعة التلاوة</span><select aria-label="سرعة التلاوة" value={speed} onChange={e => { const value = Number(e.target.value); setSpeed(value); if (audio.current) audio.current.playbackRate = value; }}>{[0.75, 1, 1.25, 1.5].map(n => <option value={n} key={n}>{n}×</option>)}</select></label>
     </div>
     <p className="mushaf-player-status" role="status">{failure || (!url ? unavailable : pending ? "جارٍ بدء التلاوة…" : playing ? "تُشغّل الآن · يمكنك متابعة القراءة" : "اضغط التشغيل للاستماع · لا يوجد تشغيل تلقائي")}</p>
-    <audio ref={audio} src={url ?? undefined} preload="none" loop={repeat} onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onTimeUpdate={e => setElapsed(e.currentTarget.currentTime)} onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)} onError={() => { setPlaying(false); setPending(false); setFailure("ملف التلاوة غير متاح حاليًا. القراءة متاحة؛ أعد المحاولة أو اختر قارئًا آخر."); }} aria-label="تلاوة السورة"/>
+    <audio ref={audio} src={url ?? undefined} preload="none" loop={repeat} onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onTimeUpdate={e => setElapsed(e.currentTarget.currentTime)} onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)} onError={() => { ++request.current; if (playbackTimeout.current) clearTimeout(playbackTimeout.current); setPlaying(false); setPending(false); setFailure("ملف التلاوة غير متاح حاليًا. القراءة متاحة؛ أعد المحاولة أو اختر قارئًا آخر."); }} aria-label="تلاوة السورة"/>
   </section>;
 }

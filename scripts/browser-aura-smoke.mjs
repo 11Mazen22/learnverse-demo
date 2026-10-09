@@ -200,9 +200,14 @@ async function verifyQuranControls(){
       await waitFor(async()=>await evaluate(`document.querySelectorAll(".mushaf-reciter-card")[${i}]?.getAttribute("aria-pressed")==="true"`),"selected reciter state");
       invariant(await evaluate(`document.querySelector(".mushaf-player audio")?.getAttribute("src")?.includes("ci-fixture-${REQUESTED_RECITERS[i].id}") && document.querySelector(".mushaf-player audio")?.paused`),"selected reciter binds correct media without autoplay");
     }
-    await evaluate('document.querySelector(".mushaf-player-controls [aria-label=\"تكرار السورة\"]")?.click()');
+    await evaluate("document.querySelector('.mushaf-player-controls [aria-label=\"تكرار السورة\"]')?.click()");
     await waitFor(async()=>await evaluate('document.querySelector(".mushaf-player audio")?.loop'),"Surah repetition");
     invariant(await evaluate('document.querySelector(".mushaf-player audio")?.loop'),"repeat maps to real media loop");
+    await evaluate('document.querySelector(".aura-quran-ayah-actions button:nth-of-type(2)")?.click()');
+    await waitFor(async()=>await evaluate('!!document.querySelector(".mushaf-verse-recitation [role=alert]")'),"unavailable individual verse audio");
+    invariant(await evaluate('document.querySelector(".mushaf-verse-recitation")?.textContent.includes("تلاوة الآية غير متاحة") && !document.querySelector(".mushaf-verse-recitation audio") && document.querySelector(".mushaf-player audio")?.paused && document.querySelectorAll(".aura-quran-ayah").length===2'),"unavailable verse media never replaces sacred text or silently plays another source");
+    await evaluate("document.querySelector('[aria-label=\"إغلاق تلاوة الآية\"]')?.click()");
+    await waitFor(async()=>await evaluate('!document.querySelector(".mushaf-verse-recitation")'),"single verse player closes");
     await evaluate('document.querySelectorAll(".mushaf-reader-controls .mushaf-segmented button")[1]?.click()');
     await waitFor(async()=>await evaluate('!!document.querySelector(".mushaf-flow")'),"continuous reading mode");
     invariant(await evaluate('document.querySelectorAll(".mushaf-flow .aura-quran-ayah").length===2'),"continuous mode preserves source verse count");

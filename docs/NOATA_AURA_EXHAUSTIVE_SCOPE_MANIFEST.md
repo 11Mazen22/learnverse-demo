@@ -156,6 +156,7 @@ The repository still contains a separate legacy JSON/Ollama browser app (`server
 - [ ] `apps/web/components/quran/quran-verses.tsx`
 - [ ] `apps/web/components/quran/reciter-picker.tsx`
 - [ ] `apps/web/components/quran/recitation-player.tsx`
+- [ ] `apps/web/components/quran/verse-recitation.tsx`
 - [ ] `apps/web/app/quran/quran.css`
 - [ ] `apps/web/public/fonts/amiri-quran.ttf`
 - [ ] `apps/web/public/fonts/OFL-AmiriQuran.txt`

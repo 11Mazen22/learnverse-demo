@@ -4,7 +4,7 @@ import {mkdtemp,writeFile,chmod,readFile,rm,mkdir} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import { getEventListeners } from 'node:events';
-import { createContext, runInContext } from 'node:vm';
+import { createContext, runInContext, Script } from 'node:vm';
 import {launchQaBrowser,reloadQaPage,qaChromeArgs,processGroupMembers} from './lib/qa-browser.mjs';
 
 async function fakeChrome(t,name,source){
@@ -104,6 +104,20 @@ test('palette picker readiness rejects an unsynchronized selection without accep
   assert.equal(readiness(), false);
   assert.match(source, /invariant\(await evaluate\("document.documentElement.dataset.palette==='forest' &&/,
     'the session-only assertion must still reject an old-storage overwrite');
+});
+
+test('browser smoke compiles the actual static CDP expressions, including Quran controls', async () => {
+  const source = await readFile(new URL('./browser-aura-smoke.mjs', import.meta.url), 'utf8');
+  const literals = Array.from(source.matchAll(/await evaluate\(('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")\)/g), match => match[1]);
+  assert.ok(literals.length > 40, 'cover the runner, not only a manually copied selector');
+  const context = createContext({});
+  let repeatCovered = false;
+  for (const literal of literals) {
+    const expression = runInContext(literal, context);
+    assert.doesNotThrow(() => new Script(expression), expression);
+    if (expression.includes('تكرار السورة')) repeatCovered = true;
+  }
+  assert.equal(repeatCovered, true, 'the Surah repetition expression must be compiled');
 });
 
 test('QA Chrome uses a dynamic loopback debugging port and normal multiprocess flags',()=>{
