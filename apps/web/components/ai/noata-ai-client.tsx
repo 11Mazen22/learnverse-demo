@@ -108,13 +108,12 @@ export function NoataAIClient() {
     setTtsModel,
   } = workspace;
 
+  // Suggested prompts and completed response text are not unsaved user work.
+  // Warn only when the student has actually edited the composer or staged a
+  // locally selected document that would be lost on navigation.
+  const [hasTypedDraft, setHasTypedDraft] = useState(false);
   useUnsavedWork(
-    Boolean(
-      input.trim() ||
-        documentFiles.length ||
-        attachment ||
-        (pendingText && !busy),
-    ),
+    Boolean((hasTypedDraft && input.trim()) || documentFiles.length || attachment),
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
@@ -914,7 +913,7 @@ export function NoataAIClient() {
               value={input}
               maxLength={8000}
               disabled={busy || loading}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setHasTypedDraft(true); setInput(e.target.value); }}
               onPaste={(e) => {
                 const files = Array.from(e.clipboardData.files);
                 if (files.length) {
