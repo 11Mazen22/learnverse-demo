@@ -126,7 +126,8 @@ select public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',0);
 select qa.check((select gems=8 from public.profiles where id=auth.uid()),'lesson retries cannot duplicate Gems');
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
 select qa.check((select count(*)=0 from public.assignment_submissions),'unrelated teacher cannot read submission');
-select qa.check((select count(*)=0 from public.attempts),'unrelated teacher cannot read learning attempts');
+select qa.check((select count(*)=0 from public.attempts where user_id='00000000-0000-0000-0000-000000000001'),'unrelated teacher cannot read other class attempts');
+select qa.check((select count(*)>0 from public.attempts where user_id='00000000-0000-0000-0000-000000000002'),'assigned teacher can read own class attempts');
 select qa.check((select count(*)=0 from public.profiles where id='00000000-0000-0000-0000-000000000001'),'unrelated teacher cannot read student profile');
 with changed as(update public.assignment_submissions set score=100 returning id)
 select qa.check((select count(*)=0 from changed),'unrelated teacher cannot grade');
