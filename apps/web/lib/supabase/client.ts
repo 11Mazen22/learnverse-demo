@@ -4,6 +4,10 @@ import { supabaseSdkConfiguration, supabaseFetch } from "./config";
 
 export function createClient() {
   return createBrowserClient<Database>(supabaseSdkConfiguration.url, supabaseSdkConfiguration.key, {
+    // Every email/OAuth PKCE code is consumed exactly once by /auth/callback.
+    // Automatic URL detection can race its explicit exchangeCodeForSession()
+    // and leave a successfully verified link reporting "invalid".
+    auth: { detectSessionInUrl: false },
     global: {
       fetch: async (input, init) => {
         const url = String(input instanceof Request ? input.url : input);
