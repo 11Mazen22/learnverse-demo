@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import {canonicalSurah,recitationLink,audioEditionCandidates} from "../apps/web/lib/quran/source.ts";
+assert.deepEqual(audioEditionCandidates("ar.sudais"),["ar.abdurrahmaansudais","ar.sudais"]);
 
 const editions=["ar.abdurrahmaansudais","ar.sudais"];
 async function upstream(url,{method="GET",range=false}={}){
@@ -37,12 +39,22 @@ for(const edition of editions){
     assert.equal(json.data?.ayahs?.length,7);
     if(typeof json.data?.edition?.identifier==="string")
       assert.equal(json.data.edition.identifier,edition);
-    const ayah=json.data.ayahs[0];
-    assert.equal(ayah.numberInSurah,1);
-    assert.equal(ayah.number,1);
-    assert.ok(typeof ayah.audio==="string","missing first Ayah audio");
-    const media=await probeAudio(ayah.audio);
-    console.log(JSON.stringify({status:"PASS",edition,surah:1,ayah:1,media}));
+    // Check the SAME validation contract used by the application route.
+    const audioVerses=canonicalSurah(json.data,1);
+    assert.equal(audioVerses.length,7);
+    const textResponse=await upstream("https://api.alquran.cloud/v1/surah/1/quran-uthmani");
+    const textJson=await textResponse.json();
+    const textVerses=canonicalSurah(textJson.data,1);
+    assert.deepEqual(audioVerses.map(v=>v.globalNumber),textVerses.map(v=>v.globalNumber));
+    const output=[];
+    for (const ayahIndex of [0,6]){
+      const ayah=json.data.ayahs[ayahIndex];
+      const safe=recitationLink(ayah.audio);
+      assert.ok(safe,"Expected trusted media URL for Ayah "+(ayahIndex+1));
+      const media=await probeAudio(safe);
+      output.push({ayah:ayahIndex+1,...media});
+    }
+    console.log(JSON.stringify({status:"PASS",edition,surah:1,ayahsChecked:output,validatedVerseCount:audioVerses.length}));
     pass=true;break;
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
