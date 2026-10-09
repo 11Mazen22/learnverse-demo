@@ -164,6 +164,7 @@ export function DesignStudio(){
      .eq("id",design.id).eq("user_id",account.user.id).select("id,visible").single();
    if(writeError||data?.visible===design.visible)throw Error("تعذّر تأكيد حالة ظهور التصميم.");
    setSaved(rows=>rows.map(row=>row.id===design.id?{...row,visible:!design.visible}:row));
+   window.dispatchEvent(new Event("noata-custom-theme-change"));
    setNotice(design.visible?"تم إخفاء التصميم من قائمة الاختيار دون حذفه.":"التصميم ظاهر في قائمة الاختيار.");
   }catch(e){setError(e instanceof Error?e.message:"تعذّر تعديل الظهور.");}
   finally{setBusy("");}
@@ -177,6 +178,7 @@ export function DesignStudio(){
      .delete().eq("id",design.id).eq("user_id",account.user.id).select("id").single();
    if(deleteError||data?.id!==design.id)throw Error("تعذّر تأكيد حذف التصميم.");
    setSaved(rows=>rows.filter(row=>row.id!==design.id));
+   window.dispatchEvent(new Event("noata-custom-theme-change"));
    if(activeId===design.id){setActiveId(null);previewSession.current={active:false,previous:null};restoreStock();}
    setNotice("تم حذف التصميم وتأكيد العملية من الخادم.");
   }catch(e){setError(e instanceof Error?e.message:"تعذّر الحذف.");}
@@ -249,17 +251,31 @@ export function SavedDesignChoices(){
  const [items,setItems]=useState<CustomDesign[]>([]),[active,setActive]=useState<string|null>(null),[error,setError]=useState("");
  useEffect(()=>{
    let live=true;
-   if(!account.user){setItems([]);return;}
+   let latest=0;
+   if(!account.user){setItems([]);setActive(null);return;}
    const user=account.user;
-   void (async()=>{
-    const [a,b]=await Promise.all([
-      supabase.from("user_theme_designs").select("id,user_id,name,description,tokens,visible")
-       .eq("user_id",user.id).eq("visible",true).order("created_at",{ascending:false}).limit(MAX_DESIGNS),
-      supabase.from("user_settings").select("active_design_id").eq("user_id",user.id).maybeSingle()
-    ]);
-    if(live){setItems((a.data??[]).filter(isDesignRecord));setActive(b.data?.active_design_id??null);}
-   })();
-   return()=>{live=false;};
+   const refresh=()=>{
+     const request=++latest;
+     void (async()=>{
+       const [a,b]=await Promise.all([
+         supabase.from("user_theme_designs").select("id,user_id,name,description,tokens,visible")
+          .eq("user_id",user.id).eq("visible",true).order("created_at",{ascending:false}).limit(MAX_DESIGNS),
+         supabase.from("user_settings").select("active_design_id").eq("user_id",user.id).maybeSingle()
+       ]);
+       if(!live||request!==latest)return;
+       if(a.error||b.error){setError("تعذّر مزامنة تصاميم الحساب؛ أعد فتح القائمة.");return;}
+       setItems((a.data??[]).filter(isDesignRecord));
+       setActive(b.data?.active_design_id??null);
+     })();
+   };
+   refresh();
+   window.addEventListener("noata-custom-theme-change",refresh);
+   window.addEventListener("noata-palette-change",refresh);
+   return()=>{
+     live=false;
+     window.removeEventListener("noata-custom-theme-change",refresh);
+     window.removeEventListener("noata-palette-change",refresh);
+   };
  },[supabase,account.user]);
  async function choose(design:CustomDesign){
    if(!account.user)return;
