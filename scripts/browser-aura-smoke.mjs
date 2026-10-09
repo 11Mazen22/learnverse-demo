@@ -137,6 +137,7 @@ async function verifyQuranControls(){
     {number:1,text:"آية تجريبية أولى",globalNumber:1,audio:null},
     {number:2,text:"آية تجريبية ثانية",globalNumber:2,audio:null},
   ];
+  const longFixture = Array.from({length:8},(_,index)=>({number:index+1,text:"آية اختبار "+(index+1),globalNumber:index+1,audio:null}));
   const script = `(()=>{
     const originalFetch=window.fetch;
     window.fetch=async (input,options)=>{
@@ -146,14 +147,14 @@ async function verifyQuranControls(){
         if(params.get("list")==="1"){
           return new Response(JSON.stringify({surahs:[
             {number:1,name:"الفاتحة",englishName:"Al-Faatiha",numberOfAyahs:2},
-            {number:2,name:"البقرة",englishName:"Al-Baqara",numberOfAyahs:2}
+            {number:2,name:"البقرة",englishName:"Al-Baqara",numberOfAyahs:8}
           ]}),{status:200,headers:{"Content-Type":"application/json"}});
         }
         if(params.has("search")){
           return new Response(JSON.stringify({results:[{surah:1,surahName:"الفاتحة",number:2,text:"آية تجريبية ثانية"}],total:1}),{status:200,headers:{"Content-Type":"application/json"}});
         }
         const n=Number(params.get("surah")??1);
-        return new Response(JSON.stringify({surah:{number:n,name:n===1?"الفاتحة":"البقرة",englishName:"Example",numberOfAyahs:2},verses:${JSON.stringify(fixture)},source:{name:"CI TEST FIXTURE",edition:"fixture",reference:"https://alquran.cloud/api",audioEdition:"fixture"}}),{status:200,headers:{"Content-Type":"application/json"}});
+        return new Response(JSON.stringify({surah:{number:n,name:n===1?"الفاتحة":"البقرة",englishName:"Example",numberOfAyahs:n===1?2:8},verses:n===1?${JSON.stringify(fixture)}:${JSON.stringify(longFixture)},source:{name:"CI TEST FIXTURE",edition:"fixture",reference:"https://alquran.cloud/api",audioEdition:"fixture"}}),{status:200,headers:{"Content-Type":"application/json"}});
       }
       return originalFetch(input,options);
     };
@@ -180,6 +181,12 @@ async function verifyQuranControls(){
     await evaluate('(()=>{const s=document.querySelector("select[aria-label=\\\"اختيار سورة\\\"]");s.value="2";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
     await waitFor(async()=>await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran chapter navigation");
     invariant(await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran surah chooser");
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"Long Surah default shows only five verses");
+    invariant(await evaluate('document.querySelector(".noata-quran-preview-toggle button")?.getAttribute("aria-expanded")==="false"'),"Compact five-Ayah Surah disclosed accessibly");
+    await evaluate('document.querySelector(".noata-quran-preview-toggle button").click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===8'),"Full Surah expansion reveals all verified verses");
+    await evaluate('document.querySelector(".noata-quran-preview-toggle button").click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"Surah collapse restores five-Ayah view");
     await evaluate('(()=>{const el=document.querySelector("input[aria-label=\\\"البحث في القرآن\\\"]");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"التجريبية");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
     await evaluate('document.querySelector(".aura-quran-search")?.requestSubmit()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-search-results button").length>0'),"Quran search matches");
