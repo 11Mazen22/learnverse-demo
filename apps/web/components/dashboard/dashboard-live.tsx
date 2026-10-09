@@ -142,13 +142,22 @@ export function DashboardLive() {
   const percent = state.lessons
     ? Math.round((state.completedLessons / state.lessons) * 100)
     : 0;
-  const nextHref = state.nextLesson
+  const signedIn = Boolean(account.user) && state.signedIn;
+  const nextHref = signedIn && state.nextLesson
     ? "/lesson/" + state.nextLesson.id
     : "/learn";
   // Personalized but deterministic: recommendations derive exclusively from
   // the learner's real review queue and course progress.
   const recommendation =
-    due > 0
+    !signedIn
+      ? {
+          href: "/learn",
+          title: "ابدأ رحلة تعلّم تناسبك",
+          description: "استكشف الدروس المتاحة؛ تسجيل الدخول يحفظ تقدّمك وينقل تجربتك بين الأجهزة.",
+          action: "استكشف رحلة التعلّم",
+          icon: "book",
+        }
+      : due > 0
       ? {
           href: "/review",
           title: "راجع اللي محتاج تثبيت",
@@ -216,8 +225,8 @@ export function DashboardLive() {
         </span>
       </div>
       {(error || account.error) && (
-        <div className="error-banner" role="alert">
-          {error}{" "}
+        <div className={account.user || account.error ? "error-banner" : "aura-guest-service-notice"} role={account.user || account.error ? "alert" : "status"}>
+          {account.user || account.error ? error || account.error : "الدروس العامة غير متاحة مؤقتًا بسبب الاتصال. تقدر تتنقل بين الأقسام وتحاول مرة تانية."}{" "}
           <button
             className="btn"
             onClick={() => {
@@ -329,8 +338,8 @@ export function DashboardLive() {
               }}
             />
             <span>{label}</span>
-            <strong>{loading || error ? "—" : value}</strong>
-            <small>{loading ? "بنحمّل رحلتك…" : detail}</small>
+            <strong>{loading || error || !signedIn ? "—" : value}</strong>
+            <small>{loading ? "بنحمّل رحلتك…" : !signedIn ? "سجّل الدخول علشان تشوف بياناتك الحقيقية" : detail}</small>
           </article>
         ))}
       </section>
@@ -370,7 +379,7 @@ export function DashboardLive() {
         <article className="panel">
           <div className="panel-head">
             <h2>رحلتك الحالية</h2>
-            <span className="pill">{percent}% مكتمل</span>
+            <span className="pill">{signedIn && !error ? percent + "% مكتمل" : "رحلتك التعليمية"}</span>
           </div>
           <div className="quest">
             <div className="quest-icon">
@@ -379,23 +388,19 @@ export function DashboardLive() {
             <div>
               <h3>{state.courseTitle}</h3>
               <p>
-                {state.completedLessons} من {state.lessons} دروس مكتملة
+                {signedIn ? state.completedLessons + " من " + state.lessons + " دروس مكتملة" : "استكشف الدروس وابدأ التعلّم على مهلك"}
               </p>
             </div>
             <Link href={nextHref} className="icon-btn" aria-label="كمّل رحلتك">
               <Icon name="arrow" />
             </Link>
           </div>
-          <div
-            className="progress"
-            role="progressbar"
-            aria-label="إكمال الدروس"
-            aria-valuenow={percent}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <i style={{ width: percent + "%" }} />
-          </div>
+          {signedIn && !error && (
+            <div className="progress" role="progressbar" aria-label="إكمال الدروس"
+              aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+              <i style={{ width: percent + "%" }} />
+            </div>
+          )}
           <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 18 }}>
             {Boolean(account.user) && state.signedIn
               ? "كل محاولة فرصة للفهم. خُد وقتك وركّز على تقدّمك."
@@ -419,11 +424,9 @@ export function DashboardLive() {
         <aside>
           <div className="rank-card">
             <span className="tiny-label">YOUR NEXT MILESTONE</span>
-            <strong>المستوى {level}</strong>
-            <small>باقي {100 - (state.xp % 100)} نقطة خبرة لخطوتك الجاية</small>
-            <div className="progress">
-              <i style={{ width: (state.xp % 100) + "%" }} />
-            </div>
+            <strong>{signedIn && !error ? "المستوى " + level : "إنجازاتك تبدأ مع حسابك"}</strong>
+            <small>{signedIn && !error ? "باقي " + (100 - (state.xp % 100)) + " نقطة خبرة لخطوتك الجاية" : "سجّل الدخول علشان تشوف نقاطك ومستواك الحقيقي"}</small>
+            {signedIn && !error && <div className="progress"><i style={{ width: (state.xp % 100) + "%" }} /></div>}
           </div>
           <Link
             href="/notifications"
