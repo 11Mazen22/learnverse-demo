@@ -1,5 +1,5 @@
-const CACHE="noata-static-v3";
-const SHELL=["/offline.html","/manifest.webmanifest","/icon.svg"];
+const CACHE="noata-static-v4-official-mark";
+const SHELL=["/offline.html","/manifest.webmanifest","/icon.svg","/noata-mark.svg","/noata-mark-light.svg"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
