@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,chmod,readFile,rm,mkdir} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
-import {launchQaBrowser,qaChromeArgs,processGroupMembers} from './lib/qa-browser.mjs';
+import { getEventListeners } from 'node:events';
+import {launchQaBrowser,reloadQaPage,qaChromeArgs,processGroupMembers} from './lib/qa-browser.mjs';
 
 async function fakeChrome(t,name,source){
   const root=await mkdtemp(join(tmpdir(),'noata-chrome-fault-'));
@@ -12,6 +13,42 @@ async function fakeChrome(t,name,source){
   await writeFile(executablePath,'#!/usr/bin/env node\n'+source);await chmod(executablePath,0o700);
   return {executablePath,artifactsDir:resolve('artifacts/noata-browser-runtime-tests/'+name),startupTimeoutMs:2000};
 }
+test('reload waits for command acknowledgement and the new document, never an old ready state', async () => {
+  const socket = new EventTarget();
+  let acknowledge, finished = false;
+  const browser = { socket, command(method) {
+    assert.equal(method, 'Page.reload');
+    return new Promise(resolve => { acknowledge = resolve; });
+  } };
+  const work = reloadQaPage(browser, 1000).then(() => { finished = true; });
+  socket.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ method: 'Runtime.executionContextDestroyed' }) }));
+  await Promise.resolve();
+  assert.equal(finished, false);
+  socket.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ method: 'Page.loadEventFired' }) }));
+  await Promise.resolve();
+  assert.equal(finished, false);
+  acknowledge({});
+  await work;
+  assert.equal(finished, true);
+  assert.equal(getEventListeners(socket, 'message').length, 0);
+  assert.equal(getEventListeners(socket, 'close').length, 0);
+});
+test('reload timeout fails rather than evaluating or accepting the unloaded page', async () => {
+  const socket = new EventTarget();
+  await assert.rejects(reloadQaPage({ socket, command: async () => ({}) }, 10), /New document load timed out/);
+  assert.equal(getEventListeners(socket, 'message').length, 0);
+  assert.equal(getEventListeners(socket, 'close').length, 0);
+});
+test('reload command and browser disconnect errors release listeners without retrying a mutation', async () => {
+  const socket = new EventTarget();
+  await assert.rejects(reloadQaPage({ socket, command: async () => { throw Error('Protocol rejected reload'); } }), /Protocol rejected reload/);
+  assert.equal(getEventListeners(socket, 'message').length, 0);
+  const work = reloadQaPage({ socket, command: async () => ({}) });
+  socket.dispatchEvent(new Event('close'));
+  await assert.rejects(work, /disconnected during page reload/);
+  assert.equal(getEventListeners(socket, 'close').length, 0);
+});
+
 test('QA Chrome uses a dynamic loopback debugging port and normal multiprocess flags',()=>{
   const args=qaChromeArgs('/tmp/isolated-profile');
   assert.ok(args.includes('--remote-debugging-port=0'));

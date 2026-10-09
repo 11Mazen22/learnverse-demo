@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import { launchQaBrowser, diagnosticError } from "./lib/qa-browser.mjs";
+import { launchQaBrowser, reloadQaPage, diagnosticError } from "./lib/qa-browser.mjs";
 
 const require = createRequire(new URL("../apps/web/package.json", import.meta.url));
 const axeSource = await readFile(require.resolve("axe-core/axe.min.js"), "utf8");
@@ -110,8 +110,8 @@ try {
   await browser.command("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   await until("!document.querySelector('.aura-theme-menu') && document.activeElement===document.querySelector('.aura-theme-picker > button')", "Escape restores focus");
   invariant(true, "keyboard dismissal");
-  await browser.command("Page.reload");
-  await until("document.documentElement.dataset.palette==='ocean'", "persisted palette after reload");
+  await reloadQaPage(browser);
+  await until("document.readyState==='complete' && document.documentElement.dataset.palette==='ocean' && !!document.querySelector('.aura-theme-picker > button')", "persisted palette in the loaded replacement document");
   await openPicker();
   invariant(await evaluate("!!document.querySelector('[data-palette-option=ocean][aria-pressed=true]')"), "Reloaded picker disagrees with palette");
   await evaluate("window.__paletteStorageDescriptors={get:Object.getOwnPropertyDescriptor(Storage.prototype,'getItem'),set:Object.getOwnPropertyDescriptor(Storage.prototype,'setItem')};Object.defineProperty(Storage.prototype,'setItem',{configurable:true,value(){throw Error('QA storage unavailable')}})");

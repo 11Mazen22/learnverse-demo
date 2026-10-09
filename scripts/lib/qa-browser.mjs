@@ -70,6 +70,30 @@ function loopbackJson(port,path){
   });
 }
 
+export async function reloadQaPage(browser, timeoutMs = 15000) {
+  let cleanup;
+  const loaded = new Promise((resolve, reject) => {
+    const listener = ({ data }) => {
+      try {
+        if (JSON.parse(String(data)).method === 'Page.loadEventFired') resolve();
+      } catch (error) { reject(error); }
+    };
+    const closed = () => reject(Error('Chrome disconnected during page reload'));
+    const timer = setTimeout(() => reject(Error('New document load timed out after Page.reload')), timeoutMs);
+    cleanup = () => {
+      clearTimeout(timer);
+      browser.socket.removeEventListener('message', listener);
+      browser.socket.removeEventListener('close', closed);
+    };
+    browser.socket.addEventListener('message', listener);
+    browser.socket.addEventListener('close', closed);
+  });
+  try {
+    // A successful reload command alone does not mean the old JS context is gone.
+    await Promise.all([browser.command('Page.reload'), loaded]);
+  } finally { cleanup(); }
+}
+
 export async function launchQaBrowser({executablePath=findQaChrome(),artifactsDir,startupTimeoutMs=30000,commandTimeoutMs=12000}={}){
   if(!executablePath)throw Error('Browser QA requires full Chrome; run scripts/install-qa-chrome.mjs or set NOATA_CHROMIUM_PATH');
   await mkdir(artifactsDir,{recursive:true});
