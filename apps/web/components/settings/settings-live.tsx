@@ -405,7 +405,7 @@ export function SettingsLive() {
             ))}
           </div>
           <PaletteGallery />
-          <DesignStudio />
+          <p className="noata-appearance-footnote">الوضعان فاتح وداكن منفصلان عن عالم الألوان؛ تصميم «منتصف الليل» داكن دائمًا للحفاظ على طابعه.</p>
           <label className="aura-settings-switch">
             <span>
               <strong>تقليل الحركة</strong>
@@ -488,6 +488,7 @@ export function SettingsLive() {
           </div>
         )}
       </form>
+      <DesignStudio />
       <section
         id="aura-security"
         className="aura-settings-section aura-settings-security"
