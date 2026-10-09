@@ -214,18 +214,19 @@ export default function LoginPage() {
       <aside className="auth-aside" aria-hidden="true">
         <NoataBrand size={44} />
         <div className="auth-aside-copy">
-          <h2>مساحة تعلّم عربية تكبر معك</h2>
-          <p>دروس تفاعلية، مراجعة ذكية، مصحف موثّق، ومساعد Noata AI يرافقك خطوة بخطوة.</p>
+          <p className="auth-aside-kicker">NOATA · YOUR LEARNING SPACE</p>
+          <h2>مساحة هادية.<span>إنجازات كبيرة.</span></h2>
+          <p>تعلّم على مهلك، واسأل بذكاء، وراقب إنجازاتك في مكان واحد. كل خطوة ليها قيمة.</p>
         </div>
         <div className="auth-aside-stage" aria-hidden="true">
           <span className="auth-aside-stage-glow" />
           <span className="auth-aside-stage-mark"><NoataBrand size={76} compact /></span>
-          <span className="auth-aside-stage-caption">الفكرة اليوم، إنجاز الغد</span>
+          <span className="auth-aside-stage-caption">مساحة معمولة علشان طموحك</span>
         </div>
         <ul className="auth-aside-points">
-          <li><Icon name="ai" size={18} /> ورشة مذاكرة: شرح، اختبارات، وبطاقات مراجعة</li>
-          <li><Icon name="chart" size={18} /> تقدّم ومكافآت ت��حفظ مع حسابك</li>
-          <li><Icon name="check" size={18} /> واجبات ومتابعة مباشرة من معلّمك</li>
+          <li><Icon name="ai" size={18} /> مذاكرة أذكى في ورشة Noata</li>
+          <li><Icon name="chart" size={18} /> تقدّمك ومكافآتك محفوظة بأمان في حسابك</li>
+          <li><Icon name="check" size={18} /> مهام ومراجعات تبني مستواك خطوة بخطوة</li>
         </ul>
       </aside>
 
