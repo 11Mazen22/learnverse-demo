@@ -10,6 +10,7 @@ scratch_*.json
 
 qa/
 *.tsbuildinfo
+next-env.d.ts
 .next/
 .env.local
 .env.*.local

@@ -90,6 +90,28 @@ jobs:
           test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/documents/pdf -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:3000' --data '{}')" = 401
           test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/qa-target)" = 404
       - run: pnpm legacy:check
+      - name: Enforce clean exact-revision release evidence
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+          for (const path of [
+            'artifacts/noata-browser/outcome.json',
+            'artifacts/noata-database/outcome.json',
+            'artifacts/noata-documents/pdf-readback.json',
+          ]) {
+            const evidence = JSON.parse(readFileSync(path, 'utf8'));
+            assert.equal(evidence.revision, revision, path + ': wrong revision');
+            assert.equal(evidence.dirty, false, path + ': dirty source tree');
+            if ('passed' in evidence) assert.equal(evidence.passed, true, path + ': failed checks');
+            if ('endingRevision' in evidence) assert.equal(evidence.endingRevision, revision, path + ': revision changed');
+          }
+          console.log('Release artifacts match the unchanged, clean checked-out revision:', revision);
+          NODE
 
       - name: Browser failure diagnostics
         if: failure()

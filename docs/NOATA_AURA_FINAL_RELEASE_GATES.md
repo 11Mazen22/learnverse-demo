@@ -1,5 +1,43 @@
 # Noata Aura final candidate — release gates
 
+## Current checkpoint — 2026-10-09
+
+**NOT READY — SPECIFIC RELEASE BLOCKERS REMAIN.** This checkpoint supersedes conflicting historical gate states below; it does not turn synthetic sessions into authenticated verification.
+
+### Integrated implementation and defects repaired
+
+The authorized development branches were reconciled at `c4f95d35eb2931cbb7cd1e1afb2f0230f4da39db`; PR #3 remains OPEN/DRAFT against `master`. The guard, account/workshop/PDF corrections and Quran contrast repair are integrated, not disconnected branch implementations. Production has not been modified or deployed.
+
+- Supabase browser, server, session proxy, Auth, REST/RPC, Storage and direct AI streaming transports fail closed for missing/invalid configuration, unauthorized origins and redirects. Preview/development authorize only `vpfpjvhafkmygetjkfcp`; production requires an explicit production environment and approved production reference. Invalid Auth configuration is caught before SDK calls and preserves an actionable Arabic error without retry loops.
+- The account avatar opens a menu rather than signing out. Account settings and explicit confirmed logout are retained. Workshop requests use the existing readiness/provider path; unavailable service must not be described as an actual learning result or successful conversation.
+- Arabic PDF extraction/readback and account/workspace regressions are covered by the integrated suites. Quran attribution now has sufficient foreground contrast in both themes; accessibility assertions were not weakened.
+- Generated `next-env.d.ts` is no longer source-controlled. `next typegen` precedes typechecking so a clean checkout has the required framework declarations. CI explicitly rejects dirty or wrong-revision browser/database/PDF artifacts after all checks, rather than suppressing the dirty flag.
+
+### Directly obtained verification
+
+For implementation head `c4f95d3`, [PR run 37872338384](https://github.com/11Mazen22/learnverse-demo/actions/runs/37872338384) and [push run 37872335624](https://github.com/11Mazen22/learnverse-demo/actions/runs/37872335624) completed SUCCESS. Frozen install, TypeScript, Auth/Supabase/provider regressions, Arabic email-template checks, Deno checking, 19 base migrations/74 local SQL authorization checks, real PDF/DOCX fixtures, production build, full Chrome, responsive/axe, HTTP denial checks and 199 aggregate tests passed. The PR run executes the GitHub test-merge revision `8a5f9458d310447ad6707f057c499f3036a662a0`, not the source SHA; its browser outcome recorded 811 assertions, 180 public views, 48 synthetic views and 265 screenshots. That outcome was dirty because a tracked generated Next declaration was rewritten by the production build. It is implementation evidence, **not clean final-candidate evidence**. The generated-file correction and new artifact gate must pass at the subsequent committed head; do not attribute the earlier SUCCESS to it.
+
+Exact-source hosted preview at `c4f95d3`: `dpl_5CjkyLrdBd6yBVA3vt4f9Wi7nZxx`, READY, https://noata-94in1mam2-noata.vercel.app (verified through deployment metadata). Authorized `vercel curl` returned `/health` 200; anonymous `/api/documents/pdf` 401; foreign-origin PDF POST 403; `/api/qa-target` 404 with `enabled:false`. Deployment protection remains enabled and the standalone browser reaches Vercel sign-in, not an authenticated Noata session. These HTTP checks do not certify authenticated PDF rendering or account flows.
+
+Live Quran checks on that preview returned the complete 114-Surah index, Fatiha (7 verses), Baqarah (286 verses, final global number 293), and Nas (6 verses, final global number 6236). All seven Fatiha recitation links were present; a real media range request returned 206 and `audio/mpeg`. This removes the earlier API-connectivity blocker for the tested endpoints; it does not certify all text manually or actual browser playback.
+
+Approved staging Auth settings were queried without exposing keys: email enabled, email confirmation required, signup enabled, **Google disabled**. Anonymous `noata-ai-v2` POST returns 401. The initialization record in [connected staging verification](NOATA_CONNECTED_STAGING_VERIFICATION_20261008.md) already reports 19 migrations, 32 public tables, 70 RLS policies and JWT-protected Edge Functions; do not reinitialize or describe staging as empty. A fresh management metadata request for the approved project is permission denied here; live schema and deployed function revision were not reverified.
+
+PR #4 at `7abe2ddd7abff3fdf9858e389dee67617160b78d` was tested independently: all nine real PDFKit parser/binary/font/pagination/Arabic extraction regressions passed. It remains unmerged because its distinct `/api/pdf` request uses `markdown`, while the current workflow uses `/api/documents/pdf` with `text`; its route also lacks the current same-origin, bounded streaming-body and rate/concurrency protections. Passing renderer tests alone is not authorization to replace the integrated PDF service or merge overlapping platform changes.
+
+### Remaining mandatory gates and minimum intervention
+
+1. **Approved staging management and test accounts:** grant the Supabase connection access to `vpfpjvhafkmygetjkfcp`, not the unapproved connected `qvfywwpoktmbjsunqizr`. Supply disposable staging student A/B, teacher A/B and admin credentials only through secure QA configuration. Enable preview-only `NOATA_STAGING_QA_ENABLED=true` with the matching staging ref before the opt-in runner submits credentials. Real sessions, role/RLS denial/receipt checks, session persistence and authenticated serverless PDF remain unexecuted.
+2. **Google OAuth:** configure the Google OAuth web client securely in approved staging and enable the provider. Its Google authorized redirect URI is `https://vpfpjvhafkmygetjkfcp.supabase.co/auth/v1/callback`. Supabase must permit the application's canonical preview `/auth/callback` and its generated `flow`/`next` query parameters. Keep the client secret in provider settings, not source/chat. Genuine user Google sign-in/cancellation/PKCE/session tests are still required.
+3. **Fanar and voice:** configure/confirm staging Edge Function `FANAR_API_KEY` securely, then execute authenticated readiness and real Arabic streaming/multi-turn/vision/document/model/STT/TTS/quota tests. This session cannot establish whether the deployed secret exists; no fake provider success or 503 resolution is claimed.
+4. **Email delivery:** configure the approved staging sender/SMTP and a controlled test mailbox, apply the reviewed RTL templates there, then verify actual signup/recovery/invite/magic-link/email-change delivery, expiry and redirects. Template tests are not delivery evidence.
+5. **Private originals:** retention remains OFF and its migration unapplied. Enabling it requires separately authorized staging migration reconciliation, real Storage ownership/expiry/quota-race/deletion tests and cleanup scheduling. No production-scale lifecycle or distributed PDF quota claim is made.
+6. **Manual accessibility/device/performance:** screen-reader, physical touch/IME, cold-device Web Vitals, load testing and actual Quran playback remain required. OCR/XLSX/PPTX are unsupported and not advertised; they are scope limits, not verified capabilities.
+
+The latest final handoff must identify the subsequent integrated SHA, its own complete CI runs and READY preview, with a clean exact-revision artifact. Historical evidence below remains useful for attribution only. PR #3 stays draft and no production deployment/merge is permitted without explicit approval.
+
+## Historical evidence through 2026-10-08
+
 Prepared 2026-10-08. **NOT READY FOR PRODUCTION.** PR [#3](https://github.com/11Mazen22/learnverse-demo/pull/3) remains draft; branch `noata-aura-platform-overhaul-20261008`. Production, billing, official domains and the existing database were not changed. The private-document storage migration remains unapplied.
 
 ## Revision and evidence contract
