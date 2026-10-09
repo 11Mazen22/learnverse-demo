@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canonicalSurah, canonicalIndex, recitationLink, isQuranReciter, normalizedQuranLookup, matchingSurahs } from "./source.ts";
+import { canonicalSurah, canonicalIndex, recitationLink, isQuranReciter, audioEditionCandidates, normalizedQuranLookup, matchingSurahs } from "./source.ts";
 // Deliberately synthetic labels: protocol fixtures are not canonical text verification.
 const fixture = {
   number: 1,
@@ -76,4 +76,19 @@ test("Arabic search normalization is lookup-only and ranks exact Surah above par
  const index=[{number:18,name:ayah,englishName:"Al-Kahf",numberOfAyahs:110,revelationType:"Meccan"},{number:19,name:"سورة مريم",englishName:"Maryam",numberOfAyahs:98,revelationType:"Meccan"}];
  assert.equal(matchingSurahs(index,"الكهف")[0].number,18);
  assert.equal(matchingSurahs(index,"al kahf")[0].number,18);
+});
+
+test("Sudais resolves only authentic Sudais identifiers, without replacing the Sheikh",()=>{
+  assert.deepEqual(audioEditionCandidates("ar.sudais"),[
+    "ar.abdurrahmaansudais","ar.sudais"
+  ]);
+  for(const edition of ["ar.alafasy","ar.husary","ar.minshawi"] as const)
+    assert.deepEqual(audioEditionCandidates(edition),[edition]);
+  assert.equal(isQuranReciter("ar.abdurrahmaansudais"),false,
+    "internal provider edition must not silently create a second visible reciter");
+});
+test("Sudais media links use exactly the provider CDN URL and require HTTPS",()=>{
+  const url="https://cdn.islamic.network/quran/audio/128/ar.abdurrahmaansudais/1.mp3";
+  assert.equal(recitationLink(url),url);
+  assert.equal(recitationLink("http://cdn.islamic.network/quran/audio/192/ar.sudais/1.mp3"),null);
 });
