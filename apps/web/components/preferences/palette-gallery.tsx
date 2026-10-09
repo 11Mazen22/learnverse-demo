@@ -15,7 +15,7 @@ const PRESETS: { id: Palette; ar: string; en: string; swatch: string }[] = [
   { id: "midnight", ar: "منتصف الليل", en: "Midnight", swatch: "#8da6ff" },
 ];
 const KEY = "noata-palette";
-function valid(p: string | null): p is Palette {
+function valid(p: string | null | undefined): p is Palette {
   return PRESETS.some((item) => item.id === p);
 }
 /** Keep browser/PWA chrome aligned with the selected page palette where supported. */
