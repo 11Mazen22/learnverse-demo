@@ -340,3 +340,32 @@ html[data-reduced-motion="true"] :is(.noata-logo .noata-logo-vector,.page-conten
   transition: none !important;
   transform: none !important;
 }
+
+/* Honest, nonblocking guest experience when public curriculum is temporarily
+ * unreachable. Keep authenticated failures in their existing alert state. */
+.aura-guest-service-notice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 15px clamp(16px, 2.5vw, 25px);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  border-inline-start: 4px solid var(--accent);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--surface) 85%, var(--accent-soft));
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.85;
+  margin-bottom: 18px;
+}
+.aura-guest-service-notice .btn {
+  min-height: 39px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  border-radius: 11px;
+}
+.aura-guest-service-notice .btn:hover {
+  background: color-mix(in srgb, var(--accent-soft) 75%, var(--accent));
+}
