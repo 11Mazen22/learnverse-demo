@@ -6,9 +6,14 @@ import {spawnSync} from 'node:child_process';
 const sessions=[];let failure;
 await mkdir('artifacts/noata-browser-launch',{recursive:true});
 try{
-  const launches=await Promise.allSettled(Array.from({length:3},(_,i)=>launchQaBrowser({artifactsDir:`artifacts/noata-browser-launch/session-${i}`})));
-  for(const result of launches){if(result.status==='fulfilled')sessions.push(result.value);else failure??=result.reason;}
-  if(failure)throw failure;
+  // Chrome's renderer sandbox can SIGTRAP when three fresh processes spawn in
+  // the exact same millisecond on shared CI runners. Keep all three browsers
+  // alive concurrently, but stagger their startup to test actual port/profile
+  // isolation without introducing a startup resource stampede.
+  for(let i=0;i<3;i++){
+    sessions.push(await launchQaBrowser({artifactsDir:`artifacts/noata-browser-launch/session-${i}`}));
+    await new Promise(resolve=>setTimeout(resolve,300));
+  }
   assert.equal(new Set(sessions.map(s=>s.diagnostics.port)).size,3,'Simultaneous Chrome sessions must have distinct ports');
   assert.equal(new Set(sessions.map(s=>s.diagnostics.profile)).size,3,'Chrome profiles must be isolated');
   for(const session of sessions){

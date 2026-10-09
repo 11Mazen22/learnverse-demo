@@ -44,6 +44,7 @@ export function MissionLive() {
   const [reward, setReward] = useState<{
     xp_reward?: number;
     coin_reward?: number;
+    verified_lesson_gems?: number | null;
   } | null>(null);
   const [error, setError] = useState("");
 
@@ -213,7 +214,16 @@ export function MissionLive() {
         if (error) throw error;
         if (!data || typeof data !== "object")
           throw Error("Missing completion receipt");
-        setReward(data as { xp_reward?: number; coin_reward?: number });
+        const receipt = data as { xp_reward?: number; coin_reward?: number };
+        const { data: earned, error: gemsError } = await supabase.from("ledger")
+          .select("amount").eq("user_id", account.user!.id)
+          .eq("currency","GEM").eq("reference_type","lesson").eq("reference_id",lessonId);
+        check();
+        setReward({
+          ...receipt,
+          verified_lesson_gems: gemsError ? null :
+            (earned ?? []).reduce((total, row) => total + Number(row.amount), 0),
+        });
       }
       setComplete(true);
     }, "");
@@ -262,6 +272,11 @@ export function MissionLive() {
         >
           <span className="pill">+{reward?.xp_reward ?? 0} XP</span>
           <span className="pill">+{reward?.coin_reward ?? 0} Coins</span>
+          <span className="pill">
+            {reward?.verified_lesson_gems == null
+              ? "جواهر الدرس: تعذّر التحقق"
+              : "💎 الجواهر المستحقة لهذا الدرس: " + reward.verified_lesson_gems}
+          </span>
         </div>
         <div className="hero-actions" style={{ justifyContent: "center" }}>
           <a className="btn btn-primary" href="/progress">

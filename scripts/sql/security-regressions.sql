@@ -70,6 +70,8 @@ select qa.check((select count(*)=0 from public.question_keys),'student answer ke
 select qa.check((select count(*)=1 from public.assignments),'student sees published assignments in own class only');
 select qa.denied($s$update public.profiles set role='admin' where id=auth.uid()$s$,'direct role escalation denied');
 select qa.denied($s$update public.profiles set xp=999 where id=auth.uid()$s$,'direct XP editing denied');
+select qa.denied($s$update public.profiles set gems=999 where id=auth.uid()$s$,'direct GEM balance editing denied');
+select qa.denied($s$insert into public.ledger(user_id,currency,amount,reason,idempotency_key) values(auth.uid(),'GEM',99,'FAKE','client-fake-gems')$s$,'client cannot mint forged GEM ledger entries');
 select qa.denied($s$select public.set_user_role(auth.uid(),'admin')$s$,'student admin RPC denied','Admin access required');
 select qa.denied($s$select * from public.admin_ai_usage_summary()$s$,'student AI usage summary denied');
 select qa.denied($s$select * from public.claim_ai_quota(auth.uid(),'text',100,60)$s$,'student service quota RPC denied');
@@ -112,6 +114,16 @@ select qa.check((public.equip_cosmetic('51784f92-e172-59ea-9298-d7b7bac522be')->
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
 select qa.check((select count(*)=0 from storage.objects),'other student storage is private');
 select qa.check((select count(*)=0 from public.ai_attachments),'other student attachment rows are private');
+-- This student's actual first attempt on all three questions is correct.
+-- A forged p_score value cannot affect the backend-computed mastery result.
+select public.submit_attempt('05c00c64-b9b8-5736-b996-86dd82a3dd83','{"value":"1"}',false,'qa-gem-first',false);
+select public.submit_attempt('b4ebb1e4-c88f-545a-8cdd-9faa970e5311','{"value":"8"}',false,'qa-gem-second',false);
+select public.submit_attempt('d25f0844-8a0c-59e4-b93b-4cbde38e9bb8','{"value":"1"}',false,'qa-gem-third',false);
+select qa.check((public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',0)->>'best_score')::numeric=100,'verified 100 percent mastery overrides forged client score');
+select qa.check((select gems=8 from public.profiles where id=auth.uid()),'perfect verified learning earns 5 mastery and 3 bonus Gems');
+select qa.check((select count(*)=2 from public.ledger where user_id=auth.uid() and currency='GEM'),'verified Gems recorded as distinct immutable receipts');
+select public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',0);
+select qa.check((select gems=8 from public.profiles where id=auth.uid()),'lesson retries cannot duplicate Gems');
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
 select qa.check((select count(*)=0 from public.assignment_submissions),'unrelated teacher cannot read submission');
 select qa.check((select count(*)=0 from public.attempts),'unrelated teacher cannot read learning attempts');

@@ -15,7 +15,7 @@ type Item = {
   price: number;
   asset_url: string | null;
 };
-type Profile = { xp: number; coins: number };
+type Profile = { xp: number; coins: number; gems: number };
 type LedgerRow = { id:string;currency:string;amount:number;reason:string;reference_type:string|null;created_at:string };
 type Box = {
   id: string;
@@ -82,7 +82,7 @@ export function RewardsLive() {
         { data: boxRows, error: boxesError },
         { data: ledgerRows, error: ledgerQueryError },
       ] = await Promise.all([
-        supabase.from("profiles").select("xp,coins").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("xp,coins,gems").eq("id", user.id).maybeSingle(),
         supabase.from("inventory").select("item_id").eq("user_id", user.id),
         supabase
           .from("equipped_cosmetics")
@@ -203,7 +203,7 @@ export function RewardsLive() {
       <header className="noata-section-head">
         <div><p className="noata-eyebrow">رحلتك تستحق الاحتفال</p>
           <h1>مكافآتك وإنجازاتك</h1>
-          <p>كل مكافأة هنا نتيجة لتقدم حقيقي. اجمع العملات من التعلّم واختار مظهر يعبر عنك.</p>
+          <p>كل مكافأة هنا نتيجة لتقدم حقيقي. اجمع العملات من التعلّم واختار مظهر يعبر عنك. الجواهر 5 عند إتقان درس موثّق بنسبة 90٪، و3 إضافية عند 100٪، مرة واحدة لكل مستوى استحقاق.</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <span className="pill">
@@ -212,6 +212,11 @@ export function RewardsLive() {
           <span className="pill">
             {profile && !loading && !error
               ? Number(profile.coins).toLocaleString("ar-EG") + " عملات"
+              : "—"}
+          </span>
+          <span className="pill" title="جواهر موثّقة من إتقان الدروس، وليست مكافآت متوقعة">
+            {profile && !loading && !error
+              ? Number(profile.gems).toLocaleString("ar-EG") + " 💎 Gems"
               : "—"}
           </span>
         </div>
