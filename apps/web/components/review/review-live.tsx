@@ -75,7 +75,9 @@ export function ReviewLive() {
         if (readError) throw readError;
         const rows = (ev ?? []) as Evidence[];
         setEvidence(rows);
-        const skillIds = rows.map((x) => x.skill_id);
+        const skillIds = rows
+          .filter((x) => !x.next_review_at || new Date(x.next_review_at).getTime() <= Date.now())
+          .map((x) => x.skill_id);
         if (!skillIds.length) return;
         const { data: q, error: questionError } = await supabase
           .from("questions")
@@ -205,12 +207,12 @@ export function ReviewLive() {
   if (idx >= questions.length && questions.length > 0)
     return (
       <section className="hero" style={{ textAlign: "center", padding: 44 }}>
-        <div className="eyebrow">REVIEW COMPLETE</div>
+        <div className="eyebrow">اكتملت مراجعة اليوم</div>
         <h1>كده المراجعة خلصت ✨</h1>
         <p>المواعيد الجديدة اتحدثت من أدائك، مش من مؤقت ثابت.</p>
         <div className="hero-actions" style={{ justifyContent: "center" }}>
           <a className="btn btn-primary" href="/progress">
-            شوف الـ Mastery
+            تابع مستوى إتقانك
           </a>
           <a className="btn btn-secondary" href="/learn">
             كمّل تعلم
@@ -221,35 +223,27 @@ export function ReviewLive() {
 
   return (
     <>
-      <header className="topbar" style={{ marginBottom: 18 }}>
+      <header className="noata-section-head">
         <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            SPACED REVIEW
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>Review Queue</h1>
+          <p className="noata-eyebrow">مساحتك للمراجعة الذكية</p>
+          <h1>المراجعة المتباعدة</h1>
+          <p>راجع اللي اتعلمته في الوقت المناسب. المواعيد بتتبني على إجاباتك الحقيقية، مش مؤقت عشوائي.</p>
         </div>
-        <span className="pill">{due} due</span>
+        <span className="pill">{due.toLocaleString("ar-EG")} مراجعات مستحقة</span>
       </header>
 
       {!questions.length ? (
-        <section className="panel" style={{ padding: 32, textAlign: "center" }}>
-          <h2>لسه مفيش مراجعات مبنية على evidence.</h2>
-          <p style={{ color: "var(--muted)" }}>
-            كمّل Missions الأول، وبعدها Noata هيبني لك مواعيد مراجعة تلقائية.
-          </p>
-          <a
-            className="btn"
-            href="/missions"
-            style={{ background: "var(--accent)", color: "var(--surface)" }}
-          >
-            ابدأ Mission
-          </a>
+        <section className="noata-empty" role="status">
+          <span className="noata-empty-icon" aria-hidden="true">✦</span>
+          <h2>{due ? "فيه مراجعات مستحقة، لكن الأسئلة مش جاهزة لسه" : "تمام! مفيش مراجعات مستحقة دلوقتي"}</h2>
+          <p>{due ? "مهاراتك محفوظة. الأسئلة المرتبطة بها غير منشورة في Staging بعد؛ هنظهرها هنا لما تتاح." : "كمّل مهامك ودروسك، وهنجهّز مراجعات بموعد حقيقي حسب تقدمك."}</p>
+          <div className="hero-actions"><a href="/missions" className="btn btn-primary">ابدأ مهمة تعليمية</a><a href="/learn" className="btn btn-secondary">استكشف الدروس</a></div>
         </section>
       ) : (
         <section className="panel" style={{ padding: 28 }}>
           <div className="panel-head">
             <div>
-              <span className="pill">{skill?.skills?.title_ar ?? "Skill"}</span>
+              <span className="pill">{skill?.skills?.title_ar ?? "مهارة قيد المراجعة"}</span>
               <h2 style={{ marginTop: 12 }}>{current?.prompt_ar}</h2>
             </div>
             <b>
@@ -281,7 +275,7 @@ export function ReviewLive() {
                       color: "var(--ink)",
                     }}
                   >
-                    {String.fromCharCode(65 + i)}. {option}
+                    {(i + 1).toLocaleString("ar-EG")}. {option}
                   </button>
                 ))}
               </div>
@@ -314,7 +308,7 @@ export function ReviewLive() {
                 <p>{grade.explanation_ar}</p>
                 {grade.mastery_score != null && (
                   <small>
-                    Mastery {Math.round(Number(grade.mastery_score))}% ·{" "}
+                    درجة الإتقان {Math.round(Number(grade.mastery_score)).toLocaleString("ar-EG")}٪ ·{" "}
                     {grade.mastery_state}
                   </small>
                 )}
