@@ -83,6 +83,16 @@ export const QURAN_RECITERS = [
   { id: "ar.minshawi", name: "محمد صديق المنشاوي" },
   { id: "ar.sudais", name: "عبد الرحمن السديس" },
 ] as const;
+/** Preserve the public picker ID while resolving actual provider audio edition IDs.
+ * Islamic Network exposes Sudais under two separate historical identifiers.
+ * Try both only for the SAME reciter, never a different Sheikh.
+ * Every returned media URL is still validated by recitationLink.
+ */
+export function audioEditionCandidates(reciter: QuranReciter): readonly string[] {
+  return reciter === "ar.sudais"
+    ? ["ar.abdurrahmaansudais", "ar.sudais"]
+    : [reciter];
+}
 export type QuranReciter = typeof QURAN_RECITERS[number]["id"];
 export function isQuranReciter(value: unknown): value is QuranReciter {
   return typeof value==="string" && QURAN_RECITERS.some(r=>r.id===value);
