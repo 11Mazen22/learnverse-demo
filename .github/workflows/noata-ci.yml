@@ -37,11 +37,15 @@ jobs:
         run: |
           node --check scripts/browser-aura-smoke.mjs
           node --check scripts/authenticated-aura-smoke.mjs
+          node --check apps/web/scripts/provision-staging-qa.mjs
+          node --check apps/web/scripts/staging-qa-config.mjs
           node --check scripts/lib/qa-browser.mjs
           node --check scripts/lib/ui-account-fixture.mjs
           node --check scripts/lib/public-curriculum-fixture.mjs
           node --check scripts/install-qa-chrome.mjs
           node --check scripts/browser-launch-smoke.mjs
+      - name: Verify safe role-account provisioning without credentials
+        run: node --test apps/web/scripts/staging-qa-config.test.mjs
       - name: Browser startup fault regressions
         run: node --test scripts/qa-browser.test.mjs
       - name: Verify branded Arabic Auth emails
