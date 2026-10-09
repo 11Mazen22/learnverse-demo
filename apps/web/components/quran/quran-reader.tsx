@@ -51,6 +51,7 @@ export function QuranReader() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selected, setSelected] = useState(1);
   const [verses, setVerses] = useState<Verse[]>([]);
+  const [expanded,setExpanded]=useState(false);
   const [chapter, setChapter] = useState<Chapter>(INITIAL);
   const [source, setSource] = useState<Source | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,6 +111,7 @@ export function QuranReader() {
     }
     setActiveAudio(null);
     setVerses([]);
+    setExpanded(Boolean(targetAyah?.startsWith(selected+":") && Number(targetAyah.split(":")[1])>5));
     setLoading(true);
     setError("");
     void (async () => {
@@ -138,6 +140,8 @@ export function QuranReader() {
   }, [selected, retryKey]);
   useEffect(() => {
     if (!targetAyah || loading || error) return;
+    const targetNumber=Number(targetAyah.split(":")[1]);
+    if(targetNumber>5&&!expanded){setExpanded(true);return;}
     const target = document.getElementById(
       "ayah-" + targetAyah.replace(":", "-"),
     );
@@ -145,7 +149,7 @@ export function QuranReader() {
       target.scrollIntoView({ behavior: "smooth", block: "center" });
       setTargetAyah(null);
     }
-  }, [targetAyah, loading, error, verses]);
+  }, [targetAyah, loading, error, verses, expanded]);
   function toggleBookmark(number: number) {
     const key = selected + ":" + number;
     setBookmarks((old) => {
@@ -226,6 +230,7 @@ export function QuranReader() {
     const parts = id.split(":").map(Number);
     if (parts.length !== 2) return;
     setTargetAyah(id);
+    if(parts[1]>5)setExpanded(true);
     if (selected !== parts[0]) setSelected(parts[0]);
   }
   return (
@@ -369,7 +374,7 @@ export function QuranReader() {
             ))}
         </div>
       )}
-      <section className="aura-quran-reading" aria-busy={loading}>
+      <section id="noata-quran-verses" className="aura-quran-reading" aria-busy={loading}>
         <div className="aura-quran-chapter">
           <span>سورة</span>
           <h2>{chapter.name}</h2>
@@ -392,12 +397,13 @@ export function QuranReader() {
         )}
         {!loading &&
           !error &&
-          verses.map((v) => {
+          (expanded ? verses : verses.slice(0,5)).map((v) => {
             const key = selected + ":" + v.number;
             return (
               <article
                 id={"ayah-" + selected + "-" + v.number}
                 className="aura-quran-ayah"
+                data-playing={activeAudio === v.number}
                 key={v.number}
               >
                 <div className="aura-quran-ayah-actions">
@@ -452,6 +458,20 @@ export function QuranReader() {
               </article>
             );
           })}
+        {!loading && !error && verses.length > 5 && (
+          <div className="noata-quran-preview-toggle">
+            <div>
+              <strong>{expanded ? "أنت تقرأ السورة كاملة" : "أول خمس آيات للقراءة السريعة"}</strong>
+              <p>{expanded ? "تقدر ترجع للعرض المختصر في أي وقت." : "باقي " + (verses.length - 5).toLocaleString("ar-EG") + " آية مخفية حتى تختار عرض السورة كاملة. البحث والعلامات هيفتحوا الآية المطلوبة تلقائيًا."}</p>
+            </div>
+            <button type="button" aria-expanded={expanded} aria-controls="noata-quran-verses" onClick={()=>{
+              if(expanded && activeAudio!==null && activeAudio>5)stopAudio();
+              setExpanded(v=>!v);
+            }}>{expanded ? "طي السورة إلى خمس آيات" : "عرض السورة كاملة"}
+              <Icon name="chevron" size={17}/>
+            </button>
+          </div>
+        )}
       </section>
       <audio
         ref={audio}
