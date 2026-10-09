@@ -216,9 +216,9 @@ export function ThemeControl() {
               {theme === choice.value && <Icon name="check" size={15} />}
             </button>
           ))}
+          <PaletteGallery compact />
         </div>
       )}
-      {open && <PaletteGallery compact />}
       {notice && (
         <span className="aura-theme-notice" role="status">
           {notice}
