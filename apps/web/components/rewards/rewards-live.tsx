@@ -16,6 +16,7 @@ type Item = {
   asset_url: string | null;
 };
 type Profile = { xp: number; coins: number };
+type LedgerRow = { id:string;currency:string;amount:number;reason:string;reference_type:string|null;created_at:string };
 type Box = {
   id: string;
   tier: string;
@@ -31,6 +32,8 @@ export function RewardsLive() {
   const [owned, setOwned] = useState<Set<string>>(new Set());
   const [equipped, setEquipped] = useState<Map<string, string>>(new Map());
   const [boxes, setBoxes] = useState<Box[]>([]);
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
+  const [ledgerError, setLedgerError] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -68,6 +71,8 @@ export function RewardsLive() {
         setOwned(new Set());
         setEquipped(new Map());
         setBoxes([]);
+        setLedger([]);
+        setLedgerError(false);
         return;
       }
       const [
@@ -75,6 +80,7 @@ export function RewardsLive() {
         { data: inventory, error: inventoryError },
         { data: eq, error: equippedError },
         { data: boxRows, error: boxesError },
+        { data: ledgerRows, error: ledgerQueryError },
       ] = await Promise.all([
         supabase.from("profiles").select("xp,coins").eq("id", user.id).maybeSingle(),
         supabase.from("inventory").select("item_id").eq("user_id", user.id),
@@ -87,6 +93,8 @@ export function RewardsLive() {
           .select("id,tier,source,claimed_at,reward")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
+        supabase.from("ledger").select("id,currency,amount,reason,reference_type,created_at")
+          .eq("user_id", user.id).order("created_at", { ascending: false }).limit(30),
       ]);
       if (token !== account.revision.current) return;
       if (profileError || inventoryError || equippedError)
@@ -98,6 +106,8 @@ export function RewardsLive() {
         new Map(((eq ?? []) as Equipped[]).map((x) => [x.slot, x.item_id])),
       );
       setBoxes(boxesError ? [] : (boxRows ?? []) as Box[]);
+      setLedger(ledgerQueryError ? [] : (ledgerRows ?? []) as LedgerRow[]);
+      setLedgerError(Boolean(ledgerQueryError));
     } catch {
       if (token === account.revision.current)
         setError(
@@ -113,6 +123,8 @@ export function RewardsLive() {
     setOwned(new Set());
     setEquipped(new Map());
     setBoxes([]);
+    setLedger([]);
+    setLedgerError(false);
     setLastReward(null);
     keys.current.clear();
     setBusy(null);
@@ -353,6 +365,36 @@ export function RewardsLive() {
           })}
         </div>
       </section>
+
+      {!loading && account.user && (
+        <section className="panel noata-ledger-section" aria-labelledby="noata-ledger-title">
+          <div className="panel-head">
+            <div>
+              <h2 id="noata-ledger-title">سجل نقاطك ومكافآتك</h2>
+              <p>آخر 30 حركة مؤكدة من الخادم، وليست مكافآت متوقعة.</p>
+            </div>
+            <button type="button" className="noata-ledger-refresh" disabled={loading || mutating}
+              onClick={() => void load()}><Icon name="refresh" size={17}/> تحديث</button>
+          </div>
+          {ledgerError ? <div className="noata-ledger-message" role="status">السجل غير متاح حاليًا. يمكن إعادة المحاولة.</div>
+          : ledger.length === 0 ? <div className="noata-ledger-message" role="status">مفيش معاملات مؤكدة في حسابك حتى الآن.</div>
+          : <ol className="noata-ledger-list">{ledger.map(entry => {
+              const credit = Number(entry.amount) >= 0;
+              const unit = entry.currency === "XP" ? "XP" : entry.currency === "COIN" ? "عملة"
+                : entry.currency === "GEM" ? "جوهرة" : entry.currency;
+              const date = new Date(entry.created_at);
+              return <li key={entry.id} className="noata-ledger-entry">
+                <span className={"noata-ledger-symbol " + (credit?"credit":"debit")} aria-hidden="true"><Icon name={credit?"plus":"gift"} size={17}/></span>
+                <span className="noata-ledger-detail"><strong>{entry.reason || "حركة رصيد مؤكدة"}</strong>
+                <small>{entry.reference_type ? "المصدر: " + entry.reference_type + " · " : ""}
+                  {Number.isNaN(date.getTime()) ? "وقت غير متاح" : date.toLocaleString("ar-EG",{dateStyle:"medium",timeStyle:"short"})}
+                </small></span>
+                <strong className={"noata-ledger-value " + (credit?"credit":"debit")} dir="ltr">
+                  {credit?"+":"−"}{Math.abs(Number(entry.amount)||0).toLocaleString("ar-EG")} {unit}</strong>
+              </li>;
+            })}</ol>}
+        </section>
+      )}
 
       {!loading && items.length === 0 && !error && <section className="noata-empty"><h2>متجر المظاهر قيد التجهيز</h2><p>لسه مفيش عناصر منشورة للشراء. مكافآتك الحالية محفوظة في حسابك.</p></section>}
       <section className="noata-reward-grid" aria-label="متجر المظاهر">
