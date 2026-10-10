@@ -1,8 +1,10 @@
+"use client";
+import {useTranslation} from "@/lib/i18n/locale";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import type { QuranSource } from "@/lib/quran/reciters";
 export function QuranSources({ source, reciterName, verseProvider }: { source?: QuranSource; reciterName: string; verseProvider: "AlQuran Cloud" | "EveryAyah" }) {
- const t=useTranslation(),locale=useLocale();
+ const t=useTranslation();
   return <footer className="aura-quran-attribution mushaf-attribution">
     <div className="mushaf-source-heading"><Icon name="check" size={18}/><h2>{t("المصادر، بكل وضوح","Sources, clearly identified")}</h2></div>
     <dl className="mushaf-sources-grid">
@@ -14,5 +16,3 @@ export function QuranSources({ source, reciterName, verseProvider }: { source?: 
     <nav aria-label={t("حقوق المصحف والمساعدة","Quran source rights and help")}><a href="https://alquran.cloud/terms-and-conditions" target="_blank" rel="noopener noreferrer">{t("شروط مصدر النص","Text source terms")}</a><a href="https://everyayah.com/data/recitations.js" target="_blank" rel="noopener noreferrer">{t("دليل تسجيلات الآيات","Verse recording catalogue")}</a><Link href="/privacy">{t("الخصوصية","Privacy")}</Link><Link href="/help">{t("المساعدة","Help")}</Link></nav>
   </footer>;
 }
-"use client";
-import {useLocale,useTranslation} from "@/lib/i18n/locale";
