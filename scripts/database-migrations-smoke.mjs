@@ -4,6 +4,7 @@ import {spawn,spawnSync} from 'node:child_process';
 import {randomUUID,createHash} from 'node:crypto';
 import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
 import {setTimeout as delay} from 'node:timers/promises';
+import {runFixtureRecovery} from './database-recovery-rehearsal.mjs';
 const container='noata-sql-qa-'+randomUUID();
 const image='postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24';
 const rateLimitMirror='public.ecr.aws/docker/library/postgres:17-alpine';
@@ -103,6 +104,13 @@ try{
  const count=postgres(['-At','-v','ON_ERROR_STOP=1'],"select count(*) from public.attempts where user_id='00000000-0000-0000-0000-000000000010';select count(*) from public.ledger where user_id='00000000-0000-0000-0000-000000000010';").trim();
  if(count!=='1\n1')throw Error('Concurrent attempt duplicated a grade or reward');
  outcome.assertions+=2;
+ const pgDump=args=>{
+  if(engine==='docker')return docker(['exec',container,'pg_dump','-U','postgres',...args]);
+  const result=spawnSync('sudo',['-n','-u','postgres','pg_dump',...args],{encoding:'utf8',maxBuffer:8*1024*1024,timeout:120000});
+  if(result.error||result.status!==0)throw Error('Isolated fixture pg_dump failed');
+  return result.stdout;
+ };
+ await runFixtureRecovery({postgres,pgDump,directory:'artifacts/noata-recovery-fixture',revision:outcome.revision,dirty:outcome.dirty});
  outcome.passed=true;console.log(`PASS: ${files.length} migrations; ${outcome.assertions} local PostgreSQL assertions`);
 }catch(error){outcome.error=error.message;console.error(error);process.exitCode=1;}
 finally{

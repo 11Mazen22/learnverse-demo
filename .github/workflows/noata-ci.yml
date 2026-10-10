@@ -108,6 +108,7 @@ jobs:
           for (const path of [
             'artifacts/noata-browser/outcome.json',
             'artifacts/noata-database/outcome.json',
+            'artifacts/noata-recovery-fixture/outcome.json',
             'artifacts/noata-documents/pdf-readback.json',
             'artifacts/noata-documents/native-pdf-readback.json',
           ]) {

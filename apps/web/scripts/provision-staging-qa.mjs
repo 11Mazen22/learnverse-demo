@@ -11,6 +11,8 @@
  * NOATA_QA_STUDENT_EMAIL/PASSWORD, NOATA_QA_TEACHER_EMAIL/PASSWORD,
  * NOATA_QA_ADMIN_EMAIL/PASSWORD, NOATA_QA_CONTROLLED_EMAILS=YES,
  * NOATA_QA_ENABLE_PROVISION=YES.
+ * Opaque sb_secret_ keys additionally require NOATA_STAGING_ADMIN_KEY_REF
+ * to identify the approved staging project; legacy JWTs must claim it.
  *
  * No privileges are inferred from user_metadata or Google profile fields.
  */

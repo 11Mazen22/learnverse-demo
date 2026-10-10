@@ -38,6 +38,24 @@ export function requireProvisionAuthorization(env,args){
     throw Error("The staged account creation guard has not been explicitly authorized");
   if(!env.NOATA_STAGING_SERVICE_ROLE_KEY||!env.NOATA_STAGING_PUBLISHABLE_KEY)
     throw Error("Missing staging-only Supabase credentials in the protected environment");
+  const adminKey=env.NOATA_STAGING_SERVICE_ROLE_KEY;
+  if(adminKey.startsWith('sb_secret_')) {
+    // Opaque keys have no decodable project claim. Require owner-provided
+    // attribution before the existing real Auth Admin preflight is allowed.
+    if(env.NOATA_STAGING_ADMIN_KEY_REF!==STAGING_REF)
+      throw Error("Opaque Auth Admin key requires explicit staging project attribution");
+  } else {
+    let claims;
+    try {
+      const parts=adminKey.split('.');
+      if(parts.length!==3||!parts.every(p=>/^[A-Za-z0-9_-]+$/.test(p)))throw Error();
+      claims=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));
+    } catch { throw Error("Invalid staging Auth Admin credential format"); }
+    if(claims.role!=='service_role'||claims.ref!==STAGING_REF)
+      throw Error("Auth Admin credential belongs to an unauthorized project or role");
+    // Claims are attribution only; the actual server verifies the signature
+    // and administrative permission before any account writes.
+  }
   if(env.NOATA_STAGING_ORIGIN &&
      env.NOATA_STAGING_ORIGIN!=="https://noata-git-noata-aura-platform-overhaul-20261008-noata.vercel.app")
     throw Error("Refusing a noncanonical preview origin");
