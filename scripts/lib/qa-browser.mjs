@@ -1,6 +1,6 @@
 // Full Chrome QA transport. Serverless PDF flags deliberately do not enter here.
 import {spawn, spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, readdir, rm, statfs, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readFile, readdir, rm, statfs, writeFile} from 'node:fs/promises';
 import {createWriteStream} from 'node:fs';
 import {finished} from 'node:stream/promises';
 import {join} from 'node:path';
@@ -70,7 +70,31 @@ function loopbackJson(port,path){
   });
 }
 
-export async function launchQaBrowser({executablePath=findQaChrome(),artifactsDir,startupTimeoutMs=30000,commandTimeoutMs=12000}={}){
+// A Linux Chrome SIGTRAP before CDP readiness has occurred on otherwise healthy
+// hosted runners. Retry that startup failure once, after complete cleanup, and
+// retain its original evidence. Application assertions and later crashes never
+// enter this retry path; the cause of the startup trap is still unconfirmed.
+export async function launchQaBrowser(options={}){
+  const failedStartupAttempts=[];
+  for(let attempt=1;attempt<=2;attempt++){
+    try{return await launchQaBrowserOnce({...options,failedStartupAttempts});}
+    catch(error){
+      const diagnostic=error.diagnostics;
+      if(attempt!==1||diagnostic?.readyAt||diagnostic?.exit?.signal!=='SIGTRAP'||
+        !diagnostic.profileRemoved||diagnostic.cleanupErrors.length)throw error;
+      const artifactDirectory=join(options.artifactsDir,'startup-attempt-1');
+      await mkdir(artifactDirectory,{recursive:true});
+      await Promise.all(['chromium.log','browser-startup.json'].map(name=>
+        copyFile(join(options.artifactsDir,name),join(artifactDirectory,name))));
+      failedStartupAttempts.push({attempt,artifactDirectory,error:diagnosticError(error),
+        pid:diagnostic.pid,profile:diagnostic.profile,exit:diagnostic.exit});
+      console.warn(`Chrome startup SIGTRAP; one retry after cleanup. Original diagnostics: ${artifactDirectory}`);
+      await delay(500);
+    }
+  }
+}
+
+async function launchQaBrowserOnce({executablePath=findQaChrome(),artifactsDir,startupTimeoutMs=30000,commandTimeoutMs=12000,failedStartupAttempts=[]}={}){
   if(!executablePath)throw Error('Browser QA requires full Chrome; run scripts/install-qa-chrome.mjs or set NOATA_CHROMIUM_PATH');
   await mkdir(artifactsDir,{recursive:true});
   const root=await mkdtemp(join(tmpdir(),'noata-qa-chrome-'));
@@ -79,7 +103,7 @@ export async function launchQaBrowser({executablePath=findQaChrome(),artifactsDi
   const args=qaChromeArgs(profile);
   const diagnostics={executablePath,args,pid:null,profile,profileRemoved:false,startedAt:new Date().toISOString(),
     readyAt:null,port:null,version:null,spawnError:null,exit:null,webSocket:{url:null,error:null,close:null},
-    lastReadinessError:null,commandTimeouts:[],lastCommand:null,cleanupErrors:[],proxyEnvironmentPresent:Object.fromEntries(['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','NODE_USE_ENV_PROXY'].map(name=>[name,Boolean(process.env[name])]))};
+    lastReadinessError:null,commandTimeouts:[],lastCommand:null,cleanupErrors:[],failedStartupAttempts:[...failedStartupAttempts],proxyEnvironmentPresent:Object.fromEntries(['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','NODE_USE_ENV_PROXY'].map(name=>[name,Boolean(process.env[name])]))};
   diagnostics.resourcesBefore=await resourceSnapshot();
   const log=createWriteStream(join(artifactsDir,'chromium.log'),{flags:'w'});
   let logError;log.on('error',error=>{logError=error;});
