@@ -4052,6 +4052,11 @@ a.noata-sign-in:focus-visible {
 .noata-user-account{max-width:240px;overflow-wrap:anywhere}
 .noata-user-account>[role=alert]{display:block;color:var(--danger);font-size:11px}
 @media(max-width:390px){.aura-inbox-item{gap:10px}.aura-inbox-marker{flex-basis:32px;height:32px}.noata-user-account{max-width:165px}}
+/* Keep every header action visible when account controls cannot fit beside the page title. */
+@media(max-width:390px){
+  .shell-topbar{flex-wrap:wrap;gap:10px;padding-block:10px}
+  .shell-topbar .top-actions{max-width:100%;flex-wrap:wrap;margin-inline-start:auto}
+}
 .aura-quran-chapter-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}
 .aura-quran-chapter-nav button{border:1px solid var(--line);border-radius:12px;min-height:44px;padding:8px 16px;background:var(--surface);color:var(--ink)}
 .aura-quran-chapter-nav span,.aura-quran-notice{color:var(--muted);font-size:14px}
