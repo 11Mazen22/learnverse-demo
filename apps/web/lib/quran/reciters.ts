@@ -54,7 +54,7 @@ export function normalizeQuranQuery(value: string): string {
 }
 export type Chapter = { number: number; name: string; englishName: string; numberOfAyahs: number; revelationType?: string };
 export type Verse = { number: number; globalNumber: number; text: string; audio: string | null };
-export type QuranSource = { name: string; edition: string; reference: string; terms?: string; audioEdition?: string };
+export type QuranSource = { name: string; edition: string; reference: string; terms?: string; audioEdition?: string | null };
 export type ChapterResponse = { surah: Chapter; verses: Verse[]; source: QuranSource };
 export async function quranFetcher<T>(url: string): Promise<T> {
   const response = await fetch(url, { signal: AbortSignal.timeout(20000) });

@@ -1,3 +1,4 @@
+import { AYAH_RECORDINGS, listedRecordings, verseDirectory } from "@/lib/quran/verse-audio";
 import { NextRequest, NextResponse } from "next/server";
 import {
   canonicalSurah,
@@ -9,7 +10,7 @@ import {
   audioEditionCandidates,
   matchingSurahs,
 } from "@/lib/quran/source";
-import { reciterCatalogue } from "@/lib/quran/reciters";
+import { reciterCatalogue, REQUESTED_RECITERS, type ReciterId } from "@/lib/quran/reciters";
 import { createVerseIndex, searchVerses } from "@/lib/quran/search";
 type RawVerse = {
   numberInSurah?: number;
@@ -43,6 +44,33 @@ const SOURCE = {
   terms: "https://alquran.cloud/terms-and-conditions",
   audioEdition: "ar.alafasy",
 };
+const directories = new Map<ReciterId, { expires: number; result: Promise<Record<number, number[]>> }>();
+function recordingDirectory(reciter: ReciterId, url: string) {
+  const cached = directories.get(reciter);
+  if (cached && cached.expires > Date.now()) return cached.result;
+  const result = (async () => {
+    // Provider HTML exceeds Next's 2 MB cache limit; retain only the compact filename index.
+    const response = await fetch(url, { signal: AbortSignal.timeout(12000), cache: "no-store", redirect: "error" });
+    if (!response.ok) throw Error("Ayah recording catalogue unavailable");
+    if (Number(response.headers.get("content-length")) > 8 * 1024 * 1024 || !response.body) throw Error("Unexpected recording directory size");
+    const reader = response.body.getReader(), decoder = new TextDecoder();
+    let bytes = 0, html = "";
+    try {
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        bytes += part.value.byteLength;
+        if (bytes > 8 * 1024 * 1024) throw Error("Recording directory too large");
+        html += decoder.decode(part.value, { stream: true });
+      }
+      html += decoder.decode();
+    } finally { await reader.cancel().catch(() => undefined); }
+    if (!html.includes(`/data/${AYAH_RECORDINGS[reciter]!.folder}/`)) throw Error("Unexpected recording directory");
+    return listedRecordings(html, reciter);
+  })().catch(error => { directories.delete(reciter); throw error; });
+  directories.set(reciter, { expires: Date.now() + 86400_000, result });
+  return result;
+}
 let indexed: Promise<ReturnType<typeof createVerseIndex>> | null = null;
 let indexExpires = 0;
 async function corpusIndex() {
@@ -58,6 +86,15 @@ async function corpusIndex() {
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   try {
+    if (query.has("verseReciter")) {
+      const reciter = query.get("verseReciter") as ReciterId;
+      const surah = Number(query.get("surah"));
+      if (!REQUESTED_RECITERS.some(item => item.id === reciter) || !Number.isInteger(surah) || surah < 1 || surah > 114) return NextResponse.json({ error: "Invalid reciter or Surah" }, { status: 400 });
+      const directory = verseDirectory(reciter);
+      if (!directory) return NextResponse.json({ reciter, surah, verses: [], label: null });
+      const recordings = await recordingDirectory(reciter, directory);
+      return NextResponse.json({ reciter, surah, verses: recordings[surah] ?? [], label: AYAH_RECORDINGS[reciter]!.label });
+    }
     if (query.get("reciters") === "1") {
       const response = await fetch("https://www.mp3quran.net/api/v3/reciters?language=ar", {
         headers: { Accept: "application/json" },
@@ -80,7 +117,8 @@ export async function GET(request: NextRequest) {
     if (search !== null) {
       const term = search.trim();
       const selected = Number(query.get("selected") ?? 1);
-      if (term.length < 1 || term.length > 50 || !Number.isInteger(selected) || selected < 1 || selected > 114)
+      const within = query.has("within") ? Number(query.get("within")) : undefined;
+      if (term.length < 1 || term.length > 50 || !Number.isInteger(selected) || selected < 1 || selected > 114 || (within !== undefined && (!Number.isInteger(within) || within < 1 || within > 114)))
         return NextResponse.json(
           { error: "اكتب رقم آية أو عبارة بحث لا تتجاوز ٥٠ حرفًا." },
           { status: 400 },
@@ -94,10 +132,10 @@ export async function GET(request: NextRequest) {
         : [];
       if(verseResult.status==="rejected" && !surahMatches.length)throw Error("Search providers unavailable");
       const matches = verseResult.status === "fulfilled"
-        ? searchVerses(verseResult.value, term, selected)
+        ? searchVerses(verseResult.value, term, selected, within)
         : { results: [], total: 0 };
       return NextResponse.json({
-        ...matches,surahs:surahMatches,
+        ...matches,surahs:within === undefined ? surahMatches : surahMatches.filter(s => s.number === within),
         partial:verseResult.status==="rejected",
         source: SOURCE,
       });
@@ -113,6 +151,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({error:"قارئ غير مدعوم"},{status:400});
     const text = await remote("/surah/" + surah + "/quran-uthmani");
     const verses = canonicalSurah(text, surah);
+    if (query.get("text") === "1") return NextResponse.json({
+      surah: { number: surah, name: String(text.name), englishName: String(text.englishName ?? ""), numberOfAyahs: verses.length, revelationType: String(text.revelationType ?? "") },
+      verses: verses.map(v => ({ ...v, audio: null })), source: { ...SOURCE, audioEdition: null },
+    });
     let recitation: Record<number, string> = {};
     let usedAudioEdition: string | null = null;
     // Alternative editions are only permitted when they belong to the same

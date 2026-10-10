@@ -152,6 +152,9 @@ async function verifyQuranControls(){
         if(params.get("reciters")==="1"){
           return new Response(JSON.stringify({reciters:[]}),{status:200,headers:{"Content-Type":"application/json"}});
         }
+        if(params.has("verseReciter")){
+          return new Response(JSON.stringify({reciter:params.get("verseReciter"),surah:Number(params.get("surah")),verses:[],label:null}),{status:200,headers:{"Content-Type":"application/json"}});
+        }
         if(params.get("list")==="1"){
           return new Response(JSON.stringify({surahs:[
             {number:1,name:"الفاتحة",englishName:"Al-Faatiha",numberOfAyahs:2},
@@ -191,15 +194,16 @@ async function verifyQuranControls(){
     await waitFor(async()=>await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran chapter navigation");
     invariant(await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran surah chooser");
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"Long Surah default shows only five verses");
-    invariant(await evaluate('document.querySelector(".noata-quran-preview-toggle button")?.getAttribute("aria-expanded")==="false"'),"Compact five-Ayah Surah disclosed accessibly");
-    await evaluate('document.querySelector(".noata-quran-preview-toggle button").click()');
+    invariant(await evaluate('document.querySelector(".mushaf-expand button")?.getAttribute("aria-expanded")==="false"'),"Compact five-Ayah Surah disclosed accessibly");
+    await evaluate('document.querySelector(".mushaf-expand button").click()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===8'),"Full Surah expansion reveals all verified verses");
-    await evaluate('document.querySelector(".noata-quran-preview-toggle button").click()');
+    await evaluate('document.querySelector(".mushaf-expand button").click()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"Surah collapse restores five-Ayah view");
-    await evaluate('(()=>{const e=document.querySelector("select[aria-label=\\\"اختيار الشيخ للتلاوة\\\"]");e.value="ar.sudais";e.dispatchEvent(new Event("change",{bubbles:true}));})()');
-    await waitFor(async()=>await evaluate('window.__noataLastQuranReciter==="ar.sudais"'),"Sudais selection triggers own audio API edition");
-    await waitFor(async()=>await evaluate('!!document.querySelector(".noata-quran-audio-dock .noata-quran-audio-unavailable")'),"Unavailable recitation announced without fake playback");
-    invariant(await evaluate('document.querySelectorAll(".aura-quran-ayah-actions button[aria-label=\\\"استمع لتلاوة الآية\\\"]").length===0'),"Unavailable Sudais fixture never invents playable verse buttons");
+    await evaluate('document.querySelectorAll(".mushaf-reciter-card")[7].click()');
+    await waitFor(async()=>await evaluate('window.__noataLastQuranReciter==="ar.sudais"'),"Sudais selection triggers own repaired audio API edition");
+    invariant(await evaluate('document.querySelectorAll(".mushaf-player audio").length===1 && document.querySelectorAll("audio").length===1'),"Mushaf uses exactly one player");
+    invariant(await evaluate('document.querySelectorAll(".aura-quran-ayah-actions button[aria-label^=\\\"تلاوة الآية\\\"]:not(:disabled)").length===0'),"Unavailable Sudais fixture keeps verse controls disabled");
+    invariant(await evaluate('document.querySelector(".mushaf-player-play").disabled'),"Unavailable chapter catalogue cannot invent playback");
 
     await evaluate('(()=>{const el=document.querySelector("input[aria-label=\\\"البحث في القرآن\\\"]");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"التجريبية");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
     await evaluate('document.querySelector(".aura-quran-search")?.requestSubmit()');

@@ -1,0 +1,14 @@
+"use client";
+import { Icon } from "@/components/ui/icon";
+import type { Verse } from "@/lib/quran/reciters";
+export function QuranVerses({ verses, surah, bookmarks, size, mode, highlighted, onBookmark, onPlayVerse, playingVerse, pendingVerse, reciterName, availableVerses }: {
+  verses: Verse[]; surah: number; bookmarks: string[]; size: number; mode: "verses" | "flow"; highlighted: string | null;
+  onBookmark: (number: number) => void; onPlayVerse: (number: number) => void; playingVerse: number | null; pendingVerse: number | null; reciterName: string; availableVerses: number[];
+}) {
+  return <div id="mushaf-verse-list" className={`mushaf-verses ${mode === "flow" ? "mushaf-flow" : ""}`}>
+    {verses.map(v => { const id = `${surah}:${v.number}`; const saved = bookmarks.includes(id); const playing = playingVerse === v.number; const pending = pendingVerse === v.number; const available = availableVerses.includes(v.number); return <article id={`ayah-${surah}-${v.number}`} tabIndex={-1} className={`aura-quran-ayah ${highlighted === id ? "mushaf-highlighted" : ""} ${playing ? "mushaf-playing" : ""}`} key={id} aria-label={`الآية ${v.number.toLocaleString("ar-EG")}${playing ? " · تُتلى الآن" : ""}`} aria-current={playing ? "true" : undefined}>
+      {mode === "verses" && <div className="aura-quran-ayah-actions"><span className="aura-ayah-number">{v.number.toLocaleString("ar-EG")}</span><button type="button" onClick={() => onBookmark(v.number)} aria-pressed={saved} aria-label={saved ? "إزالة العلامة" : "حفظ موضع الآية"}><Icon name="pin" size={16}/></button><button type="button" disabled={!available} onClick={() => onPlayVerse(v.number)} aria-pressed={playing} aria-label={`${pending ? "إلغاء تحميل" : playing ? "إيقاف" : "تلاوة"} الآية ${v.number.toLocaleString("ar-EG")} بصوت ${reciterName}${available ? "" : " · التسجيل غير متاح"}`}><Icon name={pending ? "stop" : playing ? "pause" : "volume"} size={16}/></button></div>}
+      <p className="aura-quran-verse" dir="rtl" lang="ar" style={{ fontSize: `${(32 * size / 100).toFixed(1)}px` }}>{v.text}{mode === "flow" ? <><button className="mushaf-verse-bookmark aura-quran-verse-number" type="button" aria-pressed={saved} aria-label={`${saved ? "إزالة علامة" : "حفظ موضع"} الآية ${v.number.toLocaleString("ar-EG")}`} onClick={() => onBookmark(v.number)}> ﴿{v.number.toLocaleString("ar-EG")}﴾</button><button className="mushaf-verse-bookmark" type="button" disabled={!available} aria-pressed={playing} onClick={() => onPlayVerse(v.number)} aria-label={`${playing ? "إيقاف" : "تلاوة"} الآية ${v.number.toLocaleString("ar-EG")} بصوت ${reciterName}`}><Icon name={pending ? "stop" : playing ? "pause" : "volume"} size={16}/></button></> : <span className="aura-quran-verse-number"> ﴿{v.number.toLocaleString("ar-EG")}﴾</span>}</p>
+    </article>; })}
+  </div>;
+}
