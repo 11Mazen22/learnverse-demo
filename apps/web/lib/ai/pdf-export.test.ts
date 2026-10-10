@@ -1,6 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {documentHtml, validatePdfInput, MAX_PDF_EXPORT_CHARS} from "./pdf-export.ts";
+import {documentDirection} from "./document-direction.ts";
+
+test("English documents use LTR while Arabic documents retain RTL", async () => {
+  assert.equal(documentDirection("## 123 English heading"), "ltr");
+  assert.equal(documentDirection("## 123 عنوان عربي"), "rtl");
+  const html = await documentHtml("# English lesson\nThis is readable English.", "Lesson", {arabic:"",latin:""});
+  assert.ok(html.includes('<html lang="en" dir="ltr">'));
+});
 
 test("PDF export preserves Arabic, tables, lists and mixed-direction mathematical content",async()=>{
   const html=await documentHtml("## مقدمة\nالعربية مع English\n\n| مفهوم | نتيجة |\n|---|---|\n| سرعة | ٣ |\n\n1. خطوة أولى\n2. خطوة ثانية\n\n$$x^2 + y^2 = z^2$$","درس عربي",{arabic:"",latin:""});

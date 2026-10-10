@@ -80,12 +80,16 @@ function clean(text: string) {
 }
 
 function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null) {
+  const specialized=model==="Fanar-Sadiq"||model==="Fanar-Sadiq-2";
+  // Sadiq is a grounded service with its own prompting and no token stream.
+  // Keep a live heartbeat while waiting for its actual JSON response.
+  const providerBody=specialized?{model,messages:(body.messages as {role:string}[]).filter(m=>m.role!=="system"),stream:false}:{...body,stream:true};
   return new Response(createFanarStream({
     model, clean,
     request: (signal) => fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + FANAR_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...body, stream: true }), signal,
+      body: JSON.stringify(providerBody), signal,
     }),
     persist: (result, status) => completeReceipt(receipt, result, status),
   }), { headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-store", "X-Accel-Buffering": "no" } });

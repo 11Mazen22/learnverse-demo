@@ -5,6 +5,7 @@ import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import {documentHtml, escapeHtml} from "./pdf-export.ts";
 import {acquirePdfSlot} from "./pdf-pressure.ts";
+import {documentDirection} from "./document-direction.ts";
 export {PdfBusyError} from "./pdf-pressure.ts";
 
 // Per-instance pressure control. The deployment must also enforce request quotas.
@@ -35,13 +36,19 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
       else void request.abort();
     });
     await page.setContent(await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64")}),{waitUntil:"networkidle0",timeout:15_000});
-    await page.evaluate(() => document.fonts.ready);
+    // Explicitly load both subsets: English-only documents never trigger the
+    // Arabic subset naturally, and an unused font is not a failed font.
+    await page.evaluate(async () => {
+      await Promise.all([document.fonts.load('12px Noata', 'English'), document.fonts.load('12px Noata', 'العربية')]);
+      await document.fonts.ready;
+    });
     const fontsLoaded = await page.evaluate(() => [...document.fonts].length === 2 && [...document.fonts].every(font => font.status === "loaded"));
     if (!fontsLoaded) throw new Error("PDF fonts failed to load; refusing a blank document");
     if(screenshotPath) { await page.setViewport({width:794,height:1123}); await page.screenshot({path:screenshotPath as `${string}.png`,fullPage:false}); }
-    const template = `<style>@font-face{font-family:Noata;src:url(data:font/woff2;base64,${arabic.toString("base64")})}body{font-family:Noata,sans-serif;font-feature-settings:"rlig" 0,"liga" 0,"clig" 0}</style>`;
+    const direction = documentDirection(text);
+    const template = `<style>@font-face{font-family:Noata;src:url(data:font/woff2;base64,${arabic.toString("base64")});unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}@font-face{font-family:Noata;src:url(data:font/woff2;base64,${latin.toString("base64")})}body{font-family:Noata,sans-serif;font-feature-settings:"rlig" 0,"liga" 0,"clig" 0}</style>`;
     const bytes = await page.pdf({format:"A4",printBackground:true,preferCSSPageSize:true,displayHeaderFooter:true,
-      headerTemplate:template+`<div style="font:9px Noata,sans-serif;color:#44618a;width:100%;margin:0 18mm;text-align:right;direction:rtl">${escapeHtml(title)}</div>`,
+      headerTemplate:template+`<div style="font:9px Noata,sans-serif;color:#44618a;width:100%;margin:0 18mm;text-align:${direction === "rtl" ? "right" : "left"};direction:${direction}">${escapeHtml(title)}</div>`,
       footerTemplate:template+'<div style="font:9px sans-serif;color:#44618a;width:100%;margin:0 18mm;display:flex;justify-content:space-between"><span>Noata · Learn. Grow. Achieve.</span><span class="pageNumber"></span></div>',
       timeout:15_000,tagged:true});
     if(bytes.byteLength > 15*1024*1024) throw new Error("PDF output exceeds size limit");

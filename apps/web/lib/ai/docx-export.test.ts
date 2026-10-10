@@ -5,6 +5,11 @@ import { join } from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createNoataDocx } from "./docx-export.ts";
+test("Word paragraphs independently retain English and Arabic reading order", () => {
+  const raw = new TextDecoder().decode(createNoataDocx("English paragraph.\nفقرة عربية."));
+  assert.match(raw, /<w:bidi w:val="0"\/><w:jc w:val="left"\/>/);
+  assert.match(raw, /<w:bidi w:val="1"\/><w:jc w:val="right"\/>/);
+});
 test("Noata Word export is a real ZIP/OOXML package with Arabic RTL and escaped content", () => {
   const bytes=createNoataDocx("# إنجازاتي\nأنا أذاكر & أبرمج <كل يوم>");
   assert.equal(bytes[0],80);assert.equal(bytes[1],75);

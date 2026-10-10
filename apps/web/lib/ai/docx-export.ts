@@ -4,6 +4,7 @@
  * Uses ZIP STORE records, CRC32 and proper Office relationships.
  * No server, third-party key or hidden PDF rendering dependency.
  */
+import {documentDirection} from "./document-direction.ts";
 const utf8 = new TextEncoder();
 function xml(value: string) {
   return value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,"")
@@ -62,9 +63,10 @@ function wordDocument(text:string) {
     const heading=/^(#{1,2})\s+(.+)$/.exec(line);
     const value=heading?heading[2]:line;
     const style=heading?(heading[1].length===1?"Heading1":"Heading2"):null;
-    return '<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="right"/>' +
+    const rtl = documentDirection(value) === "rtl";
+    return '<w:p><w:pPr><w:bidi w:val="'+(rtl?'1':'0')+'"/><w:jc w:val="'+(rtl?'right':'left')+'"/>' +
       (style?'<w:pStyle w:val="'+style+'"/>':"")+'</w:pPr>'+
-      (value?'<w:r><w:rPr><w:rtl w:val="1"/><w:rFonts w:cs="Arial" w:ascii="Arial" w:hAnsi="Arial"/></w:rPr><w:t xml:space="preserve">'+xml(value)+'</w:t></w:r>':"")+'</w:p>';
+      (value?'<w:r><w:rPr><w:rtl w:val="'+(rtl?'1':'0')+'"/><w:rFonts w:cs="Arial" w:ascii="Arial" w:hAnsi="Arial"/></w:rPr><w:t xml:space="preserve">'+xml(value)+'</w:t></w:r>':"")+'</w:p>';
   }).join("");
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
@@ -91,7 +93,7 @@ export function createNoataDocx(text:string):Uint8Array {
   const styles='<?xml version="1.0" encoding="UTF-8"?>'+
     '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
     '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:rPrDefault>'+
-    '<w:pPrDefault><w:pPr><w:bidi w:val="1"/><w:jc w:val="right"/></w:pPr></w:pPrDefault></w:docDefaults>'+
+    '<w:pPrDefault><w:pPr><w:bidi w:val="0"/><w:jc w:val="left"/></w:pPr></w:pPrDefault></w:docDefaults>'+
     '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:rPr><w:b/><w:sz w:val="38"/></w:rPr></w:style>'+
     '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:rPr><w:b/><w:sz w:val="30"/></w:rPr></w:style>'+
     '</w:styles>';

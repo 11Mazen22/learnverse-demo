@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const input = await readPdfInput(request, "markdown");
     const release = acquirePdfSlot();
     try {
-      const {bytes, pageCount} = await generateArabicPdf({title: input.title?.trim() || "مستند Noata", markdown: input.text, author: "Noata"});
+      const {bytes, pageCount} = await generateArabicPdf({title: input.title?.trim() || "Noata document", markdown: input.text, author: "Noata", direction: "auto"});
       if (bytes.byteLength > 15 * 1024 * 1024) return fail(413, "المستند الناتج أكبر من الحد المسموح.");
       return new Response(Uint8Array.from(bytes), {headers: {
         "Content-Type": "application/pdf", "Content-Disposition": "attachment; filename=noata-document-text.pdf",

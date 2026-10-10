@@ -25,7 +25,15 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
       try {
         emit({ ready: true, model: options.model });
         const response = await options.request(abort.signal);
-        if (!response.ok || !response.body) throw Error(`PROVIDER_HTTP_${response.status}`);
+        if (!response.ok || !response.body) {
+          // Interpret provider failures without logging response bodies, prompts or keys.
+          const rejected=await response.clone().json().catch(()=>null);
+          const detail=typeof rejected?.detail==="string"?rejected.detail:typeof rejected?.error?.message==="string"?rejected.error.message:typeof rejected?.message==="string"?rejected.message:"";
+          if (/not authorized|unauthorized|permission|not enabled|not allowed|access denied|additional authorization/i.test(detail))throw Error("PROVIDER_MODEL_ACCESS_DENIED");
+          if (/stream/i.test(detail)&&/not support|unsupported|not available|cannot/i.test(detail))throw Error("PROVIDER_STREAM_UNSUPPORTED");
+          if(Array.isArray(rejected?.detail))console.warn("Fanar validation fields",rejected.detail.flatMap((item:{loc?:unknown[]})=>(item.loc??[]).filter(x=>typeof x==="string"&&/^(body|messages|role|content|model|stream|temperature|max_tokens)$/.test(x))));
+          throw Error(`PROVIDER_HTTP_${response.status}`);
+        }
         if (!response.headers.get("content-type")?.includes("text/event-stream")) {
           delivery = "buffered";
           const data = await response.json();
@@ -75,7 +83,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
           emit({ ...partial, done: true });
         } else {
           await options.persist(null, "failed").catch(() => {});
-          const code=error instanceof Error && /^PROVIDER_HTTP_\d{3}$/.test(error.message)?error.message:"PROVIDER_STREAM_INTERRUPTED";
+          const code=error instanceof Error && /^(PROVIDER_HTTP_[0-9]{3}|PROVIDER_MODEL_ACCESS_DENIED|PROVIDER_STREAM_UNSUPPORTED)$/.test(error.message)?error.message:"PROVIDER_STREAM_INTERRUPTED";
           console.warn("Fanar stream failure",code);
           emit({ error: code });
         }
