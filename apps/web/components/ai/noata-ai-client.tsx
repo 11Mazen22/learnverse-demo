@@ -1,4 +1,5 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 /*
  * Noata AI full workspace.
  * UX structure and interaction patterns are adapted from Open WebUI v0.6.5
@@ -13,9 +14,10 @@ import { useEffect, useMemo, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
 import {
   CHAT_MODEL_CARDS,
+  getChatModelCards,
   resolveSuggestedModel,
 } from "@/lib/ai/model-routing";
-import { TOOLS } from "@/lib/ai/workspace";
+import { toolsForLocale } from "@/lib/ai/workspace";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
 import { DocumentSourcesMessage } from "./document-sources-message";
@@ -49,6 +51,8 @@ function downloadText(filename: string, text: string, type = "text/plain") {
 }
 
 export function NoataAIClient() {
+  const t=useTranslation(),locale=useLocale();
+  const CHAT_MODEL_CARDS=getChatModelCards(locale),TOOLS=toolsForLocale(locale);
   const seenAccount = useVerifiedAccount();
   useEffect(() => {
     if (!seenAccount.loading) markFeatureSeen("ai", AI_INTRO_VERSION, seenAccount.user?.id ?? null);
@@ -190,17 +194,17 @@ export function NoataAIClient() {
     if (format === "docx") {
       const body =
         "# " +
-        (activeConversation?.title ?? "محادثة Noata AI") +
+        (activeConversation?.title ?? t("محادثة Noata AI","Noata AI conversation")) +
         "\n\n" +
         messages
           .filter((m) => m.role !== "system")
           .map(
             (m) =>
-              (m.role === "user" ? "## أنت" : "## Noata AI") + "\n" + m.content,
+              (m.role === "user" ? t("## أنت","## You") : "## Noata AI") + "\n" + m.content,
           )
           .join("\n\n");
       if (body.length > 200000) {
-        setNotice("المحادثة طويلة جدًا لملف واحد. صدّرها بصيغة Markdown.");
+        setNotice(t("المحادثة طويلة جدًا لملف واحد. صدّرها بصيغة Markdown.","This conversation is too long for one document. Export it as Markdown."));
         return;
       }
       downloadNoataDocx(body, title + "-" + stamp + ".docx");
@@ -225,7 +229,7 @@ export function NoataAIClient() {
         .filter((m) => m.role !== "system")
         .map(
           (m) =>
-            (m.role === "user" ? "## أنت\n\n" : "## Noata AI\n\n") + m.content,
+            (m.role === "user" ? t("## أنت\n\n","## You ") : "## Noata AI\n\n") + m.content,
         )
         .join("\n\n---\n\n");
       downloadText(
@@ -234,7 +238,7 @@ export function NoataAIClient() {
         "text/markdown",
       );
     }
-    setNotice("تم تصدير المحادثة.");
+    setNotice(t("تم تصدير المحادثة.","Conversation exported."));
   }
 
   const sidebar = (
@@ -275,11 +279,8 @@ export function NoataAIClient() {
         {dragging && (
           <div className="owui-drop-overlay" role="status">
             <Icon name="image" size={34} />
-            <strong>ارفع مستنداتك أو صورتك</strong>
-            <span>
-              حتى ٤ ملفات TXT أو DOCX وملف صورة واحد — الملفات غير المدعومة تظهر
-              رسالة توضيحية
-            </span>
+            <strong>{t("ارفع مستنداتك أو صورتك","Drop your documents or image")}</strong>
+            <span>{t("حتى ٤ ملفات TXT أو DOCX وملف صورة واحد — الملفات غير المدعومة تظهر رسالة توضيحية","Up to 4 TXT or DOCX files and one image. Unsupported files show an explanation.")}</span>
           </div>
         )}
 
@@ -289,7 +290,7 @@ export function NoataAIClient() {
               type="button"
               className="owui-icon mobile-sidebar-trigger"
               onClick={() => setMobileHistory(true)}
-              aria-label="فتح سجل المحادثات"
+              aria-label={t("فتح سجل المحادثات","Open conversation history")}
             >
               <Icon name="menu" />
             </button>
@@ -298,7 +299,7 @@ export function NoataAIClient() {
                 type="button"
                 className="owui-icon desktop-sidebar-trigger"
                 onClick={() => setSidebarCollapsed(false)}
-                aria-label="فتح القائمة الجانبية"
+                aria-label={t("فتح القائمة الجانبية","Open sidebar")}
               >
                 <Icon name="sidebar" />
               </button>
@@ -312,10 +313,10 @@ export function NoataAIClient() {
                 aria-expanded={modelMenuOpen}
               >
                 <span>
-                  <small>النموذج</small>
+                  <small>{t("النموذج","Model")}</small>
                   <strong>
                     {model === "auto"
-                      ? "تلقائي · الأنسب لسؤالك"
+                      ? t("تلقائي · الأنسب لسؤالك","Auto · matched to your request")
                       : (CHAT_MODEL_CARDS.find((c) => c.id === model)?.arabic ??
                         model)}
                   </strong>
@@ -326,11 +327,11 @@ export function NoataAIClient() {
                 <div
                   className="owui-model-menu aura-model-gallery"
                   role="group"
-                  aria-label="النماذج المهيأة على خادم Noata"
+                  aria-label={t("النماذج المهيأة على خادم Noata","Models configured for Noata")}
                 >
                   <div className="aura-model-gallery-head">
-                    <strong>اختار مساعدك</strong>
-                    <span>فنار · النماذج المهيأة بالخادم</span>
+                    <strong>{t("اختار مساعدك","Choose your assistant")}</strong>
+                    <span>{t("فنار · النماذج المهيأة بالخادم","Fanar · available model routes")}</span>
                   </div>
                   <button
                     type="button"
@@ -348,13 +349,11 @@ export function NoataAIClient() {
                       <Icon name="ai" size={20} />
                     </span>
                     <span className="aura-model-card-copy">
-                      <strong>تلقائي · Aura Smart</strong>
-                      <small>
-                        اختيار مبني على نوع السؤال، وليس نموذجًا ثابتًا
-                      </small>
+                      <strong>{t("تلقائي · Aura Smart","Auto · Aura Smart")}</strong>
+                      <small>{t("اختيار مبني على نوع السؤال، وليس نموذجًا ثابتًا","Selects a model for the task and attachments")}</small>
                       <span className="aura-model-features">
                         {input.trim()
-                          ? "المقترح لهذا السؤال: " +
+                          ? t("المقترح لهذا السؤال: ","Suggested for this request: ") +
                             (CHAT_MODEL_CARDS.find(
                               (c) =>
                                 c.id ===
@@ -365,8 +364,8 @@ export function NoataAIClient() {
                                       attachment.type.startsWith("image/"),
                                   ),
                                 ),
-                            )?.arabic ?? "فنار")
-                          : "محادثة · منطق · أسئلة إسلامية · رؤية"}
+                            )?.arabic ?? t("فنار","Fanar"))
+                          : t("محادثة · منطق · أسئلة إسلامية · رؤية","Chat · reasoning · Islamic questions · vision")}
                       </span>
                     </span>
                     {model === "auto" && <Icon name="check" size={17} />}
@@ -414,10 +413,7 @@ export function NoataAIClient() {
                     ))}
                   </div>
                   <div className="owui-model-menu-foot aura-model-info">
-                    <small>
-                      مهيّأ على Edge Function، والتوفر الفعلي يتضح عند إرسال
-                      الطلب. لا يوجد اختبار صحة مباشر لكل نموذج هنا.
-                    </small>
+                    <small>{t("مهيّأ على Edge Function، والتوفر الفعلي يتضح عند إرسال الطلب. لا يوجد اختبار صحة مباشر لكل نموذج هنا.","A model's availability is confirmed when your request reaches the provider.")}</small>
                     <button
                       type="button"
                       onClick={() => {
@@ -425,8 +421,7 @@ export function NoataAIClient() {
                         setModelMenuOpen(false);
                       }}
                     >
-                      <Icon name="settings" size={14} /> الإعدادات
-                    </button>
+                      <Icon name="settings" size={14} />{t("الإعدادات","Settings")}</button>
                   </div>
                 </div>
               )}
@@ -436,9 +431,7 @@ export function NoataAIClient() {
           <div className="owui-navbar-center">
             {temporary ? (
               <span className="owui-status-pill temporary">
-                <Icon name="clock" size={13} />
-                مؤقتة
-              </span>
+                <Icon name="clock" size={13} />{t("مؤقتة","Temporary")}</span>
             ) : activeConversation ? (
               <span
                 className="owui-chat-heading"
@@ -455,8 +448,8 @@ export function NoataAIClient() {
             <Link
               className="owui-icon"
               href="/"
-              title="الرجوع إلى لوحة Noata"
-              aria-label="الرجوع إلى لوحة Noata"
+              title={t("الرجوع إلى لوحة Noata","Back to Noata")}
+              aria-label={t("الرجوع إلى لوحة Noata","Back to Noata")}
             >
               <Icon name="home" />
             </Link>
@@ -464,8 +457,8 @@ export function NoataAIClient() {
               type="button"
               className="owui-icon"
               onClick={() => setControlsOpen(true)}
-              aria-label="عناصر التحكم"
-              title="عناصر التحكم"
+              aria-label={t("عناصر التحكم","Controls")}
+              title={t("عناصر التحكم","Controls")}
             >
               <Icon name="sliders" />
             </button>
@@ -474,8 +467,8 @@ export function NoataAIClient() {
               className="owui-icon"
               onClick={() => exportConversation("markdown")}
               disabled={!messages.length}
-              aria-label="تصدير المحادثة"
-              title="تصدير المحادثة"
+              aria-label={t("تصدير المحادثة","Export conversation")}
+              title={t("تصدير المحادثة","Export conversation")}
             >
               <Icon name="download" />
             </button>
@@ -484,16 +477,16 @@ export function NoataAIClient() {
               className="owui-icon"
               onClick={() => newChat()}
               disabled={busy}
-              aria-label="محادثة جديدة"
-              title="محادثة جديدة"
+              aria-label={t("محادثة جديدة","New conversation")}
+              title={t("محادثة جديدة","New conversation")}
             >
               <Icon name="edit" />
             </button>
             <button
               type="button"
               className="owui-icon"
-              title="ورشة المذاكرة"
-              aria-label="افتح ورشة المذاكرة"
+              title={t("ورشة المذاكرة","Study workshop")}
+              aria-label={t("افتح ورشة المذاكرة","Open study workshop")}
               onClick={() => setEducationOpen(true)}
             >
               <Icon name="book" size={18} />
@@ -518,7 +511,7 @@ export function NoataAIClient() {
               <span />
               <span />
               <span />
-              <p>بنجهّز مساحة Noata AI…</p>
+              <p>{t("بنجهّز مساحة Noata AI…","Preparing Noata AI…")}</p>
             </div>
           )}
 
@@ -529,35 +522,31 @@ export function NoataAIClient() {
               </div>
               <h1>
                 {signedIn === false
-                  ? "أهلًا بيك في Noata AI"
-                  : "إزاي أقدر أساعدك النهارده؟"}
+                  ? t("أهلًا بيك في Noata AI","Welcome to Noata AI")
+                  : t("إزاي أقدر أساعدك النهارده؟","How can I help today?")}
               </h1>
-              <p>
-                اسأل، ارفع صورة، التقط شاشة، أو اتكلم بصوتك. Noata يساعدك في
-                الشرح والكتابة، مع اختيار نموذج مهيّأ يناسب السؤال. توفّر
-                القدرات يعتمد على الخدمة.
-              </p>
+              <p>{t("اسأل، ارفع صورة، التقط شاشة، أو اتكلم بصوتك. Noata يساعدك في الشرح والكتابة، مع اختيار نموذج مهيّأ يناسب السؤال. توفّر القدرات يعتمد على الخدمة.","Ask a question, attach an image, capture your screen, or use your voice. Noata helps you understand and write, with a model selected for the task. Availability depends on the provider.")}</p>
               <div className="owui-suggestions">
                 {[
                   [
                     "book",
-                    "اشرحلي مفهوم صعب",
-                    "اشرحلي مفهوم صعب بطريقة بسيطة وبعدها اختبر فهمي.",
+                    t("اشرحلي مفهوم صعب","Explain a concept"),
+                    t("اشرحلي مفهوم صعب بطريقة بسيطة وبعدها اختبر فهمي.","Explain a challenging concept simply, then check my understanding."),
                   ],
                   [
                     "target",
-                    "اختبر فهمي",
-                    "اسألني 3 أسئلة متدرجة عن موضوع هقولهولك.",
+                    t("اختبر فهمي","Check my understanding"),
+                    t("اسألني 3 أسئلة متدرجة عن موضوع هقولهولك.","Ask me three questions of increasing difficulty about a topic I choose."),
                   ],
                   [
                     "image",
-                    "حلّل صورة",
-                    "هرفع صورة، ساعدني أفهم كل اللي فيها خطوة بخطوة.",
+                    t("حلّل صورة","Understand an image"),
+                    t("هرفع صورة، ساعدني أفهم كل اللي فيها خطوة بخطوة.","I will upload an image. Help me understand it step by step."),
                   ],
                   [
                     "edit",
-                    "رتّب مذاكرتي",
-                    "ساعدني أعمل خطة مذاكرة واقعية ومنظمة.",
+                    t("رتّب مذاكرتي","Plan my study time"),
+                    t("ساعدني أعمل خطة مذاكرة واقعية ومنظمة.","Help me create a realistic, organized study plan."),
                   ],
                 ].map(([icon, title, prompt]) => (
                   <button
@@ -581,9 +570,7 @@ export function NoataAIClient() {
                 className="aura-education-entry"
                 onClick={() => setEducationOpen(true)}
               >
-                <Icon name="book" size={19} /> افتح ورشة المذاكرة: شرح،
-                اختبارات، ملخصات، وبطاقات مراجعة
-              </button>
+                <Icon name="book" size={19} />{t("افتح ورشة المذاكرة: شرح، اختبارات، ملخصات، وبطاقات مراجعة","Open study workshop: explanations, quizzes, summaries, and flashcards")}</button>
               <button
                 type="button"
                 className="aura-writing-entry"
@@ -593,13 +580,9 @@ export function NoataAIClient() {
                   )
                 }
               >
-                <Icon name="edit" size={18} /> مساحة الكتابة · حرّر، راجع، وصدّر
-                مستندك
-              </button>
+                <Icon name="edit" size={18} />{t("مساحة الكتابة · حرّر، راجع، وصدّر مستندك","Writing studio · edit, preview, and export your document")}</button>
               {signedIn === false && (
-                <Link className="owui-primary-action" href="/login?next=/ai">
-                  سجّل الدخول وابدأ
-                  <Icon name="arrow" size={15} />
+                <Link className="owui-primary-action" href="/login?next=/ai">{t("سجّل الدخول وابدأ","Sign in to get started")}<Icon name="arrow" size={15} />
                 </Link>
               )}
             </div>
@@ -611,12 +594,12 @@ export function NoataAIClient() {
               .map((m, index) => (
                 <article key={m.id} className={"owui-message " + m.role}>
                   <div className="owui-message-avatar" aria-hidden="true">
-                    {m.role === "assistant" ? <NoataLogo size={30} /> : "أنت"}
+                    {m.role === "assistant" ? <NoataLogo size={30} /> : t("أنت","You")}
                   </div>
                   <div className="owui-message-body">
                     <div className="owui-message-meta">
                       <strong>
-                        {m.role === "assistant" ? "Noata AI" : "أنت"}
+                        {m.role === "assistant" ? "Noata AI" : t("أنت","You")}
                       </strong>
                       {m.role === "assistant" && m.model && (
                         <span>{m.model}</span>
@@ -625,8 +608,8 @@ export function NoataAIClient() {
                     {m.role === "assistant" && m.status !== "complete" && (
                       <p className="owui-stream-badge">
                         {m.status === "stopped"
-                          ? "تم إيقاف الرد · محفوظ جزئيًا"
-                          : "رد غير مكتمل · محفوظ جزئيًا"}
+                          ? t("تم إيقاف الرد · محفوظ جزئيًا","Stopped · partial response saved")
+                          : t("رد غير مكتمل · محفوظ جزئيًا","Incomplete · partial response saved")}
                       </p>
                     )}
                     <RichMessage content={m.content} />
@@ -646,9 +629,9 @@ export function NoataAIClient() {
                             <strong>
                               {m.content
                                 .match(/^#{1,3}\s+(.+)$/m)?.[1]
-                                ?.slice(0, 80) || "مسودة من هذه الإجابة"}
+                                ?.slice(0, 80) || t("مسودة من هذه الإجابة","Draft from this answer")}
                             </strong>
-                            <small>حرّر النص · تنزيل Word وPDF وMarkdown</small>
+                            <small>{t("حرّر النص · تنزيل Word وPDF وMarkdown","Edit text · download Word, PDF, or Markdown")}</small>
                           </span>
                           <Icon name="arrow" size={17} />
                         </button>
@@ -665,8 +648,8 @@ export function NoataAIClient() {
                       <button
                         type="button"
                         onClick={() => void copy(m.content)}
-                        title="نسخ"
-                        aria-label="نسخ الرسالة"
+                        title={t("نسخ","Copy")}
+                        aria-label={t("نسخ الرسالة","Copy message")}
                       >
                         <Icon name="copy" size={14} />
                       </button>
@@ -678,8 +661,8 @@ export function NoataAIClient() {
                             setDialog({ kind: "edit", message: m });
                             setEditValue(m.content);
                           }}
-                          title="تعديل"
-                          aria-label="تعديل الرسالة"
+                          title={t("تعديل","Edit")}
+                          aria-label={t("تعديل الرسالة","Edit message")}
                         >
                           <Icon name="edit" size={14} />
                         </button>
@@ -688,8 +671,8 @@ export function NoataAIClient() {
                           <button
                             type="button"
                             onClick={() => setStudioSource(m.content, m.id)}
-                            title="تحرير الرد في مساحة الكتابة"
-                            aria-label="فتح الرد في مساحة الكتابة"
+                            title={t("تحرير الرد في مساحة الكتابة","Edit answer in writing studio")}
+                            aria-label={t("فتح الرد في مساحة الكتابة","Open answer in writing studio")}
                           >
                             <Icon name="edit" size={14} />
                           </button>
@@ -697,8 +680,8 @@ export function NoataAIClient() {
                             type="button"
                             disabled={voiceBusy}
                             onClick={() => void readAloud(m.content, m.id)}
-                            title="استماع"
-                            aria-label="الاستماع للرد"
+                            title={t("استماع","Listen")}
+                            aria-label={t("الاستماع للرد","Listen to answer")}
                           >
                             <Icon name="volume" size={14} />
                           </button>
@@ -710,7 +693,7 @@ export function NoataAIClient() {
                                 onClick={() =>
                                   void send(undefined, "regenerate")
                                 }
-                                title="إعادة توليد الرد"
+                                title={t("إعادة توليد الرد","Regenerate answer")}
                               >
                                 <Icon name="review" size={14} />
                               </button>
@@ -718,7 +701,7 @@ export function NoataAIClient() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void send(undefined, "continue")}
-                                title="كمّل الرد"
+                                title={t("كمّل الرد","Continue answer")}
                               >
                                 <Icon name="arrow" size={14} />
                               </button>
@@ -728,11 +711,7 @@ export function NoataAIClient() {
                       )}
                     </div>
                     {voiceBusy && voiceRequestMessageId === m.id && (
-                      <p className="owui-voice-pending" role="status">
-                        بنجهّز التسجيل الصوتي لهذا الرد…
-                        <button type="button" onClick={stopVoice}>
-                          إلغاء
-                        </button>
+                      <p className="owui-voice-pending" role="status">{t("بنجهّز التسجيل الصوتي لهذا الرد…","Preparing audio for this answer…")}<button type="button" onClick={stopVoice}>{t("إلغاء","Cancel")}</button>
                       </p>
                     )}
                     {audioPlayback?.messageId === m.id && (
@@ -743,7 +722,7 @@ export function NoataAIClient() {
                         onClose={stopVoice}
                         onError={() => {
                           stopVoice();
-                          setNotice("تعذّر تشغيل الصوت. جرّب توليده مرة أخرى.");
+                          setNotice(t("تعذّر تشغيل الصوت. جرّب توليده مرة أخرى.","Could not play the audio. Try generating it again."));
                         }}
                       />
                     )}
@@ -760,7 +739,7 @@ export function NoataAIClient() {
                   <div className="owui-message-meta">
                     <strong>Noata AI</strong>
                     <span className="owui-stream-badge">
-                      {busy ? "يكتب…" : "رد غير مكتمل"}
+                      {busy ? t("يكتب…","Writing…") : t("رد غير مكتمل","Incomplete response")}
                     </span>
                   </div>
                   <RichMessage content={pendingText} />
@@ -770,9 +749,7 @@ export function NoataAIClient() {
                         type="button"
                         onClick={() => void copy(pendingText)}
                       >
-                        <Icon name="copy" size={14} />
-                        نسخ
-                      </button>
+                        <Icon name="copy" size={14} />{t("نسخ","Copy")}</button>
                     </div>
                   )}
                 </div>
@@ -787,7 +764,7 @@ export function NoataAIClient() {
                 <span />
                 <span />
                 <span />
-                <em>{notice || "Noata بتفكر…"}</em>
+                <em>{notice || t("Noata بتفكر…","Noata is working…")}</em>
               </div>
             )}
 
@@ -795,7 +772,7 @@ export function NoataAIClient() {
               <div className="owui-error" role="alert">
                 <Icon name="help" />
                 <div>
-                  <strong>مقدرناش نكمل الطلب</strong>
+                  <strong>{t("مقدرناش نكمل الطلب","Could not complete your request")}</strong>
                   <p>{error}</p>
                 </div>
                 {(messages.at(-1)?.role === "user" ||
@@ -806,9 +783,7 @@ export function NoataAIClient() {
                     <button
                       type="button"
                       onClick={() => void send(undefined, "retry")}
-                    >
-                      إعادة المحاولة
-                    </button>
+                    >{t("إعادة المحاولة","Try again")}</button>
                   )}
               </div>
             )}
@@ -821,7 +796,7 @@ export function NoataAIClient() {
               <div
                 className="aura-document-tray"
                 role="group"
-                aria-label="ملفات المستندات المختارة"
+                aria-label={t("ملفات المستندات المختارة","Selected documents")}
               >
                 {documentFiles.map((file, index) => (
                   <div className="aura-document-chip" key={index}>
@@ -830,7 +805,7 @@ export function NoataAIClient() {
                       className="aura-pending-preview"
                       type="button"
                       title={file.name}
-                      aria-label={"معاينة " + file.name}
+                      aria-label={t("معاينة ","Preview ") + file.name}
                       onClick={() =>
                         setPendingPreview({
                           name: file.name,
@@ -855,22 +830,19 @@ export function NoataAIClient() {
                           old.filter((_, i) => i !== index),
                         )
                       }
-                      aria-label={"إزالة " + file.name}
+                      aria-label={t("إزالة ","Remove ") + file.name}
                     >
                       <Icon name="close" size={14} />
                     </button>
                   </div>
                 ))}
-                <small>
-                  تُقرأ الملفات محليًا؛ تُرسل مقاطع مناسبة لسؤالك. حفظ الأصل
-                  يتطلب تفعيل التخزين الخاص؛ الوضع المؤقت لا يحفظه.
-                </small>
+                <small>{t("تُقرأ الملفات محليًا؛ تُرسل مقاطع مناسبة لسؤالك. حفظ الأصل يتطلب تفعيل التخزين الخاص؛ الوضع المؤقت لا يحفظه.","Files are read on your device. Relevant excerpts are sent with your question. Saving originals requires private storage; temporary mode does not save them.")}</small>
               </div>
             )}
             {attachment && (
               <div className="owui-attachment">
                 {preview ? (
-                  <img src={preview} alt="معاينة المرفق" />
+                  <img src={preview} alt={t("معاينة المرفق","Preview attachment")} />
                 ) : (
                   <div className="owui-file-icon">
                     <Icon name="chat" />
@@ -886,7 +858,7 @@ export function NoataAIClient() {
                   type="button"
                   className="owui-icon"
                   onClick={() => setAttachment(null)}
-                  aria-label="إزالة المرفق"
+                  aria-label={t("إزالة المرفق","Remove attachment")}
                 >
                   <Icon name="close" size={15} />
                 </button>
@@ -896,7 +868,7 @@ export function NoataAIClient() {
             {recording && (
               <div className="owui-recording" role="status">
                 <span className="owui-recording-dot" />
-                <strong>تسجيل</strong>
+                <strong>{t("تسجيل","Recording")}</strong>
                 <time>
                   {Math.floor(elapsed / 60)}:
                   {String(elapsed % 60).padStart(2, "0")}
@@ -907,15 +879,13 @@ export function NoataAIClient() {
                     cancelRecording.current = true;
                     media.current?.stop();
                   }}
-                >
-                  إلغاء
-                </button>
+                >{t("إلغاء","Cancel")}</button>
               </div>
             )}
 
             <textarea
               ref={composer}
-              aria-label="رسالتك إلى Noata AI"
+              aria-label={t("رسالتك إلى Noata AI","Your message to Noata AI")}
               value={input}
               maxLength={8000}
               disabled={busy || loading}
@@ -937,7 +907,7 @@ export function NoataAIClient() {
                   void send();
                 }
               }}
-              placeholder="ابعت رسالة لـ Noata AI"
+              placeholder={t("ابعت رسالة لـ Noata AI","Message Noata AI")}
               rows={1}
             />
 
@@ -960,7 +930,7 @@ export function NoataAIClient() {
                     className="owui-round"
                     type="button"
                     disabled={busy || recording || loading}
-                    aria-label="إضافة مرفق أو أداة"
+                    aria-label={t("إضافة مرفق أو أداة","Add an attachment or tool")}
                     aria-expanded={inputMenuOpen}
                     onClick={() => setInputMenuOpen((x) => !x)}
                   >
@@ -977,11 +947,8 @@ export function NoataAIClient() {
                       >
                         <Icon name="image" size={17} />
                         <span>
-                          <strong>رفع صورة أو مستند</strong>
-                          <small>
-                            صورة، صوت أو ملف نصي (TXT / MD / CSV / JSON / DOCX /
-                            PDF)
-                          </small>
+                          <strong>{t("رفع صورة أو مستند","Upload an image or document")}</strong>
+                          <small>{t("صورة، صوت أو ملف نصي (TXT / MD / CSV / JSON / DOCX / PDF)","Image, audio, or document (TXT / MD / CSV / JSON / DOCX / PDF)")}</small>
                         </span>
                       </button>
                       <button
@@ -993,8 +960,8 @@ export function NoataAIClient() {
                       >
                         <Icon name="screen" size={17} />
                         <span>
-                          <strong>التقط الشاشة</strong>
-                          <small>شارك شاشة واختر لقطة للمحادثة</small>
+                          <strong>{t("التقط الشاشة","Capture screen")}</strong>
+                          <small>{t("شارك شاشة واختر لقطة للمحادثة","Share a screen and choose a snapshot for this chat")}</small>
                         </span>
                       </button>
                       <button
@@ -1006,8 +973,8 @@ export function NoataAIClient() {
                       >
                         <Icon name="sparkles" size={17} />
                         <span>
-                          <strong>أدوات Fanar</strong>
-                          <small>صورة، ترجمة، شعر، بحث وتحقق</small>
+                          <strong>{t("أدوات Fanar","Fanar tools")}</strong>
+                          <small>{t("صورة، ترجمة، شعر، بحث وتحقق","Images, translation, poetry, research, and verification")}</small>
                         </span>
                       </button>
                     </div>
@@ -1020,15 +987,13 @@ export function NoataAIClient() {
                   onClick={() => setShowTools((x) => !x)}
                   aria-pressed={showTools}
                 >
-                  <Icon name="sparkles" size={15} />
-                  أدوات
-                </button>
+                  <Icon name="sparkles" size={15} />{t("أدوات","Tools")}</button>
 
                 <button
                   className="owui-round"
                   type="button"
                   disabled={busy}
-                  aria-label={recording ? "إنهاء التسجيل" : "تسجيل رسالة صوتية"}
+                  aria-label={recording ? t("إنهاء التسجيل","Finish recording") : t("تسجيل رسالة صوتية","Record a voice message")}
                   onClick={() => void toggleRecording()}
                 >
                   <Icon name={recording ? "stop" : "mic"} size={18} />
@@ -1038,7 +1003,7 @@ export function NoataAIClient() {
               <div className="owui-composer-right">
                 {input.trim() && (
                   <span className="owui-char-count">
-                    {input.length.toLocaleString("ar-EG")}
+                    {input.length.toLocaleString(locale==="en"?"en":"ar-EG")}
                   </span>
                 )}
                 {busy ? (
@@ -1046,7 +1011,7 @@ export function NoataAIClient() {
                     className="owui-send stop"
                     type="button"
                     onClick={() => abort.current?.abort()}
-                    aria-label="إيقاف التوليد"
+                    aria-label={t("إيقاف التوليد","Stop generating")}
                   >
                     <Icon name="stop" size={16} />
                   </button>
@@ -1058,7 +1023,7 @@ export function NoataAIClient() {
                       (!input.trim() && !attachment && !documentFiles.length) ||
                       recording || loading
                     }
-                    aria-label="إرسال"
+                    aria-label={t("إرسال","Send")}
                   >
                     <Icon name="arrow" size={17} />
                   </button>
@@ -1070,8 +1035,8 @@ export function NoataAIClient() {
               <div className="owui-tool-panel">
                 <div className="owui-tool-panel-head">
                   <div>
-                    <strong>أدوات Noata AI</strong>
-                    <small>تُنفّذ كقدرات Fanar مخصصة</small>
+                    <strong>{t("أدوات Noata AI","Noata AI tools")}</strong>
+                    <small>{t("تُنفّذ كقدرات Fanar مخصصة","Powered by dedicated Fanar capabilities")}</small>
                   </div>
                   <button
                     type="button"
@@ -1103,8 +1068,8 @@ export function NoataAIClient() {
 
           <p className="owui-disclaimer">
             {temporary
-              ? "محادثة مؤقتة · لا تظهر في سجل المحادثات."
-              : notice || "Noata AI ممكن تخطئ. راجع المعلومات المهمة."}
+              ? t("محادثة مؤقتة · لا تظهر في سجل المحادثات.","Temporary conversation · does not appear in your history.")
+              : notice || t("Noata AI ممكن تخطئ. راجع المعلومات المهمة.","Noata AI can make mistakes. Check important information.")}
           </p>
         </footer>
       </section>
@@ -1112,7 +1077,7 @@ export function NoataAIClient() {
       <Dialog
         open={mobileHistory}
         onClose={() => setMobileHistory(false)}
-        title="محادثاتك"
+        title={t("محادثاتك","Your conversations")}
       >
         <div className="owui-mobile-sidebar">
           <ConversationHistory
@@ -1133,17 +1098,17 @@ export function NoataAIClient() {
       <Dialog
         open={controlsOpen}
         onClose={() => setControlsOpen(false)}
-        title="عناصر تحكم Noata AI"
+        title={t("عناصر تحكم Noata AI","Noata AI controls")}
       >
         <div className="owui-control-grid">
           <label>
-            <span>نموذج المحادثة</span>
+            <span>{t("نموذج المحادثة","Chat model")}</span>
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
               disabled={busy}
             >
-              <option value="auto">تلقائي · Noata تختار الأفضل</option>
+              <option value="auto">{t("تلقائي · Noata تختار الأفضل","Auto · Noata selects a model")}</option>
               {FANAR_CAPABILITIES.filter((c) => c.visibleInPicker).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -1152,7 +1117,7 @@ export function NoataAIClient() {
             </select>
           </label>
           <label>
-            <span>تحويل الصوت إلى نص</span>
+            <span>{t("تحويل الصوت إلى نص","Speech to text")}</span>
             <select
               value={sttModel}
               onChange={(e) => setSttModel(e.target.value)}
@@ -1162,7 +1127,7 @@ export function NoataAIClient() {
             </select>
           </label>
           <label>
-            <span>قراءة الردود</span>
+            <span>{t("قراءة الردود","Read answers aloud")}</span>
             <select
               value={ttsModel}
               onChange={(e) => setTtsModel(e.target.value)}
@@ -1177,8 +1142,8 @@ export function NoataAIClient() {
             onClick={historyProps.onTemporary}
           >
             <span>
-              <strong>محادثة مؤقتة</strong>
-              <small>لا تضيف المحادثة الحالية إلى السجل</small>
+              <strong>{t("محادثة مؤقتة","Temporary conversation")}</strong>
+              <small>{t("لا تضيف المحادثة الحالية إلى السجل","Keep this conversation out of history")}</small>
             </span>
             <i>{temporary ? "ON" : "OFF"}</i>
           </button>
@@ -1188,34 +1153,30 @@ export function NoataAIClient() {
             type="button"
             className="owui-primary-action"
             onClick={() => setControlsOpen(false)}
-          >
-            تم
-          </button>
+          >{t("تم","Done")}</button>
           <button
             type="button"
             onClick={() => {
               setControlsOpen(false);
               setSettingsOpen(true);
             }}
-          >
-            كل الإعدادات
-          </button>
+          >{t("كل الإعدادات","All settings")}</button>
         </div>
       </Dialog>
 
       <Dialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        title="إعدادات Noata AI"
+        title={t("إعدادات Noata AI","Noata AI settings")}
       >
         <div className="owui-settings">
-          <nav className="owui-settings-tabs" aria-label="أقسام الإعدادات">
+          <nav className="owui-settings-tabs" aria-label={t("أقسام الإعدادات","Settings sections")}>
             {(
               [
-                ["general", "عام", "sliders"],
-                ["models", "النماذج", "ai"],
-                ["voice", "الصوت", "mic"],
-                ["privacy", "الخصوصية", "archive"],
+                ["general", t("عام","General"), "sliders"],
+                ["models", t("النماذج","Models"), "ai"],
+                ["voice", t("الصوت","Voice"), "mic"],
+                ["privacy", t("الخصوصية","Privacy"), "archive"],
               ] as const
             ).map(([id, label, icon]) => (
               <button
@@ -1233,7 +1194,7 @@ export function NoataAIClient() {
           <div className="owui-settings-content">
             {settingsTab === "general" && (
               <>
-                <h3>سلوك المحادثة</h3>
+                <h3>{t("سلوك المحادثة","Conversation behavior")}</h3>
                 <button
                   type="button"
                   className={
@@ -1242,8 +1203,8 @@ export function NoataAIClient() {
                   onClick={historyProps.onTemporary}
                 >
                   <span>
-                    <strong>الوضع المؤقت</strong>
-                    <small>المحادثات الجديدة لا تُضاف إلى السجل</small>
+                    <strong>{t("الوضع المؤقت","Temporary mode")}</strong>
+                    <small>{t("المحادثات الجديدة لا تُضاف إلى السجل","New conversations are not added to history")}</small>
                   </span>
                   <i>{temporary ? "ON" : "OFF"}</i>
                 </button>
@@ -1253,8 +1214,8 @@ export function NoataAIClient() {
                   onClick={() => setShortcutsOpen(true)}
                 >
                   <span>
-                    <strong>اختصارات لوحة المفاتيح</strong>
-                    <small>افتح قائمة الاختصارات المتاحة</small>
+                    <strong>{t("اختصارات لوحة المفاتيح","Keyboard shortcuts")}</strong>
+                    <small>{t("افتح قائمة الاختصارات المتاحة","View available keyboard shortcuts")}</small>
                   </span>
                   <Icon name="keyboard" size={18} />
                 </button>
@@ -1263,16 +1224,13 @@ export function NoataAIClient() {
 
             {settingsTab === "models" && (
               <>
-                <h3>النموذج الافتراضي</h3>
-                <p>
-                  اختار قدرة محددة أو سيب Noata تختار تلقائيًا حسب سؤالك
-                  والمرفقات.
-                </p>
+                <h3>{t("النموذج الافتراضي","Default model")}</h3>
+                <p>{t("اختار قدرة محددة أو سيب Noata تختار تلقائيًا حسب سؤالك والمرفقات.","Choose a model or let Noata select one for your request and attachments.")}</p>
                 <select
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                 >
-                  <option value="auto">تلقائي · الأنسب لسؤالك</option>
+                  <option value="auto">{t("تلقائي · الأنسب لسؤالك","Auto · matched to your request")}</option>
                   {FANAR_CAPABILITIES.filter((c) => c.visibleInPicker).map(
                     (c) => (
                       <option key={c.id} value={c.id}>
@@ -1299,7 +1257,7 @@ export function NoataAIClient() {
 
             {settingsTab === "voice" && (
               <>
-                <h3>الصوت</h3>
+                <h3>{t("الصوت","Voice")}</h3>
                 <label>
                   <span>Speech to Text</span>
                   <select
@@ -1324,25 +1282,19 @@ export function NoataAIClient() {
                     </option>
                   </select>
                 </label>
-                <p>
-                  الميكروفون لا يبدأ إلا بإذن المتصفح. التسجيل يُحوّل إلى نص قبل
-                  الإرسال حتى تراجعه.
-                </p>
+                <p>{t("الميكروفون لا يبدأ إلا بإذن المتصفح. التسجيل يُحوّل إلى نص قبل الإرسال حتى تراجعه.","Your microphone starts only with browser permission. Review the transcript before sending it.")}</p>
               </>
             )}
 
             {settingsTab === "privacy" && (
               <>
-                <h3>الخصوصية والبيانات</h3>
-                <p>
-                  سجل المحادثات والملفات مرتبط بحسابك ومحمي بسياسات Supabase.
-                  مفاتيح Fanar لا تصل إلى المتصفح.
-                </p>
+                <h3>{t("الخصوصية والبيانات","Privacy and data")}</h3>
+                <p>{t("سجل المحادثات والملفات مرتبط بحسابك ومحمي بسياسات Supabase. مفاتيح Fanar لا تصل إلى المتصفح.","Your conversation history and files belong to your account and are protected by access policies. Fanar keys are kept on the server.")}</p>
                 <div className="owui-privacy-links">
-                  <Link href="/privacy">سياسة الخصوصية</Link>
-                  <Link href="/terms">الشروط</Link>
+                  <Link href="/privacy">{t("سياسة الخصوصية","Privacy policy")}</Link>
+                  <Link href="/terms">{t("الشروط","Terms")}</Link>
                 </div>
-                <h3>تصدير المحادثة الحالية</h3>
+                <h3>{t("تصدير المحادثة الحالية","Export current conversation")}</h3>
                 <div className="owui-export-actions">
                   <button
                     type="button"
@@ -1378,48 +1330,44 @@ export function NoataAIClient() {
               const ok = await savePreferences();
               if (ok) setSettingsOpen(false);
             }}
-          >
-            حفظ التفضيلات
-          </button>
-          <button type="button" onClick={() => setSettingsOpen(false)}>
-            إلغاء
-          </button>
+          >{t("حفظ التفضيلات","Save preferences")}</button>
+          <button type="button" onClick={() => setSettingsOpen(false)}>{t("إلغاء","Cancel")}</button>
         </div>
       </Dialog>
 
       <Dialog
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
-        title="اختصارات Noata AI"
+        title={t("اختصارات Noata AI","Noata AI shortcuts")}
       >
         <div className="owui-shortcuts">
           <div>
-            <span>محادثة جديدة</span>
+            <span>{t("محادثة جديدة","New conversation")}</span>
             <kbd>Ctrl</kbd>
             <kbd>Shift</kbd>
             <kbd>O</kbd>
           </div>
           <div>
-            <span>التركيز على مربع الرسالة</span>
+            <span>{t("التركيز على مربع الرسالة","Focus message composer")}</span>
             <kbd>Ctrl</kbd>
             <kbd>K</kbd>
           </div>
           <div>
-            <span>فتح الإعدادات</span>
+            <span>{t("فتح الإعدادات","Open settings")}</span>
             <kbd>Ctrl</kbd>
             <kbd>,</kbd>
           </div>
           <div>
-            <span>إرسال الرسالة</span>
+            <span>{t("إرسال الرسالة","Send message")}</span>
             <kbd>Enter</kbd>
           </div>
           <div>
-            <span>سطر جديد</span>
+            <span>{t("سطر جديد","New line")}</span>
             <kbd>Shift</kbd>
             <kbd>Enter</kbd>
           </div>
           <div>
-            <span>إغلاق القوائم</span>
+            <span>{t("إغلاق القوائم","Close menus")}</span>
             <kbd>Esc</kbd>
           </div>
         </div>
@@ -1428,14 +1376,14 @@ export function NoataAIClient() {
       <Dialog
         open={pendingPreview !== null}
         onClose={() => setPendingPreview(null)}
-        title={pendingPreview?.name ?? "معاينة المرفق"}
+        title={pendingPreview?.name ?? t("معاينة المرفق","Preview attachment")}
       >
         {pendingPreview && <OriginalDocumentPreview source={pendingPreview} />}
       </Dialog>
       <Dialog
         open={educationOpen}
         onClose={() => setEducationOpen(false)}
-        title="ورشة المذاكرة · Noata Aura"
+        title={t("ورشة المذاكرة · Noata Aura","Study workshop · Noata Aura")}
         variant="workshop"
       >
         <EducationPanel
@@ -1468,28 +1416,22 @@ export function NoataAIClient() {
         }}
         title={
           dialog?.kind === "delete"
-            ? "حذف المحادثة؟"
+            ? t("حذف المحادثة؟","Delete this conversation?")
             : dialog?.kind === "edit"
-              ? "تعديل الرسالة"
-              : "إعادة تسمية المحادثة"
+              ? t("تعديل الرسالة","Edit message")
+              : t("إعادة تسمية المحادثة","Rename conversation")
         }
       >
         {dialog?.kind === "delete" ? (
-          <p>
-            سيتم حذف المحادثة ورسائلها من حسابك نهائيًا. لا يمكن التراجع عن
-            الحذف.
-          </p>
+          <p>{t("سيتم حذف المحادثة ورسائلها من حسابك نهائيًا. لا يمكن التراجع عن الحذف.","This conversation and its messages will be permanently deleted from your account. This cannot be undone.")}</p>
         ) : (
           <>
             {dialog?.kind === "edit" && (
-              <p>
-                سيتم حذف هذه الرسالة والردود التي بعدها، وبعدها تقدر تبعت النسخة
-                المعدلة.
-              </p>
+              <p>{t("سيتم حذف هذه الرسالة والردود التي بعدها، وبعدها تقدر تبعت النسخة المعدلة.","This message and the answers after it will be deleted so you can send the edited version.")}</p>
             )}
             <textarea
               className="owui-dialog-textarea"
-              aria-label="النص الجديد"
+              aria-label={t("النص الجديد","New text")}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
             />
@@ -1501,11 +1443,9 @@ export function NoataAIClient() {
             disabled={busy || (dialog?.kind !== "delete" && !editValue.trim())}
             onClick={() => void applyDialog()}
           >
-            {dialog?.kind === "delete" ? "حذف نهائي" : "تأكيد"}
+            {dialog?.kind === "delete" ? t("حذف نهائي","Delete permanently") : t("تأكيد","Confirm")}
           </button>
-          <button type="button" disabled={busy} onClick={() => setDialog(null)}>
-            إلغاء
-          </button>
+          <button type="button" disabled={busy} onClick={() => setDialog(null)}>{t("إلغاء","Cancel")}</button>
         </div>
       </Dialog>
     </section>

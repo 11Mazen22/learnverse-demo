@@ -207,7 +207,7 @@ export function ThemeControl() {
           role="group"
            aria-label={t("اختيار المظهر", "Choose appearance")}
         >
-           <strong>{t("المظهر", "Appearance")}</strong>
+           <header className="aura-theme-heading"><span><Icon name="sparkles" size={20}/><strong>{t("المظهر", "Appearance")}</strong></span><button type="button" className="icon-btn" aria-label={t("إغلاق قائمة المظهر","Close appearance menu")} onClick={()=>{setOpen(false);trigger.current?.focus();}}><Icon name="close" size={16}/></button></header>
            <p className="noata-theme-guidance">{t("اختار إضاءة واجهتك ثم عالم الألوان. منتصف الليل يظل داكنًا دائمًا.", "Choose light or dark mode, then a color palette. Midnight always remains dark.")}</p>
           {choices.map((choice) => (
             <button

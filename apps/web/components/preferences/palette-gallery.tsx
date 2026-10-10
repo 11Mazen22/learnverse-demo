@@ -55,6 +55,7 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
   const account = useVerifiedAccount();
   const supabase = useMemo(() => createClient(), []);
   const saveSequence = useRef(0);
+  const writeQueue=useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
     const update = () => {
       if(document.documentElement.dataset.palette==="custom"){setSelected(null);return;}
@@ -105,21 +106,27 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
     window.dispatchEvent(new Event("noata-palette-change"));
     const user = account.user;
     const seq = ++saveSequence.current;
+    const token=account.revision.current;
     if (!user) return;
      setNotice(t("جارٍ مزامنة الطابع مع حسابك…","Syncing the palette with your account…"));
     try {
-      const {data,error}=await supabase.from("user_settings")
+      const save=writeQueue.current.catch(()=>{}).then(async()=>{
+        if(seq!==saveSequence.current||token!==account.revision.current)return {data:null,error:null};
+        return await supabase.from("user_settings")
         .upsert({user_id:user.id,palette:value,active_design_id:null,updated_at:new Date().toISOString()},
           {onConflict:"user_id"})
         .select("palette").single();
-      if (seq !== saveSequence.current) return;
+      });
+      writeQueue.current=save;
+      const {data,error}=await save;
+      if (seq !== saveSequence.current||token!==account.revision.current) return;
       if (error || data?.palette !== value) {
          setNotice(t("الطابع يعمل على هذا الجهاز، لكن لم تتأكد مزامنته مع حسابك. حاول مجددًا.","The palette is active on this device, but account sync could not be confirmed. Please try again."));
       } else {
          setNotice(t("تم حفظ الطابع على حسابك وتأكيده من الخادم.","The palette was saved to your account and confirmed by the server."));
       }
     } catch {
-      if (seq === saveSequence.current)
+      if (seq === saveSequence.current&&token===account.revision.current)
          setNotice(t("الطابع محفوظ على الجهاز؛ المزامنة غير متاحة حاليًا.","The palette is saved on this device. Sync is currently unavailable."));
     }
   }

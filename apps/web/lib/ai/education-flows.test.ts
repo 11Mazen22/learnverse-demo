@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { EDUCATION_FLOWS, EDUCATION_DEPTHS, buildEducationPrompt } from "./education-flows.ts";
+import { EDUCATION_FLOWS, EDUCATION_DEPTHS, buildEducationPrompt, educationCatalog } from "./education-flows.ts";
 test("every advertised education flow creates a meaningful real chat prompt",()=>{
  assert.equal(EDUCATION_FLOWS.length,9);
  for(const flow of EDUCATION_FLOWS){
@@ -31,4 +31,15 @@ test("workshop note organization stays grounded in the learner's source",()=>{
  assert.match(prompt,/نظّم الملاحظات/);
  assert.match(prompt,/إعدادي/);
  assert.match(prompt,/لا تضف حقائق غير مدعومة/);
+});
+test("all English workshop choices build English requests without Arabic interface copy",()=>{
+ const catalog=educationCatalog("en");
+ assert.equal(catalog.flows.length,9);
+ assert.doesNotMatch(JSON.stringify(catalog),/[\u0600-\u06ff]/);
+ for(const flow of catalog.flows){
+  const prompt=buildEducationPrompt(flow.id,"Energy conservation",{locale:"en",level:"primary",depth:"deep"});
+  assert.match(prompt,/Energy conservation/);
+  assert.match(prompt,/clear English/);
+  assert.doesNotMatch(prompt,/[\u0600-\u06ff]/);
+ }
 });

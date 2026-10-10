@@ -53,12 +53,13 @@ export function appendDocumentSources(prompt:string,raw:unknown):string {
 function isDocumentSource(v:Record<string,unknown>):v is Record<string,unknown>&{name:string;format:"text"|"docx";excerpt:string;truncated:boolean}{
  return typeof v.name==="string"&&(v.format==="text"||v.format==="docx"||v.format==="pdf")&&typeof v.excerpt==="string"&&typeof v.truncated==="boolean";
 }
-export function validateDocumentBatch(files:readonly Pick<DocumentFile,"name"|"type"|"size">[]):string|null {
- if(files.length>MAX_DOCUMENTS_PER_MESSAGE)return "الحد الأقصى ٤ ملفات نصية أو Word لكل رسالة.";
+export function validateDocumentBatch(files:readonly Pick<DocumentFile,"name"|"type"|"size">[],locale:"ar"|"en"="ar"):string|null {
+ const t=(ar:string,en:string)=>locale==="en"?en:ar;
+ if(files.length>MAX_DOCUMENTS_PER_MESSAGE)return t("الحد الأقصى ٤ ملفات نصية أو Word لكل رسالة.","Attach up to 4 documents per message.");
  for(const file of files){
-  if(!isSupportedDocument(file))return "رفع عدة ملفات يدعم TXT وMarkdown وCSV وJSON وDOCX وPDF حاليًا.";
-  if(file.size<1)return "هناك ملف فارغ.";
-  if(file.size>(isDocxDocument(file)?6*1024*1024:isPdfDocument(file)?MAX_PDF_BYTES:512*1024))return "هناك ملف يتجاوز الحد المسموح لحجمه.";
+  if(!isSupportedDocument(file))return t("رفع عدة ملفات يدعم TXT وMarkdown وCSV وJSON وDOCX وPDF حاليًا.","Supported documents: TXT, Markdown, CSV, JSON, DOCX, and PDF.");
+  if(file.size<1)return t("هناك ملف فارغ.","One of the files is empty.");
+  if(file.size>(isDocxDocument(file)?6*1024*1024:isPdfDocument(file)?MAX_PDF_BYTES:512*1024))return t("هناك ملف يتجاوز الحد المسموح لحجمه.","One of the files exceeds its size limit.");
  }
  return null;
 }

@@ -1,3 +1,4 @@
+import {resolveAutoRoute} from "../../../../supabase/functions/noata-ai/routing.ts";
 import { FANAR_CAPABILITIES } from "./catalog.ts";
 
 /**
@@ -14,21 +15,23 @@ export const CHAT_MODEL_CARDS = [
   {id:"Fanar-Sadiq-2", arabic:"صادق 2",subtitle:"شرح إسلامي",description:"شرح وبيان. تحقق من الاستشهادات في مصادر موثوقة.",features:["نص","إسلامي"],bestFor:"islamic"},
   {id:"Fanar-Oryx-IVU-2", arabic:"أوريكس رؤية",subtitle:"فهم الصور",description:"يقبل صورة مرفقة مع سؤال نصي.",features:["رؤية","صورة"],bestFor:"vision"},
 ] as const;
+export function getChatModelCards(locale:"ar"|"en"="ar"){
+  if(locale==="ar")return CHAT_MODEL_CARDS;
+  const copy:Record<string,{subtitle:string;description:string;features:string[]}>= {
+    Fanar:{subtitle:"Everyday conversations",description:"General conversation, explanation, and writing.",features:["Text","Streaming"]},
+    "Fanar-S-1-7B":{subtitle:"Quick Arabic replies",description:"Brief Arabic questions and greetings. English requests use the general route in Auto.",features:["Text","Streaming"]},
+    "Fanar-C-1-8.7B":{subtitle:"Reasoning and explanation",description:"Problems and step-by-step explanations.",features:["Text","Reasoning"]},
+    "Fanar-C-2-27B":{subtitle:"Complex tasks",description:"Detailed explanations and more demanding problems.",features:["Text","Reasoning","Streaming"]},
+    "Fanar-Sadiq":{subtitle:"Islamic questions",description:"Specialized answers. Responses are not an authoritative Quran text.",features:["Text","Islamic studies"]},
+    "Fanar-Sadiq-2":{subtitle:"Islamic explanation",description:"Explanation and context. Check quotations against trusted sources.",features:["Text","Islamic studies"]},
+    "Fanar-Oryx-IVU-2":{subtitle:"Image understanding",description:"Ask a question about an attached image.",features:["Vision","Image"]},
+  };
+  return CHAT_MODEL_CARDS.map(card=>({...card,arabic:card.id,...copy[card.id]}));
+}
 export function isConfiguredChatModel(id: unknown): id is typeof CHAT_MODEL_CARDS[number]["id"] {
   return typeof id==="string" && CHAT_MODEL_CARDS.some(x=>x.id===id);
 }
-export function resolveSuggestedModel(text:string,hasImage=false):string {
-  if (hasImage) return "Fanar-Oryx-IVU-2";
-  const q=text.toLowerCase();
-  if (/\b(quran|hadith|islam|allah|prophet|fatwa|salah|ramadan)\b/i.test(q) ||
-      /(قرآن|حديث|إسلام|اسلام|الله|رسول|نبي|فتوى|صلاة|رمضان|سورة|آية|اية)/.test(text)) return "Fanar-Sadiq-2";
-  if (/\b(prove|proof|derive|complex|advanced|analyze deeply|reason step by step)\b/i.test(q) ||
-      /(برهن|اثبت|اشتق|حلل بعمق|مسألة صعبة|تفكير عميق)/.test(text) || text.length>900) return "Fanar-C-2-27B";
-  if (/\b(why|explain why|solve|calculate|equation|geometry|physics|logic)\b/i.test(q) ||
-      /(ليه|لماذا|حل|احسب|معادلة|هندسة|فيزياء|منطق|اشرح السبب)/.test(text)) return "Fanar-C-1-8.7B";
-  if (text.length<160 && !/[?\u061f]/.test(text)) return "Fanar-S-1-7B";
-  return "Fanar";
-}
+export function resolveSuggestedModel(text:string,hasImage=false):string { return resolveAutoRoute(text,hasImage).model; }
 /** Keep the client picker synced with declared backend model IDs. */
 export function validateRegistry(){
   const pickerIds=FANAR_CAPABILITIES.filter(x=>x.visibleInPicker).map(x=>x.id).sort();

@@ -1,4 +1,5 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { RichMessage } from "./rich-message";
@@ -18,15 +19,16 @@ export function WritingStudio({
   source: string;
   draftKey: string;
 }) {
+ const t=useTranslation(),locale=useLocale();
   const [draft, setDraft] = useState(source);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [notice, setNotice] = useState("");
-  const [title, setTitle] = useState("مستند Noata");
+  const [title, setTitle] = useState("Noata document");
   const [exporting, setExporting] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const [retained, setRetained] = useState(true);
   const initialTitle =
-    source.match(/^#\s+(.+)$/m)?.[1]?.slice(0, 120) || "مستند Noata";
+    source.match(/^#\s+(.+)$/m)?.[1]?.slice(0, 120) || "Noata document";
   const dirty = draft !== source || title !== initialTitle;
   const exportRequest = useRef<AbortController | null>(null);
   // Reset before Dialog's passive showModal effect can reveal the previous
@@ -72,32 +74,32 @@ export function WritingStudio({
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 15000);
-    setNotice("تم تجهيز ملف Markdown.");
+    setNotice(t("تم تجهيز ملف Markdown.","Markdown file prepared."));
   }
   function saveWord() {
     try {
       downloadNoataDocx(draft, "noata-writing.docx");
-      setNotice("تم تجهيز ملف Word قابل للتعديل.");
+      setNotice(t("تم تجهيز ملف Word قابل للتعديل.","Editable Word document prepared."));
     } catch {
-      setNotice("المستند طويل جدًا للتصدير. قصّره أو حمّله بصيغة Markdown.");
+      setNotice(t("المستند طويل جدًا للتصدير. قصّره أو حمّله بصيغة Markdown.","This document is too long to export. Shorten it or download Markdown."));
     }
   }
   async function savePdf(textOnly = false) {
     if (exporting) return;
     setExporting(true);
-    setNotice("بنجهّز صفحات المستند…");
+    setNotice(t("بنجهّز صفحات المستند…","Preparing document pages…"));
     const controller = new AbortController();
     exportRequest.current = controller;
     try {
       const response = await fetch(textOnly ? "/api/pdf" : "/api/documents/pdf", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(textOnly ? { markdown: draft, title } : { text: draft, title }),
+        headers: { "Content-Type": "application/json", "Accept-Language":locale },
+        body: JSON.stringify(textOnly ? { markdown: draft, title: title === "Noata document" ? t("مستند Noata","Noata document") : title } : { text: draft, title: title === "Noata document" ? t("مستند Noata","Noata document") : title }),
         signal: controller.signal,
       });
       if (!response.ok) {
         const body = await response.json();
-        throw new Error(body.error || "تعذّر تصدير PDF.");
+        throw new Error(locale==="en" ? "Could not export the PDF. Your draft is kept; try again or download Word or Markdown." : body.error || t("تعذّر تصدير PDF.","Could not export the PDF."));
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -107,10 +109,10 @@ export function WritingStudio({
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 15000);
       if (!controller.signal.aborted)
-        setNotice("تم تنزيل PDF بخط عربي مضمّن وصفحات مرقّمة.");
+        setNotice(t("تم تنزيل PDF بخط عربي مضمّن وصفحات مرقّمة.","PDF downloaded with embedded fonts and numbered pages."));
     } catch (error) {
       if (!controller.signal.aborted)
-        setNotice(error instanceof Error ? error.message : "تعذّر تصدير PDF.");
+        setNotice(error instanceof Error ? error.message : t("تعذّر تصدير PDF.","Could not export the PDF."));
     } finally {
       if (exportRequest.current === controller) {
         setExporting(false);
@@ -119,30 +121,20 @@ export function WritingStudio({
     }
   }
   return (
-    <Dialog open={open} onClose={requestClose} title="مساحة الكتابة في Noata">
+    <Dialog open={open} onClose={requestClose} variant="studio" title={t("مساحة الكتابة في Noata","Noata writing studio")}>
       <div className="aura-studio">
-        <p>
-          حرّر النص بنفسك، راجع شكله، ثم صدّره في ملف حقيقي. النسخة الأصلية من
-          المحادثة لن تتغير.
-        </p>
+        <p>{t("حرّر النص بنفسك، راجع شكله، ثم صدّره في ملف حقيقي. النسخة الأصلية من المحادثة لن تتغير.","Edit your draft, preview the layout, and download a document. Your original conversation stays saved.")}</p>
         <p className="aura-studio-status">
           {retained
-            ? "تُحفظ المسودة في ذاكرة هذه الجلسة لمدة ٣٠ دقيقة فقط. نزّل نسخة قبل إعادة تحميل الصفحة أو تسجيل الخروج."
-            : "المسودة تتجاوز حد ذاكرة الجلسة. نزّل نسخة قبل إغلاق المحرر."}
+            ? t("تُحفظ المسودة في ذاكرة هذه الجلسة لمدة ٣٠ دقيقة فقط. نزّل نسخة قبل إعادة تحميل الصفحة أو تسجيل الخروج.","Your draft stays in this session for 30 minutes. Download a copy before reloading or signing out.")
+            : t("المسودة تتجاوز حد ذاكرة الجلسة. نزّل نسخة قبل إغلاق المحرر.","This draft exceeds session storage limits. Download a copy before closing.")}
         </p>
         {confirmClose && (
           <div role="alert" className="aura-studio-close-confirm">
-            <p>
-              لديك تعديلات في المسودة{exporting ? " وتصدير PDF جارٍ" : ""}. هل
-              تريد إغلاق المحرر؟
-            </p>
-            <button type="button" onClick={() => setConfirmClose(false)}>
-              متابعة التحرير
-            </button>
+            <p>{t("لديك تعديلات في المسودة","You have draft changes")}{exporting ? t(" وتصدير PDF جارٍ"," and a PDF export is in progress") : ""}{t(". هل تريد إغلاق المحرر؟",". Close the editor?")}</p>
+            <button type="button" onClick={() => setConfirmClose(false)}>{t("متابعة التحرير","Keep editing")}</button>
             {retained && (
-              <button type="button" onClick={onClose}>
-                إغلاق مع الاحتفاظ بالمسودة
-              </button>
+              <button type="button" onClick={onClose}>{t("إغلاق مع الاحتفاظ بالمسودة","Close and keep draft")}</button>
             )}
             <button
               type="button"
@@ -150,16 +142,12 @@ export function WritingStudio({
                 writingDrafts.delete(draftKey);
                 onClose();
               }}
-            >
-              تجاهل التعديلات وإغلاق
-            </button>
+            >{t("تجاهل التعديلات وإغلاق","Discard changes and close")}</button>
           </div>
         )}
-        <label className="aura-studio-title">
-          عنوان المستند
-          <input
+        <label className="aura-studio-title">{t("عنوان المستند","Document title")}<input
             maxLength={120}
-            value={title}
+            value={title === "Noata document" ? t("مستند Noata","Noata document") : title}
             onChange={(e) => {
               setTitle(e.target.value);
               setRetained(
@@ -175,26 +163,24 @@ export function WritingStudio({
         <div
           className="aura-studio-tabs"
           role="group"
-          aria-label="وضع محرر المستند"
+          aria-label={t("وضع محرر المستند","Document editor mode")}
         >
           <button
             type="button"
             aria-pressed={mode === "edit"}
             onClick={() => setMode("edit")}
           >
-            <Icon name="edit" size={16} /> تحرير
-          </button>
+            <Icon name="edit" size={16} />{t("تحرير","Edit")}</button>
           <button
             type="button"
             aria-pressed={mode === "preview"}
             onClick={() => setMode("preview")}
           >
-            <Icon name="book" size={16} /> معاينة
-          </button>
+            <Icon name="book" size={16} />{t("معاينة","Preview")}</button>
         </div>
         {mode === "edit" ? (
           <textarea
-            aria-label="محتوى مستند Noata"
+            aria-label={t("محتوى مستند Noata","Noata document content")}
             spellCheck
             dir="auto"
             value={draft}
@@ -213,13 +199,13 @@ export function WritingStudio({
           <div
             className="aura-studio-preview"
             role="region"
-            aria-label="معاينة المستند"
+            aria-label={t("معاينة المستند","Document preview")}
           >
             <RichMessage content={draft} />
           </div>
         )}
         <div className="aura-studio-footer">
-          <small>{draft.length.toLocaleString("ar-EG")} حرف</small>
+          <small>{draft.length.toLocaleString(locale==="en"?"en":"ar-EG")}{t("حرف","characters")}</small>
           <button type="button" disabled={!draft.trim()} onClick={saveWord}>
             Word DOCX
           </button>
@@ -235,20 +221,16 @@ export function WritingStudio({
             onClick={() => void savePdf()}
             disabled={exporting || !draft.trim() || draft.length > 100000}
           >
-            {exporting ? "جارٍ إنشاء PDF…" : "تنزيل PDF"}
+            {exporting ? t("جارٍ إنشاء PDF…","Creating PDF…") : t("تنزيل PDF","Download PDF")}
           </button>
           <button
             type="button"
             onClick={() => void savePdf(true)}
             disabled={exporting || !draft.trim() || draft.length > 100000}
             aria-describedby="noata-text-pdf-help"
-          >
-            PDF نصي
-          </button>
+          >{t("PDF نصي","Text PDF")}</button>
         </div>
-        <small id="noata-text-pdf-help" className="aura-studio-status">
-          PDF النصي مناسب للنصوص والجداول البسيطة؛ يعرض المعادلات بصيغة نصية مبسّطة.
-        </small>
+        <small id="noata-text-pdf-help" className="aura-studio-status">{t("PDF النصي مناسب للنصوص والجداول البسيطة؛ يعرض المعادلات بصيغة نصية مبسّطة.","Text PDF supports text and simple tables. Equations are shown as plain text.")}</small>
         {notice && (
           <p className="aura-studio-status" role="status">
             {notice}

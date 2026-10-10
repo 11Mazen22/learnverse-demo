@@ -8,6 +8,7 @@ import type { Message } from "./workspace.ts";
  */
 export const MAX_AI_CONTEXT_CHARS=48000;
 export const MAX_AI_MESSAGES=24;
+export const MAX_AI_MESSAGE_CHARS=20000;
 export function createAiMessageContext(history:Message[]):{role:"user"|"assistant";content:string}[]{
  let budget=MAX_AI_CONTEXT_CHARS;
  const recent=history.filter((m):m is Message & {role:"user"|"assistant"}=>m.role==="user"||m.role==="assistant").slice(-MAX_AI_MESSAGES);
@@ -16,7 +17,7 @@ export function createAiMessageContext(history:Message[]):{role:"user"|"assistan
   const m=recent[i];
   const raw=appendDocumentSources(appendDocumentContext(m.content,m.metadata),m.metadata?.documentSources);
   if(!budget)break;
-  const content=raw.slice(0,Math.min(budget,i===recent.length-1?MAX_AI_CONTEXT_CHARS:20000));
+   const content=raw.slice(0,Math.min(budget,MAX_AI_MESSAGE_CHARS));
   if(!content)continue;
   budget-=content.length;
   result.push({role:m.role,content});

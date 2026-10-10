@@ -1,4 +1,5 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -8,7 +9,9 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { safeStorageLink } from "@/lib/ai/workspace";
 import { SUPABASE_URL } from "@/lib/supabase/config";
+import {displayMarkdown} from "@/lib/ai/display-markdown";
 export function RichMessage({ content }: { content: string }) {
+ const t=useTranslation(),locale=useLocale();
   const [copied, setCopied] = useState(false);
   return (
     <div dir="auto" className="ai-rich-message">
@@ -29,7 +32,7 @@ export function RichMessage({ content }: { content: string }) {
               return (
                 <img
                   src={allowed}
-                  alt={alt ?? "صورة"}
+                  alt={alt ?? t("صورة","Image")}
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
@@ -39,10 +42,9 @@ export function RichMessage({ content }: { content: string }) {
             if (typeof src === "string" && /^https:\/\//.test(src))
               return (
                 <a href={src} target="_blank" rel="noopener noreferrer">
-                  {alt || "صورة خارجية"} · فتح رابط الصورة
-                </a>
+                  {alt || t("صورة خارجية","External image")}{t("· فتح رابط الصورة","· Open image link")}</a>
               );
-            return <span>{alt || "الصورة غير متاحة"}</span>;
+            return <span>{alt || t("الصورة غير متاحة","Image unavailable")}</span>;
           },
           pre: ({ children }) => (
             <div>
@@ -63,13 +65,13 @@ export function RichMessage({ content }: { content: string }) {
                 }}
               >
                 <Icon name="copy" size={13} />
-                {copied ? " تم النسخ" : " نسخ الكود"}
+                {copied ? t(" تم النسخ"," Copied") : t(" نسخ الكود"," Copy code")}
               </button>
             </div>
           ),
         }}
       >
-        {content}
+        {displayMarkdown(content)}
       </ReactMarkdown>
     </div>
   );

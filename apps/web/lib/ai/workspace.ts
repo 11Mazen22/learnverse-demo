@@ -61,32 +61,37 @@ export const TOOLS = [
     icon: "book",
   },
 ];
-export function titleFrom(text: string) {
+export function toolsForLocale(locale:"ar"|"en"="ar"){
+ const en:Record<string,[string,string]>={image:["Draw an idea","Generate an image"],translate:["Translate text","Arabic and English"],poem:["Write a poem","Original Arabic poetry"],moderate:["Review content","Content suitability review"],sadiq_validate:["Verify information","Check with Sadiq"],sadiq_research:["Research a topic","Research with Sadiq"]};
+ return TOOLS.map(tool=>locale==="en"?{...tool,label:en[tool.action][0],description:en[tool.action][1]}:tool);
+}
+export function titleFrom(text: string,locale:"ar"|"en"="ar") {
   const clean = text.trim().replace(/\s+/g, " ");
-  return clean.length > 48 ? clean.slice(0, 48) + "…" : clean || "محادثة جديدة";
+  return clean.length > 48 ? clean.slice(0, 48) + "…" : clean || (locale==="en"?"New conversation":"محادثة جديدة");
 }
 export function validateAttachment(file: {
   name: string;
   type: string;
   size: number;
-}) {
+},locale:"ar"|"en"="ar") {
+  const t=(ar:string,en:string)=>locale==="en"?en:ar;
   if (isPdfDocument(file)) {
-    if (!file.size) return "الملف فارغ.";
+    if (!file.size) return t("الملف فارغ.","The file is empty.");
     return file.size <= MAX_PDF_BYTES
       ? ""
-      : "الحد الأقصى لملفات PDF هو 8 ميجابايت.";
+      : t("الحد الأقصى لملفات PDF هو 8 ميجابايت.","PDF files can be up to 8 MB.");
   }
   if (isDocxDocument(file)) {
-    if (file.size === 0) return "الملف فارغ. اختار ملف تاني.";
+    if (file.size === 0) return t("الملف فارغ. اختار ملف تاني.","The file is empty. Choose another file.");
     return file.size <= MAX_DOCX_INPUT
       ? ""
-      : "ملفات Word الحد الأقصى لها 6 ميجابايت.";
+      : t("ملفات Word الحد الأقصى لها 6 ميجابايت.","Word documents can be up to 6 MB.");
   }
   if (isTextDocument(file)) {
-    if (!file.size) return "الملف فارغ. اختار ملف تاني.";
+    if (!file.size) return t("الملف فارغ. اختار ملف تاني.","The file is empty. Choose another file.");
     return file.size <= MAX_TEXT_DOCUMENT_BYTES
       ? ""
-      : "الملفات النصية حدها 512 كيلوبايت. اختار ملف أصغر.";
+      : t("الملفات النصية حدها 512 كيلوبايت. اختار ملف أصغر.","Text files can be up to 512 KB. Choose a smaller file.");
   }
   if (
     ![
@@ -100,10 +105,10 @@ export function validateAttachment(file: {
       "audio/wav",
     ].includes(file.type.split(";")[0])
   )
-    return "المدعوم حاليًا: PNG/JPG/WebP أو صوت، ومستندات TXT/MD/CSV/JSON/DOCX/PDF. الملفات المصورة قد تحتاج OCR غير متاح حاليًا.";
+    return t("المدعوم حاليًا: PNG/JPG/WebP أو صوت، ومستندات TXT/MD/CSV/JSON/DOCX/PDF. الملفات المصورة قد تحتاج OCR غير متاح حاليًا.","Supported: PNG/JPG/WebP, audio, and TXT/MD/CSV/JSON/DOCX/PDF documents. Scanned files may need OCR, which is currently unavailable.");
   if (file.size > 10 * 1024 * 1024)
-    return "حجم الملف لازم يكون أقل من 10 ميجابايت.";
-  if (file.size === 0) return "الملف فارغ. اختار ملف تاني.";
+    return t("حجم الملف لازم يكون أقل من 10 ميجابايت.","Files must be smaller than 10 MB.");
+  if (file.size === 0) return t("الملف فارغ. اختار ملف تاني.","The file is empty. Choose another file.");
   return "";
 }
 /**
@@ -175,20 +180,21 @@ export function aiResponseFailure(status: number, body: unknown): string {
   return String(status);
 }
 
-export function friendlyError(error: unknown) {
+export function friendlyError(error: unknown,locale:"ar"|"en"="ar") {
+  const t=(ar:string,en:string)=>locale==="en"?en:ar;
   const message = error instanceof Error ? error.message : String(error);
-  if (message.includes(CONFIGURATION_ERROR_CODE)) return CONFIGURATION_ERROR_MESSAGE;
+  if (message.includes(CONFIGURATION_ERROR_CODE)) return t(CONFIGURATION_ERROR_MESSAGE,"Noata's connection settings are not approved. Your request was not sent. Try again after the configuration is corrected.");
   if (message.includes("FANAR_NOT_CONFIGURED"))
-    return "مساعد Noata AI غير متاح في بيئة الاختبار حاليًا لأن ربط Fanar لم يكتمل بعد. لم تُرسل رسالتك إلى النموذج؛ احتفظ بها لحين تفعيل الخدمة.";
+    return t("مساعد Noata AI غير متاح في بيئة الاختبار حاليًا لأن ربط Fanar لم يكتمل بعد. لم تُرسل رسالتك إلى النموذج؛ احتفظ بها لحين تفعيل الخدمة.","Noata AI is currently unavailable because Fanar is not configured. Your message was not sent to the model. Keep it until the service is available.");
   if (/FANAR_UNAVAILABLE|\b503\b/.test(message))
-    return "خدمة Fanar غير متاحة مؤقتًا. لم نتمكن من إكمال الرد؛ حاول لاحقًا.";
+    return t("خدمة Fanar غير متاحة مؤقتًا. لم نتمكن من إكمال الرد؛ حاول لاحقًا.","Fanar is temporarily unavailable. Your answer could not be completed. Try again later.");
   if (/429|quota|rate/i.test(message))
-    return "وصلت لحد الاستخدام الحالي. جرّب بعد شوية.";
+    return t("وصلت لحد الاستخدام الحالي. جرّب بعد شوية.","You have reached the current usage limit. Try again later.");
   if (/401|jwt|sign in|auth|session/i.test(message))
-    return "الجلسة انتهت. سجّل الدخول تاني علشان نكمل.";
+    return t("الجلسة انتهت. سجّل الدخول تاني علشان نكمل.","Your session has expired. Sign in again to continue.");
   if (/abort/i.test(message))
-    return "تم إيقاف الطلب. تقدر تكمّل أو تحاول تاني.";
+    return t("تم إيقاف الطلب. تقدر تكمّل أو تحاول تاني.","Request stopped. You can continue or try again.");
   if (/timeout|timed out/i.test(message))
-    return "الرد أخد وقت أطول من المتوقع. حاول تاني.";
-  return "تعذّر إكمال الطلب. راجع اتصالك وحاول تاني. انسخ أي نص مهم قبل المغادرة.";
+    return t("الرد أخد وقت أطول من المتوقع. حاول تاني.","Generation took too long. Any partial answer is kept; continue it or try again.");
+  return t("تعذّر إكمال الطلب. راجع اتصالك وحاول تاني. انسخ أي نص مهم قبل المغادرة.","Could not complete the request. Check your connection and try again. Copy important text before leaving.");
 }

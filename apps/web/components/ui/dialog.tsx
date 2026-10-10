@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import { Icon } from "./icon";
+import {useTranslation} from "@/lib/i18n/locale";
 export function Dialog({
   open,
   onClose,
@@ -12,8 +13,9 @@ export function Dialog({
   onClose: () => void;
   title: string;
   children: ReactNode;
-  variant?: "default" | "workshop";
+  variant?: "default" | "workshop" | "studio";
 }) {
+  const t=useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -39,7 +41,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className={`noata-dialog${variant === "workshop" ? " noata-dialog--workshop" : ""}`}
+      className={`noata-dialog${variant !== "default" ? " noata-dialog--"+variant : ""}`}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -51,7 +53,7 @@ export function Dialog({
     >
       <div className="dialog-heading">
         <h2>{title}</h2>
-        <button className="icon-btn" onClick={onClose} aria-label="إغلاق">
+        <button className="icon-btn" onClick={onClose} aria-label={t("إغلاق","Close")}>
           <Icon name="close" />
         </button>
       </div>

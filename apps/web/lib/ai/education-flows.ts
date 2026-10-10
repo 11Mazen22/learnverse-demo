@@ -1,3 +1,4 @@
+import {EDUCATION_FLOWS_EN,LEVELS_EN,DEPTHS_EN} from "./education-flows.en.ts";
 /**
  * Explicitly defined, validated education prompts. They are ordinary
  * Fanar chat requests, not fake dedicated provider endpoints.
@@ -30,15 +31,38 @@ export const EDUCATION_DEPTHS=[
 ] as const;
 export type EducationDepthId=typeof EDUCATION_DEPTHS[number]["id"];
 
-export type EducationOptions={level?:EducationLevelId;depth?:EducationDepthId};
+export type EducationOptions={level?:EducationLevelId;depth?:EducationDepthId;locale?:"ar"|"en"};
 
-export function getEducationFlow(id:EducationFlowId){
- return EDUCATION_FLOWS.find(flow=>flow.id===id)??EDUCATION_FLOWS[0];
+export function educationCatalog(locale:"ar"|"en"="ar"){
+ return {flows:locale==="en"?EDUCATION_FLOWS_EN:EDUCATION_FLOWS,
+  levels:EDUCATION_LEVELS.map(level=>locale==="en"?{...level,...LEVELS_EN[level.id]}:level),
+  depths:EDUCATION_DEPTHS.map(depth=>locale==="en"?{...depth,...DEPTHS_EN[depth.id]}:depth)};
+}
+export function getEducationFlow(id:EducationFlowId,locale:"ar"|"en"="ar"){
+ const flows=educationCatalog(locale).flows;
+ return flows.find(flow=>flow.id===id)??flows[0];
 }
 
 export function buildEducationPrompt(flow:EducationFlowId,topic:string,options:EducationOptions={}):string {
  const safe=topic.trim().replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g," ");
- if(safe.length<2||safe.length>1200)throw new Error("الموضوع يجب أن يكون بين حرفين و1200 حرف.");
+  if(safe.length<2||safe.length>1200)throw new Error(options.locale==="en"?"The topic must contain 2 to 1,200 characters.":"الموضوع يجب أن يكون بين حرفين و1200 حرف.");
+  if(options.locale==="en"){
+   const level=LEVELS_EN[options.level??"secondary"],depth=DEPTHS_EN[options.depth??"balanced"];
+   const count=EDUCATION_DEPTHS.find(d=>d.id===(options.depth??"balanced"))?.count??8;
+   const header=`**Study workshop · ${getEducationFlow(flow,"en").title}** — Level: ${level.label} · Detail: ${depth.label}\n\n`;
+   const instructions:Record<EducationFlowId,string>={
+    explain:"Explain the topic step by step with suitable examples, then ask one question to check my understanding",
+    quiz:`Create ${count} varied questions (multiple choice, true or false, and short answers). Show questions first and wait for my answers before giving feedback and review advice`,
+    flashcards:`Create ${count} flashcards in a two-column question and answer table with accurate, concise answers`,
+    summary:"Summarize the main idea, key points, and terms to remember. Do not add unsupported facts",
+    plan:"Help me plan study time. First ask for available time and the deadline if missing, then create an editable plan with realistic breaks",
+    writing:"Revise the text for language and style while preserving meaning. Give the edited text and explain the main changes",
+    quran:"Explain the meaning with a reliable tafsir source. Never invent or reconstruct Quran text from memory. If a verified text or source is unavailable, say so and ask for a reference. Distinguish quotations, interpretation, and educational opinion",
+    notes:"Organize the notes under clear headings with key ideas and review questions. Flag unclear points and do not invent facts",
+    composition:"Help me write an original essay. Give an outline, a sample paragraph at my level, and three ways I can improve my own writing",
+   };
+   return `${header}${instructions[flow]}: ${safe}\n\nAudience: ${level.prompt}. ${depth.prompt}. Answer in clear English using headings and lists when helpful. State uncertainty. Never invent religious quotations or references. If documents are attached, use only what they support.`;
+  }
  const level=EDUCATION_LEVELS.find(l=>l.id===(options.level??"secondary"))??EDUCATION_LEVELS[2];
  const depth=EDUCATION_DEPTHS.find(d=>d.id===(options.depth??"balanced"))??EDUCATION_DEPTHS[1];
  const header=`**ورشة المذاكرة · ${getEducationFlow(flow).title}** — المستوى: ${level.label} · العمق: ${depth.label}\n\n`;
