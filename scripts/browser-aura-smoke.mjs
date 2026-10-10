@@ -407,12 +407,13 @@ async function main() {
   invariant(await evaluate('document.querySelector(".skip-link")?.textContent?.includes("Skip to content")'),"English skip link follows locale");
   // Every public route must honor English, including the guest/error states.
   // Authenticated content selection is covered separately by isolated fixtures.
-  for(const path of ["/","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/notifications","/ai","/settings","/teacher","/admin","/help","/privacy","/terms","/login","/signup"]){
+  for(const path of ["/","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/notifications","/ai","/settings","/teacher","/admin","/help","/privacy","/terms","/login","/login?mode=signup"]){
     await navigate(path);
     await waitFor(()=>evaluate('document.documentElement.lang==="en" && document.documentElement.dir==="ltr"'),"English root on "+path);
     const leaked=await evaluate(`(()=>{const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),found=[];while(walker.nextNode()){const node=walker.currentNode,el=node.parentElement,text=node.textContent.trim();if(!text||!el||el.closest('script,style,option,[lang="ar"]')||!el.getClientRects().length||text==='العربية'||text==='Language / اللغة')continue;if(/[\\u0600-\\u06ff]/.test(text))found.push(text.slice(0,160));}return found})()`);
     invariant(leaked.length===0,"English interface has no Arabic copy on "+path+": "+leaked.join(" | "));
     invariant(await evaluate('document.documentElement.scrollWidth-innerWidth<=3'),"English layout fits "+path);
+    if(path==="/ai")invariant(await evaluate('getComputedStyle(document.querySelector(".owui-layout")).direction==="ltr"'),"English AI workspace uses actual LTR layout");
   }
   for(const width of [1440,768,390]) {
     location.width=width;

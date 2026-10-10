@@ -480,13 +480,13 @@ export async function verifyUiAccountContracts({
     await evaluate('localStorage.setItem("noata-locale","en")');
     await navigate("/admin");
     await waitFor(()=>evaluate('document.documentElement.lang==="en" && document.body.innerText.includes("English fixture question")'),"English staff question content");
-    invariant(await evaluate('document.body.innerText.includes("Content queue")'),"Admin interface follows English");
+    invariant(await evaluate('document.body.innerText.includes("Content list")'),"Admin interface follows English");
     await navigate("/teacher");
     await waitFor(()=>evaluate('document.body.innerText.includes("English fixture question")'),"English teacher question content");
     await navigate("/missions");
     await waitFor(()=>evaluate('document.body.innerText.includes("English fixture lesson") && document.body.innerText.includes("English fixture question")'),"English mission title and question");
     invariant(await evaluate('document.body.innerText.includes("Numeric answer") && !document.body.innerText.includes("سؤال اختبار واجهة فقط")'),"English missions use the English catalog and readable question type");
-    await navigate("/learn/ci-lesson");
+    await navigate("/lesson/ci-lesson");
     await waitFor(()=>evaluate('document.body.innerText.includes("English fixture lesson summary")'),"English lesson body");
     invariant(await evaluate('!document.body.innerText.includes("شرح اصطناعي")'),"English lesson body never falls back to the Arabic summary");
     await evaluate('localStorage.setItem("noata-locale","ar")');

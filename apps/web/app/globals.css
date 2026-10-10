@@ -1658,7 +1658,7 @@ html[data-reduced-motion="true"] *::after {
   --owui-content: 820px;
   display: grid;
   grid-template-columns: var(--owui-sidebar) minmax(0, 1fr);
-  direction: rtl;
+  direction: inherit;
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
@@ -4175,8 +4175,8 @@ html[data-theme=dark] .noata-confirm-primary{color:#071327}
 .auth-field input[dir=ltr]{text-align:left}
 .auth-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);background:var(--surface)}
 .auth-password{position:relative;display:block}
-.auth-password input{padding-left:78px;padding-right:14px}
-.auth-password button{position:absolute;inset-block:6px;left:6px;border:0;border-radius:9px;padding:0 10px;background:transparent;color:var(--accent);font-weight:700;font-size:12.5px;cursor:pointer}
+.auth-password input{padding-inline-start:14px;padding-inline-end:78px}
+.auth-password button{position:absolute;inset-block:6px;inset-inline-end:6px;border:0;border-radius:9px;padding:0 10px;background:transparent;color:var(--accent);font-weight:700;font-size:12.5px;cursor:pointer}
 .auth-inline-link,.auth-link{border:0;background:transparent;color:var(--accent);font-weight:700;cursor:pointer;font-size:12.5px;padding:0}
 .auth-link{margin:14px auto 0;font-size:14px}
 .auth-primary{display:flex;align-items:center;justify-content:center;min-height:48px;border:0;border-radius:13px;background:var(--accent);color:#fff;font-weight:800;font-size:15.5px;cursor:pointer;text-decoration:none;margin-top:4px}

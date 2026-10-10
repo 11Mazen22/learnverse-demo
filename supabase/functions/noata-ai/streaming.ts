@@ -25,7 +25,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
       try {
         emit({ ready: true, model: options.model });
         const response = await options.request(abort.signal);
-        if (!response.ok || !response.body) throw Error(`Provider HTTP ${response.status}`);
+        if (!response.ok || !response.body) throw Error(`PROVIDER_HTTP_${response.status}`);
         if (!response.headers.get("content-type")?.includes("text/event-stream")) {
           delivery = "buffered";
           const data = await response.json();
@@ -75,7 +75,9 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
           emit({ ...partial, done: true });
         } else {
           await options.persist(null, "failed").catch(() => {});
-          emit({ error: error instanceof Error && /429/.test(error.message) ? "429" : "AI stream interrupted. Please retry." });
+          const code=error instanceof Error && /^PROVIDER_HTTP_\d{3}$/.test(error.message)?error.message:"PROVIDER_STREAM_INTERRUPTED";
+          console.warn("Fanar stream failure",code);
+          emit({ error: code });
         }
       } finally {
         clearTimeout(deadline); clearInterval(heartbeat);

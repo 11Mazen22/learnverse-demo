@@ -99,7 +99,8 @@ export function WritingStudio({
       });
       if (!response.ok) {
         const body = await response.json();
-        throw new Error(locale==="en" ? "Could not export the PDF. Your draft is kept; try again or download Word or Markdown." : body.error || t("تعذّر تصدير PDF.","Could not export the PDF."));
+        const reason=response.status===401?t("سجّل دخولك لتصدير المستند.","Sign in again to export the document."):response.status===429?t("التصدير مشغول أو وصلت لحد الطلبات. انتظر قليلًا.","PDF export is busy or the request limit was reached. Wait a moment and try again."):locale==="en"?"Could not export the PDF. Your draft is kept; try Text PDF, Word, or Markdown.":body.error||t("تعذّر تصدير PDF.","Could not export the PDF.");
+        throw new Error(reason+(typeof body.code==="string"?` (${body.code})`:""));
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);

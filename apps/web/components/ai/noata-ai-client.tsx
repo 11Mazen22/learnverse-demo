@@ -253,6 +253,8 @@ export function NoataAIClient() {
 
   return (
     <section
+      dir={locale==="en"?"ltr":"rtl"}
+      lang={locale}
       className={"owui-layout " + (sidebarCollapsed ? "sidebar-collapsed" : "")}
     >
       {sidebar}

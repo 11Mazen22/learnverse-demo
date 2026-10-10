@@ -183,6 +183,12 @@ export function aiResponseFailure(status: number, body: unknown): string {
 export function friendlyError(error: unknown,locale:"ar"|"en"="ar") {
   const t=(ar:string,en:string)=>locale==="en"?en:ar;
   const message = error instanceof Error ? error.message : String(error);
+  if (/PROVIDER_HTTP_(401|403)/.test(message))
+    return t("لم يسمح مزوّد Fanar باستخدام هذا النموذج بالمفتاح المهيأ. جرّب نموذجًا آخر؛ يلزم تفعيل الوصول لدى المزوّد.","Fanar has not authorized this model for the configured API key. Choose another model; provider access must be enabled.");
+  if (/PROVIDER_HTTP_4(00|04|22)/.test(message))
+    return t("رفض المزوّد صيغة هذا الطلب أو النموذج. رسالتك محفوظة هنا؛ جرّب نموذجًا آخر.","The provider rejected this request or model. Your message is kept here; try another model.");
+  if (/PROVIDER_HTTP_5[0-9][0-9]|PROVIDER_STREAM_INTERRUPTED/.test(message))
+    return t("انقطع ردّ مزوّد Fanar. احتُفظ بأي نص وصل؛ أعد المحاولة أو أكمل الرد الجزئي.","Fanar interrupted the response. Any text received is kept; retry or continue the partial answer.");
   if (message.includes(CONFIGURATION_ERROR_CODE)) return t(CONFIGURATION_ERROR_MESSAGE,"Noata's connection settings are not approved. Your request was not sent. Try again after the configuration is corrected.");
   if (message.includes("FANAR_NOT_CONFIGURED"))
     return t("مساعد Noata AI غير متاح في بيئة الاختبار حاليًا لأن ربط Fanar لم يكتمل بعد. لم تُرسل رسالتك إلى النموذج؛ احتفظ بها لحين تفعيل الخدمة.","Noata AI is currently unavailable because Fanar is not configured. Your message was not sent to the model. Keep it until the service is available.");

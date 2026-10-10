@@ -20,6 +20,9 @@ export async function POST(request: Request) {
     if(error instanceof PdfRequestError) return Response.json({error:error.message},{status:error.status});
     if(error instanceof PdfBusyError) return Response.json({error:"التصدير مشغول حاليًا. حاول بعد قليل."},{status:429,headers:{"Retry-After":"10"}});
     if(error instanceof SyntaxError) return Response.json({error:"مستند غير صالح."},{status:400});
-    return Response.json({error:"تعذّر إنشاء PDF. يمكنك تنزيل Word أو Markdown والمحاولة لاحقًا."},{status:503});
+    const message=error instanceof Error?error.message:"";
+    const code=/ENOENT/.test(message)?"PDF_ASSET_MISSING":/font/i.test(message)?"PDF_FONT_FAILED":/timeout|timed out|closed/i.test(message)?"PDF_RENDER_TIMEOUT":"PDF_RENDER_FAILED";
+    console.warn("Noata PDF export",code);
+    return Response.json({error:"تعذّر إنشاء PDF. يمكنك تنزيل Word أو Markdown والمحاولة لاحقًا.",code},{status:503});
   }
 }
