@@ -576,7 +576,7 @@ export function NoataAIClient() {
                 className="aura-writing-entry"
                 onClick={() =>
                   setStudioSource(
-                    input.trim() || "# مستند جديد\n\nابدأ كتابة أفكارك هنا.",
+                    input.trim() || t("# مستند جديد\n\nابدأ كتابة أفكارك هنا.","# New document\n\nStart writing your ideas here."),
                   )
                 }
               >

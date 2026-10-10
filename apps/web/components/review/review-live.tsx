@@ -1,4 +1,6 @@
 "use client";
+import {masteryLabel,questionTypeLabel} from "@/lib/i18n/content-labels";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
@@ -11,6 +13,8 @@ type ReviewQuestion = {
   skill_id: string | null;
   question_type: string;
   prompt_ar: string;
+   prompt_en: string | null;
+   choices_en: unknown;
   choices_ar: unknown;
   metadata: unknown;
 };
@@ -23,7 +27,7 @@ type Evidence = {
 };
 type Grade = {
   correct?: boolean;
-  explanation_ar?: string;
+  explanation_ar?: string; explanation_en?:string;
   mastery_score?: number | null;
   mastery_state?: string | null;
   next_review_at?: string | null;
@@ -34,6 +38,7 @@ function options(v: unknown) {
 }
 
 export function ReviewLive() {
+ const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [questions, setQuestions] = useState<ReviewQuestion[]>([]);
@@ -81,7 +86,7 @@ export function ReviewLive() {
         if (!skillIds.length) return;
         const { data: q, error: questionError } = await supabase
           .from("questions")
-          .select("id,skill_id,question_type,prompt_ar,choices_ar,metadata")
+          .select("id,skill_id,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
           .in("skill_id", skillIds)
           .is("variant_of", null)
           .in("publication_status", ["published_demo", "published"])
@@ -96,7 +101,7 @@ export function ReviewLive() {
         }
         setQuestions(picked);
       } catch {
-        if (active) setError("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.");
+        if (active) setError(t("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.","Could not load this page. Please try again."));
       } finally {
         if (active) setLoading(false);
       }
@@ -140,7 +145,7 @@ export function ReviewLive() {
       if (grade && !grade.correct) {
         const { data: variant, error: variantError } = await supabase
           .from("questions")
-          .select("id,skill_id,question_type,prompt_ar,choices_ar,metadata")
+          .select("id,skill_id,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
           .eq("variant_of", current.id)
           .in("publication_status", ["published_demo", "published"])
           .limit(1)
@@ -166,40 +171,36 @@ export function ReviewLive() {
     return (
       <section className="aura-load-error" role="alert">
         <h2>{account.error}</h2>
-        <button type="button" onClick={() => void account.refresh()}>
-          إعادة المحاولة
-        </button>
+        <button type="button" onClick={() => void account.refresh()}>{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (account.loading || loading)
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>بنجهّز مساحتك…</h2>
-        <p>لحظات ونرتّب خطوتك التالية.</p>
+        <h2>{t("بنجهّز مساحتك…","Preparing your space…")}</h2>
+        <p>{t("لحظات ونرتّب خطوتك التالية.","Finding your next step.")}</p>
       </section>
     );
   if (error && !questions.length)
     return (
       <section className="aura-load-error" role="alert">
         <strong>{error}</strong>
-        <button type="button" onClick={() => setReload((n) => n + 1)}>
-          إعادة المحاولة
-        </button>
+        <button type="button" onClick={() => setReload((n) => n + 1)}>{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (signedIn === false)
     return (
       <ModuleWelcome
-        title="فهمك يستحق أن يدوم."
-        description="راجع المهارات في وقتها المناسب، واختبر ما تتذكره؛ مواعيد المراجعة مرتبطة بأدائك الفعلي."
+        title={t("فهمك يستحق أن يدوم.","Make your understanding last.")}
+        description={t("راجع المهارات في وقتها المناسب، واختبر ما تتذكره؛ مواعيد المراجعة مرتبطة بأدائك الفعلي.","Review skills at the right time and check what you remember. Review dates follow your actual performance.")}
         icon="review"
         route="/review"
-        eyebrow="المراجعة المتباعدة"
+        eyebrow={t("المراجعة المتباعدة","Spaced review")}
         steps={[
-          "استرجع الفكرة من ذاكرتك",
-          "اعرف ما يحتاج إلى تثبيت",
-          "تابع موعد المراجعة التالية",
+          t("استرجع الفكرة من ذاكرتك","Recall the idea"),
+          t("اعرف ما يحتاج إلى تثبيت","Find what needs practice"),
+          t("تابع موعد المراجعة التالية","See your next review date"),
         ]}
       />
     );
@@ -207,16 +208,12 @@ export function ReviewLive() {
   if (idx >= questions.length && questions.length > 0)
     return (
       <section className="hero" style={{ textAlign: "center", padding: 44 }}>
-        <div className="eyebrow">اكتملت مراجعة اليوم</div>
-        <h1>كده المراجعة خلصت ✨</h1>
-        <p>المواعيد الجديدة اتحدثت من أدائك، مش من مؤقت ثابت.</p>
+        <div className="eyebrow">{t("اكتملت مراجعة اليوم","Today’s review is complete")}</div>
+        <h1>{t("كده المراجعة خلصت ✨","Review complete ✨")}</h1>
+        <p>{t("المواعيد الجديدة اتحدثت من أدائك، مش من مؤقت ثابت.","Your next review dates have been updated based on your performance.")}</p>
         <div className="hero-actions" style={{ justifyContent: "center" }}>
-          <a className="btn btn-primary" href="/progress">
-            تابع مستوى إتقانك
-          </a>
-          <a className="btn btn-secondary" href="/learn">
-            كمّل تعلم
-          </a>
+          <a className="btn btn-primary" href="/progress">{t("تابع مستوى إتقانك","View your mastery")}</a>
+          <a className="btn btn-secondary" href="/learn">{t("كمّل تعلم","Keep learning")}</a>
         </div>
       </section>
     );
@@ -225,26 +222,26 @@ export function ReviewLive() {
     <>
       <header className="noata-section-head">
         <div>
-          <p className="noata-eyebrow">مساحتك للمراجعة الذكية</p>
-          <h1>المراجعة المتباعدة</h1>
-          <p>راجع اللي اتعلمته في الوقت المناسب. المواعيد بتتبني على إجاباتك الحقيقية، مش مؤقت عشوائي.</p>
+          <p className="noata-eyebrow">{t("مساحتك للمراجعة الذكية","Your space for focused review")}</p>
+          <h1>{t("المراجعة المتباعدة","Spaced review")}</h1>
+          <p>{t("راجع اللي اتعلمته في الوقت المناسب. المواعيد بتتبني على إجاباتك الحقيقية، مش مؤقت عشوائي.","Review what you learned at the right time. Dates follow your actual answers.")}</p>
         </div>
-        <span className="pill">{due.toLocaleString("ar-EG")} مراجعات مستحقة</span>
+        <span className="pill">{due.toLocaleString(locale==="en"?"en":"ar-EG")}{t("مراجعات مستحقة","Reviews due")}</span>
       </header>
 
       {!questions.length ? (
         <section className="noata-empty" role="status">
           <span className="noata-empty-icon" aria-hidden="true">✦</span>
-          <h2>{due ? "فيه مراجعات مستحقة، لكن الأسئلة مش جاهزة لسه" : "تمام! مفيش مراجعات مستحقة دلوقتي"}</h2>
-          <p>{due ? "مهاراتك محفوظة. الأسئلة المرتبطة بها غير منشورة في Staging بعد؛ هنظهرها هنا لما تتاح." : "كمّل مهامك ودروسك، وهنجهّز مراجعات بموعد حقيقي حسب تقدمك."}</p>
-          <div className="hero-actions"><a href="/missions" className="btn btn-primary">ابدأ مهمة تعليمية</a><a href="/learn" className="btn btn-secondary">استكشف الدروس</a></div>
+          <h2>{due ? t("فيه مراجعات مستحقة، لكن الأسئلة مش جاهزة لسه","Reviews are due, but their questions are not available yet") : t("تمام! مفيش مراجعات مستحقة دلوقتي","You’re up to date. No reviews are due.")}</h2>
+          <p>{due ? t("مهاراتك محفوظة. الأسئلة المرتبطة بها غير منشورة في Staging بعد؛ هنظهرها هنا لما تتاح.","Your skills are saved. Their questions will appear here when published.") : t("كمّل مهامك ودروسك، وهنجهّز مراجعات بموعد حقيقي حسب تقدمك.","Continue your missions and lessons. Reviews will be scheduled as your skills develop.")}</p>
+          <div className="hero-actions"><a href="/missions" className="btn btn-primary">{t("ابدأ مهمة تعليمية","Start a learning mission")}</a><a href="/learn" className="btn btn-secondary">{t("استكشف الدروس","Explore lessons")}</a></div>
         </section>
       ) : (
         <section className="panel" style={{ padding: 28 }}>
           <div className="panel-head">
             <div>
-              <span className="pill">{skill?.skills?.title_ar ?? "مهارة قيد المراجعة"}</span>
-              <h2 style={{ marginTop: 12 }}>{current?.prompt_ar}</h2>
+              <span className="pill">{(locale==="en"?skill?.skills?.title_en:skill?.skills?.title_ar) ?? t("مهارة قيد المراجعة","Skill under review")}</span>
+              <h2 style={{ marginTop: 12 }}>{(locale==="en" ? current?.prompt_en ?? "English question unavailable." : current?.prompt_ar)}</h2>
             </div>
             <b>
               {idx + 1}/{questions.length}
@@ -253,7 +250,7 @@ export function ReviewLive() {
           <form onSubmit={submit}>
             {current?.question_type === "multiple-choice" ? (
               <div style={{ display: "grid", gap: 10 }}>
-                {options(current.choices_ar).map((option, i) => (
+                {options((locale==="en" ? current.choices_en : current.choices_ar)).map((option, i) => (
                   <button
                     key={option}
                     type="button"
@@ -275,7 +272,7 @@ export function ReviewLive() {
                       color: "var(--ink)",
                     }}
                   >
-                    {(i + 1).toLocaleString("ar-EG")}. {option}
+                    {(i + 1).toLocaleString(locale==="en"?"en":"ar-EG")}. {option}
                   </button>
                 ))}
               </div>
@@ -289,8 +286,8 @@ export function ReviewLive() {
                 inputMode={
                   current.question_type === "numeric" ? "decimal" : "text"
                 }
-                aria-label="إجابتك على السؤال"
-                placeholder="اكتب إجابتك…"
+                aria-label={t("إجابتك على السؤال","Your answer")}
+                placeholder={t("اكتب إجابتك…","Enter your answer…")}
               />
             )}
             {grade && (
@@ -304,12 +301,11 @@ export function ReviewLive() {
                     : "rgba(227,87,87,.08)",
                 }}
               >
-                <b>{grade.correct ? "صح 👏" : "لسه محتاجة محاولة تانية"}</b>
-                <p>{grade.explanation_ar}</p>
+                <b>{grade.correct ? t("صح 👏","Correct 👏") : t("لسه محتاجة محاولة تانية","Try again")}</b>
+                <p>{(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
                 {grade.mastery_score != null && (
-                  <small>
-                    درجة الإتقان {Math.round(Number(grade.mastery_score)).toLocaleString("ar-EG")}٪ ·{" "}
-                    {grade.mastery_state}
+                  <small>{t("درجة الإتقان","Mastery")}{Math.round(Number(grade.mastery_score)).toLocaleString(locale==="en"?"en":"ar-EG")}{t("٪ ·","% ·")}{" "}
+                    {masteryLabel(grade.mastery_state,locale)}
                   </small>
                 )}
               </div>
@@ -335,7 +331,7 @@ export function ReviewLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  {busy ? "جارٍ التحقق…" : "تحقق"}
+                  {busy ? t("جارٍ التحقق…","Checking…") : t("تحقق","Check answer")}
                 </button>
               ) : (
                 <button
@@ -347,7 +343,7 @@ export function ReviewLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  {grade.correct ? "التالي" : "سؤال موازي"}
+                  {grade.correct ? t("التالي","Next") : t("سؤال موازي","Similar question")}
                 </button>
               )}
             </div>

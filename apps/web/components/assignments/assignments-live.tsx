@@ -1,4 +1,5 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -31,15 +32,18 @@ type Item = {
     id: string;
     question_type: string;
     prompt_ar: string;
+   prompt_en: string | null;
+   choices_en: unknown;
     choices_ar: unknown;
   } | null;
 };
-type Grade = { correct?: boolean; explanation_ar?: string };
+type Grade = { correct?: boolean; explanation_ar?: string; explanation_en?:string };
 
 const choices = (value: unknown) =>
   Array.isArray(value) ? value.map(String) : [];
 
 export function AssignmentsLive() {
+ const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
   const account = useVerifiedAccount();
   const signedIn = Boolean(account.user),
@@ -102,7 +106,7 @@ export function AssignmentsLive() {
     } catch {
       if (token === account.revision.current)
         setError(
-          "تعذّر تحميل الواجبات وحالة التسليم. أعد المحاولة عند عودة الاتصال.",
+          t("تعذّر تحميل الواجبات وحالة التسليم. أعد المحاولة عند عودة الاتصال.","Could not load assignments and submissions. Try again when your connection returns."),
         );
     } finally {
       if (token === account.revision.current) setLoading(false);
@@ -159,7 +163,7 @@ export function AssignmentsLive() {
         supabase
           .from("assignment_items")
           .select(
-            "assignment_id,position,question_id,questions(id,question_type,prompt_ar,choices_ar)",
+            "assignment_id,position,question_id,questions(id,question_type,prompt_ar,prompt_en,choices_ar,choices_en)",
           )
           .eq("assignment_id", id)
           .order("position"),
@@ -182,7 +186,7 @@ export function AssignmentsLive() {
     } catch {
       if (seq === sequence.current && token === account.revision.current)
         setError(
-          "تعذّر تحميل أسئلة هذا الواجب. أعد المحاولة؛ لن نعرض أسئلة واجب آخر.",
+          t("تعذّر تحميل أسئلة هذا الواجب. أعد المحاولة؛ لن نعرض أسئلة واجب آخر.","Could not load this assignment’s questions. Please try again."),
         );
     } finally {
       if (seq === sequence.current && token === account.revision.current)
@@ -227,7 +231,7 @@ export function AssignmentsLive() {
     } catch {
       if (seq === sequence.current && token === account.revision.current)
         setError(
-          "لم يتأكد حفظ الإجابة. أعد المحاولة بنفس الإجابة للتحقق من العملية دون تكرارها.",
+          t("لم يتأكد حفظ الإجابة. أعد المحاولة بنفس الإجابة للتحقق من العملية دون تكرارها.","Could not confirm your answer was saved. Retry the same answer to check its status."),
         );
     } finally {
       if (seq === sequence.current && token === account.revision.current) {
@@ -294,7 +298,7 @@ export function AssignmentsLive() {
     } catch {
       if (seq === sequence.current && token === account.revision.current)
         setError(
-          "لم يتأكد تسليم الواجب. أعد المحاولة للتحقق من التسليم الموجود دون تغيير تقييم المدرّس.",
+          t("لم يتأكد تسليم الواجب. أعد المحاولة للتحقق من التسليم الموجود دون تغيير تقييم المدرّس.","Could not confirm the submission. Retry to check its status."),
         );
     } finally {
       if (seq === sequence.current && token === account.revision.current) {
@@ -308,16 +312,14 @@ export function AssignmentsLive() {
     return (
       <section className="aura-load-error" role="alert">
         <h2>{account.error}</h2>
-        <button type="button" onClick={() => void account.refresh()}>
-          إعادة المحاولة
-        </button>
+        <button type="button" onClick={() => void account.refresh()}>{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (account.loading || loading)
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>بنرتّب واجباتك…</h2>
+        <h2>{t("بنرتّب واجباتك…","Loading your assignments…")}</h2>
       </section>
     );
   if (error && !rows.length)
@@ -330,23 +332,21 @@ export function AssignmentsLive() {
             setError("");
             void load();
           }}
-        >
-          إعادة المحاولة
-        </button>
+        >{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (signedIn === false)
     return (
       <ModuleWelcome
-        title="واجباتك، بكل وضوح."
-        description="اعرف المطلوب وموعده، أرسل إجاباتك وتابع التقييم؛ تظهر لك الواجبات المسموح بها لحسابك فقط."
+        title={t("واجباتك، بكل وضوح.","Your assignments, clearly organized.")}
+        description={t("اعرف المطلوب وموعده، أرسل إجاباتك وتابع التقييم؛ تظهر لك الواجبات المسموح بها لحسابك فقط.","See what is due, submit your answers, and follow your feedback.")}
         icon="check"
         route="/assignments"
-        eyebrow="من صفّك إلى مساحتك"
+        eyebrow={t("من صفّك إلى مساحتك","From your class to your space")}
         steps={[
-          "اقرأ التعليمات والموعد",
-          "أجب وسلّم عملك",
-          "راجع تقييم المدرّس",
+          t("اقرأ التعليمات والموعد","Read instructions and due dates"),
+          t("أجب وسلّم عملك","Answer and submit your work"),
+          t("راجع تقييم المدرّس","Review your teacher’s feedback"),
         ]}
       />
     );
@@ -358,21 +358,19 @@ export function AssignmentsLive() {
           <div className="quest-icon" style={{ margin: "0 auto" }}>
             ✓
           </div>
-          <h1>تم التسليم</h1>
+          <h1>{t("تم التسليم","Submitted")}</h1>
           <p style={{ color: "var(--muted)" }}>{selectedAssignment?.title}</p>
           <p>
             {existing.score == null
-              ? "في انتظار تقييم المعلم"
-              : "النتيجة: " + existing.score + "%"}
+              ? t("في انتظار تقييم المعلم","Awaiting teacher feedback")
+              : t("النتيجة: ","Score: ") + existing.score + "%"}
           </p>
           <button
             className="btn"
             disabled={busy}
             onClick={closeAssignment}
             style={{ background: "var(--accent)", color: "var(--surface)" }}
-          >
-            رجوع للواجبات
-          </button>
+          >{t("رجوع للواجبات","Back to assignments")}</button>
         </section>
       );
 
@@ -380,9 +378,7 @@ export function AssignmentsLive() {
       <>
         <header className="topbar" style={{ marginBottom: 18 }}>
           <div>
-            <div className="eyebrow" style={{ color: "var(--accent)" }}>
-              من السؤال إلى التسليم
-            </div>
+            <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("من السؤال إلى التسليم","From questions to submission")}</div>
             <h1 style={{ margin: "6px 0 0" }}>{selectedAssignment?.title}</h1>
           </div>
           <span className="pill">
@@ -394,28 +390,24 @@ export function AssignmentsLive() {
             <div role={error ? "alert" : "status"}>
               <p>
                 {itemLoading
-                  ? "بنحمّل أسئلة الواجب…"
+                  ? t("بنحمّل أسئلة الواجب…","Loading assignment questions…")
                   : error ||
-                    "لا توجد أسئلة متاحة لهذا الواجب. تواصل مع المدرّس."}
+                    t("لا توجد أسئلة متاحة لهذا الواجب. تواصل مع المدرّس.","No questions are available for this assignment. Contact your teacher.")}
               </p>
               {error && (
                 <button
                   type="button"
                   onClick={() => void openAssignment(selected)}
-                >
-                  إعادة المحاولة
-                </button>
+                >{t("إعادة المحاولة","Try again")}</button>
               )}
-              <button type="button" onClick={closeAssignment}>
-                رجوع للواجبات
-              </button>
+              <button type="button" onClick={closeAssignment}>{t("رجوع للواجبات","Back to assignments")}</button>
             </div>
           ) : (
             <form onSubmit={check}>
-              <h2 style={{ lineHeight: 1.6 }}>{current.prompt_ar}</h2>
+              <h2 style={{ lineHeight: 1.6 }}>{(locale==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
               {current.question_type === "multiple-choice" ? (
                 <div style={{ display: "grid", gap: 10 }}>
-                  {choices(current.choices_ar).map((x, i) => (
+                  {choices((locale==="en" ? current.choices_en : current.choices_ar)).map((x, i) => (
                     <button
                       type="button"
                       disabled={Boolean(grade) || busy}
@@ -451,8 +443,8 @@ export function AssignmentsLive() {
                   inputMode={
                     current.question_type === "numeric" ? "decimal" : "text"
                   }
-                  aria-label="إجابتك على السؤال"
-                  placeholder="الإجابة…"
+                  aria-label={t("إجابتك على السؤال","Your answer")}
+                  placeholder={t("الإجابة…","Your answer…")}
                 />
               )}
               {grade && (
@@ -466,8 +458,8 @@ export function AssignmentsLive() {
                       : "rgba(227,87,87,.08)",
                   }}
                 >
-                  <b>{grade.correct ? "صح" : "راجع الفكرة"}</b>
-                  <p>{grade.explanation_ar}</p>
+                  <b>{grade.correct ? t("صح","Correct") : t("راجع الفكرة","Review the idea")}</b>
+                  <p>{(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
                 </div>
               )}
               {error && (
@@ -492,9 +484,7 @@ export function AssignmentsLive() {
                     background: "var(--accent-soft)",
                     color: "var(--accent)",
                   }}
-                >
-                  خروج
-                </button>
+                >{t("خروج","Exit")}</button>
                 {!grade ? (
                   <button
                     disabled={!answer || busy}
@@ -503,9 +493,7 @@ export function AssignmentsLive() {
                       background: "var(--accent)",
                       color: "var(--surface)",
                     }}
-                  >
-                    تحقق
-                  </button>
+                  >{t("تحقق","Check answer")}</button>
                 ) : (
                   <button
                     type="button"
@@ -517,7 +505,7 @@ export function AssignmentsLive() {
                       color: "var(--surface)",
                     }}
                   >
-                    {idx === items.length - 1 ? "تسليم الواجب" : "التالي"}
+                    {idx === items.length - 1 ? t("تسليم الواجب","Submit assignment") : t("التالي","Next")}
                   </button>
                 )}
               </div>
@@ -532,12 +520,10 @@ export function AssignmentsLive() {
     <>
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            واجبات صفّك
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>واجباتك</h1>
+          <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("واجبات صفّك","Class assignments")}</div>
+          <h1 style={{ margin: "6px 0 0" }}>{t("واجباتك","Your assignments")}</h1>
         </div>
-        <span className="pill">{rows.length} واجب متاح</span>
+        <span className="pill">{rows.length}{t("واجب متاح","Available assignment")}</span>
       </header>
       <section className="quest-list">
         {rows.map((row) => {
@@ -552,17 +538,17 @@ export function AssignmentsLive() {
                 <div>
                   <h2>{row.title}</h2>
                   <p style={{ color: "var(--muted)", margin: "5px 0" }}>
-                    {row.classes?.name ?? "الصفّ"} · {row.instructions}
+                    {row.classes?.name ?? t("الصفّ","Class")} · {row.instructions}
                   </p>
                 </div>
                 <span className="pill">
                   {sub?.submitted_at
                     ? sub.score == null
-                      ? "تم التسليم"
-                      : "الدرجة: " + sub.score + "%"
+                      ? t("تم التسليم","Submitted")
+                      : t("الدرجة: ","Grade: ") + sub.score + "%"
                     : overdue
-                      ? "فات الموعد"
-                      : "متاح"}
+                      ? t("فات الموعد","Overdue")
+                      : t("متاح","Available")}
                 </span>
               </div>
               <div
@@ -575,8 +561,8 @@ export function AssignmentsLive() {
               >
                 <small style={{ color: "var(--muted)" }}>
                   {row.due_at
-                    ? "الموعد: " + new Date(row.due_at).toLocaleString("ar-EG")
-                    : "بدون موعد محدد"}
+                    ? t("الموعد: ","Due: ") + new Date(row.due_at).toLocaleString(locale==="en"?"en":"ar-EG")
+                    : t("بدون موعد محدد","No due date")}
                 </small>
                 <button
                   className="btn"
@@ -586,7 +572,7 @@ export function AssignmentsLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  {sub?.submitted_at ? "عرض التسليم" : "ابدأ الواجب"}
+                  {sub?.submitted_at ? t("عرض التسليم","View submission") : t("ابدأ الواجب","Start assignment")}
                 </button>
               </div>
             </article>
@@ -596,9 +582,7 @@ export function AssignmentsLive() {
           <section
             className="panel"
             style={{ padding: 30, textAlign: "center", color: "var(--muted)" }}
-          >
-            مفيش واجبات منشورة ليك حاليًا.
-          </section>
+          >{t("مفيش واجبات منشورة ليك حاليًا.","No assignments are currently published for you.")}</section>
         )}
       </section>
     </>

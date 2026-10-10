@@ -57,6 +57,7 @@ export function Icon({
 }) {
   return (
     <svg
+      data-icon={name}
       width={size}
       height={size}
       viewBox="0 0 24 24"

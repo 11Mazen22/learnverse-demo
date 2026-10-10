@@ -215,7 +215,7 @@ function installFixture(origin) {
           default_ai_model: "auto",
           ai_memory_enabled: true,
           theme: "system",
-          locale: "ar",
+          locale: localStorage.getItem("noata-locale")==="en"?"en":"ar",
           reduced_motion: false,
         },
       ],
@@ -235,6 +235,8 @@ function installFixture(origin) {
         {
           id: questionId,
           prompt_ar: "سؤال اختبار واجهة فقط",
+           prompt_en: "English fixture question: what is 240 divided by 30?",
+           choices_ar: [], choices_en: [], lesson_id: "ci-lesson",
           question_type: "numeric",
           review_status: "approved",
           publication_status: "published",
@@ -243,7 +245,8 @@ function installFixture(origin) {
       ],
       assignment_submissions: [],
       assignment_items: [],
-      lessons: [],
+      lessons: localStorage.getItem("noata-locale")==="en"?[{id:"ci-lesson",unit_id:"ci-unit",title_ar:"درس اصطناعي",title_en:"English fixture lesson",position:1,content:{summary_ar:"شرح اصطناعي",summary_en:"English fixture lesson summary",worked_en:"240 divided by 30 is 8."}}]:[],
+       units: [{id:"ci-unit",title_ar:"وحدة اصطناعية",title_en:"English fixture unit"}],
       skills: [],
       class_memberships: [],
       teacher_class_access: [],
@@ -474,6 +477,19 @@ export async function verifyUiAccountContracts({
       "Admin UI loads fixture queue",
     );
     await auditView("admin");
+    await evaluate('localStorage.setItem("noata-locale","en")');
+    await navigate("/admin");
+    await waitFor(()=>evaluate('document.documentElement.lang==="en" && document.body.innerText.includes("English fixture question")'),"English staff question content");
+    invariant(await evaluate('document.body.innerText.includes("Content queue")'),"Admin interface follows English");
+    await navigate("/teacher");
+    await waitFor(()=>evaluate('document.body.innerText.includes("English fixture question")'),"English teacher question content");
+    await navigate("/missions");
+    await waitFor(()=>evaluate('document.body.innerText.includes("English fixture lesson") && document.body.innerText.includes("English fixture question")'),"English mission title and question");
+    invariant(await evaluate('document.body.innerText.includes("Numeric answer") && !document.body.innerText.includes("سؤال اختبار واجهة فقط")'),"English missions use the English catalog and readable question type");
+    await navigate("/learn/ci-lesson");
+    await waitFor(()=>evaluate('document.body.innerText.includes("English fixture lesson summary")'),"English lesson body");
+    invariant(await evaluate('!document.body.innerText.includes("شرح اصطناعي")'),"English lesson body never falls back to the Arabic summary");
+    await evaluate('localStorage.setItem("noata-locale","ar")');
     await evaluate(
       'window.__noataUiFixture.switchAccount("student","00000000-0000-4000-8000-000000000001")',
     );

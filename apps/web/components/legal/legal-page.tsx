@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLocale,applyLocale } from "@/lib/i18n/locale";
 import Link from "next/link";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import "./legal-pages.css";
@@ -28,7 +28,7 @@ export function LegalPage({
   summaryEn: string;
   sections: LegalSection[];
 }) {
-  const [locale, setLocale] = useState<"ar" | "en">("ar");
+  const locale = useLocale(), setLocale=applyLocale;
   const arabic = locale === "ar";
   const title = arabic ? titleAr : titleEn;
 

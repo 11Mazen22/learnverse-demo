@@ -1,10 +1,13 @@
 "use client";
+import {reciterDisplayName} from "@/lib/i18n/quran-labels";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useEffect, useRef, useState } from "react";
 import { chapterRecitation, REQUESTED_RECITERS, type Reciter, type ReciterId } from "@/lib/quran/reciters";
 
 /** Full recordings complement the independently verified verse-by-verse source. */
 export function ChapterRecitations({ surah, name }: { surah: number; name: string }) {
+ const t=useTranslation(),locale=useLocale();
   const [catalogue, setCatalogue] = useState<Reciter[]>([]);
   const [selected, setSelected] = useState<ReciterId>("sudais");
   const [loading, setLoading] = useState(true);
@@ -26,7 +29,7 @@ export function ChapterRecitations({ surah, name }: { surah: number; name: strin
       } catch {
         if (!controller.signal.aborted) {
           setCatalogue([]);
-          setError("تعذّر تحميل دليل التلاوات. يمكنك متابعة القراءة أو استخدام مشغل الآيات والمحاولة لاحقًا.");
+          setError(t("تعذّر تحميل دليل التلاوات. يمكنك متابعة القراءة أو استخدام مشغل الآيات والمحاولة لاحقًا.","Could not load the recording catalogue. Continue reading or use the verse player, then retry later."));
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -49,25 +52,24 @@ export function ChapterRecitations({ surah, name }: { surah: number; name: strin
   }, []);
   const reciter = catalogue.find(item => item.id === selected);
   const url = chapterRecitation(reciter, surah);
-  return <section className="noata-chapter-recitations" aria-label="تلاوات السورة بتسعة قرّاء" aria-busy={loading}>
-    <div><span className="eyebrow">تلاوة السورة كاملة</span><h2>استمع بصوت تحبّه</h2>
-      <p>تسجيل كامل للسورة من MP3Quran. اختر القارئ، ثم ابدأ الاستماع؛ يمكنك الإيقاف والتقديم من المشغل.</p></div>
-    <label htmlFor="noata-chapter-reciter">قارئ السورة
-      <select id="noata-chapter-reciter" value={selected} disabled={loading} onChange={event => {
+  return <section className="noata-chapter-recitations" aria-label={t("تلاوات السورة بتسعة قرّاء","Surah recordings by nine reciters")} aria-busy={loading}>
+    <div><span className="eyebrow">{t("تلاوة السورة كاملة","Full surah recitation")}</span><h2>{t("استمع بصوت تحبّه","Listen to your chosen reciter")}</h2>
+      <p>{t("تسجيل كامل للسورة من MP3Quran. اختر القارئ، ثم ابدأ الاستماع؛ يمكنك الإيقاف والتقديم من المشغل.","Full recordings from MP3Quran. Choose a reciter, then start playback. Pause or seek using the player.")}</p></div>
+    <label htmlFor="noata-chapter-reciter">{t("قارئ السورة","Surah reciter")}<select id="noata-chapter-reciter" value={selected} disabled={loading} onChange={event => {
         const id = event.target.value;
         if (REQUESTED_RECITERS.some(item => item.id === id)) setSelected(id as ReciterId);
-      }}>{REQUESTED_RECITERS.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+      }}>{REQUESTED_RECITERS.map(item => <option key={item.id} value={item.id}>{reciterDisplayName(item.name,locale)}</option>)}</select>
     </label>
-    <strong>{name} · {REQUESTED_RECITERS.find(item => item.id === selected)?.name}</strong>
-    {loading ? <p role="status">جارٍ تحميل مصادر التلاوة…</p> : error ? <div role="status">
-      <p>{error}</p><button type="button" className="btn" onClick={() => setRetry(value => value + 1)}>إعادة تحميل التلاوات</button>
+    <strong>{name} · {reciterDisplayName(REQUESTED_RECITERS.find(item => item.id === selected)?.name??"",locale)}</strong>
+    {loading ? <p role="status">{t("جارٍ تحميل مصادر التلاوة…","Loading recording sources…")}</p> : error ? <div role="status">
+      <p>{error}</p><button type="button" className="btn" onClick={() => setRetry(value => value + 1)}>{t("إعادة تحميل التلاوات","Reload recordings")}</button>
     </div> : url ? <>
       <audio key={selected + ":" + surah} ref={audio} src={url} controls preload="none"
-        aria-label={"تلاوة " + name + " بصوت " + reciter?.name}
+        aria-label={t("تلاوة ","Recitation ") + name + t(" بصوت "," by ") + reciterDisplayName(reciter?.name??"",locale)}
         onPlay={() => window.dispatchEvent(new CustomEvent("noata-quran-playback-start", {detail: "chapter"}))}
         onError={() => setMediaError(true)} />
-      {mediaError && <p role="status">تعذّر تشغيل تسجيل هذا القارئ. أعد المحاولة من المشغل أو اختر قارئًا آخر بنفسك.</p>}
-    </> : <p role="status">لم يؤكّد دليل المصدر وجود تسجيل لهذه السورة بصوت القارئ المختار. اختر قارئًا آخر بنفسك.</p>}
-    <small>المصدر: <a href="https://www.mp3quran.net/ar" target="_blank" rel="noopener noreferrer">MP3Quran</a> · حفص عن عاصم · مرتّل</small>
+      {mediaError && <p role="status">{t("تعذّر تشغيل تسجيل هذا القارئ. أعد المحاولة من المشغل أو اختر قارئًا آخر بنفسك.","Could not play this recording. Retry or choose another reciter.")}</p>}
+    </> : <p role="status">{t("لم يؤكّد دليل المصدر وجود تسجيل لهذه السورة بصوت القارئ المختار. اختر قارئًا آخر بنفسك.","The source catalogue does not confirm this surah for the selected reciter. Choose another reciter.")}</p>}
+    <small>{t("المصدر:","Source:")}<a href="https://www.mp3quran.net/ar" target="_blank" rel="noopener noreferrer">MP3Quran</a>{t("· حفص عن عاصم · مرتّل","· Hafs from Asim · Murattal")}</small>
   </section>;
 }

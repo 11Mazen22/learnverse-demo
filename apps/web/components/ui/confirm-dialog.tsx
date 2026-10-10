@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import {useTranslation} from "@/lib/i18n/locale";
 import { Icon } from "./icon";
 
 export type ConfirmOptions = {
@@ -40,6 +41,7 @@ function subscribe(listener: () => void) {
 }
 
 export function ConfirmHost() {
+ const t=useTranslation();
   const current = useSyncExternalStore(
     subscribe,
     () => pending,
@@ -99,7 +101,7 @@ export function ConfirmHost() {
               className="noata-confirm-primary"
               onClick={() => settle(true)}
             >
-              {current.confirmLabel ?? "تأكيد"}
+              {current.confirmLabel ?? t("تأكيد","Confirm")}
             </button>
             <button
               ref={cancelRef}
@@ -107,7 +109,7 @@ export function ConfirmHost() {
               className="noata-confirm-secondary"
               onClick={() => settle(false)}
             >
-              {current.cancelLabel ?? "إلغاء"}
+              {current.cancelLabel ?? t("إلغاء","Cancel")}
             </button>
           </div>
         </div>

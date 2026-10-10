@@ -1,4 +1,5 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { confirmAction } from "@/components/ui/confirm-dialog";
@@ -12,7 +13,7 @@ import { CurriculumManager } from "@/components/admin/curriculum-manager";
 
 type Question = {
   id: string;
-  prompt_ar: string;
+  prompt_ar: string; prompt_en: string;
   review_status: string;
   publication_status: string;
   question_type: string;
@@ -32,12 +33,13 @@ type ClassRow = {
   academic_year: string;
   active: boolean;
 };
-type Lesson = { id: string; title_ar: string };
-type Skill = { id: string; title_ar: string };
+type Lesson = { id: string; title_ar: string; title_en: string };
+type Skill = { id: string; title_ar: string; title_en: string };
 type Membership = { class_id: string; student_id: string };
 type TeacherAccess = { class_id: string; teacher_id: string };
 
 export function AdminLive() {
+ const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
   const [tab, setTab] = useState<
     "content" | "curriculum" | "users" | "classes" | "operations"
@@ -102,7 +104,7 @@ export function AdminLive() {
           supabase
             .from("questions")
             .select(
-              "id,prompt_ar,review_status,publication_status,question_type",
+              "id,prompt_ar,prompt_en,review_status,publication_status,question_type",
             )
             .order("created_at", { ascending: false }),
           supabase
@@ -115,8 +117,8 @@ export function AdminLive() {
             .order("name"),
           supabase.from("class_memberships").select("class_id,student_id"),
           supabase.from("teacher_class_access").select("class_id,teacher_id"),
-          supabase.from("lessons").select("id,title_ar").order("position"),
-          supabase.from("skills").select("id,title_ar").order("title_ar"),
+          supabase.from("lessons").select("id,title_ar,title_en").order("position"),
+          supabase.from("skills").select("id,title_ar,title_en").order("title_ar"),
         ]),
       );
       if (token !== account.revision.current) return false;
@@ -140,7 +142,7 @@ export function AdminLive() {
     } catch {
       if (token === account.revision.current)
         setLoadError(
-          "تعذّر تحميل بيانات الإدارة. لن نعرض أرقامًا أو قوائم فارغة بوصفها نتائج مؤكدة.",
+          t("تعذّر تحميل بيانات الإدارة. لن نعرض أرقامًا أو قوائم فارغة بوصفها نتائج مؤكدة.","Could not load administration data. Refresh to see confirmed results."),
         );
       return false;
     } finally {
@@ -155,7 +157,7 @@ export function AdminLive() {
     check();
     return (
       message +
-      (refreshed ? "" : " — تعذّر تحديث القائمة؛ راجعها قبل تكرار العملية.")
+      (refreshed ? "" : t(" — تعذّر تحديث القائمة؛ راجعها قبل تكرار العملية."," — Could not refresh the list. Check it before repeating the action."))
     );
   }
   async function transition(id: string, action: string) {
@@ -166,22 +168,22 @@ export function AdminLive() {
       });
       check();
       if (result.error) throw result.error;
-      return refreshMessage(check, "تم تحديث حالة المحتوى ✓");
+      return refreshMessage(check, t("تم تحديث حالة المحتوى ✓","Content status updated ✓"));
     });
   }
 
   function actionFor(q: Question) {
     if (q.review_status === "draft")
-      return { label: "إرسال للمراجعة", action: "submit_review" };
+      return { label: t("إرسال للمراجعة","Submit for review"), action: "submit_review" };
     if (q.review_status === "in_review")
-      return { label: "اعتماد", action: "approve" };
+      return { label: t("اعتماد","Approve"), action: "approve" };
     if (q.review_status === "approved" && q.publication_status === "draft")
-      return { label: "نشر", action: "publish" };
+      return { label: t("نشر","Publish"), action: "publish" };
     if (
       q.publication_status === "published" ||
       q.publication_status === "published_demo"
     )
-      return { label: "إيقاف النشر", action: "retire" };
+      return { label: t("إيقاف النشر","Unpublish"), action: "retire" };
     return null;
   }
 
@@ -210,7 +212,7 @@ export function AdminLive() {
         !answer.trim()
       ) {
         setStatus(
-          "أدخل ترتيب الإجابة الصحيحة بدءًا من صفر، وخيارين على الأقل، مع عدد خيارات متساوٍ بالعربية والإنجليزية.",
+          t("أدخل ترتيب الإجابة الصحيحة بدءًا من صفر، وخيارين على الأقل، مع عدد خيارات متساوٍ بالعربية والإنجليزية.","Enter the correct option index starting at 0. Provide at least two options with equal counts in Arabic and English."),
         );
         return;
       }
@@ -218,7 +220,7 @@ export function AdminLive() {
     } else {
       const numeric = Number(answer);
       if (!answer.trim() || !Number.isFinite(numeric)) {
-        setStatus("الإجابة الرقمية غير صالحة.");
+        setStatus(t("الإجابة الرقمية غير صالحة.","Invalid numeric answer."));
         return;
       }
       answerSpec = { type: "numeric", correctAnswer: numeric, tolerance: 0.01 };
@@ -250,7 +252,7 @@ export function AdminLive() {
       setAnswer("");
       setExplanationAr("");
       setExplanationEn("");
-      const success = "تم حفظ المسودة والإجابة الصحيحة في الخادم ✓";
+      const success = t("تم حفظ المسودة والإجابة الصحيحة في الخادم ✓","Draft and answer key saved ✓");
       return refreshMessage(check, success);
     });
   }
@@ -258,18 +260,18 @@ export function AdminLive() {
   async function changeRole(profile: Profile, role: Profile["role"]) {
     if (profile.role === role) return;
     const roleLabel =
-      role === "admin" ? "مسؤول" : role === "teacher" ? "معلّم" : "طالب";
+      role === "admin" ? t("مسؤول","Admin") : role === "teacher" ? t("معلّم","Teacher") : t("طالب","Student");
     if (
       !(await confirmAction({
-        title: "تغيير صلاحيات الحساب؟",
+        title: t("تغيير صلاحيات الحساب؟","Change account permissions?"),
         description:
-          "سيتم تغيير صلاحيات " +
-          (profile.display_name || "هذا الحساب") +
-          " إلى «" +
+          t("سيتم تغيير صلاحيات ","Change permissions for ") +
+          (profile.display_name || t("هذا الحساب","this account")) +
+          t(" إلى «"," to “") +
           roleLabel +
-          "». يمكنك التراجع لاحقًا من نفس الصفحة.",
-        confirmLabel: "تأكيد التغيير",
-        cancelLabel: "إلغاء",
+          t("». يمكنك التراجع لاحقًا من نفس الصفحة.","”. You can reverse this from the same page."),
+        confirmLabel: t("تأكيد التغيير","Confirm change"),
+        cancelLabel: t("إلغاء","Cancel"),
       }))
     )
       return;
@@ -280,7 +282,7 @@ export function AdminLive() {
       });
       check();
       if (error) throw error;
-      const success = "تم تحديث الصلاحيات ✓";
+      const success = t("تم تحديث الصلاحيات ✓","Permissions updated ✓");
       return refreshMessage(check, success);
     });
   }
@@ -303,7 +305,7 @@ export function AdminLive() {
         .single();
       check();
       if (error) throw error;
-      const success = "تم إنشاء الصفّ ✓";
+      const success = t("تم إنشاء الصفّ ✓","Class created ✓");
       if (!error) {
         setClassName("");
         setGradeLabel("");
@@ -333,11 +335,11 @@ export function AdminLive() {
           .single();
         errorMessage = error?.message ?? "";
       } else {
-        errorMessage = "الإدارة لديها وصول لجميع الصفوف.";
+        errorMessage = t("الإدارة لديها وصول لجميع الصفوف.","Admins already have access to all classes.");
       }
       check();
-      if (errorMessage) throw Error("تعذّر منح الوصول إلى الصفّ.");
-      const success = "تم منح الوصول إلى الصفّ ✓";
+      if (errorMessage) throw Error(t("تعذّر منح الوصول إلى الصفّ.","Could not grant class access."));
+      const success = t("تم منح الوصول إلى الصفّ ✓","Class access granted ✓");
       return refreshMessage(check, success);
     });
   }
@@ -353,7 +355,7 @@ export function AdminLive() {
         .single();
       check();
       if (error) throw error;
-      const success = "تمت إزالة عضوية الطالب ✓";
+      const success = t("تمت إزالة عضوية الطالب ✓","Student membership removed ✓");
       return refreshMessage(check, success);
     });
   }
@@ -369,7 +371,7 @@ export function AdminLive() {
         .single();
       check();
       if (error) throw error;
-      const success = "تمت إزالة وصول المعلّم ✓";
+      const success = t("تمت إزالة وصول المعلّم ✓","Teacher access removed ✓");
       return refreshMessage(check, success);
     });
   }
@@ -395,50 +397,46 @@ export function AdminLive() {
             if (account.error) void account.refresh();
             else void load();
           }}
-        >
-          إعادة المحاولة
-        </button>
+        >{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (account.loading || loading)
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>بنجهّز مساحة إدارة Noata…</h2>
+        <h2>{t("بنجهّز مساحة إدارة Noata…","Loading Noata administration…")}</h2>
       </section>
     );
   return (
     <>
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            إدارة المحتوى والمجتمع
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>مركز إدارة Noata</h1>
+          <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("إدارة المحتوى والمجتمع","Manage content and community")}</div>
+          <h1 style={{ margin: "6px 0 0" }}>{t("مركز إدارة Noata","Noata administration")}</h1>
         </div>
-        <span className="pill">إدارة المحتوى والمجتمع</span>
+        <span className="pill">{t("إدارة المحتوى والمجتمع","Manage content and community")}</span>
       </header>
 
       <section className="grid-4">
         <article className="metric-card">
-          <span>المسودات</span>
+          <span>{t("المسودات","Drafts")}</span>
           <strong>{counts.draft}</strong>
-          <small>محتوى خاص</small>
+          <small>{t("محتوى خاص","Private content")}</small>
         </article>
         <article className="metric-card">
-          <span>قيد المراجعة</span>
+          <span>{t("قيد المراجعة","Under review")}</span>
           <strong>{counts.review}</strong>
-          <small>بانتظار الاعتماد</small>
+          <small>{t("بانتظار الاعتماد","Awaiting approval")}</small>
         </article>
         <article className="metric-card">
-          <span>منشور</span>
+          <span>{t("منشور","Published")}</span>
           <strong>{counts.published}</strong>
-          <small>متاح للطلاب</small>
+          <small>{t("متاح للطلاب","Available to students")}</small>
         </article>
         <article className="metric-card">
-          <span>الحسابات</span>
+          <span>{t("الحسابات","Accounts")}</span>
           <strong>{counts.users}</strong>
-          <small>{classes.length} صفوف</small>
+          <small>{classes.length}{t("صفوف","classes")}</small>
         </article>
       </section>
 
@@ -458,11 +456,11 @@ export function AdminLive() {
           >
             {
               {
-                content: "المحتوى",
-                curriculum: "المناهج",
-                users: "الحسابات",
-                classes: "الصفوف",
-                operations: "تشغيل المنصة",
+                content: t("المحتوى","Content"),
+                curriculum: t("المناهج","Curriculum"),
+                users: t("الحسابات","Accounts"),
+                classes: t("الصفوف","Classes"),
+                operations: t("تشغيل المنصة","Platform operations"),
               }[x]
             }
           </button>
@@ -488,12 +486,12 @@ export function AdminLive() {
           <section className="content-grid">
             <form className="panel" onSubmit={createQuestion}>
               <div className="panel-head">
-                <h2>إنشاء مسودة سؤال</h2>
-                <span className="pill">الإجابة الصحيحة محفوظة في الخادم</span>
+                <h2>{t("إنشاء مسودة سؤال","Create question draft")}</h2>
+                <span className="pill">{t("الإجابة الصحيحة محفوظة في الخادم","Answer keys are stored on the server")}</span>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
                 <label>
-                  <small>الدرس</small>
+                  <small>{t("الدرس","Lesson")}</small>
                   <select
                     className="model-select"
                     style={{ width: "100%", marginTop: 5 }}
@@ -502,13 +500,13 @@ export function AdminLive() {
                   >
                     {lessons.map((x) => (
                       <option value={x.id} key={x.id}>
-                        {x.title_ar}
+                        {locale==="en"?x.title_en:x.title_ar}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  <small>المهارة</small>
+                  <small>{t("المهارة","Skill")}</small>
                   <select
                     className="model-select"
                     style={{ width: "100%", marginTop: 5 }}
@@ -517,13 +515,13 @@ export function AdminLive() {
                   >
                     {skills.map((x) => (
                       <option value={x.id} key={x.id}>
-                        {x.title_ar}
+                        {locale==="en"?x.title_en:x.title_ar}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label>
-                  <small>النوع</small>
+                  <small>{t("النوع","Type")}</small>
                   <select
                     className="model-select"
                     style={{ width: "100%", marginTop: 5 }}
@@ -534,8 +532,8 @@ export function AdminLive() {
                       )
                     }
                   >
-                    <option value="multiple-choice">اختيار من متعدد</option>
-                    <option value="numeric">إجابة رقمية</option>
+                    <option value="multiple-choice">{t("اختيار من متعدد","Multiple choice")}</option>
+                    <option value="numeric">{t("إجابة رقمية","Numeric answer")}</option>
                   </select>
                 </label>
                 <textarea
@@ -543,16 +541,16 @@ export function AdminLive() {
                   style={{ width: "100%", minHeight: 74, paddingTop: 12 }}
                   value={promptAr}
                   onChange={(e) => setPromptAr(e.target.value)}
-                  placeholder="السؤال بالعربية"
-                  aria-label="السؤال بالعربية"
+                  placeholder={t("السؤال بالعربية","Question in Arabic")}
+                  aria-label={t("السؤال بالعربية","Question in Arabic")}
                 />
                 <textarea
                   className="search"
                   style={{ width: "100%", minHeight: 74, paddingTop: 12 }}
                   value={promptEn}
                   onChange={(e) => setPromptEn(e.target.value)}
-                  placeholder="السؤال بالإنجليزية"
-                  aria-label="السؤال بالإنجليزية"
+                  placeholder={t("السؤال بالإنجليزية","Question in English")}
+                  aria-label={t("السؤال بالإنجليزية","Question in English")}
                 />
                 {questionType === "multiple-choice" && (
                   <>
@@ -561,29 +559,29 @@ export function AdminLive() {
                       style={{ width: "100%", minHeight: 90, paddingTop: 12 }}
                       value={choicesAr}
                       onChange={(e) => setChoicesAr(e.target.value)}
-                      placeholder={"الخيارات العربية · خيار في كل سطر"}
-                      aria-label="الخيارات العربية"
+                      placeholder={t("الخيارات العربية · خيار في كل سطر","Arabic options · One per line")}
+                      aria-label={t("الخيارات العربية","Arabic options")}
                     />
                     <textarea
                       className="search"
                       style={{ width: "100%", minHeight: 90, paddingTop: 12 }}
                       value={choicesEn}
                       onChange={(e) => setChoicesEn(e.target.value)}
-                      placeholder={"الخيارات الإنجليزية · خيار في كل سطر"}
-                      aria-label="الخيارات الإنجليزية"
+                      placeholder={t("الخيارات الإنجليزية · خيار في كل سطر","English options · One per line")}
+                      aria-label={t("الخيارات الإنجليزية","English options")}
                     />
                   </>
                 )}
                 <input
                   className="search"
                   style={{ width: "100%" }}
-                  aria-label="الإجابة الصحيحة"
+                  aria-label={t("الإجابة الصحيحة","Correct answer")}
                   value={answer}
                   onChange={(e) => setAnswer(e.target.value)}
                   placeholder={
                     questionType === "multiple-choice"
-                      ? "رقم الخيار الصحيح: 0، 1، 2…"
-                      : "الإجابة الرقمية الصحيحة"
+                      ? t("رقم الخيار الصحيح: 0، 1، 2…","Correct option index: 0, 1, 2…")
+                      : t("الإجابة الرقمية الصحيحة","Correct numeric answer")
                   }
                 />
                 <textarea
@@ -591,16 +589,16 @@ export function AdminLive() {
                   style={{ width: "100%", minHeight: 70, paddingTop: 12 }}
                   value={explanationAr}
                   onChange={(e) => setExplanationAr(e.target.value)}
-                  placeholder="الشرح بعد التصحيح"
-                  aria-label="الشرح بعد التصحيح"
+                  placeholder={t("الشرح بعد التصحيح","Feedback explanation")}
+                  aria-label={t("الشرح بعد التصحيح","Feedback explanation")}
                 />
                 <textarea
                   className="search"
                   style={{ width: "100%", minHeight: 70, paddingTop: 12 }}
                   value={explanationEn}
                   onChange={(e) => setExplanationEn(e.target.value)}
-                  placeholder="الشرح بالإنجليزية"
-                  aria-label="الشرح بالإنجليزية"
+                  placeholder={t("الشرح بالإنجليزية","Explanation in English")}
+                  aria-label={t("الشرح بالإنجليزية","Explanation in English")}
                 />
                 <button
                   disabled={busy}
@@ -609,29 +607,23 @@ export function AdminLive() {
                     background: "var(--accent)",
                     color: "var(--surface)",
                   }}
-                >
-                  إنشاء المسودة
-                </button>
+                >{t("إنشاء المسودة","Create draft")}</button>
               </div>
             </form>
 
             <aside className="panel">
               <div className="panel-head">
-                <h2>قواعد مراجعة المحتوى</h2>
-                <span className="pill">ضوابط على الخادم</span>
+                <h2>{t("قواعد مراجعة المحتوى","Content review rules")}</h2>
+                <span className="pill">{t("ضوابط على الخادم","Server authorization")}</span>
               </div>
-              <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>
-                يبدأ المحتوى بمسودة، ثم المراجعة والاعتماد والنشر. مفاتيح
-                الإجابات محفوظة على الخادم. النشر وإيقافه يتطلبان صلاحية
-                الإدارة، وتُسجّل تغييرات الحالة في سجل النشاط.
-              </p>
+              <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>{t("يبدأ المحتوى بمسودة، ثم المراجعة والاعتماد والنشر. مفاتيح الإجابات محفوظة على الخادم. النشر وإيقافه يتطلبان صلاحية الإدارة، وتُسجّل تغييرات الحالة في سجل النشاط.","Content moves through draft, review, approval, and publication. Answer keys stay on the server. Publishing requires admin access and status changes are recorded.")}</p>
             </aside>
           </section>
 
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">
-              <h2>قائمة المحتوى</h2>
-              <span className="pill">{questions.length} سؤال</span>
+              <h2>{t("قائمة المحتوى","Content list")}</h2>
+              <span className="pill">{questions.length}{t("سؤال","Question")}</span>
             </div>
             <div className="quest-list">
               {questions.slice(0, 30).map((q, i) => {
@@ -640,28 +632,28 @@ export function AdminLive() {
                   <div className="quest" key={q.id}>
                     <div className="quest-icon">{i + 1}</div>
                     <div>
-                      <h3>{q.prompt_ar}</h3>
+                      <h3>{locale==="en"?q.prompt_en:q.prompt_ar}</h3>
                       <p>
                         {(
                           {
-                            draft: "مسودة",
-                            in_review: "قيد المراجعة",
-                            approved: "معتمد",
-                            rejected: "مرفوض",
+                            draft: t("مسودة","Draft"),
+                            in_review: t("قيد المراجعة","Under review"),
+                            approved: t("معتمد","Approved"),
+                            rejected: t("مرفوض","Rejected"),
                           } as Record<string, string>
-                        )[q.review_status] ?? "حالة غير معروفة"}{" "}
+                        )[q.review_status] ?? t("حالة غير معروفة","Unknown status")}{" "}
                         ·{" "}
                         {(
                           {
-                            unpublished: "غير منشور",
-                            published: "منشور",
-                            retired: "متوقف",
+                            unpublished: t("غير منشور","Unpublished"),
+                            published: t("منشور","Published"),
+                            retired: t("متوقف","Paused"),
                           } as Record<string, string>
-                        )[q.publication_status] ?? "حالة غير معروفة"}{" "}
+                        )[q.publication_status] ?? t("حالة غير معروفة","Unknown status")}{" "}
                         ·{" "}
                         {q.question_type === "multiple-choice"
-                          ? "اختيار متعدد"
-                          : "إجابة رقمية"}
+                          ? t("اختيار متعدد","Multiple choice")
+                          : t("إجابة رقمية","Numeric answer")}
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
@@ -678,9 +670,7 @@ export function AdminLive() {
                             minHeight: 38,
                             padding: "0 10px",
                           }}
-                        >
-                          إعادة للمراجعة
-                        </button>
+                        >{t("إعادة للمراجعة","Return for review")}</button>
                       )}
                       {action && (
                         <button
@@ -712,13 +702,13 @@ export function AdminLive() {
       {tab === "users" && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h2>الحسابات والصلاحيات</h2>
-            <span className="pill">صلاحيات الحساب</span>
+            <h2>{t("الحسابات والصلاحيات","Accounts and permissions")}</h2>
+            <span className="pill">{t("صلاحيات الحساب","Account permissions")}</span>
           </div>
           <input
             className="search"
-            placeholder="ابحث بالاسم أو الدور…"
-            aria-label="ابحث بالاسم أو الدور…"
+            placeholder={t("ابحث بالاسم أو الدور…","Search by name or role…")}
+            aria-label={t("ابحث بالاسم أو الدور…","Search by name or role…")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ marginBottom: 16 }}
@@ -743,16 +733,16 @@ export function AdminLive() {
                   </div>
                   <select
                     className="model-select"
-                    aria-label={"دور حساب " + (p.display_name || "المستخدم")}
+                    aria-label={t("دور حساب ","Account role ") + (p.display_name || t("المستخدم","User"))}
                     value={p.role}
                     disabled={busy}
                     onChange={(e) =>
                       void changeRole(p, e.target.value as Profile["role"])
                     }
                   >
-                    <option value="student">طالب</option>
-                    <option value="teacher">معلّم</option>
-                    <option value="admin">إدارة</option>
+                    <option value="student">{t("طالب","Student")}</option>
+                    <option value="teacher">{t("معلّم","Teacher")}</option>
+                    <option value="admin">{t("إدارة","Admin")}</option>
                   </select>
                 </div>
               ))}
@@ -765,8 +755,8 @@ export function AdminLive() {
           <section className="content-grid">
             <form className="panel" onSubmit={createClass}>
               <div className="panel-head">
-                <h2>إنشاء الصفّ</h2>
-                <span className="pill">للإدارة فقط</span>
+                <h2>{t("إنشاء الصفّ","Create class")}</h2>
+                <span className="pill">{t("للإدارة فقط","Admins only")}</span>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
                 <input
@@ -774,24 +764,24 @@ export function AdminLive() {
                   style={{ width: "100%" }}
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
-                  placeholder="اسم الصفّ"
-                  aria-label="اسم الصفّ"
+                  placeholder={t("اسم الصفّ","Class name")}
+                  aria-label={t("اسم الصفّ","Class name")}
                 />
                 <input
                   className="search"
                   style={{ width: "100%" }}
                   value={gradeLabel}
                   onChange={(e) => setGradeLabel(e.target.value)}
-                  placeholder="المرحلة الدراسية"
-                  aria-label="المرحلة الدراسية"
+                  placeholder={t("المرحلة الدراسية","Grade level")}
+                  aria-label={t("المرحلة الدراسية","Grade level")}
                 />
                 <input
                   className="search"
                   style={{ width: "100%" }}
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
-                  placeholder="العام الدراسي"
-                  aria-label="العام الدراسي"
+                  placeholder={t("العام الدراسي","Academic year")}
+                  aria-label={t("العام الدراسي","Academic year")}
                 />
                 <button
                   disabled={busy}
@@ -800,20 +790,18 @@ export function AdminLive() {
                     background: "var(--accent)",
                     color: "var(--surface)",
                   }}
-                >
-                  إنشاء الصفّ
-                </button>
+                >{t("إنشاء الصفّ","Create class")}</button>
               </div>
             </form>
 
             <aside className="panel">
               <div className="panel-head">
-                <h2>منح الوصول إلى الصفّ</h2>
+                <h2>{t("منح الوصول إلى الصفّ","Grant class access")}</h2>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
                 <select
                   className="model-select"
-                  aria-label="اختر الصفّ لمنح الوصول"
+                  aria-label={t("اختر الصفّ لمنح الوصول","Select a class")}
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
                 >
@@ -825,7 +813,7 @@ export function AdminLive() {
                 </select>
                 <select
                   className="model-select"
-                  aria-label="اختر الحساب لمنح الوصول"
+                  aria-label={t("اختر الحساب لمنح الوصول","Select an account")}
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
                 >
@@ -843,9 +831,7 @@ export function AdminLive() {
                     background: "var(--accent)",
                     color: "var(--surface)",
                   }}
-                >
-                  منح الوصول
-                </button>
+                >{t("منح الوصول","Grant access")}</button>
               </div>
             </aside>
           </section>
@@ -864,8 +850,7 @@ export function AdminLive() {
                       </p>
                     </div>
                     <span className="pill">
-                      {students.length} طالب · {teachers.length} معلّم
-                    </span>
+                      {students.length}{t("طالب ·","Student ·")}{teachers.length}{t("معلّم","Teacher")}</span>
                   </div>
                   <div
                     style={{
@@ -875,7 +860,7 @@ export function AdminLive() {
                     }}
                   >
                     <div>
-                      <b>الطلاب</b>
+                      <b>{t("الطلاب","Students")}</b>
                       {students.map((m) => (
                         <div
                           key={m.student_id}
@@ -900,17 +885,15 @@ export function AdminLive() {
                               background: "transparent",
                               color: "var(--danger)",
                             }}
-                          >
-                            إزالة الوصول
-                          </button>
+                          >{t("إزالة الوصول","Remove access")}</button>
                         </div>
                       ))}
                     </div>
                     <div>
-                      <b>المعلّمون</b>
-                      {teachers.map((t) => (
+                      <b>{t("المعلّمون","Teachers")}</b>
+                      {teachers.map((teacher) => (
                         <div
-                          key={t.teacher_id}
+                          key={teacher.teacher_id}
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
@@ -920,21 +903,19 @@ export function AdminLive() {
                           }}
                         >
                           <span>
-                            {profiles.find((p) => p.id === t.teacher_id)
+                            {profiles.find((p) => p.id === teacher.teacher_id)
                               ?.display_name || "Teacher"}
                           </span>
                           <button
                             onClick={() =>
-                              void removeTeacher(c.id, t.teacher_id)
+                              void removeTeacher(c.id, teacher.teacher_id)
                             }
                             style={{
                               border: 0,
                               background: "transparent",
                               color: "var(--danger)",
                             }}
-                          >
-                            إزالة الوصول
-                          </button>
+                          >{t("إزالة الوصول","Remove access")}</button>
                         </div>
                       ))}
                     </div>

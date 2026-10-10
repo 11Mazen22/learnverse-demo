@@ -1,4 +1,5 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useEffect, useMemo, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
@@ -11,7 +12,7 @@ type LessonRow = {
   content: unknown;
   xp_reward: number;
   coin_reward: number;
-  units: { title_ar: string } | null;
+  units: { title_ar: string; title_en: string } | null;
 };
 
 type ContentShape = {
@@ -24,6 +25,7 @@ type ContentShape = {
 };
 
 export function LessonLive({ id }: { id: string }) {
+ const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
   const account = useVerifiedAccount();
   const [error, setError] = useState(""),
@@ -50,7 +52,7 @@ export function LessonLive({ id }: { id: string }) {
         const lesson = await supabase
           .from("lessons")
           .select(
-            "id,title_ar,title_en,content,xp_reward,coin_reward,units(title_ar)",
+            "id,title_ar,title_en,content,xp_reward,coin_reward,units(title_ar,title_en)",
           )
           .eq("id", id)
           .maybeSingle();
@@ -88,7 +90,7 @@ export function LessonLive({ id }: { id: string }) {
       } catch {
         if (alive)
           setError(
-            "تعذّر تحميل الدرس وتقدّمك. حاول مرة أخرى؛ لم نؤكد أنه غير متاح.",
+            t("تعذّر تحميل الدرس وتقدّمك. حاول مرة أخرى؛ لم نؤكد أنه غير متاح.","Could not load the lesson and your progress. Please try again."),
           );
       } finally {
         if (alive) setLoading(false);
@@ -108,9 +110,7 @@ export function LessonLive({ id }: { id: string }) {
             if (account.error) void account.refresh();
             else setRetry((x) => x + 1);
           }}
-        >
-          إعادة المحاولة
-        </button>
+        >{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (account.loading || loading)
@@ -129,14 +129,12 @@ export function LessonLive({ id }: { id: string }) {
   if (missing || !lesson)
     return (
       <section className="panel" style={{ textAlign: "center", padding: 34 }}>
-        <h2>الدرس ده مش متاح.</h2>
+        <h2>{t("الدرس ده مش متاح.","This lesson is not available.")}</h2>
         <a
           className="btn"
           href="/learn"
           style={{ background: "var(--accent)", color: "var(--surface)" }}
-        >
-          رجوع للمسار
-        </a>
+        >{t("رجوع للمسار","Back to your journey")}</a>
       </section>
     );
 
@@ -149,7 +147,7 @@ export function LessonLive({ id }: { id: string }) {
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
             LESSON
           </div>
-          <h1 style={{ margin: "6px 0 0" }}>{lesson.title_ar}</h1>
+          <h1 style={{ margin: "6px 0 0" }}>{(locale==="en"?lesson.title_en:lesson.title_ar)}</h1>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {completed && (
@@ -163,43 +161,39 @@ export function LessonLive({ id }: { id: string }) {
 
       <section className="hero" style={{ padding: 30 }}>
         <div className="eyebrow">
-          {lesson.units?.title_ar ?? "NOATA LESSON"}
+          {(locale==="en"?lesson.units?.title_en:lesson.units?.title_ar) ?? "NOATA LESSON"}
         </div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", margin: "9px 0" }}>
-          {lesson.title_ar}
+          {(locale==="en"?lesson.title_en:lesson.title_ar)}
         </h2>
-        <p>{content.summary_ar ?? "الدرس جاهز للتعلم والتطبيق."}</p>
+        <p>{(locale==="en"?content.summary_en:content.summary_ar) ?? t("الدرس جاهز للتعلم والتطبيق.","Ready to learn and apply this lesson.")}</p>
         <div className="hero-actions">
-          <a className="btn btn-primary" href={"/missions?lesson=" + lesson.id}>
-            ابدأ Mission
-          </a>
+          <a className="btn btn-primary" href={"/missions?lesson=" + lesson.id}>{t("ابدأ Mission","Start mission")}</a>
           <a
             className="btn btn-secondary"
             href={
               "/ai?prompt=" +
               encodeURIComponent(
-                "اشرحلي درس " +
-                  lesson.title_ar +
-                  " خطوة بخطوة: " +
-                  (content.summary_ar ?? ""),
+                t("اشرحلي درس ","Explain a lesson ") +
+                  (locale==="en"?lesson.title_en:lesson.title_ar) +
+                  t(" خطوة بخطوة: "," Step by step: ") +
+                  ((locale==="en"?content.summary_en:content.summary_ar) ?? ""),
               )
             }
-          >
-            اسأل Noata AI
-          </a>
+          >{t("اسأل Noata AI","Ask Noata AI")}</a>
         </div>
       </section>
 
       <section className="content-grid">
         <article className="panel">
           <div className="panel-head">
-            <h2>الفكرة الأساسية</h2>
+            <h2>{t("الفكرة الأساسية","The main idea")}</h2>
             <span className="pill">Concept first</span>
           </div>
           <p style={{ fontSize: 17, lineHeight: 2, margin: 0 }}>
-            {content.summary_ar ?? "محتوى الدرس قيد الإعداد."}
+            {(locale==="en"?content.summary_en:content.summary_ar) ?? t("محتوى الدرس قيد الإعداد.","Lesson content is being prepared.")}
           </p>
-          {content.worked_ar && (
+          {(locale==="en"?content.worked_en:content.worked_ar) && (
             <>
               <div
                 style={{
@@ -209,11 +203,11 @@ export function LessonLive({ id }: { id: string }) {
                 }}
               />
               <div className="panel-head">
-                <h2>مثال محلول</h2>
+                <h2>{t("مثال محلول","Worked example")}</h2>
                 <span className="pill">Worked example</span>
               </div>
               <p style={{ fontSize: 16, lineHeight: 2, margin: 0 }}>
-                {content.worked_ar}
+                {(locale==="en"?content.worked_en:content.worked_ar)}
               </p>
             </>
           )}
@@ -222,13 +216,10 @@ export function LessonLive({ id }: { id: string }) {
         <aside>
           <section className="panel">
             <div className="panel-head">
-              <h2>بعد الشرح</h2>
+              <h2>{t("بعد الشرح","After the explanation")}</h2>
               <span className="pill">{questionCount} stages</span>
             </div>
-            <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>
-              Noata هينقلك من سؤال مباشر إلى تطبيق ثم نقل الفهم لسياق أصعب. كل
-              إجابة هتساعدك تعرف نقط قوّتك وإيه اللي محتاج مراجعة.
-            </p>
+            <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>{t("Noata هينقلك من سؤال مباشر إلى تطبيق ثم نقل الفهم لسياق أصعب. كل إجابة هتساعدك تعرف نقط قوّتك وإيه اللي محتاج مراجعة.","Move from a direct question to practice and then a more challenging situation. Each answer helps you see your strengths and what needs review.")}</p>
             <div style={{ display: "grid", gap: 8, marginTop: 16 }}>
               <span className="pill">
                 +{lesson.xp_reward} XP on first completion
@@ -240,23 +231,18 @@ export function LessonLive({ id }: { id: string }) {
           </section>
           <section className="ai-preview">
             <b>Noata AI</b>
-            <p>
-              لو في نقطة مش واضحة، افتح Noata AI واشرحها بطريقتك قبل ما تبدأ الـ
-              Mission.
-            </p>
+            <p>{t("لو في نقطة مش واضحة، افتح Noata AI واشرحها بطريقتك قبل ما تبدأ الـ Mission.","If something is unclear, ask Noata AI before starting the mission.")}</p>
             <a
               href={
                 "/ai?prompt=" +
                 encodeURIComponent(
-                  "اشرحلي درس " +
-                    lesson.title_ar +
-                    " خطوة بخطوة: " +
-                    (content.summary_ar ?? ""),
+                  t("اشرحلي درس ","Explain a lesson ") +
+                    (locale==="en"?lesson.title_en:lesson.title_ar) +
+                    t(" خطوة بخطوة: "," Step by step: ") +
+                    ((locale==="en"?content.summary_en:content.summary_ar) ?? ""),
                 )
               }
-            >
-              افتح AI →
-            </a>
+            >{t("افتح AI →","Open Noata AI")}</a>
           </section>
         </aside>
       </section>

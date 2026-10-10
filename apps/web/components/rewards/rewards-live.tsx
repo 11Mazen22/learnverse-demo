@@ -1,4 +1,5 @@
 "use client";
+import {ledgerReason,ledgerSource} from "@/lib/i18n/content-labels";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -384,8 +385,8 @@ export function RewardsLive() {
               const date = new Date(entry.created_at);
               return <li key={entry.id} className="noata-ledger-entry">
                 <span className={"noata-ledger-symbol " + (credit?"credit":"debit")} aria-hidden="true"><Icon name={credit?"plus":"gift"} size={17}/></span>
-                <span className="noata-ledger-detail"><strong>{entry.reason || t("حركة رصيد مؤكدة","Confirmed balance transaction")}</strong>
-                <small>{entry.reference_type ? t("المصدر: ","Source: ") + entry.reference_type + " · " : ""}
+                <span className="noata-ledger-detail"><strong>{ledgerReason(entry.reason,locale)}</strong>
+                <small>{entry.reference_type ? ledgerSource(entry.reference_type,locale) + " · " : ""}
                   {Number.isNaN(date.getTime()) ? t("وقت غير متاح","Time unavailable") : date.toLocaleString(locale==="en"?"en":"ar-EG",{dateStyle:"medium",timeStyle:"short"})}
                 </small></span>
                 <strong className={"noata-ledger-value " + (credit?"credit":"debit")} dir="ltr">

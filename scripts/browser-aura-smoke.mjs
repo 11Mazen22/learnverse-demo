@@ -320,7 +320,7 @@ async function verifyDocuments(){
     await waitFor(async()=>await evaluate('!!document.querySelector(".aura-pending-preview")'),"selected document preview button");
     await evaluate('document.querySelector(".aura-pending-preview").click()');
     if(marker){await waitFor(async()=>await evaluate('document.querySelector(".aura-original-preview pre")?.textContent.includes('+JSON.stringify(marker)+')'),"real file preview: "+name);invariant(true,"Real "+name+" content");}
-    else {await waitFor(async()=>await evaluate('document.querySelector(".aura-original-preview canvas")?.width>0&&document.querySelector(".aura-pdf-pagination")?.textContent.includes("11")'),"real PDF page preview");invariant(true,"Real PDF page preview");await evaluate('Array.from(document.querySelectorAll(".aura-pdf-pagination button")).find(x=>x.textContent.includes("التالي")).click()');await waitFor(async()=>await evaluate('document.querySelector(".aura-pdf-pagination")?.textContent.includes("صفحة 2")'),"PDF next page");invariant(true,"PDF navigation");}
+    else {await waitFor(async()=>await evaluate('document.querySelector(".aura-original-preview canvas")?.width>0&&document.querySelector(".aura-pdf-pagination")?.textContent.includes("11")'),"real PDF page preview");invariant(true,"Real PDF page preview");await evaluate('Array.from(document.querySelectorAll(".aura-pdf-pagination button")).find(x=>/التالي|Next/.test(x.textContent)).click()');await waitFor(async()=>await evaluate('/صفحة\s+2|Page\s+2/.test(document.querySelector(".aura-pdf-pagination")?.textContent??"")'),"PDF next page");invariant(true,"PDF navigation");}
     invariant(await evaluate('!!document.querySelector(".aura-document-toolbar a[download]")'),"Original download available: "+name);
     await screenshot("artifacts/noata-browser/document-"+name.replaceAll(".","-")+".png");
     await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
@@ -405,6 +405,15 @@ async function main() {
   await navigate("/");
   await waitFor(async()=>await evaluate('document.documentElement.lang==="en" && document.documentElement.dir==="ltr" && !!Array.from(document.querySelectorAll(".sidebar-nav .nav-link")).find(x=>x.textContent.includes("Home"))'),"English navigation and LTR");
   invariant(await evaluate('document.querySelector(".skip-link")?.textContent?.includes("Skip to content")'),"English skip link follows locale");
+  // Every public route must honor English, including the guest/error states.
+  // Authenticated content selection is covered separately by isolated fixtures.
+  for(const path of ["/","/learn","/missions","/review","/boss","/progress","/rewards","/assignments","/notifications","/ai","/settings","/teacher","/admin","/help","/privacy","/terms","/login","/signup"]){
+    await navigate(path);
+    await waitFor(()=>evaluate('document.documentElement.lang==="en" && document.documentElement.dir==="ltr"'),"English root on "+path);
+    const leaked=await evaluate(`(()=>{const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),found=[];while(walker.nextNode()){const node=walker.currentNode,el=node.parentElement,text=node.textContent.trim();if(!text||!el||el.closest('script,style,option,[lang="ar"]')||!el.getClientRects().length||text==='العربية'||text==='Language / اللغة')continue;if(/[\\u0600-\\u06ff]/.test(text))found.push(text.slice(0,160));}return found})()`);
+    invariant(leaked.length===0,"English interface has no Arabic copy on "+path+": "+leaked.join(" | "));
+    invariant(await evaluate('document.documentElement.scrollWidth-innerWidth<=3'),"English layout fits "+path);
+  }
   for(const width of [1440,768,390]) {
     location.width=width;
     await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});

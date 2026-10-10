@@ -56,7 +56,7 @@ export function OriginalDocumentPreview({source}:{source:{name:string;format:str
   {loading&&<p role="status">{t("بنفتح النسخة الأصلية…","Opening the original…")}</p>}{error&&<p role="status">{error}</p>}
   {file&&<>
    <div className="aura-document-toolbar"><strong>{source.format==="docx"?t("نص ملف Word الأصلي","Original Word document text"):t("الملف الأصلي","Original file")}</strong><a href={url} download={file.name}><Icon name="download" size={16}/>{t("تنزيل الأصل","Download original")}</a></div>
-   {source.format==="pdf"?<><div className="aura-pdf-pagination"><button type="button" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>{t("السابق","Previous")}</button><span>{t("صفحة","Page")}{page}{t("من","of")}{pages || "…"}</span><button type="button" disabled={!pages||page>=pages} onClick={()=>setPage(p=>p+1)}>{t("التالي","Next")}</button></div><canvas ref={canvas} aria-label={t("صفحة PDF ","PDF page ")+page} role="img"/></>:<pre dir="auto">{text}</pre>}
+    {source.format==="pdf"?<><div className="aura-pdf-pagination"><button type="button" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>{t("السابق","Previous")}</button><span>{t("صفحة","Page")} {page} {t("من","of")} {pages || "…"}</span><button type="button" disabled={!pages||page>=pages} onClick={()=>setPage(p=>p+1)}>{t("التالي","Next")}</button></div><canvas ref={canvas} aria-label={t("صفحة PDF ","PDF page ")+page} role="img"/></>:<pre dir="auto">{text}</pre>}
   </>}
  </div>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -21,7 +22,7 @@ type Assignment = {
   published_at: string | null;
   created_at: string;
 };
-type Question = { id: string; prompt_ar: string };
+type Question = { id: string; prompt_ar: string; prompt_en: string };
 type Submission = {
   id: string;
   assignment_id: string;
@@ -32,6 +33,7 @@ type Submission = {
 type Profile = { id: string; display_name: string };
 
 export function TeacherLive() {
+ const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
   const { account, busy, status, setStatus, run } = useConfirmedMutation();
   const userId = account.user?.id ?? "";
@@ -81,7 +83,7 @@ export function TeacherLive() {
             .order("created_at", { ascending: false }),
           supabase
             .from("questions")
-            .select("id,prompt_ar")
+            .select("id,prompt_ar,prompt_en")
             .in("publication_status", ["published_demo", "published"])
             .eq("review_status", "approved")
             .order("created_at"),
@@ -106,7 +108,7 @@ export function TeacherLive() {
         new Map(
           ((p.data ?? []) as Profile[]).map((x) => [
             x.id,
-            x.display_name || "طالب",
+            x.display_name || t("طالب","Student"),
           ]),
         ),
       );
@@ -114,7 +116,7 @@ export function TeacherLive() {
     } catch {
       if (token === account.revision.current)
         setLoadError(
-          "تعذّر تحميل بيانات الصفوف والواجبات. الأرقام غير متاحة حتى يعود الاتصال.",
+          t("تعذّر تحميل بيانات الصفوف والواجبات. الأرقام غير متاحة حتى يعود الاتصال.","Could not load classes and assignments. Reconnect to view confirmed counts."),
         );
       return false;
     } finally {
@@ -129,7 +131,7 @@ export function TeacherLive() {
     check();
     return (
       message +
-      (refreshed ? "" : " — تعذّر تحديث القائمة؛ حدّثها قبل إنشاء نسخة أخرى.")
+      (refreshed ? "" : t(" — تعذّر تحديث القائمة؛ حدّثها قبل إنشاء نسخة أخرى."," — Could not refresh the list. Check it before creating another copy."))
     );
   }
   async function createAssignment(e: FormEvent) {
@@ -137,7 +139,7 @@ export function TeacherLive() {
     if (!userId || !classId || !title.trim() || !selectedQuestions.length)
       return;
     if (due && !Number.isFinite(new Date(due).getTime())) {
-      setStatus("موعد التسليم غير صالح.");
+      setStatus(t("موعد التسليم غير صالح.","Invalid due date."));
       return;
     }
     await run(async (check) => {
@@ -182,11 +184,11 @@ export function TeacherLive() {
         check();
         throw Error(
           removed.error || removed.data?.length !== 1
-            ? "تعذّر حفظ أسئلة الواجب وتنظيف المسودة. راجع قائمة الواجبات قبل إنشاء واجب جديد."
-            : "تعذّر حفظ أسئلة الواجب. أُزيلت المسودة غير المكتملة؛ حاول مرة أخرى.",
+            ? t("تعذّر حفظ أسئلة الواجب وتنظيف المسودة. راجع قائمة الواجبات قبل إنشاء واجب جديد.","Could not save assignment questions or clean up the draft. Check the assignment list before creating another.")
+            : t("تعذّر حفظ أسئلة الواجب. أُزيلت المسودة غير المكتملة؛ حاول مرة أخرى.","Could not save assignment questions. The incomplete draft was removed; please try again."),
         );
       }
-      let message = "تم حفظ الواجب كمسودة ✓";
+      let message = t("تم حفظ الواجب كمسودة ✓","Assignment draft saved ✓");
       if (publishNow) {
         const published = await supabase
           .from("assignments")
@@ -196,8 +198,8 @@ export function TeacherLive() {
           .single();
         check();
         message = published.error
-          ? "تم حفظ الواجب كمسودة؛ لم يتأكد نشره. راجع القائمة قبل إعادة النشر."
-          : "تم نشر الواجب ✓";
+          ? t("تم حفظ الواجب كمسودة؛ لم يتأكد نشره. راجع القائمة قبل إعادة النشر.","Draft saved, but publication could not be confirmed. Check the list before publishing again.")
+          : t("تم نشر الواجب ✓","Assignment published ✓");
       }
       setTitle("");
       setInstructions("");
@@ -218,14 +220,14 @@ export function TeacherLive() {
         .single();
       check();
       if (result.error) throw result.error;
-      return refreshMessage(check, "تم نشر الواجب ✓");
+      return refreshMessage(check, t("تم نشر الواجب ✓","Assignment published ✓"));
     });
   }
   async function gradeSubmission(row: Submission) {
     const raw = grades[row.id] ?? (row.score == null ? "" : String(row.score)),
       score = Number(raw);
     if (!raw.trim() || !Number.isFinite(score) || score < 0 || score > 100) {
-      setStatus("اكتب درجة بين ٠ و١٠٠.");
+      setStatus(t("اكتب درجة بين ٠ و١٠٠.","Enter a grade from 0 to 100."));
       return;
     }
     await run(async (check) => {
@@ -238,7 +240,7 @@ export function TeacherLive() {
       check();
       if (result.error || result.data?.score !== score)
         throw result.error ?? Error("Grade not confirmed");
-      return refreshMessage(check, "تم حفظ التقييم ✓");
+      return refreshMessage(check, t("تم حفظ التقييم ✓","Grade saved ✓"));
     });
   }
 
@@ -254,28 +256,24 @@ export function TeacherLive() {
             if (account.error) void account.refresh();
             else void load();
           }}
-        >
-          إعادة المحاولة
-        </button>
+        >{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (account.loading || loading)
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>بنجهّز مساحة المعلّم…</h2>
+        <h2>{t("بنجهّز مساحة المعلّم…","Loading your teacher workspace…")}</h2>
       </section>
     );
   return (
     <>
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            صفوفك وخطوات طلابك
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>كل طالب له خطوة جاية.</h1>
+          <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("صفوفك وخطوات طلابك","Your classes and student progress")}</div>
+          <h1 style={{ margin: "6px 0 0" }}>{t("كل طالب له خطوة جاية.","Every learner has a next step.")}</h1>
         </div>
-        <span className="pill">مساحة المعلّم</span>
+        <span className="pill">{t("مساحة المعلّم","Teacher workspace")}</span>
       </header>
 
       {status && (
@@ -285,37 +283,35 @@ export function TeacherLive() {
       )}
       <section className="grid-4">
         <article className="metric-card">
-          <span>الصفوف</span>
+          <span>{t("الصفوف","Classes")}</span>
           <strong>{classes.length}</strong>
-          <small>المتاحة لك</small>
+          <small>{t("المتاحة لك","Available to you")}</small>
         </article>
         <article className="metric-card">
-          <span>طلاب سلّموا واجبات</span>
+          <span>{t("طلاب سلّموا واجبات","Students with submissions")}</span>
           <strong>{membershipCount}</strong>
-          <small>حسب التسليمات الظاهرة</small>
+          <small>{t("حسب التسليمات الظاهرة","Based on visible submissions")}</small>
         </article>
         <article className="metric-card">
-          <span>الواجبات</span>
+          <span>{t("الواجبات","Assignments")}</span>
           <strong>{assignments.length}</strong>
           <small>
-            {assignments.filter((x) => x.published_at).length} منشور
-          </small>
+            {assignments.filter((x) => x.published_at).length}{t("منشور","Published")}</small>
         </article>
         <article className="metric-card">
-          <span>التسليمات</span>
+          <span>{t("التسليمات","Submissions")}</span>
           <strong>{submissions.length}</strong>
           <small>
-            {submissions.filter((x) => x.score == null).length} بانتظار التقييم
-          </small>
+            {submissions.filter((x) => x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</small>
         </article>
       </section>
 
-      <nav className="filter-bar" aria-label="أقسام مساحة المعلم">
+      <nav className="filter-bar" aria-label={t("أقسام مساحة المعلم","Teacher workspace sections")}>
         {[
-          ["overview", "نظرة عامة"],
-          ["create", "واجب جديد"],
-          ["assignments", "الواجبات"],
-          ["grading", "التصحيح"],
+          ["overview", t("نظرة عامة","Overview")],
+          ["create", t("واجب جديد","New assignment")],
+          ["assignments", t("الواجبات","Assignments")],
+          ["grading", t("التصحيح","Grading")],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -331,12 +327,12 @@ export function TeacherLive() {
         <section className="content-grid">
           <form className="panel" onSubmit={createAssignment}>
             <div className="panel-head">
-              <h2>إنشاء واجب</h2>
-              <span className="pill">أسئلة معتمدة فقط</span>
+              <h2>{t("إنشاء واجب","Create assignment")}</h2>
+              <span className="pill">{t("أسئلة معتمدة فقط","Approved questions only")}</span>
             </div>
             <div style={{ display: "grid", gap: 12 }}>
               <label>
-                <small>الصفّ</small>
+                <small>{t("الصفّ","Class")}</small>
                 <select
                   className="model-select"
                   style={{ width: "100%", marginTop: 6 }}
@@ -351,27 +347,27 @@ export function TeacherLive() {
                 </select>
               </label>
               <label>
-                <small>العنوان</small>
+                <small>{t("العنوان","Title")}</small>
                 <input
                   className="search"
                   style={{ width: "100%", marginTop: 6 }}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="عنوان الواجب"
+                  placeholder={t("عنوان الواجب","Assignment title")}
                 />
               </label>
               <label>
-                <small>التعليمات</small>
+                <small>{t("التعليمات","Instructions")}</small>
                 <textarea
                   className="search"
                   style={{ width: "100%", minHeight: 90, paddingTop: 12 }}
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
-                  placeholder="اكتب تعليمات الواجب…"
+                  placeholder={t("اكتب تعليمات الواجب…","Enter assignment instructions…")}
                 />
               </label>
               <label>
-                <small>موعد التسليم</small>
+                <small>{t("موعد التسليم","Due date")}</small>
                 <input
                   className="search"
                   style={{ width: "100%", marginTop: 6 }}
@@ -381,7 +377,7 @@ export function TeacherLive() {
                 />
               </label>
               <div>
-                <small>الأسئلة · اختر سؤالًا واحدًا على الأقل</small>
+                <small>{t("الأسئلة · اختر سؤالًا واحدًا على الأقل","Questions · Select at least one")}</small>
                 <div
                   style={{
                     display: "grid",
@@ -415,7 +411,7 @@ export function TeacherLive() {
                         }
                       />
                       <span style={{ fontSize: 12, lineHeight: 1.6 }}>
-                        {q.prompt_ar}
+                        {locale==="en"?q.prompt_en:q.prompt_ar}
                       </span>
                     </label>
                   ))}
@@ -429,10 +425,8 @@ export function TeacherLive() {
                 }}
               >
                 <span>
-                  <b>النشر الآن</b>
-                  <small style={{ display: "block", color: "var(--muted)" }}>
-                    يُرسل إشعار النشر إلى طلاب الصفّ بعد تأكيد النشر.
-                  </small>
+                  <b>{t("النشر الآن","Publish now")}</b>
+                  <small style={{ display: "block", color: "var(--muted)" }}>{t("يُرسل إشعار النشر إلى طلاب الصفّ بعد تأكيد النشر.","Students are notified after publication is confirmed.")}</small>
                 </span>
                 <input
                   type="checkbox"
@@ -449,9 +443,7 @@ export function TeacherLive() {
                 }
                 className="btn"
                 style={{ background: "var(--accent)", color: "var(--surface)" }}
-              >
-                إنشاء واجب
-              </button>
+              >{t("إنشاء واجب","Create assignment")}</button>
               {status && (
                 <small
                   style={{
@@ -468,7 +460,7 @@ export function TeacherLive() {
 
           <aside className="panel">
             <div className="panel-head">
-              <h2>صفوفك</h2>
+              <h2>{t("صفوفك","Your classes")}</h2>
               <span className="pill">{classes.length}</span>
             </div>
             <div className="quest-list">
@@ -485,9 +477,7 @@ export function TeacherLive() {
               ))}
             </div>
             {!classes.length && (
-              <p style={{ color: "var(--muted)" }}>
-                لم تُخصص صفوف لهذا الحساب بعد.
-              </p>
+              <p style={{ color: "var(--muted)" }}>{t("لم تُخصص صفوف لهذا الحساب بعد.","No classes have been assigned to this account yet.")}</p>
             )}
           </aside>
         </section>
@@ -496,8 +486,8 @@ export function TeacherLive() {
       {(view === "overview" || view === "assignments") && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h2>الواجبات</h2>
-            <span className="pill">المسودات والمنشور</span>
+            <h2>{t("الواجبات","Assignments")}</h2>
+            <span className="pill">{t("المسودات والمنشور","Drafts and published assignments")}</span>
           </div>
           <div className="quest-list">
             {assignments.map((a) => (
@@ -506,11 +496,11 @@ export function TeacherLive() {
                 <div>
                   <h3>{a.title}</h3>
                   <p>
-                    {classes.find((c) => c.id === a.class_id)?.name ?? "الصفّ"}{" "}
+                    {classes.find((c) => c.id === a.class_id)?.name ?? t("الصفّ","Class")}{" "}
                     ·{" "}
                     {a.due_at
-                      ? "الموعد: " + new Date(a.due_at).toLocaleString("ar-EG")
-                      : "بدون موعد محدد"}
+                      ? t("الموعد: ","Due: ") + new Date(a.due_at).toLocaleString(locale==="en"?"en":"ar-EG")
+                      : t("بدون موعد محدد","No due date")}
                   </p>
                 </div>
                 {!a.published_at ? (
@@ -522,18 +512,14 @@ export function TeacherLive() {
                       background: "var(--accent)",
                       color: "var(--surface)",
                     }}
-                  >
-                    نشر
-                  </button>
+                  >{t("نشر","Publish")}</button>
                 ) : (
-                  <span className="pill">منشور</span>
+                  <span className="pill">{t("منشور","Published")}</span>
                 )}
               </div>
             ))}
             {!assignments.length && (
-              <div style={{ padding: 18, color: "var(--muted)" }}>
-                لا توجد واجبات بعد.
-              </div>
+              <div style={{ padding: 18, color: "var(--muted)" }}>{t("لا توجد واجبات بعد.","No assignments yet.")}</div>
             )}
           </div>
         </section>
@@ -542,11 +528,9 @@ export function TeacherLive() {
       {(view === "overview" || view === "grading") && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h2>التسليمات والتقييم</h2>
+            <h2>{t("التسليمات والتقييم","Submissions and grading")}</h2>
             <span className="pill">
-              {submissions.filter((x) => x.score == null).length} بانتظار
-              التقييم
-            </span>
+              {submissions.filter((x) => x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</span>
           </div>
           <div className="quest-list">
             {submissions.map((s) => {
@@ -559,12 +543,12 @@ export function TeacherLive() {
                     {s.score == null ? "…" : Math.round(s.score)}
                   </div>
                   <div>
-                    <h3>{profiles.get(s.student_id) ?? "طالب"}</h3>
+                    <h3>{profiles.get(s.student_id) ?? t("طالب","Student")}</h3>
                     <p>
-                      {assignment?.title ?? "واجب"} ·{" "}
+                      {assignment?.title ?? t("واجب","Assignment")} ·{" "}
                       {s.submitted_at
-                        ? new Date(s.submitted_at).toLocaleString("ar-EG")
-                        : "لم يُسلّم بعد"}
+                        ? new Date(s.submitted_at).toLocaleString(locale==="en"?"en":"ar-EG")
+                        : t("لم يُسلّم بعد","Not submitted")}
                     </p>
                   </div>
                   <div
@@ -572,8 +556,8 @@ export function TeacherLive() {
                   >
                     <input
                       aria-label={
-                        "تقييم واجب الطالب " +
-                        (profiles.get(s.student_id) ?? "طالب")
+                        t("تقييم واجب الطالب ","Grade student assignment ") +
+                        (profiles.get(s.student_id) ?? t("طالب","Student"))
                       }
                       value={
                         grades[s.id] ?? (s.score == null ? "" : String(s.score))
@@ -603,17 +587,13 @@ export function TeacherLive() {
                         minHeight: 40,
                         padding: "0 12px",
                       }}
-                    >
-                      حفظ
-                    </button>
+                    >{t("حفظ","Save")}</button>
                   </div>
                 </div>
               );
             })}
             {!submissions.length && (
-              <div style={{ padding: 18, color: "var(--muted)" }}>
-                لا توجد تسليمات بعد.
-              </div>
+              <div style={{ padding: 18, color: "var(--muted)" }}>{t("لا توجد تسليمات بعد.","No submissions yet.")}</div>
             )}
           </div>
         </section>

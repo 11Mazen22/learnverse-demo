@@ -51,7 +51,9 @@ test("finish_reason completes an answer even if the provider keeps its connectio
   assert.equal(saved,true);
 });
 test("Auto uses task intent and language while image routing takes precedence",()=>{
-  assert.equal(resolveAutoRoute("Write a complete research report").model,"Fanar-C-2-27B");
+  assert.equal(resolveAutoRoute("Prove this complex mathematical identity").model,"Fanar-C-2-27B");
+  assert.equal(resolveAutoRoute("Write a detailed study guide of 1,500 words on photosynthesis").model,"Fanar");
+  assert.equal(resolveAutoRoute("Summarize this document\n"+"source material ".repeat(150)).model,"Fanar");
   assert.equal(resolveAutoRoute("Hello").model,"Fanar");
   assert.equal(resolveAutoRoute("ساعدني أكتب خطة مذاكرة").model,"Fanar");
   assert.equal(resolveAutoRoute("في العصر الحديث").model,"Fanar");

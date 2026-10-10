@@ -4234,3 +4234,9 @@ html[data-theme=dark] .aura-workshop-send{color:#071327}
 .aura-workshop-draft{border:1px solid var(--line);background:transparent;color:var(--ink)}
 .aura-workshop-actions button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:520px){.aura-workshop-flows{grid-template-columns:1fr 1fr}.aura-workshop-flows small{display:none}.aura-workshop-actions button{flex:1 1 100%;justify-content:center}}
+/* Forward arrows follow the interface direction; explicit outer rotations remain usable for Back. */
+svg[data-icon="arrow"]:dir(ltr) path { transform-box: fill-box; transform-origin: center; transform: scaleX(-1); }
+@media(max-width:760px){
+  .mobile-nav small { white-space:nowrap; line-height:1.2; font-size:clamp(.66rem,2.8vw,.78rem); }
+  .mobile-nav > a,.mobile-nav > button { min-width:0; gap:.3rem; }
+}

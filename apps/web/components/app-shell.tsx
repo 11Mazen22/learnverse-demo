@@ -207,7 +207,7 @@ export function AppShell({
               aria-current={active === href ? "page" : undefined}
             >
               <Icon name={icon} />
-              <small>{t(labelAr, labelEn)}</small>
+              <small>{locale === "en" ? ({"/":"Home","/learn":"Learn","/ai":"Noata AI","/progress":"Progress"}[href] ?? labelEn) : labelAr}</small>
             </Link>
           ))}
         <button onClick={() => setMenu(true)}>
