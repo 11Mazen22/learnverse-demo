@@ -72,6 +72,9 @@ async function screenshot(file) {
   captures.push({file,...location});
 }
 async function auditView(kind) {
+// Theme attributes update before the 180 ms foreground/background transitions finish.
+// Audit the settled interface on every route, as the synthetic views already do.
+await evaluate("Promise.race([Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{}))),new Promise((_,reject)=>setTimeout(()=>reject(Error('UI transitions did not settle before accessibility audit')),2500))])","settled UI transitions",4000);
 const clippedHeaderActions=await evaluate("Array.from(document.querySelectorAll('.shell-topbar > .top-actions > a, .shell-topbar > .top-actions > button, .shell-topbar > .top-context > button')).filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&(r.left< -1||r.right>document.documentElement.clientWidth+1)}).map(el=>el.getAttribute('aria-label')||el.textContent.trim())");
 invariant(clippedHeaderActions.length===0,"header actions remain inside the visible viewport: "+clippedHeaderActions.join(", "));
 await evaluate(axeSource);
