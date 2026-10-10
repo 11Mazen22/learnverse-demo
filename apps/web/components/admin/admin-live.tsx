@@ -458,7 +458,7 @@ export function AdminLive() {
           >
             {
               {
-                content: "��لمحتوى",
+                content: "المحتوى",
                 curriculum: "المناهج",
                 users: "الحسابات",
                 classes: "الصفوف",

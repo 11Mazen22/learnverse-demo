@@ -74,3 +74,10 @@ test("a confirmed empty review queue permits a known next lesson, never an inven
   assert.equal(dashboardRecommendation(view, 1, { ...lesson, id: "../private?token=value" }).href, "/review");
   assert.equal(dashboardRecommendation(view, 0, { ...lesson, id: "../private?token=value" }).href, "/lesson/..%2Fprivate%3Ftoken%3Dvalue");
 });
+
+test("English recommendations use the localized lesson title and action", () => {
+  const view = dashboardVisibility(snapshot, account, false);
+  const result = dashboardRecommendation(view, 0, { ...lesson, title_en: "First math lesson" }, "en");
+  assert.match(result.description, /First math lesson/);
+  assert.equal(result.action, "Open lesson");
+});

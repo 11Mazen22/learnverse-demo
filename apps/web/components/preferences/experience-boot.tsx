@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { applyPalette, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 import { resolveAppearance, safeAppearance } from "@/lib/appearance/mode";
 import {applyCustomDesign,isDesignRecord} from "@/lib/appearance/theme";
+import { applyLocale } from "@/lib/i18n/locale";
 
 export function ExperienceBoot() {
   const account = useVerifiedAccount();
@@ -24,8 +25,7 @@ export function ExperienceBoot() {
       syncBrowserThemeColor();
       const localLocale = localStorage.getItem("noata-locale");
       if (localLocale === "ar" || localLocale === "en") {
-        document.documentElement.lang = localLocale;
-        document.documentElement.dir = localLocale === "ar" ? "rtl" : "ltr";
+        applyLocale(localLocale, false);
       }
     } catch {
       /* Device storage can be disabled; OS appearance remains usable. */
@@ -68,8 +68,7 @@ export function ExperienceBoot() {
             window.dispatchEvent(new Event("noata-custom-theme-change"));
           }
         }
-        document.documentElement.lang = data.locale;
-        document.documentElement.dir = data.locale === "ar" ? "rtl" : "ltr";
+        applyLocale(data.locale === "en" ? "en" : "ar", false);
         document.documentElement.dataset.reducedMotion = data.reduced_motion
           ? "true"
           : "false";

@@ -32,6 +32,7 @@ jobs:
         with:
           deno-version: v2.x
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:text
       - run: pnpm typecheck
       - name: Validate staging and browser runner syntax (no accounts used)
         run: |

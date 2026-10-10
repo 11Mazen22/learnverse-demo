@@ -31,6 +31,8 @@ import { ThemeControl } from "@/components/preferences/theme-control";
 import { ConversationHistory } from "./conversation-history";
 import { RichMessage } from "./rich-message";
 import { useAIWorkspace } from "./use-ai-workspace";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
+import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
 
 type SettingsTab = "general" | "models" | "voice" | "privacy";
 
@@ -47,6 +49,10 @@ function downloadText(filename: string, text: string, type = "text/plain") {
 }
 
 export function NoataAIClient() {
+  const seenAccount = useVerifiedAccount();
+  useEffect(() => {
+    if (!seenAccount.loading) markFeatureSeen("ai", AI_INTRO_VERSION, seenAccount.user?.id ?? null);
+  }, [seenAccount.loading, seenAccount.user?.id]);
   const workspace = useAIWorkspace();
   const {
     historyProps,

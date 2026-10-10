@@ -7,10 +7,11 @@
     "dev": "pnpm --filter @noata/web dev",
     "build": "pnpm --filter @noata/web build",
     "typecheck": "pnpm -r --if-present typecheck",
+    "check:text": "node scripts/check-text-integrity.mjs",
     "check": "pnpm typecheck && pnpm build",
     "legacy:check": "node --check server.mjs && node --test --test-isolation=none",
-    "modern:test": "node --test apps/web/lib/appearance/*.test.ts apps/web/lib/ai/*.test.ts apps/web/lib/auth/*.test.ts apps/web/lib/dashboard/*.test.ts apps/web/lib/supabase/*.test.ts apps/web/lib/quran/*.test.ts apps/web/lib/pdf/*.test.ts packages/core/src/core.test.ts",
-    "verify": "pnpm typecheck && pnpm modern:test && pnpm build && pnpm legacy:check"
+    "modern:test": "node --test apps/web/lib/*.test.ts apps/web/lib/appearance/*.test.ts apps/web/lib/ai/*.test.ts apps/web/lib/auth/*.test.ts apps/web/lib/dashboard/*.test.ts apps/web/lib/supabase/*.test.ts apps/web/lib/quran/*.test.ts apps/web/lib/pdf/*.test.ts packages/core/src/core.test.ts",
+    "verify": "pnpm check:text && pnpm typecheck && pnpm modern:test && pnpm build && pnpm legacy:check"
   },
   "workspaces": [
     "apps/*",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +13,7 @@ import { confirmAction } from "@/components/ui/confirm-dialog";
 import { CHAT_MODEL_CARDS } from "@/lib/ai/model-routing";
 import {resolveAppearance} from "@/lib/appearance/mode";
 import {DesignStudio} from "@/components/preferences/design-studio";
+import { applyLocale, localized, useLocale } from "@/lib/i18n/locale";
 
 type Settings = {
   theme: "system" | "light" | "dark";
@@ -27,6 +28,15 @@ const DEFAULT: Settings = {
   reduced_motion: false,
   default_ai_model: "auto",
   ai_memory_enabled: true,
+};
+const MODEL_SUBTITLE_EN: Record<string, string> = {
+  Fanar: "Everyday questions and conversation",
+  "Fanar-S-1-7B": "Quick replies",
+  "Fanar-C-1-8.7B": "Reasoning and explanations",
+  "Fanar-C-2-27B": "Complex questions",
+  "Fanar-Sadiq": "Islamic questions",
+  "Fanar-Sadiq-2": "Islamic explanations",
+  "Fanar-Oryx-IVU-2": "Image understanding",
 };
 type Notice = { kind: "success" | "error"; message: string };
 function normalizeSettings(row: Record<string, unknown> | null): Settings {
@@ -45,12 +55,10 @@ function normalizeSettings(row: Record<string, unknown> | null): Settings {
 function applySettings(settings: Settings) {
   try {
     localStorage.setItem("noata-theme", settings.theme);
-    localStorage.setItem("noata-locale", settings.locale);
   } catch {
     /* Account persistence still succeeded. */
   }
-  document.documentElement.lang = settings.locale;
-  document.documentElement.dir = settings.locale === "ar" ? "rtl" : "ltr";
+  applyLocale(settings.locale);
   document.documentElement.dataset.theme = resolveAppearance(
     settings.theme,document.documentElement.dataset.palette,
     window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -61,6 +69,8 @@ function applySettings(settings: Settings) {
   syncBrowserThemeColor();
 }
 export function SettingsLive() {
+  const locale = useLocale();
+  const t = useCallback((ar: string, en: string) => localized(locale, ar, en), [locale]);
   const supabase = useMemo(() => createClient(), []);
   const { account, run, status, busy: mutating } = useConfirmedMutation();
   const [userId, setUserId] = useState("");
@@ -132,7 +142,7 @@ export function SettingsLive() {
       } catch {
         if (active)
           setError(
-            "تعذّر تحميل إعدادات حسابك. حاول مجددًا بعد التحقق من الاتصال.",
+             t("تعذّر تحميل إعدادات حسابك. حاول مجددًا بعد التحقق من الاتصال.","Could not load your account settings. Check your connection and try again."),
           );
       } finally {
         if (active) setLoading(false);
@@ -141,7 +151,7 @@ export function SettingsLive() {
     return () => {
       active = false;
     };
-  }, [supabase, reload, account.user, account.loading]);
+  }, [supabase, reload, account.user, account.loading, t]);
 
   const dirty = JSON.stringify({ name, settings }) !== initial;
   useUnsavedWork(Boolean(userId && dirty));
@@ -152,7 +162,7 @@ export function SettingsLive() {
     if (cleanName.length < 2 || cleanName.length > 80) {
       setNotice({
         kind: "error",
-        message: "اسم العرض لازم يكون بين حرفين و٨٠ حرفًا.",
+         message: t("اسم العرض لازم يكون بين حرفين و٨٠ حرفًا.","Your display name must be between 2 and 80 characters."),
       });
       return;
     }
@@ -173,7 +183,7 @@ export function SettingsLive() {
           .single();
         check();
         if (profileResult.error)
-          throw Error("تعذّر تحديث الملف الشخصي. لم تُحفظ كل الإعدادات.");
+           throw Error(t("تعذّر تحديث الملف الشخصي. لم تُحفظ كل الإعدادات.","Could not update your profile. Some settings were not saved."));
         const settingResult = await supabase
           .from("user_settings")
           .upsert(
@@ -189,20 +199,20 @@ export function SettingsLive() {
         check();
         if (settingResult.error)
           throw Error(
-            "اتحفظ الاسم، لكن تفضيلات الجهاز والذكاء الاصطناعي لم تُحفظ. حاول مرة أخرى.",
+             t("اتحفظ الاسم، لكن تفضيلات الجهاز والذكاء الاصطناعي لم تُحفظ. حاول مرة أخرى.","Your name was saved, but your device and AI preferences were not. Please try again."),
           );
         applySettings(settings);
         setName(cleanName);
         setInitial(JSON.stringify({ name: cleanName, settings }));
         setNotice({
           kind: "success",
-          message: "تم حفظ إعداداتك في حسابك بنجاح.",
+           message: t("تم حفظ إعداداتك في حسابك بنجاح.","Your settings were saved to your account."),
         });
       } catch (err) {
         check();
         setNotice({
           kind: "error",
-          message: err instanceof Error ? err.message : "تعذّر حفظ الإعدادات.",
+           message: err instanceof Error ? err.message : t("تعذّر حفظ الإعدادات.","Could not save your settings."),
         });
       }
     }, "");
@@ -213,7 +223,7 @@ export function SettingsLive() {
     if (password.length < 8) {
       setSecurityNotice({
         kind: "error",
-        message: "اكتب كلمة مرور مكوّنة من ٨ أحرف على الأقل.",
+         message: t("اكتب كلمة مرور مكوّنة من ٨ أحرف على الأقل.","Enter a password with at least 8 characters."),
       });
       return;
     }
@@ -228,13 +238,13 @@ export function SettingsLive() {
         setPassword("");
         setSecurityNotice({
           kind: "success",
-          message: "تم تحديث كلمة المرور. حافظ عليها في مكان آمن.",
+           message: t("تم تحديث كلمة المرور. حافظ عليها في مكان آمن.","Password updated. Keep it somewhere safe."),
         });
       } catch {
         check();
         setSecurityNotice({
           kind: "error",
-          message: "تعذّر تحديث كلمة المرور. قد تحتاج لتسجيل الدخول مجددًا.",
+           message: t("تعذّر تحديث كلمة المرور. قد تحتاج لتسجيل الدخول مجددًا.","Could not update your password. You may need to sign in again."),
         });
       }
     }, "");
@@ -244,12 +254,12 @@ export function SettingsLive() {
     if (!userId || logoutBusy || saving || mutating) return;
     const revision = account.revision.current;
     const approved = await confirmAction({
-      title: "تسجيل ال��روج من Noata؟",
+       title: t("تسجيل الخروج من Noata؟","Sign out of Noata?"),
       description: dirty
-        ? "لديك تغييرات غير محفوظة في إعدادات الحساب. سيؤدي تسجيل الخروج إلى فقد هذه التغييرات."
-        : "يمكنك العودة في أي وقت وتسجيل الدخول إلى حسابك لاستكمال رحلتك.",
-      confirmLabel: "تسجيل الخروج",
-      cancelLabel: "البقاء في حسابي",
+         ? t("لديك تغييرات غير محفوظة في إعدادات الحساب. سيؤدي تسجيل الخروج إلى فقد هذه التغييرات.","You have unsaved account settings. Signing out will discard those changes.")
+         : t("يمكنك العودة في أي وقت وتسجيل الدخول إلى حسابك لاستكمال رحلتك.","You can sign back in whenever you are ready to continue."),
+       confirmLabel: t("تسجيل الخروج","Sign out"),
+       cancelLabel: t("البقاء في حسابي","Stay signed in"),
       tone: "danger",
       icon: "user",
     });
@@ -262,7 +272,7 @@ export function SettingsLive() {
       // Successful sign-out is independent of preference-saving state.
       window.location.assign("/login");
     } catch {
-      setLogoutError("لم يكتمل تسجيل الخروج. تحقّق من الاتصال وحاول مرة أخرى.");
+       setLogoutError(t("لم يكتمل تسجيل الخروج. تحقّق من الاتصال وحاول مرة أخرى.","Could not sign out. Check your connection and try again."));
       setLogoutBusy(false);
     }
   }
@@ -271,7 +281,7 @@ export function SettingsLive() {
       <section className="aura-load-error" role="alert">
         <h2>{account.error}</h2>
         <button type="button" onClick={() => void account.refresh()}>
-          إعادة المحاولة
+           {t("إعادة المحاولة", "Try again")}
         </button>
       </section>
     );
@@ -279,17 +289,17 @@ export function SettingsLive() {
     return (
       <section className="aura-settings-state" role="status">
         <Icon name="settings" size={29} />
-        <h1>بنحمّل إعداداتك…</h1>
-        <p>البيانات مرتبطة بحسابك الشخصي.</p>
+         <h1>{t("بنحمّل إعداداتك…", "Loading your settings…")}</h1>
+         <p>{t("البيانات مرتبطة بحسابك الشخصي.", "These settings belong to your account.")}</p>
       </section>
     );
   if (error)
     return (
       <section className="aura-settings-state" role="alert">
-        <h1>في مشكلة في تحميل الإعدادات</h1>
+         <h1>{t("في مشكلة في تحميل الإعدادات", "Could not load settings")}</h1>
         <p>{error}</p>
         <button type="button" onClick={() => setReload((n) => n + 1)}>
-          حاول مرة أخرى
+           {t("حاول مرة أخرى", "Try again")}
         </button>
       </section>
     );
@@ -297,17 +307,17 @@ export function SettingsLive() {
     return (
       <>
         <ModuleWelcome
-          title="مساحتك، بطريقتك."
-          description="احفظ تفضيلات القراءة والذكاء الاصطناعي بين الأجهزة. المظهر متاح الآن على هذا الجهاز؛ بقية التفضيلات تحتاج حسابك."
-          eyebrow="صمّم تجربتك"
+           title={t("مساحتك، بطريقتك.", "Your space, your way.")}
+           description={t("احفظ تفضيلات القراءة والذكاء الاصطناعي بين الأجهزة. المظهر متاح الآن على هذا الجهاز؛ بقية التفضيلات تحتاج حسابك.", "Save your reading and AI preferences across devices. Appearance works on this device now; other preferences require an account.")}
+           eyebrow={t("صمّم تجربتك", "Shape your experience")}
           icon="settings"
           route="/settings"
-          steps={["اختر المظهر المريح", "خصّص تفضيلات المساعد", "احمِ حسابك"]}
+           steps={[t("اختر المظهر المريح", "Choose a comfortable appearance"), t("خصّص تفضيلات المساعد", "Set your AI preferences"), t("احمِ حسابك", "Protect your account")]}
         />
         <section className="aura-device-appearance">
           <div>
-            <h2>مظهر هذا الجهاز</h2>
-            <p>جرّب الوضع النهاري، الليلي أو تلقائيًا حسب جهازك.</p>
+             <h2>{t("مظهر هذا الجهاز", "Appearance on this device")}</h2>
+             <p>{t("جرّب الوضع النهاري، الليلي أو تلقائيًا حسب جهازك.", "Choose light, dark, or your device's default appearance.")}</p>
           </div>
           <ThemeControl />
         </section>
@@ -320,44 +330,43 @@ export function SettingsLive() {
       {status && <p role="alert">{status}</p>}
       <header className="aura-settings-heading">
         <div>
-          <span className="eyebrow">إعدادات الحساب · Noata Aura</span>
-          <h1>مساحتك، بطريقتك.</h1>
+           <span className="eyebrow">{t("إعدادات الحساب · Noata Aura", "Account settings · Noata Aura")}</span>
+           <h1>{t("مساحتك، بطريقتك.", "Your space, your way.")}</h1>
           <p>
-            تحكم في شكل التطبيق، تفضيلات الذكاء الاصطناعي وحماية حسابك من مكان
-            واحد.
+             {t("تحكم في شكل التطبيق، تفضيلات الذكاء الاصطناعي وحماية حسابك من مكان واحد.","Manage appearance, AI preferences, and account security in one place.")}
           </p>
         </div>
         <span className="aura-settings-email" title={email}>
           {email}
         </span>
       </header>
-      <nav className="aura-settings-nav" aria-label="أقسام الإعدادات">
-        <a href="#aura-profile">الملف الشخصي</a>
-        <a href="#aura-appearance">المظهر</a>
+       <nav className="aura-settings-nav" aria-label={t("أقسام الإعدادات","Settings sections")}>
+         <a href="#aura-profile">{t("الملف الشخصي","Profile")}</a>
+         <a href="#aura-appearance">{t("المظهر","Appearance")}</a>
         <a href="#aura-ai">Noata AI</a>
-        <a href="#aura-security">الأمان</a>
-        <a href="#aura-account">الحساب والجلسة</a>
+         <a href="#aura-security">{t("الأمان","Security")}</a>
+         <a href="#aura-account">{t("الحساب والجلسة","Account and session")}</a>
       </nav>
       <form className="aura-settings-content" onSubmit={(e) => void save(e)}>
         <section id="aura-profile" className="aura-settings-section">
           <div className="aura-settings-section-top">
             <Icon name="settings" size={21} />
             <div>
-              <h2>الملف الشخصي</h2>
-              <p>الاسم واللغة الأساسية لحسابك</p>
+               <h2>{t("الملف الشخصي","Profile")}</h2>
+               <p>{t("الاسم واللغة الأساسية لحسابك","Your name and interface language")}</p>
             </div>
           </div>
           <label className="aura-settings-label">
-            <span>اسم العرض</span>
+             <span>{t("اسم العرض","Display name")}</span>
             <input
               maxLength={80}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="اسمك داخل Noata"
+               placeholder={t("اسمك داخل Noata","Your name in Noata")}
             />
           </label>
           <label className="aura-settings-label">
-            <span>لغة الواجهة</span>
+             <span>{t("لغة الواجهة","Interface language")}</span>
             <select
               value={settings.locale}
               onChange={(e) =>
@@ -367,30 +376,30 @@ export function SettingsLive() {
                 }))
               }
             >
-              <option value="ar">العربية — الواجهة الأساسية</option>
-              <option value="en">English — جزئية</option>
+               <option value="ar">{t("العربية — الواجهة الأساسية","Arabic")}</option>
+               <option value="en">{t("English — جزئية","English — partial")}</option>
             </select>
-            <small>بعض الصفحات ما زالت عربية حتى عند اختيار الإنجليزية.</small>
+             <small>{t("بعض الصفحات ما زالت عربية حتى عند اختيار الإنجليزية.","Some pages still appear in Arabic when English is selected.")}</small>
           </label>
         </section>
         <section id="aura-appearance" className="aura-settings-section">
           <div className="aura-settings-section-top">
             <Icon name="sun" size={21} />
             <div>
-              <h2>المظهر والحركة</h2>
-              <p>اقرأ براحة وخلّي التنقل مناسبًا لك</p>
+               <h2>{t("المظهر والحركة","Appearance and motion")}</h2>
+               <p>{t("اقرأ براحة وخلّي التنقل مناسبًا لك","Read comfortably and move through Noata your way")}</p>
             </div>
           </div>
           <div
             className="aura-settings-theme-options"
             role="group"
-            aria-label="اختر المظهر"
+             aria-label={t("اختر المظهر","Choose appearance")}
           >
             {(
               [
-                { value: "system", label: "تلقائي", icon: "screen" },
-                { value: "light", label: "فاتح", icon: "sun" },
-                { value: "dark", label: "داكن", icon: "moon" },
+                 { value: "system", label: t("تلقائي","System"), icon: "screen" },
+                 { value: "light", label: t("فاتح","Light"), icon: "sun" },
+                 { value: "dark", label: t("داكن","Dark"), icon: "moon" },
               ] as const
             ).map((o) => (
               <button
@@ -405,11 +414,11 @@ export function SettingsLive() {
             ))}
           </div>
           <PaletteGallery />
-          <p className="noata-appearance-footnote">الوضعان فاتح وداكن منفصلان عن عالم الألوان؛ تصميم «منتصف الليل» داكن دائمًا للحفاظ على طابعه.</p>
+           <p className="noata-appearance-footnote">{t("الوضعان فاتح وداكن منفصلان عن عالم الألوان؛ تصميم «منتصف الليل» داكن دائمًا للحفاظ على طابعه.","Light and dark modes are separate from color palettes. The Midnight palette always remains dark.")}</p>
           <label className="aura-settings-switch">
             <span>
-              <strong>تقليل الحركة</strong>
-              <small>قلّل التحولات البصرية والرسوم المتحركة.</small>
+               <strong>{t("تقليل الحركة","Reduce motion")}</strong>
+               <small>{t("قلّل التحولات البصرية والرسوم المتحركة.","Limit transitions and animations.")}</small>
             </span>
             <input
               type="checkbox"
@@ -425,35 +434,33 @@ export function SettingsLive() {
             <Icon name="ai" size={21} />
             <div>
               <h2>Noata AI</h2>
-              <p>اختار تفضيلا�� الدردشة والنماذج المهيأة</p>
+               <p>{t("اختر تفضيلات الدردشة والنماذج المهيأة","Choose chat and model preferences")}</p>
             </div>
           </div>
           <label className="aura-settings-label">
-            <span>نموذج الذكاء الاصطناعي الافتراضي</span>
+             <span>{t("نموذج الذكاء الاصطناعي الافتراضي","Default AI model")}</span>
             <select
               value={settings.default_ai_model}
               onChange={(e) =>
                 setSettings((s) => ({ ...s, default_ai_model: e.target.value }))
               }
             >
-              <option value="auto">تلقائي · توجيه حسب نوع السؤال</option>
+               <option value="auto">{t("تلقائي · توجيه حسب نوع السؤال","Auto · selected by question type")}</option>
               {CHAT_MODEL_CARDS.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.arabic} · {o.subtitle}
+                   {locale === "en" ? o.id : o.arabic} · {locale === "en" ? MODEL_SUBTITLE_EN[o.id] : o.subtitle}
                 </option>
               ))}
             </select>
             <small>
-              وجود النموذج في القائمة يعني أنه مهيّأ؛ توفّره الفعلي يعتمد على
-              الخدمة.
+               {t("وجود النموذج في القائمة يعني أنه مهيّأ؛ توفّره الفعلي يعتمد على الخدمة.","Listed models are configured; actual availability depends on the provider.")}
             </small>
           </label>
           <label className="aura-settings-switch">
             <span>
-              <strong>حفظ محادثات الذكاء الاصطناعي</strong>
+               <strong>{t("حفظ محادثات الذكاء الاصطناعي","Save AI conversations")}</strong>
               <small>
-                عند إيقافها تستخدم المحادثات الجديدة الوضع المؤقت. لا تُحذف
-                المحادثات القديمة تلقائيًا.
+                 {t("عند إيقافها تستخدم المحادثات الجديدة الوضع المؤقت. لا تُحذف المحادثات القديمة تلقائيًا.","When off, new chats use temporary mode. Existing conversations are not deleted automatically.")}
               </small>
             </span>
             <input
@@ -471,12 +478,12 @@ export function SettingsLive() {
         <div className="aura-settings-savebar">
           <div>
             <strong>
-              {dirty ? "عندك تغييرات لسه متحفظتش" : "تفضيلاتك الحالية"}
+               {dirty ? t("عندك تغييرات لسه متحفظتش","You have unsaved changes") : t("تفضيلاتك الحالية","Your current preferences")}
             </strong>
-            <small>الحفظ يتأكد من تحديث حسابك قبل ظهور رسالة النجاح.</small>
+             <small>{t("الحفظ يتأكد من تحديث حسابك قبل ظهور رسالة النجاح.","A success message appears only after your account confirms the update.")}</small>
           </div>
           <button type="submit" disabled={!dirty || saving}>
-            {saving ? "جارٍ الحفظ…" : "حفظ التغييرات"}
+             {saving ? t("جارٍ الحفظ…","Saving…") : t("حفظ التغييرات","Save changes")}
           </button>
         </div>
         {notice && (
@@ -496,12 +503,12 @@ export function SettingsLive() {
         <div className="aura-settings-section-top">
           <Icon name="pin" size={21} />
           <div>
-            <h2>حماية الحساب</h2>
-            <p>تغيير كلمة المرور بشكل مستقل عن بقية التفضيلات</p>
+             <h2>{t("حماية الحساب","Account security")}</h2>
+             <p>{t("تغيير كلمة المرور بشكل مستقل عن بقية التفضيلات","Change your password separately from other settings")}</p>
           </div>
         </div>
         <label className="aura-settings-label">
-          <span>كلمة مرور جديدة</span>
+           <span>{t("كلمة مرور جديدة","New password")}</span>
           <span className="aura-settings-password">
             <input
               type={showPassword ? "text" : "password"}
@@ -509,16 +516,16 @@ export function SettingsLive() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="٨ أحرف على الأقل"
+               placeholder={t("٨ أحرف على الأقل","At least 8 characters")}
             />
             <button
               type="button"
               onClick={() => setShowPassword((x) => !x)}
               aria-label={
-                showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"
+                 showPassword ? t("إخفاء كلمة المرور","Hide password") : t("إظهار كلمة المرور","Show password")
               }
             >
-              {showPassword ? "إخفاء" : "إظهار"}
+               {showPassword ? t("إخفاء","Hide") : t("إظهار","Show")}
             </button>
           </span>
         </label>
@@ -528,7 +535,7 @@ export function SettingsLive() {
           disabled={password.length < 8 || passwordBusy}
           onClick={() => void updatePassword()}
         >
-          {passwordBusy ? "جارٍ التحديث…" : "تحديث كلمة المرور"}
+           {passwordBusy ? t("جارٍ التحديث…","Updating…") : t("تحديث كلمة المرور","Update password")}
         </button>
         {securityNotice && (
           <p
@@ -539,32 +546,31 @@ export function SettingsLive() {
           </p>
         )}
         <p className="aura-settings-security-foot">
-          لا تشارك كلمة المرور مع أي شخص. صلاحيات حسابك تتحكم فيها سياسات قاعدة
-          البيانات على الخادم، وليس هذه الصفحة.
+           {t("لا تشارك كلمة المرور مع أي شخص. صلاحيات حسابك تتحكم فيها سياسات قاعدة البيانات على الخادم، وليس هذه الصفحة.","Never share your password. Server-side database policies control account permissions.")}
         </p>
       </section>
       <section id="aura-account" className="aura-settings-section aura-settings-account">
         <div className="aura-settings-section-top">
           <Icon name="user" size={21} />
           <div>
-            <h2>الحساب والجلسة</h2>
-            <p>اطّلع على حسابك وتحكم في تسجيل الخروج بشكل واضح وآمن</p>
+             <h2>{t("الحساب والجلسة","Account and session")}</h2>
+             <p>{t("اطّلع على حسابك وتحكم في تسجيل الخروج بشكل واضح وآمن","Review your account and sign out securely")}</p>
           </div>
         </div>
         <div className="aura-settings-account-overview">
           <div>
-            <strong>{name.trim() || "حساب Noata"}</strong>
+             <strong>{name.trim() || t("حساب Noata","Noata account")}</strong>
             <span dir="ltr">{email}</span>
           </div>
           <button type="button" className="aura-settings-signout"
             onClick={() => void logoutFromSettings()} disabled={logoutBusy}>
             <Icon name="arrow" size={18} />
-            {logoutBusy ? "جارٍ تسجيل الخروج…" : "تسجيل الخروج من حسابي"}
+             {logoutBusy ? t("جارٍ تسجيل الخروج…","Signing out…") : t("تسجيل الخروج من حسابي","Sign out of my account")}
           </button>
         </div>
         {logoutError && <p role="alert" className="aura-settings-notice error">{logoutError}</p>}
         <p className="aura-settings-security-foot">
-          الضغط على صورتك الشخصية يفتح قائمة الحساب؛ لا يُسجل الخروج تلقائيًا.
+           {t("الضغط على صورتك الشخصية يفتح قائمة الحساب؛ لا يُسجل الخروج تلقائيًا.","Select your profile picture to open the account menu. This does not sign you out.")}
         </p>
       </section>
     </div>

@@ -17,6 +17,7 @@ import "./contextual-coach.css";
 import "./design-rebirth.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
+import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://noata.enterpriseworkhub.online"),
@@ -42,9 +43,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body>
-        <a className="skip-link" href="#noata-main">
-          انتقل إلى المحتوى
-        </a>
+        <LocalizedSkipLink />
         <PwaRegister />
         <ExperienceBoot />
         {children}

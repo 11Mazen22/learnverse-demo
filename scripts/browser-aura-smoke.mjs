@@ -382,8 +382,12 @@ async function main() {
       location.theme=theme;
       await command("Emulation.setEmulatedMedia",{features:[{name:"prefers-color-scheme",value:theme}]});
       for(const path of routes) {
-        console.log("[browser] checking route",path,width,theme);
-        await navigate(path);
+         console.log("[browser] checking route",path,width,theme);
+         await navigate(path);
+         if(width===1920 && theme==="light" && path==="/") {
+           await waitFor(async()=>await evaluate('!!document.querySelector(".nav-link-ai .nav-tag")'),"first-view AI badge");
+           invariant(true,"AI badge is initially visible for an unseen guest");
+         }
         const result=await evaluate(`({hasBody: !!document.body, rtl:document.documentElement.dir==="rtl", overflow:document.documentElement.scrollWidth - innerWidth, title:document.title, hasAI:!!document.querySelector(".owui-layout")})`);
         invariant(result.hasBody,path+" empty body");invariant(result.rtl,path+" missing Arabic RTL root");invariant(result.overflow <= 3,path+" horizontal overflow "+result.overflow);
         if(path==="/ai")invariant(result.hasAI,"AI workspace missing");
@@ -394,6 +398,23 @@ async function main() {
       }
     }
   }
+  await navigate("/");
+  await waitFor(async()=>await evaluate('!document.querySelector(".nav-link-ai .nav-tag")'),"AI badge cleared after visiting AI");
+  invariant(await evaluate('localStorage.getItem("noata:seen:guest:ai:1")==="1"'),"AI badge dismissal persists for the guest");
+  await evaluate('localStorage.setItem("noata-locale","en")');
+  await navigate("/");
+  await waitFor(async()=>await evaluate('document.documentElement.lang==="en" && document.documentElement.dir==="ltr" && !!Array.from(document.querySelectorAll(".sidebar-nav .nav-link")).find(x=>x.textContent.includes("Home"))'),"English navigation and LTR");
+  invariant(await evaluate('document.querySelector(".skip-link")?.textContent?.includes("Skip to content")'),"English skip link follows locale");
+  for(const width of [1440,768,390]) {
+    location.width=width;
+    await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
+    await navigate("/settings");
+    invariant(await evaluate('document.documentElement.dir==="ltr" && document.querySelector("#noata-ai-design-studio")?.textContent?.includes("My designs") && document.documentElement.scrollWidth-innerWidth<=3'),"English Design Studio and LTR layout at "+width);
+    await screenshot("artifacts/noata-browser/settings-en-"+width+".png");
+  }
+  await evaluate('localStorage.setItem("noata-locale","ar")');
+  await navigate("/");
+  invariant(await evaluate('document.documentElement.lang==="ar" && document.documentElement.dir==="rtl" && !!Array.from(document.querySelectorAll(".sidebar-nav .nav-link")).find(x=>x.textContent.includes("الرئيسية"))'),"Arabic navigation and RTL restored");
   for(const [width,height,mobile] of [[1920,1080,false],[1440,900,false],[1024,768,false],[768,1024,true],[390,844,true],[320,700,true]]) {
     location.width=width;
     await command("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile});

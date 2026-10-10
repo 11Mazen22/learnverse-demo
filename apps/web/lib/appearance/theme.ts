@@ -32,11 +32,31 @@ export function validateTokens(value:unknown):DesignTokens {
 }
 export function parseDesignSuggestion(raw:string):{name:string;description:string;tokens:DesignTokens} {
  if(raw.length>16000)throw Error("رد الذكاء الاصطناعي أكبر من الحد المسموح.");
- const start=raw.indexOf("{"),end=raw.lastIndexOf("}");
- if(start<0||end<=start)throw Error("لم يرجع Fanar نموذج ألوان منظمًا. حاول صياغة وصف أوضح.");
- let obj:Record<string,unknown>;
- try{obj=JSON.parse(raw.slice(start,end+1)) as Record<string,unknown>;}
- catch{throw Error("رد Fanar ليس JSON صالحًا. جرّب مرة أخرى.");}
+ // A model may wrap its answer in a code fence or add prose containing braces.
+ // Read one balanced JSON object at a time rather than spanning the first and
+ // last brace, which accidentally joined separate objects into invalid JSON.
+ let obj:Record<string,unknown>|null=null;
+ for(let start=raw.indexOf("{");start>=0;start=raw.indexOf("{",start+1)) {
+  let depth=0,quoted=false,escaped=false;
+  for(let i=start;i<raw.length;i++) {
+   const char=raw[i];
+   if(quoted){if(escaped)escaped=false;else if(char==="\\")escaped=true;else if(char==='"')quoted=false;continue;}
+   if(char==='"'){quoted=true;continue;}
+   if(char==="{")depth++;
+   if(char==="}" && --depth===0){
+    try{
+     const candidate:unknown=JSON.parse(raw.slice(start,i+1));
+     if(candidate && typeof candidate==="object" && !Array.isArray(candidate)) {
+      const value=candidate as Record<string,unknown>;
+      if("tokens" in value){obj=value;break;}
+     }
+    }catch{/* Continue searching for a complete design object. */}
+    break;
+   }
+  }
+  if(obj)break;
+ }
+ if(!obj)throw Error("رد Fanar ليس JSON صالحًا. جرّب مرة أخرى.");
  if(!obj||typeof obj!=="object")throw Error("صيغة التصميم غير صحيحة.");
  const name=typeof obj.name==="string"?obj.name.trim():"";
  const description=typeof obj.description==="string"?obj.description.trim():"";
@@ -68,4 +88,13 @@ export const DESIGN_STUDIO_INSTRUCTION = [
  "يجب أن تكون accent داكنة بما يكفي لتباين نص أبيض WCAG AA (4.5:1)، وأن تكون deep داكنة جدًا لتباين 7:1.",
  "اجعل bright درجة مساندة جميلة متناغمة مع accent وdeep؛ لا تخترع أسماء رمزية للألوان.",
  "لا تذكر معلومات شخصية. ألوان هذا التصميم تُعايَن قبل الموافقة والحفظ.",
+].join("\n");
+export const DESIGN_STUDIO_INSTRUCTION_EN = [
+  "Suggest a refined, accessible color palette for an educational app called Noata.",
+  "Do not produce CSS, HTML, JavaScript, file names, or images.",
+  "Return exactly one JSON object with these keys, without markdown:",
+  '{"name":"Short English name","description":"Brief English description","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}',
+  "The accent must contrast at least 4.5:1 with white text, and deep must contrast at least 7:1 with white text.",
+  "Choose a harmonious supporting bright color. Use six-digit hexadecimal colors only.",
+  "Do not include personal information. The user will preview and approve the colors before saving.",
 ].join("\n");

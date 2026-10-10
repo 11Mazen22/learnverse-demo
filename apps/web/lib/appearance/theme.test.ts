@@ -13,6 +13,9 @@ test("Fanar output needs structured validated palette rather than injected style
  assert.equal(a.tokens.deep,"#132B4D");
  assert.throws(()=>parseDesignSuggestion("تم إنشاء التصميم!"),/Fanar/);
  assert.throws(()=>parseDesignSuggestion('{"name":"أ","tokens":{}}'),/عنوان/);
+ const wrapped=parseDesignSuggestion('فكرة مبدئية {غير مكتملة}\n```json\n{"name":"محيط هادئ","description":"ألوان بحرية هادئة","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}\n```\nيمكنك معاينتها.');
+ assert.equal(wrapped.name,"محيط هادئ");
+ assert.throws(()=>parseDesignSuggestion('```json\n{"name":"لون","tokens":{"accent":"javascript:alert(1)","deep":"#132B4D","bright":"#5194CD"}}\n```'),/HEX/);
 });
 test("record parser protects rendering from malformed persisted data",()=>{
  assert.equal(isDesignRecord({id:"a",user_id:"b",name:"x",visible:true,tokens:{accent:"#123456",deep:"#09162f",bright:"#56aacc"}}),true);
