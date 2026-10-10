@@ -7,6 +7,7 @@ import {useVerifiedAccount} from "@/lib/supabase/use-verified-account";
 import {DESIGN_STUDIO_INSTRUCTION,applyCustomDesign,isDesignRecord,parseDesignSuggestion,validateTokens,type CustomDesign,type DesignTokens} from "@/lib/appearance/theme";
 import {applyPalette,syncBrowserThemeColor} from "@/components/preferences/palette-gallery";
 import {resolveAppearance,safeAppearance} from "@/lib/appearance/mode";
+import {onlyOwnedRecords} from "@/lib/appearance/account-scope";
 
 const MAX_DESIGNS=8;
 function effectiveMode() {
@@ -38,8 +39,16 @@ function DesignSwatches({tokens}:{tokens:DesignTokens}){
 export function DesignStudio(){
  const supabase=useMemo(()=>createClient(),[]),account=useVerifiedAccount();
  const [prompt,setPrompt]=useState(""),[refinement,setRefinement]=useState("");
- const [draft,setDraft]=useState<{name:string;description:string;tokens:DesignTokens}|null>(null);
- const [saved,setSaved]=useState<CustomDesign[]>([]);
+ const accountId=account.user?.id??null;
+ const currentAccount=useRef(accountId);
+ currentAccount.current=accountId;
+ const [draftRecord,setDraftRecord]=useState<{owner:string;value:{name:string;description:string;tokens:DesignTokens}}|null>(null);
+ const draft=draftRecord?.owner===accountId?draftRecord.value:null;
+ function setDraft(value:{name:string;description:string;tokens:DesignTokens}|null){
+   setDraftRecord(value&&accountId?{owner:accountId,value}:null);
+ }
+ const [storedDesigns,setSaved]=useState<CustomDesign[]>([]);
+ const saved=onlyOwnedRecords(storedDesigns,accountId);
  const [activeId,setActiveId]=useState<string|null>(null);
  const [editingId,setEditingId]=useState<string|null>(null);
  const previewSession=useRef<{previous:DesignTokens|null;active:boolean}>({previous:null,active:false});
@@ -52,11 +61,21 @@ export function DesignStudio(){
     .eq("user_id",user.id).order("created_at",{ascending:false}).limit(MAX_DESIGNS+1),
    supabase.from("user_settings").select("active_design_id").eq("user_id",user.id).maybeSingle()
   ]);
+  if(currentAccount.current!==user.id)return;
   if(loadError){setError("تعذّر قراءة تصاميم حسابك من الخادم. جرّب لاحقًا.");return;}
   setSaved((data??[]).filter(isDesignRecord));
   setActiveId(settings?.active_design_id??null);
  },[supabase,account.user]);
  useEffect(()=>{void load();},[load]);
+ // Clear drafts, stale status and previews when authentication changes.
+ // The render also filters records by owner to avoid a one-frame leak before effects run.
+ useEffect(()=>{
+   setSaved([]);setActiveId(null);setDraft(null);setEditingId(null);
+   setPrompt("");setRefinement("");setError("");setNotice("");setBusy("");
+   if(previewSession.current.active)restoreStock();
+   previewSession.current={previous:null,active:false};
+   setPreview(false);
+ },[accountId]);
  function undoPreview(){
    if(!previewSession.current.active)return;
    const previous=previewSession.current.previous;
@@ -88,7 +107,8 @@ export function DesignStudio(){
  }
 
  async function generate(){
-  if(busy||!account.user)return;
+  const owner=accountId;
+  if(busy||!owner)return;
   const message=prompt.trim(),extra=refinement.trim();
   if(message.length<12||message.length>500){setError("اكتب وصفًا واضحًا من 12 إلى 500 حرف.");return;}
   if(extra.length>500){setError("تعديلاتك لا تتجاوز 500 حرف.");return;}
@@ -112,77 +132,87 @@ export function DesignStudio(){
    }
    if(data?.kind!=="chat"||typeof data.content!=="string")throw Error("رد Fanar لم يحتوِ على نموذج تصميم صالح.");
    const parsed=parseDesignSuggestion(data.content);
+   if(currentAccount.current!==owner)return;
    undoPreview();setDraft(parsed);setNotice("جهّز Fanar اقتراحًا جديدًا. عاينه وعدّله قبل الحفظ؛ لم يُطبّق بعد.");
-  }catch(e){setError(e instanceof Error?e.message:"تعذّر إنشاء التصميم. حاول مرة أخرى.");}
-  finally{setBusy("");}
+  }catch(e){if(currentAccount.current===owner)setError(e instanceof Error?e.message:"تعذّر إنشاء التصميم. حاول مرة أخرى.");}
+  finally{if(currentAccount.current===owner)setBusy("");}
  }
  async function save(){
-  if(busy||!draft||!account.user)return;
+  const owner=accountId;
+  if(busy||!draft||!owner)return;
   if(!editingId&&saved.length>=MAX_DESIGNS){setError("وصلت إلى الحد الأقصى: 8 تصاميم. احذف تصميمًا قبل حفظ غيره.");return;}
   setBusy("save");setError("");setNotice("");
   try{
-   const tokens=validateTokens(draft.tokens),owner=account.user.id;
+   const tokens=validateTokens(draft.tokens);
    const builder=editingId
      ? supabase.from("user_theme_designs").update({name:draft.name,description:draft.description,tokens,updated_at:new Date().toISOString()}).eq("id",editingId).eq("user_id",owner)
      : supabase.from("user_theme_designs").insert({user_id:owner,name:draft.name,description:draft.description,tokens,visible:true});
    const {data,error:saveError}=await builder.select("id,user_id,name,description,tokens,visible").single();
-   if(saveError||!isDesignRecord(data))throw Error("تعذّر تأكيد حفظ تصميمك في حسابك.");
+   if(currentAccount.current!==owner)return;
+   if(saveError||!isDesignRecord(data)||data.user_id!==owner)throw Error("تعذّر تأكيد حفظ تصميمك في حسابك.");
    setSaved(old=>editingId?old.map(x=>x.id===data.id?data:x):[data,...old]);
    setDraft(null);setEditingId(null);setPreview(false);
    previewSession.current={active:false,previous:null};
    const {data:preference,error:prefError}=await supabase.from("user_settings")
      .upsert({user_id:owner,active_design_id:data.id,updated_at:new Date().toISOString()},{onConflict:"user_id"})
      .select("active_design_id").single();
+   if(currentAccount.current!==owner)return;
    if(prefError||preference?.active_design_id!==data.id){
      setNotice("اتحفظ التصميم في حسابك، لكن تفعيله على باقي الأجهزة غير مؤكد. يمكنك اختياره من القائمة.");
    }else{
      setActiveId(data.id);renderCustom(data.tokens);
      setNotice("اتحفظ التصميم واتفعّل على حسابك بعد تأكيد الخادم.");
    }
-  }catch(e){setError(e instanceof Error?e.message:"تعذّر الحفظ.");}
-  finally{setBusy("");}
+  }catch(e){if(currentAccount.current===owner)setError(e instanceof Error?e.message:"تعذّر الحفظ.");}
+  finally{if(currentAccount.current===owner)setBusy("");}
  }
  async function activate(design:CustomDesign){
-  if(busy||!account.user)return;
+  const owner=accountId;
+  if(busy||!owner)return;
   setBusy("activate");setError("");setNotice("");
   try{
    const {data,error:writeError}=await supabase.from("user_settings")
-     .upsert({user_id:account.user.id,active_design_id:design.id},{onConflict:"user_id"})
+     .upsert({user_id:owner,active_design_id:design.id},{onConflict:"user_id"})
      .select("active_design_id").single();
+   if(currentAccount.current!==owner)return;
    if(writeError||data?.active_design_id!==design.id)throw Error("لم يؤكد الخادم تفعيل هذا التصميم.");
    setActiveId(design.id);previewSession.current={active:false,previous:null};renderCustom(validateTokens(design.tokens));setPreview(false);
    setNotice("التصميم نشط الآن ومتزامن مع حسابك.");
-  }catch(e){setError(e instanceof Error?e.message:"لم يتأكد اختيار التصميم.");}
-  finally{setBusy("");}
+  }catch(e){if(currentAccount.current===owner)setError(e instanceof Error?e.message:"لم يتأكد اختيار التصميم.");}
+  finally{if(currentAccount.current===owner)setBusy("");}
  }
  async function visibility(design:CustomDesign){
-  if(busy||!account.user)return;
+  const owner=accountId;
+  if(busy||!owner)return;
   setBusy("visible");setError("");setNotice("");
   try{
    const {data,error:writeError}=await supabase.from("user_theme_designs")
      .update({visible:!design.visible,updated_at:new Date().toISOString()})
-     .eq("id",design.id).eq("user_id",account.user.id).select("id,visible").single();
+     .eq("id",design.id).eq("user_id",owner).select("id,visible").single();
+   if(currentAccount.current!==owner)return;
    if(writeError||data?.visible===design.visible)throw Error("تعذّر تأكيد حالة ظهور التصميم.");
    setSaved(rows=>rows.map(row=>row.id===design.id?{...row,visible:!design.visible}:row));
    window.dispatchEvent(new Event("noata-custom-theme-change"));
    setNotice(design.visible?"تم إخفاء التصميم من قائمة الاختيار دون حذفه.":"التصميم ظاهر في قائمة الاختيار.");
-  }catch(e){setError(e instanceof Error?e.message:"تعذّر تعديل الظهور.");}
-  finally{setBusy("");}
+  }catch(e){if(currentAccount.current===owner)setError(e instanceof Error?e.message:"تعذّر تعديل الظهور.");}
+  finally{if(currentAccount.current===owner)setBusy("");}
  }
  async function remove(design:CustomDesign){
-  if(busy||!account.user)return;
+  const owner=accountId;
+  if(busy||!owner)return;
   if(!window.confirm("حذف التصميم «"+design.name+"» نهائيًا من حسابك؟"))return;
   setBusy("delete");setError("");setNotice("");
   try{
    const {data,error:deleteError}=await supabase.from("user_theme_designs")
-     .delete().eq("id",design.id).eq("user_id",account.user.id).select("id").single();
+     .delete().eq("id",design.id).eq("user_id",owner).select("id").single();
+   if(currentAccount.current!==owner)return;
    if(deleteError||data?.id!==design.id)throw Error("تعذّر تأكيد حذف التصميم.");
    setSaved(rows=>rows.filter(row=>row.id!==design.id));
    window.dispatchEvent(new Event("noata-custom-theme-change"));
    if(activeId===design.id){setActiveId(null);previewSession.current={active:false,previous:null};restoreStock();}
    setNotice("تم حذف التصميم وتأكيد العملية من الخادم.");
-  }catch(e){setError(e instanceof Error?e.message:"تعذّر الحذف.");}
-  finally{setBusy("");}
+  }catch(e){if(currentAccount.current===owner)setError(e instanceof Error?e.message:"تعذّر الحذف.");}
+  finally{if(currentAccount.current===owner)setBusy("");}
  }
  return <section id="noata-ai-design-studio" className="noata-design-studio" aria-label="استوديو صناعة التصاميم بالذكاء الاصطناعي">
   <div className="noata-design-studio-header">
@@ -248,6 +278,9 @@ export function DesignStudio(){
 }
 export function SavedDesignChoices(){
  const account=useVerifiedAccount(),supabase=useMemo(()=>createClient(),[]);
+ const accountId=account.user?.id??null;
+ const currentAccount=useRef(accountId);
+ currentAccount.current=accountId;
  const [items,setItems]=useState<CustomDesign[]>([]),[active,setActive]=useState<string|null>(null),[error,setError]=useState("");
  useEffect(()=>{
    let live=true;
@@ -278,19 +311,22 @@ export function SavedDesignChoices(){
    };
  },[supabase,account.user]);
  async function choose(design:CustomDesign){
-   if(!account.user)return;
+   const owner=accountId;
+   if(!owner)return;
    setError("");
    try{
     const {data,error:saveError}=await supabase.from("user_settings").upsert({
-      user_id:account.user.id,active_design_id:design.id
+      user_id:owner,active_design_id:design.id
     },{onConflict:"user_id"}).select("active_design_id").single();
+    if(currentAccount.current!==owner)return;
     if(saveError||data?.active_design_id!==design.id)throw Error("الخادم لم يؤكد تفعيل التصميم.");
     setActive(design.id);renderCustom(design.tokens);
-   }catch(e){setError(e instanceof Error?e.message:"تعذّر التفعيل.");}
+   }catch(e){if(currentAccount.current===owner)setError(e instanceof Error?e.message:"تعذّر التفعيل.");}
  }
- if(!items.length)return null;
+ const visibleItems=onlyOwnedRecords(items,accountId);
+ if(!visibleItems.length)return null;
  return <div className="noata-custom-theme-choices"><strong>تصميماتي المخصصة</strong>
-   {items.map(design=><button type="button" key={design.id} aria-pressed={active===design.id}
+   {visibleItems.map(design=><button type="button" key={design.id} aria-pressed={active===design.id}
     onClick={()=>void choose(design)}><DesignSwatches tokens={design.tokens}/><span>{design.name}</span>{active===design.id?<Icon name="check" size={15}/>:null}</button>)}
    {error?<small role="alert">{error}</small>:null}
   </div>;
