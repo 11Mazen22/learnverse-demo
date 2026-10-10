@@ -30,8 +30,41 @@ export function validateTokens(value:unknown):DesignTokens {
    throw Error("لون الخلفية الداكنة لا يحقق تباينًا مناسبًا للنص. اطلب درجة أغمق.");
  return tokens;
 }
+/** Recover presentation-only annotations without evaluating model-written code.
+ * Strings stay byte-for-byte intact; all recovered values still pass JSON.parse
+ * and the same schema, HEX and contrast validation as strict JSON responses.
+ */
+function normalizeAnnotatedJson(raw:string):string {
+ let result="",quoted=false,escaped=false;
+ for(let i=0;i<raw.length;i++){
+  const char=raw[i];
+  if(quoted){result+=char;if(escaped)escaped=false;else if(char==="\\")escaped=true;else if(char==='"')quoted=false;continue;}
+  if(char==='"'){quoted=true;result+=char;continue;}
+  if(char==="#"||(char==="/"&&raw[i+1]==="/")){
+   while(i<raw.length&&raw[i]!=="\n"&&raw[i]!=="\r")i++;
+   result+="\n";continue;
+  }
+  if(char==="/"&&raw[i+1]==="*"){
+   const end=raw.indexOf("*/",i+2);
+   if(end<0)return raw; // An unterminated comment is not recoverable.
+   i=end+1;result+=" ";continue;
+  }
+  result+=char==="،"?",":char;
+ }
+ // Remove only structural trailing commas, never commas inside quoted strings.
+ let clean="";quoted=false;escaped=false;
+ for(let i=0;i<result.length;i++){
+  const char=result[i];
+  if(quoted){clean+=char;if(escaped)escaped=false;else if(char==="\\")escaped=true;else if(char==='"')quoted=false;continue;}
+  if(char==='"'){quoted=true;clean+=char;continue;}
+  if(char===","){let next=i+1;while(/\s/.test(result[next]??"")&&next<result.length)next++;if(result[next]==="}"||result[next]==="]")continue;}
+  clean+=char;
+ }
+ return clean;
+}
 export function parseDesignSuggestion(raw:string):{name:string;description:string;tokens:DesignTokens} {
- if(raw.length>16000)throw Error("رد الذكاء الاصطناعي أكبر من الحد المسموح.");
+  if(raw.length>16000)throw Error("رد الذكاء الاصطناعي أكبر من الحد المسموح.");
+  raw=normalizeAnnotatedJson(raw);
  // A model may wrap its answer in a code fence or add prose containing braces.
  // Read one balanced JSON object at a time rather than spanning the first and
  // last brace, which accidentally joined separate objects into invalid JSON.
@@ -83,7 +116,8 @@ export function isDesignRecord(value:unknown):value is CustomDesign {
 export const DESIGN_STUDIO_INSTRUCTION = [
  "صمّم نظام ألوان أنيقًا ومريحًا للعين لتطبيق تعليمي اسمه Noata.",
  "لا تنشئ أكواد CSS أو HTML أو JavaScript أو أسماء ملفات أو صور.",
- "أرجع JSON واحدًا فقط بلا markdown وبالمفاتيح التالية:",
+  "أرجع JSON واحدًا فقط بلا markdown وبالمفاتيح التالية:",
+  "لا تكتب أي تعليقات داخل JSON؛ لا تستخدم // أو # أو /* */. استخدم الفاصلة الإنجليزية , فقط بين الحقول.",
  '{"name":"اسم قصير بالعربية","description":"وصف عربي مختصر","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}',
  "يجب أن تكون accent داكنة بما يكفي لتباين نص أبيض WCAG AA (4.5:1)، وأن تكون deep داكنة جدًا لتباين 7:1.",
  "اجعل bright درجة مساندة جميلة متناغمة مع accent وdeep؛ لا تخترع أسماء رمزية للألوان.",
@@ -93,6 +127,7 @@ export const DESIGN_STUDIO_INSTRUCTION_EN = [
   "Suggest a refined, accessible color palette for an educational app called Noata.",
   "Do not produce CSS, HTML, JavaScript, file names, or images.",
   "Return exactly one JSON object with these keys, without markdown:",
+  "Do not include comments using //, # or /* */. Use ASCII commas between fields.",
   '{"name":"Short English name","description":"Brief English description","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}',
   "The accent must contrast at least 4.5:1 with white text, and deep must contrast at least 7:1 with white text.",
   "Choose a harmonious supporting bright color. Use six-digit hexadecimal colors only.",

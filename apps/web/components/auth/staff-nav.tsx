@@ -6,8 +6,11 @@ import {
   useVerifiedAccount,
 } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
+import { localized, useLocale } from "@/lib/i18n/locale";
 
 export function StaffNav({ active }: { active: string }) {
+  const locale = useLocale();
+  const t = (ar: string, en: string) => localized(locale, ar, en);
   const supabase = useMemo(() => createClient(), []);
   const account = useVerifiedAccount();
   const [role, setRole] = useState<"student" | "teacher" | "admin">("student");
@@ -46,14 +49,14 @@ export function StaffNav({ active }: { active: string }) {
   const items =
     role === "admin"
       ? [
-          ["مساحة المعلّم", "/teacher", "◫"],
-          ["إدارة Noata", "/admin", "▣"],
+           [t("مساحة المعلّم", "Teacher workspace"), "/teacher", "◫"],
+           [t("إدارة Noata", "Manage Noata"), "/admin", "▣"],
         ]
-      : [["مساحة المعلّم", "/teacher", "◫"]];
+       : [[t("مساحة المعلّم", "Teacher workspace"), "/teacher", "◫"]];
 
   return (
     <div className="nav-group">
-      <div className="nav-title">مساحات العمل</div>
+       <div className="nav-title">{t("مساحات العمل", "Workspaces")}</div>
       {items.map(([label, href, icon]) => (
         <a
           className={"nav-link " + (active === href ? "active" : "")}

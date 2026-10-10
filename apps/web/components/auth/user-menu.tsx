@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import { confirmAction } from "@/components/ui/confirm-dialog";
+import { localized, useLocale } from "@/lib/i18n/locale";
 import {
   boundedRead,
   useVerifiedAccount,
@@ -15,8 +16,10 @@ type Profile = {
   xp: number;
   coins: number;
 };
-const roles = { student: "طالب", teacher: "معلّم", admin: "إدارة" };
 export function UserMenu() {
+  const locale = useLocale();
+  const t = useCallback((ar: string, en: string) => localized(locale, ar, en), [locale]);
+  const roles = { student: t("طالب", "Student"), teacher: t("معلّم", "Teacher"), admin: t("إدارة", "Admin") };
   const account = useVerifiedAccount();
   const [profile, setProfile] = useState<Profile | null>(null),
     [error, setError] = useState(""),
@@ -67,14 +70,14 @@ export function UserMenu() {
           setProfile(result.data as Profile);
         } catch {
           if (alive && token === account.revision.current)
-            setError("تعذّر تحميل بيانات الحساب.");
+             setError(t("تعذّر تحميل بيانات الحساب.", "Could not load account details."));
         }
       })();
     return () => {
       alive = false;
     };
-  }, [account.user, account.revision]);
-  if (account.loading) return <span role="status">نتحقق من الحساب…</span>;
+   }, [account.user, account.revision, t]);
+   if (account.loading) return <span role="status">{t("نتحقق من الحساب…", "Verifying your account…")}</span>;
   if (account.error)
     return (
       <button
@@ -82,19 +85,19 @@ export function UserMenu() {
         className="btn"
         onClick={() => void account.refresh()}
       >
-        إعادة التحقق من الحساب
+         {t("إعادة التحقق من الحساب", "Verify account again")}
       </button>
     );
   if (!account.user)
     return (
       <a className="btn noata-sign-in" href="/login">
-        دخول
+         {t("دخول", "Sign in")}
       </a>
     );
   const name =
     profile?.display_name?.trim() ||
     account.user.email?.split("@")[0] ||
-    "حسابك";
+     t("حسابك", "Your account");
   async function logout() {
     if (lock.current) return;
     lock.current = true;
@@ -102,10 +105,10 @@ export function UserMenu() {
     setError("");
     try {
       const approved = await confirmAction({
-        title: "تسجيل الخروج من Noata؟",
-        description: "ستظل بياناتك محفوظة في حسابك. احفظ أي عمل غير مكتمل قبل تسجيل الخروج.",
-        confirmLabel: "تسجيل الخروج",
-        cancelLabel: "البقاء في حسابي",
+         title: t("تسجيل الخروج من Noata؟", "Sign out of Noata?"),
+         description: t("ستظل بياناتك محفوظة في حسابك. احفظ أي عمل غير مكتمل قبل تسجيل الخروج.", "Your account data will remain saved. Save unfinished work before signing out."),
+         confirmLabel: t("تسجيل الخروج", "Sign out"),
+         cancelLabel: t("البقاء في حسابي", "Stay signed in"),
         tone: "danger",
         icon: "user",
       });
@@ -116,7 +119,7 @@ export function UserMenu() {
       if (error) throw error;
       window.location.href = "/login";
     } catch {
-      setError("لم يتأكد تسجيل الخروج. حاول مرة أخرى.");
+       setError(t("لم يتأكد تسجيل الخروج. حاول مرة أخرى.", "Could not confirm sign-out. Please try again."));
     } finally {
       lock.current = false;
       setBusy(false);
@@ -129,8 +132,8 @@ export function UserMenu() {
           <strong>{name}</strong>
           <small>
             {profile
-              ? `${roles[profile.role]} · ${profile.coins.toLocaleString("ar-EG")} عملة`
-              : "بيانات الرصيد غير متاحة"}
+               ? `${roles[profile.role]} · ${profile.coins.toLocaleString(locale === "en" ? "en" : "ar-EG")}${t(" عملة", " coins")}`
+               : t("بيانات الرصيد غير متاحة", "Balance unavailable")}
           </small>
         </div>
         <button
@@ -145,17 +148,17 @@ export function UserMenu() {
           }}
           onClick={() => setMenuOpen((open) => !open)}
           disabled={busy}
-          aria-label={"فتح قائمة حساب " + name}
+           aria-label={t("فتح قائمة حساب ", "Open account menu for ") + name}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           aria-controls="noata-account-menu"
-          title="حسابي والإعدادات"
+           title={t("حسابي والإعدادات", "My account and settings")}
         >
           {name.slice(0, 1).toUpperCase()}
         </button>
       </div>
       {menuOpen && (
-        <div id="noata-account-menu" className="noata-account-menu" role="menu" aria-label="خيارات الحساب"
+         <div id="noata-account-menu" className="noata-account-menu" role="menu" aria-label={t("خيارات الحساب", "Account options")}
           onKeyDown={(event) => {
             const items = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]')];
             const index = items.indexOf(document.activeElement as HTMLElement);
@@ -167,19 +170,19 @@ export function UserMenu() {
           }}>
           <div className="noata-account-menu-identity">
             <strong>{name}</strong>
-            <small dir="ltr">{account.user.email ?? "حساب Noata"}</small>
-            <span>{profile ? roles[profile.role] : "الحساب الشخصي"}</span>
+             <small dir="ltr">{account.user.email ?? t("حساب Noata", "Noata account")}</small>
+             <span>{profile ? roles[profile.role] : t("الحساب الشخصي", "Personal account")}</span>
           </div>
           <Link href="/settings#aura-profile" role="menuitem" tabIndex={-1} onClick={() => setMenuOpen(false)}>
-            <Icon name="user" size={18} /> الملف الشخصي
+             <Icon name="user" size={18} /> {t("الملف الشخصي", "Profile")}
           </Link>
           <Link href="/settings" role="menuitem" tabIndex={-1} onClick={() => setMenuOpen(false)}>
-            <Icon name="settings" size={18} /> إعدادات الحساب
+             <Icon name="settings" size={18} /> {t("إعدادات الحساب", "Account settings")}
           </Link>
           <div className="noata-account-menu-separator" />
           <button type="button" role="menuitem" tabIndex={-1} className="noata-account-logout" onClick={() => void logout()} disabled={busy}>
             <Icon name="arrow" size={18} />
-            {busy ? "جارٍ تسجيل الخروج…" : "تسجيل الخروج"}
+             {busy ? t("جارٍ تسجيل الخروج…", "Signing out…") : t("تسجيل الخروج", "Sign out")}
           </button>
         </div>
       )}

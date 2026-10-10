@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { resolveAppearance, safeAppearance } from "@/lib/appearance/mode";
 import {clearCustomDesign} from "@/lib/appearance/theme";
 import {SavedDesignChoices} from "@/components/preferences/design-studio";
+import {localized,useLocale} from "@/lib/i18n/locale";
 
 type Palette = "classic" | "aura" | "ocean" | "forest" | "sunset" | "rose" | "midnight";
 const PRESETS: { id: Palette; ar: string; en: string; swatch: string }[] = [
@@ -48,6 +49,7 @@ function storedPalette(): Palette {
 }
 
 export function PaletteGallery({ compact = false }: { compact?: boolean }) {
+  const locale=useLocale(),t=(ar:string,en:string)=>localized(locale,ar,en);
   const [selected, setSelected] = useState<Palette | null>("classic");
   const [notice, setNotice] = useState("");
   const account = useVerifiedAccount();
@@ -96,15 +98,15 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
     applyPalette(value);
     try {
       localStorage.setItem(KEY, value);
-      setNotice("تم حفظ الطابع على هذا الجهاز");
+       setNotice(t("تم حفظ الطابع على هذا الجهاز","Palette saved on this device"));
     } catch {
-      setNotice("الطابع يعمل لهذه الجلسة فقط");
+       setNotice(t("الطابع يعمل لهذه الجلسة فقط","Palette active for this session only"));
     }
     window.dispatchEvent(new Event("noata-palette-change"));
     const user = account.user;
     const seq = ++saveSequence.current;
     if (!user) return;
-    setNotice("جارٍ مزامنة الطابع مع حسابك…");
+     setNotice(t("جارٍ مزامنة الطابع مع حسابك…","Syncing the palette with your account…"));
     try {
       const {data,error}=await supabase.from("user_settings")
         .upsert({user_id:user.id,palette:value,active_design_id:null,updated_at:new Date().toISOString()},
@@ -112,31 +114,31 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
         .select("palette").single();
       if (seq !== saveSequence.current) return;
       if (error || data?.palette !== value) {
-        setNotice("الطابع يعمل على هذا الجهاز، لكن لم تتأكد مزامنته مع حسابك. حاول مجددًا.");
+         setNotice(t("الطابع يعمل على هذا الجهاز، لكن لم تتأكد مزامنته مع حسابك. حاول مجددًا.","The palette is active on this device, but account sync could not be confirmed. Please try again."));
       } else {
-        setNotice("تم حفظ الطابع على حسابك وتأكيده من الخادم.");
+         setNotice(t("تم حفظ الطابع على حسابك وتأكيده من الخادم.","The palette was saved to your account and confirmed by the server."));
       }
     } catch {
       if (seq === saveSequence.current)
-        setNotice("الطابع محفوظ على الجهاز؛ المزامنة غير متاحة حاليًا.");
+         setNotice(t("الطابع محفوظ على الجهاز؛ المزامنة غير متاحة حاليًا.","The palette is saved on this device. Sync is currently unavailable."));
     }
   }
   return (
-    <div className={compact ? "noata-palette-gallery compact" : "noata-palette-gallery"} role="group" aria-label="Noata themes">
-      <div className="noata-palette-heading"><b>عالَم Noata</b><small>اختار ألوان رحلتك</small></div>
+     <div className={compact ? "noata-palette-gallery compact" : "noata-palette-gallery"} role="group" aria-label={t("تصاميم Noata","Noata themes")}>
+       <div className="noata-palette-heading"><b>{t("عالَم Noata","Noata worlds")}</b><small>{t("اختار ألوان رحلتك","Choose your journey's colors")}</small></div>
       <div className="noata-palette-grid">
         {PRESETS.map((item) => (
           <button key={item.id} type="button" aria-pressed={selected === item.id}
-            aria-label={item.ar + " — " + item.en} onClick={() => choose(item.id)}>
+             aria-label={locale==="ar"?item.ar + " — " + item.en:item.en} onClick={() => choose(item.id)}>
             <span className="noata-palette-swatch" style={{ backgroundColor: item.swatch, color: item.id === "midnight" ? "#0d1530" : "#fff" }} aria-hidden="true">✦</span>
-            <span><b>{item.ar}</b><small lang="en">{item.en}</small></span>
+             <span><b>{t(item.ar,item.en)}</b>{locale==="ar"&&<small lang="en">{item.en}</small>}</span>
             {selected === item.id && <i aria-hidden="true">✓</i>}
           </button>
         ))}
       </div>
       {compact&&<SavedDesignChoices/>}
       {notice && <small role="status" className="noata-palette-notice">{notice}</small>}
-      <small className="noata-palette-local">{account.user ? "اختيارك يتزامن مع حسابك عند تأكيد الاتصال؛ الجهاز يحتفظ بنسخته المحلية." : "اختيارك محفوظ على هذا الجهاز؛ سجّل الدخول لتفعيل مزامنة الحساب."}</small>
+       <small className="noata-palette-local">{account.user ? t("اختيارك يتزامن مع حسابك عند تأكيد الاتصال؛ الجهاز يحتفظ بنسخته المحلية.","Your choice syncs with your account when confirmed. This device keeps a local copy.") : t("اختيارك محفوظ على هذا الجهاز؛ سجّل الدخول لتفعيل مزامنة الحساب.","Your choice is saved on this device. Sign in to sync it with your account.")}</small>
     </div>
   );
 }

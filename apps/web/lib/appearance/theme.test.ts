@@ -21,3 +21,24 @@ test("record parser protects rendering from malformed persisted data",()=>{
  assert.equal(isDesignRecord({id:"a",user_id:"b",name:"x",visible:true,tokens:{accent:"#123456",deep:"#09162f",bright:"#56aacc"}}),true);
  assert.equal(isDesignRecord({id:"a",user_id:"b",visible:true,tokens:{accent:"red"}}),false);
 });
+test("recovers the annotated Fanar response observed in staging",()=>{
+ const actual=`{
+ "name": "Noata Serenity",
+ "description": "ألوان زرقاء بنفسجية هادئة ومتناغمة"،
+ "tokens": {
+   "accent": "#263233", // ظل أزرق غامق
+   "deep": "#1A2021", # تباين 7:1
+   "bright": "#4F8BC3", /* لون مساند */
+ }
+}`;
+ const design=parseDesignSuggestion(actual);
+ assert.equal(design.tokens.accent,"#263233");
+ assert.equal(design.tokens.deep,"#1A2021");
+});
+test("annotation recovery preserves quoted text and rejects unsafe values",()=>{
+ const safe=parseDesignSuggestion(JSON.stringify({name:'Color #1',description:'Keep //, /* */, braces { } and ، inside text',tokens:{accent:'#263233',deep:'#1A2021',bright:'#4F8BC3'}}));
+ assert.equal(safe.description,'Keep //, /* */, braces { } and ، inside text');
+ assert.throws(()=>parseDesignSuggestion('{"name":"Unsafe","tokens":{"accent":"red",/*comment*/"deep":"#1A2021","bright":"#4F8BC3"}}'),/HEX/);
+ assert.throws(()=>parseDesignSuggestion('{"name":"Unsafe","tokens":{"accent":alert(1),"deep":"#1A2021","bright":"#4F8BC3"}}'),/Fanar/);
+ assert.throws(()=>parseDesignSuggestion('{"name":"Bright","tokens":{"accent":"#ffffff",// comment\n"deep":"#1A2021","bright":"#4F8BC3"}}'),/فاتحة/);
+});

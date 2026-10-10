@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "./client";
+import { localized, useLocale } from "@/lib/i18n/locale";
 
 export async function boundedRead<T>(
   work: PromiseLike<T>,
@@ -25,16 +26,17 @@ export async function boundedRead<T>(
 
 /** Client visibility only; server authorization and database RLS remain mandatory. */
 export function useVerifiedAccount() {
+  const locale = useLocale();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [failed, setFailed] = useState(false);
   const revision = useRef(0),
     candidate = useRef<string | null>(null),
     mounted = useRef(false);
   const refresh = useCallback(async () => {
     const token = ++revision.current;
     setLoading(true);
-    setError("");
+    setFailed(false);
     setUser(null);
     try {
       const result = await boundedRead(createClient().auth.getUser());
@@ -45,7 +47,7 @@ export function useVerifiedAccount() {
       setUser(result.data.user);
     } catch {
       if (mounted.current && token === revision.current)
-        setError("تعذّر التحقق من حسابك. أعد المحاولة عند عودة الاتصال.");
+        setFailed(true);
     } finally {
       if (mounted.current && token === revision.current) setLoading(false);
     }
@@ -59,7 +61,7 @@ export function useVerifiedAccount() {
         ++revision.current;
         candidate.current = null;
         setUser(null);
-        setError("");
+        setFailed(false);
         setLoading(false);
       } else if (session?.user.id && session.user.id !== candidate.current) {
         ++revision.current;
@@ -78,5 +80,8 @@ export function useVerifiedAccount() {
       subscription.unsubscribe();
     };
   }, [refresh]);
+  const error = failed ? localized(locale,
+    "تعذّر التحقق من حسابك. أعد المحاولة عند عودة الاتصال.",
+    "Could not verify your account. Try again when your connection returns.") : "";
   return { user, loading, error, refresh, revision };
 }

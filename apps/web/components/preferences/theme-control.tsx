@@ -1,35 +1,44 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { resolveAppearance } from "@/lib/appearance/mode";
 import { Icon } from "@/components/ui/icon";
 import { PaletteGallery, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
+import { localized, useLocale } from "@/lib/i18n/locale";
 
 type Theme = "light" | "dark" | "system";
 const choices: {
   value: Theme;
   label: string;
+  labelEn: string;
   description: string;
+  descriptionEn: string;
   icon: string;
 }[] = [
   {
     value: "light",
     label: "نهاري",
+    labelEn: "Light",
     description: "إضاءة مريحة وواضحة",
+    descriptionEn: "Clear, comfortable light",
     icon: "sun",
   },
   {
     value: "dark",
     label: "ليلي",
+    labelEn: "Dark",
     description: "ألوان هادئة ومساحة أغمق",
+    descriptionEn: "Calm colors and a darker space",
     icon: "moon",
   },
   {
     value: "system",
     label: "تلقائي",
+    labelEn: "System",
     description: "اتبع مظهر جهازك",
+    descriptionEn: "Follow your device's appearance",
     icon: "screen",
   },
 ];
@@ -41,6 +50,8 @@ function apply(theme: Theme) {
   syncBrowserThemeColor();
 }
 export function ThemeControl() {
+  const locale = useLocale();
+  const t = useCallback((ar: string, en: string) => localized(locale, ar, en), [locale]);
   const supabase = useMemo(() => createClient(), []);
   const account = useVerifiedAccount();
   const choiceSequence = useRef(0);
@@ -57,7 +68,7 @@ export function ThemeControl() {
     try {
       stored = localStorage.getItem("noata-theme");
     } catch {
-      setNotice("تعذّر حفظ المظهر على هذا الجهاز.");
+       setNotice(t("تعذّر حفظ المظهر على هذا الجهاز.", "Could not save appearance on this device."));
     }
     const initial: Theme = isTheme(stored) ? stored : "system";
     setTheme(initial);
@@ -97,7 +108,7 @@ export function ThemeControl() {
       media.removeEventListener("change", osChanged);
       document.removeEventListener("pointerdown", outside);
     };
-  }, [supabase, account.user]);
+   }, [supabase, account.user, t]);
   useEffect(() => {
     if (!open) return;
     menu.current
@@ -141,7 +152,7 @@ export function ThemeControl() {
     try {
       localStorage.setItem("noata-theme", next);
     } catch {
-      setNotice("المظهر مفعّل لهذه الجلسة فقط؛ تعذّر حفظه على الجهاز.");
+       setNotice(t("المظهر مفعّل لهذه الجلسة فقط؛ تعذّر حفظه على الجهاز.", "Appearance is active for this session only; it could not be saved on this device."));
     }
     apply(next);
     try {
@@ -168,11 +179,11 @@ export function ThemeControl() {
       const { error } = await save;
       if (seq !== choiceSequence.current || token !== account.revision.current)
         return;
-      if (error) setNotice("تم حفظ المظهر على هذا الجهاز فقط.");
+       if (error) setNotice(t("تم حفظ المظهر على هذا الجهاز فقط.", "Appearance was saved on this device only."));
     } catch {
       if (seq !== choiceSequence.current || token !== account.revision.current)
         return;
-      setNotice("تم حفظ المظهر على هذا الجهاز فقط.");
+       setNotice(t("تم حفظ المظهر على هذا الجهاز فقط.", "Appearance was saved on this device only."));
     }
   }
   const activeChoice = choices.find((x) => x.value === theme) ?? choices[2];
@@ -183,10 +194,10 @@ export function ThemeControl() {
         type="button"
         className="top-icon"
         onClick={() => setOpen((x) => !x)}
-        aria-label={"تغيير المظهر: " + activeChoice.label}
+         aria-label={t("تغيير المظهر: ", "Change appearance: ") + t(activeChoice.label, activeChoice.labelEn)}
         aria-haspopup="true"
         aria-expanded={open}
-        title={"المظهر: " + activeChoice.label}
+         title={t("المظهر: ", "Appearance: ") + t(activeChoice.label, activeChoice.labelEn)}
       >
         <Icon name={activeChoice.icon} size={19} />
       </button>
@@ -194,10 +205,10 @@ export function ThemeControl() {
         <div
           className="aura-theme-menu"
           role="group"
-          aria-label="اختيار المظهر"
+           aria-label={t("اختيار المظهر", "Choose appearance")}
         >
-          <strong>المظهر</strong>
-          <p className="noata-theme-guidance">اختار إضاءة واجهتك ثم عالم الألوان. منتصف الليل يظل داكنًا دائمًا.</p>
+           <strong>{t("المظهر", "Appearance")}</strong>
+           <p className="noata-theme-guidance">{t("اختار إضاءة واجهتك ثم عالم الألوان. منتصف الليل يظل داكنًا دائمًا.", "Choose light or dark mode, then a color palette. Midnight always remains dark.")}</p>
           {choices.map((choice) => (
             <button
               type="button"
@@ -208,14 +219,14 @@ export function ThemeControl() {
             >
               <Icon name={choice.icon} size={18} />
               <span>
-                <b>{choice.label}</b>
-                <small>{choice.description}</small>
+                 <b>{t(choice.label, choice.labelEn)}</b>
+                 <small>{t(choice.description, choice.descriptionEn)}</small>
               </span>
               {theme === choice.value && <Icon name="check" size={15} />}
             </button>
           ))}
           <PaletteGallery compact />
-          <a className="noata-theme-studio-link" href="/settings#noata-ai-design-studio" onClick={()=>setOpen(false)}><Icon name="sparkles" size={17}/> ابتكر تصميمك مع Noata AI <Icon name="arrow" size={15}/></a>
+           <a className="noata-theme-studio-link" href="/settings#noata-ai-design-studio" onClick={()=>setOpen(false)}><Icon name="sparkles" size={17}/> {t("ابتكر تصميمك مع Noata AI", "Create your design with Noata AI")} <Icon name="arrow" size={15}/></a>
         </div>
       )}
       {notice && (
