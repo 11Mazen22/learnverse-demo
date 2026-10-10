@@ -2,6 +2,7 @@
 import {mkdir, writeFile} from "node:fs/promises";
 import assert from "node:assert/strict";
 import {renderNoataPdf} from "../apps/web/lib/ai/pdf-renderer.ts";
+import {generateArabicPdf} from "../apps/web/lib/pdf/arabic-pdf.ts";
 import {createNoataDocx} from "../apps/web/lib/ai/docx-export.ts";
 import {pdfTextLines} from "../apps/web/lib/ai/pdf-text.ts";
 import {extractDocxDocument} from "../apps/web/lib/ai/docx-ingest.ts";
@@ -53,3 +54,32 @@ await writeFile(`${dir}/arabic-longform.docx`,docx);
 const ingested=await extractDocxDocument({name:"fixture.docx",type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",size:docx.length,arrayBuffer:async()=>Uint8Array.from(docx).buffer});
 assert.ok(ingested.excerpt.includes("تجربة تعلّم عربية"));
 console.log(`PASS: actual ${pages.length}-page Arabic PDF and DOCX roundtrip; fixtures in ${dir}`);
+
+// The optional native engine is verified independently; existing Chromium output stays authoritative.
+const native = await generateArabicPdf({title:"خطة التعلّم · Noata", markdown:text, date:new Date("2026-10-10T00:00:00Z")});
+await writeFile(`${dir}/arabic-native.pdf`,native.bytes);
+const nativeDocument = await getDocument({data:Uint8Array.from(native.bytes),isEvalSupported:false}).promise;
+assert.equal(nativeDocument.numPages,native.pageCount);
+assert.ok(native.pageCount>=5);
+const nativePages=[];
+for(let number=1;number<=nativeDocument.numPages;number++) {
+  const page=await nativeDocument.getPage(number);const {items}=await page.getTextContent();
+  const readback=pdfTextLines(items).join("\n");
+  assert.ok(readback.length>50,`Native page ${number} should not be empty`);
+  const outside=items.filter(x=>"str" in x && x.str.trim() && (x.transform[4]<0 || x.transform[5]<0 || x.transform[4]+x.width>page.view[2]+1 || x.transform[5]>page.view[3]));
+  assert.equal(outside.length,0,`Native page ${number} has text outside page boundaries`);
+  assert.ok(readback.includes("صفحة"),`Native page ${number} has an Arabic footer`);
+  nativePages.push({page:number,text:readback});
+}
+const nativeText=nativePages.map(x=>x.text).join(" ").replace(/\s+/g,"");
+for(const fragment of ["هذه فقرة عربية متصلة لاختبار تشكيل الحروف واتجاه القراءة","الطاقة القدرة على بذل شغل الشمس","English reference 38"])
+  assert.ok(nativeText.includes(fragment.replace(/\s+/g,"")),"Native source phrase preserved: "+fragment);
+await writeFile(`${dir}/native-pdf-readback.json`,JSON.stringify({revision:testedRevision,dirty:initiallyDirty||!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim(),pages:native.pageCount,bytes:native.bytes.length,checks:"Arabic/mixed source phrases, final section, all page bounds, Arabic footers",content:nativePages},null,2));
+if(spawnSync("which",["pdftoppm"],{stdio:"ignore"}).status===0) {
+  for(const page of [1,Math.ceil(native.pageCount/2),native.pageCount]) {
+    const raster=spawnSync("pdftoppm",["-f",String(page),"-singlefile","-scale-to","1100","-png",`${dir}/arabic-native.pdf`,`${dir}/native-pdf-page-${page}`],{encoding:"utf8"});
+    assert.equal(raster.status,0,"Native PDF page rasterization");
+  }
+}
+await nativeDocument.destroy();
+console.log(`PASS: native ${native.pageCount}-page Arabic PDF roundtrip and page bounds`);

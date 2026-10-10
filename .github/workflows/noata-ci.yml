@@ -109,6 +109,7 @@ jobs:
             'artifacts/noata-browser/outcome.json',
             'artifacts/noata-database/outcome.json',
             'artifacts/noata-documents/pdf-readback.json',
+            'artifacts/noata-documents/native-pdf-readback.json',
           ]) {
             const evidence = JSON.parse(readFileSync(path, 'utf8'));
             assert.equal(evidence.revision, revision, path + ': wrong revision');

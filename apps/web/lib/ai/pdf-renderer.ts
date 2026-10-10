@@ -4,13 +4,12 @@ import {tmpdir} from "node:os";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import {documentHtml, escapeHtml} from "./pdf-export.ts";
+import {acquirePdfSlot} from "./pdf-pressure.ts";
+export {PdfBusyError} from "./pdf-pressure.ts";
 
 // Per-instance pressure control. The deployment must also enforce request quotas.
-let active = 0;
-export class PdfBusyError extends Error {}
 export async function renderNoataPdf(text: string, title: string, screenshotPath?: string): Promise<Uint8Array> {
-  if (active >= 2) throw new PdfBusyError("PDF renderer is busy");
-  active++;
+  const release = acquirePdfSlot();
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
   let deadline: ReturnType<typeof setTimeout> | undefined;
   try {
@@ -49,6 +48,6 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
     return bytes;
   } finally {
     if(deadline) clearTimeout(deadline);
-    try { await browser?.close(); } finally { active--; }
+    try { await browser?.close(); } finally { release(); }
   }
 }

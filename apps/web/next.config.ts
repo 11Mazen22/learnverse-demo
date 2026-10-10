@@ -19,8 +19,8 @@ const nextConfig:NextConfig={
   },
   poweredByHeader:false,
   compress:true,
-  serverExternalPackages:["@sparticuz/chromium","puppeteer-core"],
-  outputFileTracingIncludes:{"/api/documents/pdf":["./public/fonts/*.woff2","./node_modules/@sparticuz/chromium/bin/**"]},
+  serverExternalPackages:["@sparticuz/chromium","puppeteer-core","pdfkit","fontkit"],
+  outputFileTracingIncludes:{"/api/documents/pdf":["./public/fonts/*.woff2","./node_modules/@sparticuz/chromium/bin/**"],"/api/pdf":["./lib/pdf/fonts/**"]},
   async headers(){
     return [{
       source:"/:path*",

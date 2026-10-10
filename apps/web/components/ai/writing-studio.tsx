@@ -82,17 +82,17 @@ export function WritingStudio({
       setNotice("المستند طويل جدًا للتصدير. قصّره أو حمّله بصيغة Markdown.");
     }
   }
-  async function savePdf() {
+  async function savePdf(textOnly = false) {
     if (exporting) return;
     setExporting(true);
     setNotice("بنجهّز صفحات المستند…");
     const controller = new AbortController();
     exportRequest.current = controller;
     try {
-      const response = await fetch("/api/documents/pdf", {
+      const response = await fetch(textOnly ? "/api/pdf" : "/api/documents/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: draft, title }),
+        body: JSON.stringify(textOnly ? { markdown: draft, title } : { text: draft, title }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -103,7 +103,7 @@ export function WritingStudio({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "noata-writing.pdf";
+      anchor.download = textOnly ? "noata-writing-text.pdf" : "noata-writing.pdf";
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 15000);
       if (!controller.signal.aborted)
@@ -237,7 +237,18 @@ export function WritingStudio({
           >
             {exporting ? "جارٍ إنشاء PDF…" : "تنزيل PDF"}
           </button>
+          <button
+            type="button"
+            onClick={() => void savePdf(true)}
+            disabled={exporting || !draft.trim() || draft.length > 100000}
+            aria-describedby="noata-text-pdf-help"
+          >
+            PDF نصي
+          </button>
         </div>
+        <small id="noata-text-pdf-help" className="aura-studio-status">
+          PDF النصي مناسب للنصوص والجداول البسيطة؛ يعرض المعادلات بصيغة نصية مبسّطة.
+        </small>
         {notice && (
           <p className="aura-studio-status" role="status">
             {notice}

@@ -27,7 +27,10 @@
     "remark-parse": "11.0.0",
     "remark-rehype": "11.1.2",
     "unified": "11.0.5",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "bidi-js": "1.0.3",
+    "fontkit": "2.0.4",
+    "pdfkit": "0.17.2"
   },
   "devDependencies": {
     "@puppeteer/browsers": "2.13.0",
@@ -38,6 +41,7 @@
     "axe-core": "4.11.1",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
-    "ws": "8.22.0"
+    "ws": "8.22.0",
+    "@types/pdfkit": "0.17.6"
   }
 }
