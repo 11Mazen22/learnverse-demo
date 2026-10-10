@@ -1,0 +1,62 @@
+export type UiBase={version:1;id:string;title:string;fallback:string};
+export type ResponseUi=UiBase&(
+ {type:"quadratic";a:number;b:number;c:number}|
+ {type:"flashcards";cards:{front:string;back:string}[]}|
+ {type:"quiz";questions:{prompt:string;choices:string[];answer:number;explanation:string}[]}|
+ {type:"steps";steps:{title:string;body:string}[]}|
+ {type:"timeline";events:{date:string;title:string;body:string}[]}|
+ {type:"comparison";columns:string[];rows:string[][]}
+);
+const object=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==="object"&&!Array.isArray(value);
+const str=(value:unknown,max=1200):value is string=>typeof value==="string"&&value.trim().length>0&&value.length<=max;
+const exact=(value:Record<string,unknown>,keys:string[])=>Object.keys(value).every(key=>keys.includes(key));
+const array=(value:unknown,max:number):value is unknown[]=>Array.isArray(value)&&value.length>0&&value.length<=max;
+export function validateResponseUi(value:unknown):ResponseUi|null{
+ if(!object(value)||value.version!==1||!str(value.id,80)||!/^[a-zA-Z0-9_-]+$/.test(value.id)||!str(value.title,160)||!str(value.fallback,4000))return null;
+ const keys=["version","id","type","title","fallback"];
+ let valid=false;
+ switch(value.type){
+  case "quadratic":valid=exact(value,[...keys,"a","b","c"])&&[value.a,value.b,value.c].every(x=>typeof x==="number"&&Number.isFinite(x)&&Math.abs(x)<=20);break;
+  case "flashcards":valid=exact(value,[...keys,"cards"])&&array(value.cards,20)&&value.cards.every(x=>object(x)&&exact(x,["front","back"])&&str(x.front)&&str(x.back));break;
+  case "quiz":valid=exact(value,[...keys,"questions"])&&array(value.questions,10)&&value.questions.every(x=>object(x)&&exact(x,["prompt","choices","answer","explanation"])&&str(x.prompt)&&str(x.explanation)&&array(x.choices,5)&&x.choices.length>=2&&x.choices.every(c=>str(c,500))&&Number.isInteger(x.answer)&&Number(x.answer)>=0&&Number(x.answer)<x.choices.length);break;
+  case "steps":valid=exact(value,[...keys,"steps"])&&array(value.steps,12)&&value.steps.every(x=>object(x)&&exact(x,["title","body"])&&str(x.title,160)&&str(x.body));break;
+  case "timeline":valid=exact(value,[...keys,"events"])&&array(value.events,12)&&value.events.every(x=>object(x)&&exact(x,["date","title","body"])&&str(x.date,80)&&str(x.title,160)&&str(x.body));break;
+  case "comparison":valid=exact(value,[...keys,"columns","rows"])&&array(value.columns,5)&&value.columns.every(x=>str(x,160))&&array(value.rows,12)&&value.rows.every(x=>Array.isArray(x)&&x.length===(value.columns as unknown[]).length&&x.every(c=>str(c,500)));break;
+ }
+ return valid?value as ResponseUi:null;
+}
+export type ResponseSegment={type:"markdown";text:string}|{type:"interactive";data:ResponseUi}|{type:"pending"}|{type:"fallback";text:string};
+/** Only closed, valid payloads reach the trusted native registry. No generated code runs. */
+export function responseSegments(content:string):ResponseSegment[]{
+ const output:ResponseSegment[]=[];const pattern=/^```noata-ui[^\n]*\n([\s\S]*?)^```\s*$/gm;let previous=0,match;
+ while((match=pattern.exec(content))){
+  if(match.index>previous)output.push({type:"markdown",text:content.slice(previous,match.index)});
+  let parsed:unknown;try{if(match[1].length<=30000)parsed=JSON.parse(match[1]);}catch{}
+  const data=validateResponseUi(parsed);
+  output.push(data?{type:"interactive",data}:{type:"fallback",text:object(parsed)&&str(parsed.fallback,4000)?parsed.fallback:""});
+  previous=pattern.lastIndex;
+ }
+ const remaining=content.slice(previous),pending=remaining.search(/^```noata-ui\b/m);
+ if(pending>=0){if(pending)output.push({type:"markdown",text:remaining.slice(0,pending)});output.push({type:"pending"});}
+ else if(remaining)output.push({type:"markdown",text:remaining});
+ return output;
+}
+export function sanitizeResponseUi(content:string):string{
+ return content.replace(/^```noata-ui[^\n]*\n([\s\S]*?)^```\s*$/gm,(block,raw)=>{
+  let parsed:unknown;try{if(raw.length<=30000)parsed=JSON.parse(raw);}catch{}
+  return validateResponseUi(parsed)?block:object(parsed)&&str(parsed.fallback,4000)?parsed.fallback:"";
+ });
+}
+export function quadraticValues(a:number,b:number,c:number){
+ const discriminant=b*b-4*a*c;
+ if(a===0)return {discriminant:null,roots:b===0?[]:[-c/b],kind:b===0?(c===0?"identity":"none"):"linear"};
+ return {discriminant,roots:discriminant<0?[]:discriminant===0?[-b/(2*a)]:[(-b-Math.sqrt(discriminant))/(2*a),(-b+Math.sqrt(discriminant))/(2*a)],kind:discriminant<0?"complex":discriminant===0?"repeated":"real"};
+}
+export const RESPONSE_UI_POLICY=`When interaction genuinely helps, you may append one fenced noata-ui JSON block after your readable explanation. Never use this for greetings, exact quotations, creative poems, code-only or JSON-only requests. All blocks require version:1, an id with letters/digits/underscores, title in the user's language, and a meaningful fallback explanation. Use only these shapes:
+quadratic: {version:1,id,title,fallback,type:"quadratic",a:number,b:number,c:number} (coefficients between -20 and 20)
+flashcards: {...base,type:"flashcards",cards:[{front,back}]} (max 20)
+quiz: {...base,type:"quiz",questions:[{prompt,choices:[string,string,...],answer:zero_based_index,explanation}]} (max 10, 2-5 choices)
+steps: {...base,type:"steps",steps:[{title,body}]} (max 12)
+timeline: {...base,type:"timeline",events:[{date,title,body}]} (max 12)
+comparison: {...base,type:"comparison",columns:[string,...],rows:[[string,...],...]} (max 5 columns, 12 rows)
+Do not add unknown fields, HTML, executable code, URLs, actions, sources or invented evidence to these payloads. Use ordinary Markdown when no interaction helps or you cannot produce a valid payload. Practice quizzes are informal and never grant grades or rewards.`;

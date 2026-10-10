@@ -60,3 +60,13 @@ test("Auto uses task intent and language while image routing takes precedence",(
   assert.equal(resolveAutoRoute("Explain Quran",true).model,"Fanar-Oryx-IVU-2");
   assert.equal(requestLanguage("Explain this paragraph\nنص عربي طويل"),"en");
 });
+test("research state and timing evidence arrive through the same stream and persist with the answer",async()=>{
+ let saved:any;
+ const stream=createFanarStream({model:"Fanar",clean,prepare:async(_,emit)=>{emit({status:"searching"});return {version:1,status:"unavailable",reason:"not_configured",sources:[],elapsedMs:0};},request:async()=>Response.json({choices:[{message:{content:"Research is unavailable."},finish_reason:"stop"}]}),persist:async(result)=>{saved=result;}});
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(frame=>JSON.parse(frame));
+ assert.ok(frames.some(frame=>frame.status==="searching"));assert.equal(saved.research.status,"unavailable");assert.equal(saved.delivery,"buffered");assert.ok(saved.timings.firstContentMs!==null);assert.ok(saved.timings.totalMs>=saved.timings.firstContentMs);
+});
+test("specialist access denial is sanitized without exposing the provider body",async()=>{
+ const stream=createFanarStream({model:"Fanar-Sadiq-2",clean,request:async()=>Response.json({detail:"Additional authorization required: not allowed",private:"secret-test-only"},{status:422}),persist:async()=>{}});
+ const text=await new Response(stream).text();assert.match(text,/PROVIDER_MODEL_ACCESS_DENIED/);assert.ok(!text.includes("secret-test-only"));assert.ok(!text.includes("Additional authorization"));
+});

@@ -1,4 +1,40 @@
 @import "tailwindcss";
+
+/* Noata AI's trusted learning surfaces share the active palette. */
+.noata-response-component{margin-block:20px;padding:clamp(16px,3vw,26px);border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--ink);min-width:0}
+.noata-response-component h3{margin:0 0 16px;font-size:1.15em;line-height:1.5}
+.noata-response-component p{white-space:pre-wrap}
+.noata-widget-note,.noata-widget-fallback,.noata-research-note{font-size:.875rem;color:var(--muted);line-height:1.65}
+.noata-widget-fallback{margin-block-start:16px;border-block-start:1px solid var(--line);padding-block-start:12px}
+.noata-widget-fallback summary,.noata-guided-steps summary{cursor:pointer;min-height:44px;align-content:center}
+.noata-coefficients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.noata-coefficients label{display:grid;gap:6px;text-align:center;font-weight:700}
+.noata-coefficients input{width:100%;accent-color:var(--accent);min-height:32px}
+.noata-coefficients output{font-size:.875rem;font-variant-numeric:tabular-nums}
+.noata-equation{text-align:center;font-size:1.1rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.noata-function-graph{width:100%;max-height:320px;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.noata-function-graph text{fill:var(--muted);font-size:12px;font-family:inherit}
+.noata-graph-grid{stroke:var(--line);stroke-width:1}
+.noata-graph-axis{stroke:var(--muted);stroke-width:1.5;fill:none}
+.noata-graph-curve{stroke:var(--accent);stroke-width:3;fill:none;vector-effect:non-scaling-stroke}
+.noata-calculation{display:flex;flex-wrap:wrap;gap:6px 20px}
+.noata-widget-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-block-start:16px}
+.noata-widget-controls button{min-height:44px;padding:8px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);color:var(--ink);font-weight:650}
+.noata-widget-controls button:disabled{opacity:.5;cursor:not-allowed}
+.noata-flashcard{display:flex;flex-direction:column;gap:20px;justify-content:center;align-items:center;width:100%;min-height:170px;padding:24px;border:1px solid var(--line);border-radius:16px;background:var(--surface-soft);color:var(--ink);font:inherit}
+.noata-flashcard span{font-size:1.1em;font-weight:650}.noata-flashcard small{color:var(--muted)}
+.noata-quiz-question{border:1px solid var(--line);border-radius:14px;padding:16px;margin-block:16px;min-width:0}
+.noata-quiz-question legend{padding-inline:8px;font-weight:700;max-width:100%}
+.noata-quiz-question label{display:flex;align-items:center;gap:12px;min-height:44px;cursor:pointer}
+.noata-quiz-question input{accent-color:var(--accent);flex:none;width:18px;height:18px}
+.noata-practice-feedback{border-inline-start:3px solid var(--accent);padding-inline-start:12px}
+.noata-guided-steps{padding-inline-start:24px}.noata-guided-steps li{padding-inline-start:8px;margin-block:8px}.noata-guided-steps summary{font-weight:700}
+.noata-timeline{list-style:none;padding-inline-start:16px;border-inline-start:2px solid var(--line)}.noata-timeline li{margin-block:20px;padding-inline-start:12px}.noata-timeline span{color:var(--muted);font-size:.875rem}.noata-timeline h4{margin-block:4px}
+.noata-comparison-scroll{max-width:100%;overflow-x:auto}.noata-comparison-scroll table{min-width:350px;width:100%;border-collapse:collapse}.noata-comparison-scroll caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.noata-comparison-scroll th,.noata-comparison-scroll td{border:1px solid var(--line);padding:12px;text-align:start;vertical-align:top}.noata-comparison-scroll th{background:var(--surface-soft)}
+.noata-source-collection{margin-block:16px;border:1px solid var(--line);border-radius:14px;padding:12px 16px;background:var(--surface-soft)}.noata-source-collection summary{cursor:pointer;min-height:44px;align-content:center;font-weight:650}.noata-source-collection li{margin-block:16px}.noata-source-collection small{display:block;color:var(--muted);font-size:.8rem}.noata-source-collection p{font-size:.875rem;line-height:1.6}.noata-source-collection a{color:var(--accent);text-underline-offset:3px;overflow-wrap:anywhere}
+.noata-response-component :is(button,input,summary):focus-visible,.noata-source-collection :is(summary,a):focus-visible,.noata-comparison-scroll:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.owui-message.user .owui-message-avatar{display:none}.owui-message.user{display:block;max-width:min(80%,680px);margin-inline-start:auto}.owui-message.user .owui-message-meta,.owui-message.user .owui-message-actions{justify-content:flex-end}.owui-message.assistant .ai-rich-message{max-width:76ch}.owui-provider-info{font-variant-numeric:tabular-nums;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:500px){.owui-message.user{max-width:92%}.noata-coefficients{gap:6px}.noata-response-component{border-radius:16px}.noata-widget-controls button{flex:1}.noata-quiz-question{padding:12px}}
 @font-face{font-family:NoataArabic;src:url("/fonts/noto-sans-arabic.woff2") format("woff2");font-weight:100 900;font-display:swap}
 
 @font-face {

@@ -26,6 +26,7 @@ import {
 import { createAiMessageContext } from "@/lib/ai/context-budget";
 import { continueChat, type ChatPart } from "@/lib/ai/continuation";
 import { requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
+import {validatedResearch,type Research} from "../../../../supabase/functions/noata-ai/research.ts";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import {
   isSupportedDocument,
@@ -578,6 +579,7 @@ export function useAIWorkspace() {
         content: String(data.content),
         model: String(data.model ?? model),
         finishReason:String(data.finishReason??"stop"),incomplete:data.incomplete===true,
+        research:validatedResearch(data.research),routeNote:data.routeNote,timings:data.timings,
       };
     }
     const reader = response.body!.getReader(),
@@ -586,6 +588,7 @@ export function useAIWorkspace() {
       content = "",
       used = model,
       done = false,finishReason="stop",incomplete=false;
+    let research:Research|undefined,timings:ChatPart["timings"],routeNote:string|undefined;
     try {
       for (;;) {
         const part = await reader.read();
@@ -598,6 +601,11 @@ export function useAIWorkspace() {
         for (const frame of parsed.data) {
           const event = JSON.parse(frame);
           if (event.error) throw Error(event.error);
+          if(event.research)research=validatedResearch(event.research);
+          if(event.routeNote==="sadiq_unavailable_general_model"){routeNote=event.routeNote;setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم النموذج العام لهذا الرد.","Sadiq 2 is not enabled; Auto is using the general model for this answer."));}
+          if(event.status==="searching")setNotice(t("بنبحث عن مصادر موثوقة…","Searching for reliable sources…"));
+          if(event.status==="reviewing")setNotice(t("بنراجع المقاطع المسترجعة…","Reviewing retrieved excerpts…"));
+          if(event.status==="preparing")setNotice(research?.status==="complete"?t("بنجهّز الرد من المصادر…","Preparing an answer from the sources…"):t("البحث المباشر غير متاح؛ المعلومات الحالية لم يتم التحقق منها.","Live research is unavailable; current information has not been verified."));
           if (typeof event.content === "string") {
             if (event.content.length > 500000)
               throw Error("Response too large");
@@ -607,7 +615,7 @@ export function useAIWorkspace() {
              setPendingText(combined);
           }
           if (event.model) used = event.model;
-          if (event.done) { done = true; finishReason=event.finishReason??"stop";incomplete=event.incomplete===true; }
+          if (event.done) { done = true; finishReason=event.finishReason??"stop";incomplete=event.incomplete===true;timings=event.timings; }
         }
       }
     } finally {
@@ -616,7 +624,7 @@ export function useAIWorkspace() {
     }
     if (!done) throw Error("Stream interrupted");
     if (!content.trim()) throw Error("Empty response");
-    return { content, model: used,finishReason,incomplete };
+    return { content, model: used,finishReason,incomplete,research,timings,routeNote };
   }
   async function persist(row: Message) {
     if (temporary) return row;
@@ -842,6 +850,9 @@ export function useAIWorkspace() {
         metadata.incomplete=true;
         setNotice(t("الرد محفوظ جزئيًا. اضغط «كمّل الرد» لإكماله.","Partial answer saved. Choose Continue answer to finish it."));
       }
+      if(result.research)metadata.research=result.research;
+      if(result.routeNote)metadata.routeNote=result.routeNote;
+      if(result.timings)metadata.timings=result.timings;
       assistant = {
         id: crypto.randomUUID(),
         conversation_id: conversationId,

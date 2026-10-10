@@ -26,6 +26,7 @@ import { stageOriginalDocument } from "@/lib/ai/original-documents";
 import { ResponseAudioPlayer } from "./response-audio-player";
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { WritingStudio } from "./writing-studio";
+import {ResearchSources} from "./response-components";
 import { EducationPanel } from "./education-panel";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
@@ -550,6 +551,8 @@ export function NoataAIClient() {
                     t("رتّب مذاكرتي","Plan my study time"),
                     t("ساعدني أعمل خطة مذاكرة واقعية ومنظمة.","Help me create a realistic, organized study plan."),
                   ],
+                  ["chart",t("استكشف الرياضيات","Explore mathematics"),t("اشرح كيف يغيّر المميّز جذور المعادلة التربيعية، مع رسم يمكنني تعديل معاملاته.","Explain how the discriminant changes quadratic roots, with a graph whose coefficients I can adjust.")],
+                  ["search",t("ابحث عن موضوع","Research a topic"),t("ابحث عن أحدث اكتشافات المريخ مع مصادر موثوقة. إذا لم يتوفر البحث المباشر، وضّح ذلك.","Research the latest discoveries about Mars with reliable sources. If live search is unavailable, say so.")],
                 ].map(([icon, title, prompt]) => (
                   <button
                     type="button"
@@ -596,7 +599,7 @@ export function NoataAIClient() {
               .map((m, index) => (
                 <article key={m.id} className={"owui-message " + m.role}>
                   <div className="owui-message-avatar" aria-hidden="true">
-                    {m.role === "assistant" ? <NoataLogo size={30} /> : t("أنت","You")}
+                    {m.role === "assistant" ? <NoataLogo size={30} /> : <Icon name="user" size={17}/>}
                   </div>
                   <div className="owui-message-body">
                     <div className="owui-message-meta">
@@ -604,7 +607,7 @@ export function NoataAIClient() {
                         {m.role === "assistant" ? "Noata AI" : t("أنت","You")}
                       </strong>
                       {m.role === "assistant" && m.model && (
-                        <span>{m.model}</span>
+                        <span className="owui-provider-info" title={m.model}>{m.model.replace(/^Fanar-?/i, "").replace(/-/g," ")||"Fanar"}</span>
                       )}
                     </div>
                     {m.role === "assistant" && m.status !== "complete" && (
@@ -614,7 +617,9 @@ export function NoataAIClient() {
                           : t("رد غير مكتمل · محفوظ جزئيًا","Incomplete · partial response saved")}
                       </p>
                     )}
-                    <RichMessage content={m.content} />
+                    <RichMessage content={m.content} research={m.metadata?.research}/>
+                    {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}
+                    {m.metadata?.routeNote==="sadiq_unavailable_general_model"&&<p className="noata-widget-note">{t("صادق 2 غير مفعّل؛ هذا الرد من النموذج العام.","Sadiq 2 is not enabled; this answer used the general model.")}</p>}
                     {m.role === "assistant" &&
                       m.status === "complete" &&
                       (/^#{1,3}\s/m.test(m.content) ||
@@ -744,7 +749,7 @@ export function NoataAIClient() {
                       {busy ? t("يكتب…","Writing…") : t("رد غير مكتمل","Incomplete response")}
                     </span>
                   </div>
-                  <RichMessage content={pendingText} />
+                  <RichMessage content={pendingText} streaming/>
                   {!busy && (
                     <div className="owui-message-actions">
                       <button

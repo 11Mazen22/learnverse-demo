@@ -244,6 +244,7 @@ function installFixture(origin) {
         },
       ],
       assignment_submissions: [],
+      lesson_progress: [],
       assignment_items: [],
       lessons: localStorage.getItem("noata-locale")==="en"?[{id:"ci-lesson",unit_id:"ci-unit",title_ar:"درس اصطناعي",title_en:"English fixture lesson",position:1,content:{summary_ar:"شرح اصطناعي",summary_en:"English fixture lesson summary",worked_en:"240 divided by 30 is 8."}}]:[],
        units: [{id:"ci-unit",title_ar:"وحدة اصطناعية",title_en:"English fixture unit"}],
@@ -266,7 +267,11 @@ function installFixture(origin) {
           content:
             "## CI PRIVATE " +
             suffix +
-            "\n\nSynthetic private workspace response.",
+            "\n\nSynthetic private workspace response."+(localStorage.getItem("noata-locale")==="en"?"\n\n"+[
+              {version:1,id:"ci-quadratic",type:"quadratic",title:"CI quadratic explorer",fallback:"The roots change with the coefficients.",a:1,b:0,c:-1},
+              {version:1,id:"ci-flashcards",type:"flashcards",title:"CI flashcards",fallback:"Distance is the length of a path.",cards:[{front:"Distance",back:"The length of a path."}]},
+              {version:1,id:"ci-quiz",type:"quiz",title:"CI practice",fallback:"2 + 2 = 4.",questions:[{prompt:"What is 2 + 2?",choices:["4","5"],answer:0,explanation:"Adding two and two gives four."}]}
+            ].map(data=>"```noata-ui\n"+JSON.stringify(data)+"\n```").join("\n\n"):""),
           status: "complete",
           model: "CI FIXTURE",
           created_at: "2026-10-01T12:00:00Z",
@@ -303,7 +308,7 @@ function installFixture(origin) {
       200,
       table === "notifications"
         ? notices.filter((n) => !n.read_at).length
-        : null,
+        : method === "HEAD" ? rows.length : null,
     );
   };
 }
@@ -489,6 +494,21 @@ export async function verifyUiAccountContracts({
     await navigate("/lesson/ci-lesson");
     await waitFor(()=>evaluate('document.body.innerText.includes("English fixture lesson summary")'),"English lesson body");
     invariant(await evaluate('!document.body.innerText.includes("شرح اصطناعي")'),"English lesson body never falls back to the Arabic summary");
+    await navigate("/ai");
+    await waitFor(()=>evaluate('document.querySelectorAll(".owui-history button").length>=2'),"English synthetic AI history");
+    await evaluate('Array.from(document.querySelectorAll(".owui-history button")).find(b=>b.textContent.includes("CI CHAT 1")).click()');
+    await waitFor(()=>evaluate('document.querySelectorAll(".noata-response-component").length===3'),"validated native educational components");
+    invariant(await evaluate('!document.querySelector(".owui-thread").innerText.includes("noata-ui")'),"Structured protocol payloads are hidden from the conversation");
+    await evaluate('(()=>{const el=document.querySelector(".noata-coefficients input");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"2");el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}));})()');
+    await waitFor(()=>evaluate('document.querySelector(".noata-calculation").textContent.includes("0.7071")'),"quadratic roots update deterministically");
+    await evaluate('document.querySelector(".noata-flashcard").click()');
+    await waitFor(()=>evaluate('document.querySelector(".noata-flashcard").textContent.includes("The length of a path.")'),"flashcard reveals its answer");
+    await evaluate('document.querySelector(".noata-quiz-question input").click()');
+    await evaluate('Array.from(document.querySelectorAll(".noata-widget-controls button")).find(b=>b.textContent.includes("Check answers")).click()');
+    await waitFor(()=>evaluate('document.querySelector(".noata-practice-feedback")?.textContent.includes("Correct")'),"practice quiz checks the selected answer");
+    invariant(await evaluate('document.querySelector(".owui-layout").getAttribute("dir")==="ltr"'),"English AI layout uses LTR during actual content interactions");
+    await auditView("english-interactive-ai");
+    await screenshot("artifacts/noata-browser/english-interactive-ai.png");
     await evaluate('localStorage.setItem("noata-locale","ar")');
     await evaluate(
       'window.__noataUiFixture.switchAccount("student","00000000-0000-4000-8000-000000000001")',

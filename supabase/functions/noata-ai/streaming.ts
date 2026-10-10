@@ -1,5 +1,6 @@
+import type {Research} from "./research.ts";
 export const GENERATION_WINDOW_MS = 135_000;
-export type StreamResult = { kind: "chat"; content: string; model: string; finishReason: string; incomplete: boolean; delivery: "streamed" | "buffered" };
+export type StreamResult = { kind: "chat"; content: string; model: string; finishReason: string; incomplete: boolean; delivery: "streamed" | "buffered"; research?:Research;routeNote?:string; timings:{firstContentMs:number|null;totalMs:number} };
 type Options = {
   model: string;
   clean: (text: string) => string;
@@ -7,6 +8,8 @@ type Options = {
   persist: (result: StreamResult | null, status?: string) => Promise<void>;
   windowMs?: number;
   heartbeatMs?: number;
+  routeNote?:string;
+  prepare?: (signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<Research|undefined>;
 };
 /** Return headers and a ready frame before waiting for upstream inference. */
 export function createFanarStream(options: Options): ReadableStream<Uint8Array> {
@@ -18,12 +21,15 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
       const encoder = new TextEncoder(), decoder = new TextDecoder();
       let output = "", buffer = "", finished = false, finishReason = "stop";
       let delivery: "streamed" | "buffered" = "streamed";
+      const started=Date.now();let firstContentMs:number|null=null,research:Research|undefined;
       const emit = (data: unknown) => { if (!cancelled) controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)); };
-      const result = (incomplete: boolean): StreamResult => ({ kind: "chat", content: options.clean(output), model: options.model, finishReason, incomplete, delivery });
+      const result = (incomplete: boolean): StreamResult => ({ kind: "chat", content: options.clean(output), model: options.model, finishReason, incomplete, delivery, ...(research?{research}:{}),...(options.routeNote?{routeNote:options.routeNote}:{}),timings:{firstContentMs,totalMs:Date.now()-started} });
       const deadline = setTimeout(() => abort.abort(new DOMException("Generation window elapsed", "TimeoutError")), options.windowMs ?? GENERATION_WINDOW_MS);
       const heartbeat = setInterval(() => emit({ heartbeat: true }), options.heartbeatMs ?? 10_000);
       try {
-        emit({ ready: true, model: options.model });
+        emit({ ready: true, model: options.model,routeNote:options.routeNote });
+        research=await options.prepare?.(abort.signal,emit);
+        if(research)emit({research,status:"preparing"});
         const response = await options.request(abort.signal);
         if (!response.ok || !response.body) {
           // Interpret provider failures without logging response bodies, prompts or keys.
@@ -40,6 +46,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
           output = data?.choices?.[0]?.message?.content ?? "";
           finishReason = data?.choices?.[0]?.finish_reason ?? "stop";
           finished = true;
+          if(output)firstContentMs=Date.now()-started;
           emit({ content: options.clean(output), model: options.model, delivery });
         } else {
           reader = response.body.getReader();
@@ -52,6 +59,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
             const choice = data.choices?.[0];
             if (typeof choice?.delta?.content === "string") {
               output += choice.delta.content;
+              if(firstContentMs===null&&options.clean(output))firstContentMs=Date.now()-started;
               if (output.length > 500_000) throw Error("Response size limit");
               emit({ content: options.clean(output), model: options.model, delivery });
             }
