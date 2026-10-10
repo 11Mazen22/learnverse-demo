@@ -1,0 +1,414 @@
+/* NOATA AURA — Unified Visual Identity 2026.
+ * This layer intentionally comes AFTER the existing framework, finishing, and
+ * palette sheets. It introduces semantic brand/hero tokens to remove the fixed
+ * navy/blue islands shown in the Forest screenshot. No UI state is faked.
+ */
+:root {
+  --hero-deep: #09214d;
+  --hero-middle: #0e4683;
+  --hero-bright: #0d73b5;
+  --hero-glint: #b6e6ff;
+  --hero-copy: #e8f3ff;
+  --hero-action: #e3f2ff;
+  --hero-action-ink: #09315e;
+  --on-accent: #ffffff;
+  --brand-mark-ink: var(--ink);
+  --brand-mark-paper: var(--surface);
+  --brand-mark-accent: var(--accent);
+  --identity-shadow: 0 22px 70px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+html[data-theme="dark"] {
+  --on-accent: #071327;
+  --hero-action: #f1f6ff;
+  --hero-action-ink: #082a54;
+}
+html[data-palette="aura"] {
+  --hero-deep: #20163e;
+  --hero-middle: #483187;
+  --hero-bright: #775cc2;
+  --hero-glint: #e0cdff;
+  --hero-copy: #f3ebff;
+  --hero-action: #f1e6ff;
+  --hero-action-ink: #332153;
+}
+html[data-palette="ocean"] {
+  --hero-deep: #073348;
+  --hero-middle: #0a627c;
+  --hero-bright: #0f969b;
+  --hero-glint: #b6f6ed;
+  --hero-copy: #e3faf8;
+  --hero-action: #d8fffa;
+  --hero-action-ink: #0b4256;
+}
+html[data-palette="forest"] {
+  --hero-deep: #123a30;
+  --hero-middle: #1f654c;
+  --hero-bright: #3a906c;
+  --hero-glint: #d3f3bb;
+  --hero-copy: #ecf9eb;
+  --hero-action: #e5f8d6;
+  --hero-action-ink: #163d2e;
+}
+html[data-palette="sunset"] {
+  --hero-deep: #4c2a38;
+  --hero-middle: #954e4c;
+  --hero-bright: #cb8050;
+  --hero-glint: #ffe7b9;
+  --hero-copy: #fff1e9;
+  --hero-action: #ffeed9;
+  --hero-action-ink: #522a32;
+}
+html[data-palette="rose"] {
+  --hero-deep: #3d223a;
+  --hero-middle: #873960;
+  --hero-bright: #bb678f;
+  --hero-glint: #ffe0ea;
+  --hero-copy: #fff0f6;
+  --hero-action: #ffe7f3;
+  --hero-action-ink: #492542;
+}
+html[data-palette="midnight"] {
+  --hero-deep: #0d1632;
+  --hero-middle: #25265a;
+  --hero-bright: #5267a6;
+  --hero-glint: #c9d6ff;
+  --hero-copy: #eef1ff;
+  --hero-action: #dce5ff;
+  --hero-action-ink: #182447;
+  --on-accent: #111b36;
+}
+/* Palette and contrast both influence the live VECTOR mark, including its N
+ * ribbon, cap and book. Preserves supplied geometry instead of introducing a
+ * generic lettermark, filtering images, or fabricating a new brand.
+ */
+.noata-logo {
+  --brand-mark-ink: var(--ink);
+  --brand-mark-paper: var(--surface);
+  --brand-mark-accent: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+.noata-logo .noata-logo-vector {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  flex: none;
+  transition: filter 220ms ease;
+}
+.noata-logo .noata-mark-outline { fill: var(--brand-mark-ink); }
+.noata-logo .noata-mark-paper { fill: var(--brand-mark-paper); }
+.noata-logo .noata-mark-ribbon { fill: var(--brand-mark-accent); }
+.noata-brand-copy strong { color: var(--ink); }
+.noata-brand-copy small { color: var(--muted); }
+:is(.hero, .auth-aside, .noata-legal-hero) .noata-logo,
+.noata-logo-on-navy {
+  --brand-mark-ink: #f9fbff;
+  --brand-mark-paper: var(--hero-deep);
+  --brand-mark-accent: var(--hero-glint);
+}
+.auth-aside .noata-brand-copy :is(strong,small) {
+  color: var(--hero-copy);
+}
+/* Make every hero adopt the selected world. The original hard-coded blue
+ * gradient in globals.css has higher specificity than a bare .hero selector.
+ */
+.page-content .hero,
+.page-content .dashboard-hero,
+.page-content .noata-rewards-hero {
+  background:
+    radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--hero-glint) 25%, transparent), transparent 42%),
+    linear-gradient(133deg, var(--hero-deep), var(--hero-middle) 66%, var(--hero-bright));
+  border: 1px solid color-mix(in srgb, var(--hero-glint) 30%, transparent);
+  color: #ffffff;
+  box-shadow: 0 22px 60px color-mix(in srgb, var(--hero-deep) 18%, transparent);
+}
+.page-content .hero :is(h1,h2,h3,.eyebrow),
+.page-content .hero .aura-scene-caption,
+.page-content .hero .aura-scene-note {
+  color: #ffffff;
+}
+.page-content .hero p {
+  color: var(--hero-copy);
+}
+.page-content .hero .eyebrow { color: var(--hero-glint); }
+.page-content .hero::after {
+  border-color: color-mix(in srgb, var(--hero-glint) 30%, transparent);
+  box-shadow: 0 0 0 45px color-mix(in srgb, var(--hero-glint) 8%, transparent),
+              0 0 0 90px color-mix(in srgb, var(--hero-glint) 5%, transparent);
+}
+.page-content .hero .btn-primary {
+  background: var(--hero-action);
+  color: var(--hero-action-ink);
+  border-color: transparent;
+}
+.page-content .hero .btn-primary:hover {
+  background: #ffffff;
+}
+.page-content .hero .btn-secondary {
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--hero-glint) 47%, transparent);
+  background: color-mix(in srgb, var(--hero-deep) 25%, transparent);
+}
+.page-content .hero .btn-secondary:hover {
+  background: color-mix(in srgb, var(--hero-glint) 20%, transparent);
+}
+.aura-brand-halo {
+  background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--hero-glint) 27%, transparent), transparent 72%);
+  border-color: color-mix(in srgb, var(--hero-glint) 28%, transparent);
+}
+.aura-brand-scene .noata-logo {
+  filter: drop-shadow(0 12px 30px color-mix(in srgb, var(--hero-deep) 36%, transparent));
+}
+.aura-scene-note {
+  border-color: color-mix(in srgb, var(--hero-glint) 36%, transparent);
+  background: color-mix(in srgb, var(--hero-deep) 24%, transparent);
+}
+/* Universal shells and controls */
+.noata-shell,
+.noata-main,
+.noata-sidebar,
+.page-content,
+.aura-theme-menu {
+  color: var(--ink);
+}
+.noata-sidebar {
+  background: var(--surface);
+  border-inline-end-color: var(--line);
+}
+.noata-sidebar .nav-link.active {
+  border-inline-start-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.noata-sidebar .nav-link.active .nav-icon {
+  color: var(--accent);
+  background: var(--surface);
+}
+.noata-sidebar .nav-link-ai .nav-icon,
+.noata-shell .nav-tag {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.noata-shell .sidebar-ai-icon,
+.noata-shell .notification-bell b,
+.noata-shell :is(.aura-next-step-action,.owui-new-chat,.owui-send) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.noata-shell .aura-next-step-action:hover,
+.noata-shell .sidebar-ai-card:hover {
+  filter: saturate(1.05);
+}
+.noata-shell .top-icon:focus-visible,
+.noata-shell .nav-link:focus-visible,
+.page-content :is(a,button,input,select):focus-visible,
+.noata-palette-gallery button:focus-visible {
+  outline-color: var(--accent);
+}
+.page-content .aura-learning-paths a,
+.page-content .quick-card,
+.page-content .metric-card,
+.page-content .panel {
+  transition: transform 220ms cubic-bezier(.22,1,.36,1),
+              border-color 180ms ease,
+              background-color 180ms ease,
+              box-shadow 220ms ease;
+}
+.page-content .quick-card:hover,
+.page-content .aura-learning-paths a:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: color-mix(in srgb, var(--surface) 90%, var(--accent-soft));
+}
+/* Fixed-blue islands in the old auth journey, reward cards, mobile controls
+ * and AI should inherit the same semantic colors as the rest of the app.
+ */
+.auth-shell:not(.is-centered) .auth-aside {
+  background:
+    radial-gradient(circle at 75% 23%, color-mix(in srgb, var(--hero-glint) 19%, transparent), transparent 38%),
+    linear-gradient(145deg, var(--hero-deep), var(--hero-middle) 58%, var(--hero-bright));
+}
+.auth-shell .auth-aside-kicker,
+.auth-shell .auth-aside-copy h2 span {
+  color: var(--hero-glint);
+}
+.auth-journey-shell .auth-journey-card::before {
+  background: linear-gradient(90deg, var(--hero-glint), var(--accent), var(--hero-deep));
+}
+.noata-reward-visual,
+.page-content .noata-reward-visual {
+  background: linear-gradient(145deg, var(--hero-deep), var(--hero-middle) 65%, var(--hero-bright));
+  color: var(--hero-copy);
+}
+.page-content .rank-card,
+.aura-next-step {
+  background: color-mix(in srgb, var(--surface) 82%, var(--accent-soft));
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--line));
+}
+.owui-new-chat,.owui-send,
+html[data-theme="dark"] .owui-new-chat,
+html[data-theme="dark"] .owui-send {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.noata-shell a.noata-sign-in,
+html[data-theme="dark"] .noata-shell a.noata-sign-in {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.noata-shell a.noata-sign-in:hover,
+html[data-theme="dark"] .noata-shell a.noata-sign-in:hover {
+  background: color-mix(in srgb, var(--accent) 86%, var(--ink));
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.noata-shell .nav-tag,
+.aura-learning-paths > a > span,
+.aura-module-steps li > span {
+  color: var(--accent);
+}
+.aura-quran :is(button,input[type="range"],select):focus-visible {
+  outline-color: var(--accent);
+}
+.aura-quran .aura-quran-header {
+  background: color-mix(in srgb, var(--surface) 94%, var(--accent-soft));
+  border-color: color-mix(in srgb, var(--accent) 14%, var(--line));
+}
+.aura-quran .aura-quran-ai-link,
+.aura-quran .aura-quran-toolbar {
+  border-color: color-mix(in srgb, var(--accent) 16%, var(--line));
+}
+/* Only actual playing verse state should illuminate. Static selection alone
+ * cannot simulate playback, and no global Quran text color is replaced.
+ */
+.aura-quran [data-playing="true"],
+.aura-quran [data-audio-active="true"] {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--line));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent),
+              0 12px 36px color-mix(in srgb, var(--accent) 11%, transparent);
+}
+/* Dynamic theme-aware card surfaces */
+.page-content :is(.aura-module-welcome, .aura-next-step, .aura-settings-section, .aura-inbox-item) {
+  transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+.noata-legal .noata-legal-hero {
+  background: linear-gradient(125deg, var(--hero-deep), var(--hero-middle), var(--hero-bright));
+}
+.noata-legal .noata-legal-kicker {
+  color: var(--hero-glint);
+}
+/* Account for small screens and different writing directions without breaking
+ * native controls or stacking dialogs above touch navigation.
+ */
+@media (max-width: 650px) {
+  .page-content .dashboard-hero {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .page-content .dashboard-hero .aura-brand-scene {
+    min-height: 140px;
+  }
+  .page-content .dashboard-hero .aura-brand-scene .noata-logo {
+    width: 90px !important;
+    height: 90px !important;
+  }
+  .page-content .dashboard-hero .hero-actions .btn {
+    flex: 1 1 155px;
+    min-width: 0;
+  }
+  .page-content .aura-next-step {
+    align-items: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .noata-logo .noata-logo-vector,
+  .page-content .aura-learning-paths a,
+  .page-content .quick-card,
+  .page-content .metric-card,
+  .page-content .panel,
+  .page-content .aura-next-step {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+html[data-reduced-motion="true"] :is(.noata-logo .noata-logo-vector,.page-content .aura-learning-paths a,.page-content .quick-card,.page-content .metric-card,.page-content .panel) {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Honest, nonblocking guest experience when public curriculum is temporarily
+ * unreachable. Keep authenticated failures in their existing alert state. */
+.aura-guest-service-notice {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 15px clamp(16px, 2.5vw, 25px);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  border-inline-start: 4px solid var(--accent);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--surface) 85%, var(--accent-soft));
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.85;
+  margin-bottom: 18px;
+}
+.aura-guest-service-notice .btn {
+  min-height: 39px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  color: var(--accent);
+  border-radius: 11px;
+}
+.aura-guest-service-notice .btn:hover {
+  background: color-mix(in srgb, var(--accent-soft) 75%, var(--accent));
+}
+
+/* Honest, permission-aware Progress → AI study-coach handoff. */
+.aura-progress-ai-disclosure {
+  margin: 12px 2px 19px;
+  padding: 13px 16px;
+  line-height: 1.85;
+  font-size: 12px;
+  color: var(--muted);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent-soft));
+}
+.aura-progress-actions .aura-progress-secondary:has(svg) {
+  border-color: color-mix(in srgb, var(--accent) 27%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+@media (max-width: 550px) {
+  .aura-progress-actions > :is(a,button) {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+}
+
+/* Verified wallet receipts use semantic tokens in every Noata color world. */
+.noata-ledger-section{margin-top:20px}
+.noata-ledger-section .panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap}
+.noata-ledger-section .panel-head h2{margin:0 0 5px}
+.noata-ledger-section .panel-head p{color:var(--muted);font-size:12px;line-height:1.75;margin:0}
+.noata-ledger-refresh{display:flex;align-items:center;gap:8px;min-height:41px;border:1px solid var(--line);border-radius:12px;padding:8px 13px;color:var(--accent);background:var(--accent-soft);font-size:12px;font-weight:750}
+.noata-ledger-refresh:disabled{opacity:.55}
+.noata-ledger-refresh:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.noata-ledger-list{list-style:none;display:grid;gap:0;margin:12px 0 0;padding:0}
+.noata-ledger-entry{display:flex;align-items:center;gap:13px;min-width:0;padding:15px 0;border-top:1px solid var(--line)}
+.noata-ledger-symbol{flex:0 0 41px;display:grid;place-items:center;height:41px;border-radius:13px;color:var(--accent);background:var(--accent-soft)}
+.noata-ledger-symbol.debit{color:var(--ink);background:var(--surface-soft)}
+.noata-ledger-detail{display:grid;flex:1;min-width:0;gap:3px;overflow-wrap:anywhere}
+.noata-ledger-detail strong{font-size:13px;line-height:1.6;font-weight:750;color:var(--ink)}
+.noata-ledger-detail small{font-size:11px;line-height:1.6;color:var(--muted)}
+.noata-ledger-value{white-space:nowrap;font-size:13px;font-weight:850;color:var(--ink);font-variant-numeric:tabular-nums}
+.noata-ledger-value.credit{color:var(--accent)}
+.noata-ledger-message{border:1px dashed var(--line);border-radius:13px;padding:18px;background:var(--surface-soft);color:var(--muted);line-height:1.85;font-size:13px}
+@media(max-width:430px){.noata-ledger-entry{gap:9px}.noata-ledger-symbol{flex-basis:33px;height:33px}.noata-ledger-value{font-size:11px}.noata-ledger-detail small{font-size:10px}}

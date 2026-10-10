@@ -1,8 +1,23 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { ConfirmHost } from "@/components/ui/confirm-dialog";
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f7fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#071327" },
+  ],
+};
 import "katex/dist/katex.min.css";
 import "./globals.css";
+import "./aura-finish.css";
+import "./auth-ux.css";
+import "./palette.css";
+import "./brand-system.css";
+import "./contextual-coach.css";
+import "./design-rebirth.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
+import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://noata.enterpriseworkhub.online"),
@@ -11,7 +26,7 @@ export const metadata: Metadata = {
     template: "%s · Noata",
   },
   description:
-    "Learn. Grow. Achieve — an AI-native gamified learning platform.",
+    "نوتة — منصة تعلّم عربية ذكية: دروس، مراجعة، مصحف موثّق، ومساعد Noata AI يرافقك خطوة بخطوة.",
   applicationName: "Noata",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
@@ -28,12 +43,11 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body>
-        <a className="skip-link" href="#noata-main">
-          Skip to content
-        </a>
+        <LocalizedSkipLink />
         <PwaRegister />
         <ExperienceBoot />
         {children}
+        <ConfirmHost />
       </body>
     </html>
   );

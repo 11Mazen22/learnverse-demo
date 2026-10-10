@@ -2,17 +2,24 @@ name: Noata CI
 
 on:
   push:
-    branches: [master, noata-v1-rebuild, noata-v2-total-redesign]
+    branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008]
   pull_request:
     branches: [master]
 
 permissions:
   contents: read
 
+concurrency:
+  group: noata-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://vpfpjvhafkmygetjkfcp.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_network_isolation_fixture_only
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -25,10 +32,40 @@ jobs:
         with:
           deno-version: v2.x
       - run: pnpm install --frozen-lockfile
+      - run: pnpm check:text
       - run: pnpm typecheck
+      - name: Validate staging and browser runner syntax (no accounts used)
+        run: |
+          node --check scripts/browser-aura-smoke.mjs
+          node --check scripts/authenticated-aura-smoke.mjs
+          node --check apps/web/scripts/provision-staging-qa.mjs
+          node --check apps/web/scripts/staging-qa-config.mjs
+          node --check scripts/lib/qa-browser.mjs
+          node --check scripts/lib/ui-account-fixture.mjs
+          node --check scripts/lib/public-curriculum-fixture.mjs
+          node --check scripts/install-qa-chrome.mjs
+          node --check scripts/browser-launch-smoke.mjs
+      - name: Verify safe role-account provisioning without credentials
+        run: node --test apps/web/scripts/staging-qa-config.test.mjs
+      - name: Browser startup fault regressions
+        run: node --test scripts/qa-browser.test.mjs
+      - name: Verify branded Arabic Auth emails
+        run: node --test scripts/email-templates.test.mjs
       - run: pnpm modern:test
+      - name: Verify authenticated requests stay outside the PWA cache
+        run: node --test scripts/pwa-cache.test.mjs
       - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
+      - name: Base migrations and database authorization regressions
+        run: node scripts/database-migrations-smoke.mjs
+      - name: Real Arabic PDF and DOCX fixtures
+        run: node scripts/document-export-smoke.mjs
       - run: pnpm build
+      - name: Install pinned full Chrome for Testing
+        run: node scripts/install-qa-chrome.mjs
+      - name: Real Chrome startup and CDP isolation
+        run: node scripts/browser-launch-smoke.mjs
+      - name: Real browser RTL and responsive smoke
+        run: node scripts/browser-aura-smoke.mjs
       - name: Production HTTP smoke
         shell: bash
         run: |
@@ -50,11 +87,49 @@ jobs:
             exit 1
           fi
 
-          for path in / /learn /ai /login /privacy /terms; do
+          for path in / /learn /ai /missions /review /boss /progress /rewards /assignments /settings /help /quran /notifications /teacher /admin /login /privacy /terms; do
             curl -fsS -o /dev/null "http://127.0.0.1:3000$path"
           done
 
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-frame-options: DENY'
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-content-type-options: nosniff'
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/documents/pdf -H 'Content-Type: application/json' -H 'Origin: https://untrusted.invalid' --data '{}')" = 403
+          test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/documents/pdf -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:3000' --data '{}')" = 401
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/qa-target)" = 404
       - run: pnpm legacy:check
+      - name: Enforce clean exact-revision release evidence
+        run: |
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+          for (const path of [
+            'artifacts/noata-browser/outcome.json',
+            'artifacts/noata-database/outcome.json',
+            'artifacts/noata-recovery-fixture/outcome.json',
+            'artifacts/noata-documents/pdf-readback.json',
+            'artifacts/noata-documents/native-pdf-readback.json',
+          ]) {
+            const evidence = JSON.parse(readFileSync(path, 'utf8'));
+            assert.equal(evidence.revision, revision, path + ': wrong revision');
+            assert.equal(evidence.dirty, false, path + ': dirty source tree');
+            if ('passed' in evidence) assert.equal(evidence.passed, true, path + ': failed checks');
+            if ('endingRevision' in evidence) assert.equal(evidence.endingRevision, revision, path + ': revision changed');
+          }
+          console.log('Release artifacts match the unchanged, clean checked-out revision:', revision);
+          NODE
 
+      - name: Browser failure diagnostics
+        if: failure()
+        run: node scripts/report-qa-diagnostics.mjs
+      - name: Upload Noata Aura browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: noata-aura-release-evidence
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,9 +1,13 @@
 import type { CSSProperties } from "react";
 const paths: Record<string, string> = {
+  play:"m8 4 12 8-12 8z",
+  pause:"M8 5v14M16 5v14",
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
   home: "m3 10 9-7 9 7v10H3Z M9 20v-7h6v7",
   book: "M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15",
   target: "M20 12a8 8 0 1 1-8-8 M12 8a4 4 0 1 0 4 4 M12 12l9-9 M16 3h5v5",
   review: "M4 9a8 8 0 1 1 0 6 M4 3v6h6",
+  refresh: "M20 7V3h-4 M20 3l-4 4M4 17v4h4 M4 21l4-4M6 9a7 7 0 0 1 12-2M18 15a7 7 0 0 1-12 2",
   boss: "m12 3 3 6 6 1-4 5 1 6-6-3-6 3 1-6-4-5 6-1Z",
   ai: "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z",
   chart: "M4 3v17h17 M8 15l4-5 4 2 5-7",
@@ -32,6 +36,8 @@ const paths: Record<string, string> = {
   dots: "M6 12h.01M12 12h.01M18 12h.01",
   download: "M12 3v12m-5-5 5 5 5-5M4 20h16",
   screen: "M3 4h18v12H3Zm6 16h6m-3-4v4",
+  sun: "M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6l1.5 1.5m9.8 9.8 1.5 1.5M18.4 5.6l-1.5 1.5m-9.8 9.8-1.5 1.5M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
+  moon: "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z",
   sparkles: "m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6ZM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8Z",
   chevron: "m8 10 4 4 4-4",
   folder: "M3 6h7l2 2h9v11H3Z",

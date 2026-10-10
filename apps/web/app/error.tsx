@@ -1,5 +1,6 @@
 "use client";
 
+import {NoataLogo} from "@/components/ui/noata-logo";
 import { useEffect } from "react";
 
 export default function ErrorPage({
@@ -26,9 +27,7 @@ export default function ErrorPage({
         className="panel"
         style={{ width: "min(560px,100%)", padding: 34, textAlign: "center" }}
       >
-        <div className="brand-mark" style={{ margin: "0 auto 16px" }}>
-          N
-        </div>
+        <NoataLogo size={44}/>
         <div className="eyebrow" style={{ color: "var(--danger)" }}>
           RECOVERY MODE
         </div>

@@ -4,6 +4,7 @@
  * Interaction structure adapted from Open WebUI v0.6.5 Sidebar under BSD-3-Clause.
  * See docs/THIRD_PARTY_NOTICES.md.
  */
+import {NoataLogo} from "@/components/ui/noata-logo";
 import Link from "next/link";
 import { useMemo } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -61,37 +62,36 @@ function ConversationItem({
         <Icon name="chat" size={16} />
         <span>{c.title}</span>
       </button>
-      <div className="owui-chat-row-actions">
-        {(["pin", "rename", "archive", "delete"] as const).map((action) => {
-          const label = {
-            pin: c.pinned ? "إلغاء التثبيت" : "تثبيت المحادثة",
-            rename: "إعادة تسمية المحادثة",
-            archive: c.archived ? "استعادة المحادثة" : "أرشفة المحادثة",
-            delete: "حذف المحادثة",
-          }[action];
-          const icon = {
-            pin: "pin",
-            rename: "edit",
-            archive: "archive",
-            delete: "trash",
-          }[action];
-          return (
-            <button
-              type="button"
-              key={action}
-              disabled={p.busy}
-              onClick={(e) => {
-                e.stopPropagation();
-                p.onAction(c, action);
-              }}
-              aria-label={label}
-              title={label}
-            >
-              <Icon name={icon} size={13} />
-            </button>
-          );
-        })}
-      </div>
+      <details className="aura-history-menu">
+        <summary aria-label={"خيارات محادثة: " + c.title} title="خيارات المحادثة" aria-haspopup="menu">
+          <Icon name="dots" size={18} />
+        </summary>
+        <div className="aura-history-menu-panel" role="group" aria-label={"إدارة "+c.title}>
+          {(["pin", "rename", "archive", "delete"] as const).map((action) => {
+            const label = {
+              pin: c.pinned ? "إلغاء التثبيت" : "تثبيت المحادثة",
+              rename: "إعادة تسمية المحادثة",
+              archive: c.archived ? "استعادة المحادثة" : "أرشفة المحادثة",
+              delete: "حذف المحادثة",
+            }[action];
+            const icon = {pin:"pin",rename:"edit",archive:"archive",delete:"trash"}[action];
+            return (
+              <button
+                type="button"
+                key={action}
+                disabled={p.busy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.currentTarget.closest("details")?.removeAttribute("open");
+                  p.onAction(c,action);
+                }}
+              >
+                <Icon name={icon} size={16} /> <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </details>
     </div>
   );
 }
@@ -153,11 +153,9 @@ export function ConversationHistory(p: Props) {
     <aside className="owui-sidebar" aria-label="Noata AI navigation">
       <div className="owui-sidebar-top">
         <div className="owui-brand">
-          <div className="owui-brand-mark" aria-hidden="true">
-            n<span>·</span>
-          </div>
+          <NoataLogo size={44}/>
           <div>
-            <strong>noata ai.</strong>
+            <strong>Noäta AI</strong>
             <small>مساحة أفكارك الذكية</small>
           </div>
         </div>
@@ -194,9 +192,9 @@ export function ConversationHistory(p: Props) {
       </label>
 
       <div className="owui-sidebar-links">
-        <Link href="/">
+        <Link href="/" className="aura-home-return">
           <Icon name="home" size={16} />
-          <span>الرجوع إلى Noata</span>
+          <span><strong>مساحة التعلّم</strong><small>العودة إلى الرئيسية</small></span>
         </Link>
         <button
           type="button"
@@ -220,7 +218,7 @@ export function ConversationHistory(p: Props) {
         </button>
       </div>
 
-      <div className="owui-history" aria-label={p.archived ? "المحادثات المؤرشفة" : "المحادثات"}>
+      <div className="owui-history" role="region" aria-label={p.archived ? "المحادثات المؤرشفة" : "المحادثات"}>
         {grouped.pinned.length > 0 && (
           <section className="owui-chat-group">
             <h3>مثبّتة</h3>

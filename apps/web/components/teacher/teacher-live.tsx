@@ -1,6 +1,9 @@
 "use client";
 
+import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { boundedRead } from "@/lib/supabase/use-verified-account";
+import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 
 type ClassRow = {
@@ -30,7 +33,10 @@ type Profile = { id: string; display_name: string };
 
 export function TeacherLive() {
   const supabase = useMemo(() => createClient(), []);
-  const [userId, setUserId] = useState("");
+  const { account, busy, status, setStatus, run } = useConfirmedMutation();
+  const userId = account.user?.id ?? "";
+  const [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState("");
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -43,199 +49,263 @@ export function TeacherLive() {
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const [publishNow, setPublishNow] = useState(true);
   const [grades, setGrades] = useState<Record<string, string>>({});
-  const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
   const [view, setView] = useState("overview");
 
+  useUnsavedWork(
+    Boolean(
+      account.user &&
+        (title || instructions || due || selectedQuestions.length),
+    ),
+  );
   async function load() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    setUserId(user.id);
-
-    const [{ data: c }, { data: a }, { data: q }, { data: s }, { data: p }] =
-      await Promise.all([
-        supabase
-          .from("classes")
-          .select("id,name,grade_label,academic_year")
-          .eq("active", true)
-          .order("name"),
-        supabase
-          .from("assignments")
-          .select(
-            "id,class_id,title,instructions,due_at,published_at,created_at",
-          )
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("questions")
-          .select("id,prompt_ar")
-          .in("publication_status", ["published_demo", "published"])
-          .eq("review_status", "approved")
-          .order("created_at"),
-        supabase
-          .from("assignment_submissions")
-          .select("id,assignment_id,student_id,submitted_at,score")
-          .order("submitted_at", { ascending: false }),
-        supabase.from("profiles").select("id,display_name"),
-      ]);
-
-    const classRows = (c ?? []) as ClassRow[];
-    setClasses(classRows);
-    if (!classId && classRows[0]) setClassId(classRows[0].id);
-    setAssignments((a ?? []) as Assignment[]);
-    setQuestions((q ?? []) as Question[]);
-    setSubmissions((s ?? []) as Submission[]);
-    setProfiles(
-      new Map(
-        ((p ?? []) as Profile[]).map((x) => [
-          x.id,
-          x.display_name || "Student",
+    if (!account.user) {
+      setLoading(false);
+      return false;
+    }
+    const token = account.revision.current;
+    setLoading(true);
+    setLoadError("");
+    try {
+      const results = await boundedRead(
+        Promise.all([
+          supabase
+            .from("classes")
+            .select("id,name,grade_label,academic_year")
+            .eq("active", true)
+            .order("name"),
+          supabase
+            .from("assignments")
+            .select(
+              "id,class_id,title,instructions,due_at,published_at,created_at",
+            )
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("questions")
+            .select("id,prompt_ar")
+            .in("publication_status", ["published_demo", "published"])
+            .eq("review_status", "approved")
+            .order("created_at"),
+          supabase
+            .from("assignment_submissions")
+            .select("id,assignment_id,student_id,submitted_at,score")
+            .order("submitted_at", { ascending: false }),
+          supabase.from("profiles").select("id,display_name"),
         ]),
-      ),
+      );
+      if (token !== account.revision.current) return false;
+      const failed = results.find((r) => r.error);
+      if (failed) throw failed.error;
+      const [c, a, q, s, p] = results;
+      const classRows = (c.data ?? []) as ClassRow[];
+      setClasses(classRows);
+      if (!classId && classRows[0]) setClassId(classRows[0].id);
+      setAssignments((a.data ?? []) as Assignment[]);
+      setQuestions((q.data ?? []) as Question[]);
+      setSubmissions((s.data ?? []) as Submission[]);
+      setProfiles(
+        new Map(
+          ((p.data ?? []) as Profile[]).map((x) => [
+            x.id,
+            x.display_name || "طالب",
+          ]),
+        ),
+      );
+      return true;
+    } catch {
+      if (token === account.revision.current)
+        setLoadError(
+          "تعذّر تحميل بيانات الصفوف والواجبات. الأرقام غير متاحة حتى يعود الاتصال.",
+        );
+      return false;
+    } finally {
+      if (token === account.revision.current) setLoading(false);
+    }
+  }
+  useEffect(() => {
+    if (!account.loading) void load();
+  }, [account.user, account.loading]);
+  async function refreshMessage(check: () => void, message: string) {
+    const refreshed = await load();
+    check();
+    return (
+      message +
+      (refreshed ? "" : " — تعذّر تحديث القائمة؛ حدّثها قبل إنشاء نسخة أخرى.")
     );
   }
-
-  useEffect(() => {
-    void load();
-  }, []);
-
   async function createAssignment(e: FormEvent) {
     e.preventDefault();
     if (!userId || !classId || !title.trim() || !selectedQuestions.length)
       return;
-    setBusy(true);
-    setStatus("Creating…");
-    const { data, error } = await supabase
-      .from("assignments")
-      .insert({
-        class_id: classId,
-        created_by: userId,
-        title: title.trim(),
-        instructions: instructions.trim(),
-        due_at: due ? new Date(due).toISOString() : null,
-        published_at: null,
-      })
-      .select("id")
-      .single();
-
-    if (error || !data) {
-      setStatus(error?.message ?? "Could not create assignment");
-      setBusy(false);
+    if (due && !Number.isFinite(new Date(due).getTime())) {
+      setStatus("موعد التسليم غير صالح.");
       return;
     }
-
-    const { error: itemError } = await supabase
-      .from("assignment_items")
-      .insert(
-        selectedQuestions.map((question_id, i) => ({
-          assignment_id: data.id,
-          position: i + 1,
-          question_id,
-        })),
-      );
-    if (itemError) {
-      await supabase.from("assignments").delete().eq("id", data.id);
-      setStatus("تعذّر حفظ أسئلة الواجب. حاول مرة تانية.");
-      setBusy(false);
-      return;
-    }
-    if (publishNow) {
-      const published = await supabase
+    await run(async (check) => {
+      const created = await supabase
+        .from("assignments")
+        .insert({
+          class_id: classId,
+          created_by: userId,
+          title: title.trim(),
+          instructions: instructions.trim(),
+          due_at: due ? new Date(due).toISOString() : null,
+          published_at: null,
+        })
+        .select("id")
+        .single();
+      check();
+      if (created.error || !created.data)
+        throw created.error ?? Error("No saved assignment");
+      const id = created.data.id;
+      const inserted = await supabase
+        .from("assignment_items")
+        .insert(
+          selectedQuestions.map((question_id, i) => ({
+            assignment_id: id,
+            position: i + 1,
+            question_id,
+          })),
+        )
+        .select("question_id");
+      check();
+      if (
+        inserted.error ||
+        inserted.data?.length !== selectedQuestions.length
+      ) {
+        const removed = await supabase
+          .from("assignments")
+          .delete()
+          .eq("id", id)
+          .select("id");
+        check();
+        await load();
+        check();
+        throw Error(
+          removed.error || removed.data?.length !== 1
+            ? "تعذّر حفظ أسئلة الواجب وتنظيف المسودة. راجع قائمة الواجبات قبل إنشاء واجب جديد."
+            : "تعذّر حفظ أسئلة الواجب. أُزيلت المسودة غير المكتملة؛ حاول مرة أخرى.",
+        );
+      }
+      let message = "تم حفظ الواجب كمسودة ✓";
+      if (publishNow) {
+        const published = await supabase
+          .from("assignments")
+          .update({ published_at: new Date().toISOString() })
+          .eq("id", id)
+          .select("id")
+          .single();
+        check();
+        message = published.error
+          ? "تم حفظ الواجب كمسودة؛ لم يتأكد نشره. راجع القائمة قبل إعادة النشر."
+          : "تم نشر الواجب ✓";
+      }
+      setTitle("");
+      setInstructions("");
+      setDue("");
+      setSelectedQuestions([]);
+      setPublishNow(true);
+      return refreshMessage(check, message);
+    });
+  }
+  async function publish(id: string) {
+    await run(async (check) => {
+      const result = await supabase
         .from("assignments")
         .update({ published_at: new Date().toISOString() })
-        .eq("id", data.id);
-      if (published.error) {
-        setStatus(
-          "الواجب محفوظ كمسودة. تعذّر نشره، جرّب النشر من قائمة الواجبات.",
-        );
-        await load();
-        setBusy(false);
-        return;
-      }
-    }
-
-    setTitle("");
-    setInstructions("");
-    setDue("");
-    setSelectedQuestions([]);
-    setPublishNow(true);
-    setStatus("Assignment created ✓");
-    await load();
-    setBusy(false);
+        .eq("id", id)
+        .is("published_at", null)
+        .select("id")
+        .single();
+      check();
+      if (result.error) throw result.error;
+      return refreshMessage(check, "تم نشر الواجب ✓");
+    });
   }
-
-  async function publish(id: string) {
-    setBusy(true);
-    setStatus("");
-    const { error } = await supabase
-      .from("assignments")
-      .update({ published_at: new Date().toISOString() })
-      .eq("id", id);
-    setStatus(error ? error.message : "Published ✓");
-    await load();
-    setBusy(false);
-  }
-
   async function gradeSubmission(row: Submission) {
-    const raw = grades[row.id] ?? (row.score == null ? "" : String(row.score));
-    if (!raw.trim()) {
-      setStatus("اكتب الدرجة أولاً.");
+    const raw = grades[row.id] ?? (row.score == null ? "" : String(row.score)),
+      score = Number(raw);
+    if (!raw.trim() || !Number.isFinite(score) || score < 0 || score > 100) {
+      setStatus("اكتب درجة بين ٠ و١٠٠.");
       return;
     }
-    const score = Number(raw);
-    if (!Number.isFinite(score) || score < 0 || score > 100) {
-      setStatus("Score must be between 0 and 100.");
-      return;
-    }
-    setBusy(true);
-    setStatus("");
-    const { error } = await supabase
-      .from("assignment_submissions")
-      .update({ score })
-      .eq("id", row.id);
-    setStatus(error ? error.message : "Grade saved ✓");
-    await load();
-    setBusy(false);
+    await run(async (check) => {
+      const result = await supabase
+        .from("assignment_submissions")
+        .update({ score })
+        .eq("id", row.id)
+        .select("id,score")
+        .single();
+      check();
+      if (result.error || result.data?.score !== score)
+        throw result.error ?? Error("Grade not confirmed");
+      return refreshMessage(check, "تم حفظ التقييم ✓");
+    });
   }
 
   const membershipCount = new Set(submissions.map((x) => x.student_id)).size;
 
+  if (account.error || loadError)
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>{account.error || loadError}</h2>
+        <button
+          type="button"
+          onClick={() => {
+            if (account.error) void account.refresh();
+            else void load();
+          }}
+        >
+          إعادة المحاولة
+        </button>
+      </section>
+    );
+  if (account.loading || loading)
+    return (
+      <section className="aura-loading-state" role="status">
+        <span />
+        <h2>بنجهّز مساحة المعلّم…</h2>
+      </section>
+    );
   return (
     <>
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            TEACHER WORKSPACE
+            صفوفك وخطوات طلابك
           </div>
           <h1 style={{ margin: "6px 0 0" }}>كل طالب له خطوة جاية.</h1>
         </div>
         <span className="pill">مساحة المعلّم</span>
       </header>
 
+      {status && (
+        <p role="status" className="aura-staff-status">
+          {status}
+        </p>
+      )}
       <section className="grid-4">
         <article className="metric-card">
-          <span>Classes</span>
+          <span>الصفوف</span>
           <strong>{classes.length}</strong>
-          <small>assigned to you</small>
+          <small>المتاحة لك</small>
         </article>
         <article className="metric-card">
-          <span>Active students</span>
+          <span>طلاب سلّموا واجبات</span>
           <strong>{membershipCount}</strong>
-          <small>with submissions</small>
+          <small>حسب التسليمات الظاهرة</small>
         </article>
         <article className="metric-card">
-          <span>Assignments</span>
+          <span>الواجبات</span>
           <strong>{assignments.length}</strong>
           <small>
-            {assignments.filter((x) => x.published_at).length} published
+            {assignments.filter((x) => x.published_at).length} منشور
           </small>
         </article>
         <article className="metric-card">
-          <span>Submissions</span>
+          <span>التسليمات</span>
           <strong>{submissions.length}</strong>
           <small>
-            {submissions.filter((x) => x.score == null).length} awaiting grade
+            {submissions.filter((x) => x.score == null).length} بانتظار التقييم
           </small>
         </article>
       </section>
@@ -261,12 +331,12 @@ export function TeacherLive() {
         <section className="content-grid">
           <form className="panel" onSubmit={createAssignment}>
             <div className="panel-head">
-              <h2>Create assignment</h2>
-              <span className="pill">Reviewed questions only</span>
+              <h2>إنشاء واجب</h2>
+              <span className="pill">أسئلة معتمدة فقط</span>
             </div>
             <div style={{ display: "grid", gap: 12 }}>
               <label>
-                <small>Class</small>
+                <small>الصفّ</small>
                 <select
                   className="model-select"
                   style={{ width: "100%", marginTop: 6 }}
@@ -281,27 +351,27 @@ export function TeacherLive() {
                 </select>
               </label>
               <label>
-                <small>Title</small>
+                <small>العنوان</small>
                 <input
                   className="search"
                   style={{ width: "100%", marginTop: 6 }}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Assignment title"
+                  placeholder="عنوان الواجب"
                 />
               </label>
               <label>
-                <small>Instructions</small>
+                <small>التعليمات</small>
                 <textarea
                   className="search"
                   style={{ width: "100%", minHeight: 90, paddingTop: 12 }}
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
-                  placeholder="Instructions…"
+                  placeholder="اكتب تعليمات الواجب…"
                 />
               </label>
               <label>
-                <small>Due date</small>
+                <small>موعد التسليم</small>
                 <input
                   className="search"
                   style={{ width: "100%", marginTop: 6 }}
@@ -311,7 +381,7 @@ export function TeacherLive() {
                 />
               </label>
               <div>
-                <small>Questions · choose at least one</small>
+                <small>الأسئلة · اختر سؤالًا واحدًا على الأقل</small>
                 <div
                   style={{
                     display: "grid",
@@ -359,9 +429,9 @@ export function TeacherLive() {
                 }}
               >
                 <span>
-                  <b>Publish now</b>
+                  <b>النشر الآن</b>
                   <small style={{ display: "block", color: "var(--muted)" }}>
-                    Students get a notification immediately.
+                    يُرسل إشعار النشر إلى طلاب الصفّ بعد تأكيد النشر.
                   </small>
                 </span>
                 <input
@@ -380,7 +450,7 @@ export function TeacherLive() {
                 className="btn"
                 style={{ background: "var(--accent)", color: "var(--surface)" }}
               >
-                Create assignment
+                إنشاء واجب
               </button>
               {status && (
                 <small
@@ -398,7 +468,7 @@ export function TeacherLive() {
 
           <aside className="panel">
             <div className="panel-head">
-              <h2>Your classes</h2>
+              <h2>صفوفك</h2>
               <span className="pill">{classes.length}</span>
             </div>
             <div className="quest-list">
@@ -416,7 +486,7 @@ export function TeacherLive() {
             </div>
             {!classes.length && (
               <p style={{ color: "var(--muted)" }}>
-                No classes have been assigned to this teacher account yet.
+                لم تُخصص صفوف لهذا الحساب بعد.
               </p>
             )}
           </aside>
@@ -426,8 +496,8 @@ export function TeacherLive() {
       {(view === "overview" || view === "assignments") && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h2>Assignments</h2>
-            <span className="pill">Draft + published</span>
+            <h2>الواجبات</h2>
+            <span className="pill">المسودات والمنشور</span>
           </div>
           <div className="quest-list">
             {assignments.map((a) => (
@@ -436,11 +506,11 @@ export function TeacherLive() {
                 <div>
                   <h3>{a.title}</h3>
                   <p>
-                    {classes.find((c) => c.id === a.class_id)?.name ?? "Class"}{" "}
+                    {classes.find((c) => c.id === a.class_id)?.name ?? "الصفّ"}{" "}
                     ·{" "}
                     {a.due_at
-                      ? "Due " + new Date(a.due_at).toLocaleString()
-                      : "No due date"}
+                      ? "الموعد: " + new Date(a.due_at).toLocaleString("ar-EG")
+                      : "بدون موعد محدد"}
                   </p>
                 </div>
                 {!a.published_at ? (
@@ -453,16 +523,16 @@ export function TeacherLive() {
                       color: "var(--surface)",
                     }}
                   >
-                    Publish
+                    نشر
                   </button>
                 ) : (
-                  <span className="pill">Published</span>
+                  <span className="pill">منشور</span>
                 )}
               </div>
             ))}
             {!assignments.length && (
               <div style={{ padding: 18, color: "var(--muted)" }}>
-                No assignments yet.
+                لا توجد واجبات بعد.
               </div>
             )}
           </div>
@@ -472,9 +542,10 @@ export function TeacherLive() {
       {(view === "overview" || view === "grading") && (
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
-            <h2>Submissions & grading</h2>
+            <h2>التسليمات والتقييم</h2>
             <span className="pill">
-              {submissions.filter((x) => x.score == null).length} pending
+              {submissions.filter((x) => x.score == null).length} بانتظار
+              التقييم
             </span>
           </div>
           <div className="quest-list">
@@ -488,18 +559,22 @@ export function TeacherLive() {
                     {s.score == null ? "…" : Math.round(s.score)}
                   </div>
                   <div>
-                    <h3>{profiles.get(s.student_id) ?? "Student"}</h3>
+                    <h3>{profiles.get(s.student_id) ?? "طالب"}</h3>
                     <p>
-                      {assignment?.title ?? "Assignment"} ·{" "}
+                      {assignment?.title ?? "واجب"} ·{" "}
                       {s.submitted_at
-                        ? new Date(s.submitted_at).toLocaleString()
-                        : "Not submitted"}
+                        ? new Date(s.submitted_at).toLocaleString("ar-EG")
+                        : "لم يُسلّم بعد"}
                     </p>
                   </div>
                   <div
                     style={{ display: "flex", gap: 7, alignItems: "center" }}
                   >
                     <input
+                      aria-label={
+                        "تقييم واجب الطالب " +
+                        (profiles.get(s.student_id) ?? "طالب")
+                      }
                       value={
                         grades[s.id] ?? (s.score == null ? "" : String(s.score))
                       }
@@ -529,7 +604,7 @@ export function TeacherLive() {
                         padding: "0 12px",
                       }}
                     >
-                      Save
+                      حفظ
                     </button>
                   </div>
                 </div>
@@ -537,7 +612,7 @@ export function TeacherLive() {
             })}
             {!submissions.length && (
               <div style={{ padding: 18, color: "var(--muted)" }}>
-                No submissions yet.
+                لا توجد تسليمات بعد.
               </div>
             )}
           </div>

@@ -14,6 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_document_files: {
+        Row: {id:string;user_id:string;conversation_id:string|null;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at:string;expires_at:string}
+        Insert: {id:string;user_id:string;conversation_id:string;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at?:string;expires_at?:string}
+        Update: {id?:string;user_id?:string;conversation_id?:string|null;name?:string;storage_path?:string;mime_type?:string;size_bytes?:number;created_at?:string;expires_at?:string}
+        Relationships: [{foreignKeyName:"ai_document_files_conversation_id_fkey";columns:["conversation_id"];isOneToOne:false;referencedRelation:"ai_conversations";referencedColumns:["id"]}]
+      }
+
       ai_attachments: {
         Row: {
           conversation_id: string | null
@@ -871,6 +878,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           coins: number
+          gems: number
           created_at: string
           display_name: string
           id: string
@@ -884,6 +892,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           coins?: number
+          gems?: number
           created_at?: string
           display_name?: string
           id: string
@@ -897,6 +906,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           coins?: number
+          gems?: number
           created_at?: string
           display_name?: string
           id?: string
@@ -1310,32 +1320,71 @@ export type Database = {
           },
         ]
       }
+      user_theme_designs: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string
+          tokens: Json
+          visible: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string
+          tokens: Json
+          visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string
+          tokens?: Json
+          visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
+          active_design_id: string | null
           ai_memory_enabled: boolean
           created_at: string
           default_ai_model: string
           locale: string
+          palette: string | null
           reduced_motion: boolean
           theme: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
           default_ai_model?: string
           locale?: string
+          palette?: string | null
           reduced_motion?: boolean
           theme?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
           default_ai_model?: string
           locale?: string
+          palette?: string | null
           reduced_motion?: boolean
           theme?: string
           updated_at?: string

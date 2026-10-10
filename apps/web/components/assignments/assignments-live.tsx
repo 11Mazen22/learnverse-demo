@@ -1,6 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useUnsavedWork } from "@/lib/use-unsaved-work";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ModuleWelcome } from "@/components/ui/module-welcome";
+import {
+  boundedRead,
+  useVerifiedAccount,
+} from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 
 type Assignment = {
@@ -35,8 +41,25 @@ const choices = (value: unknown) =>
 
 export function AssignmentsLive() {
   const supabase = useMemo(() => createClient(), []);
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [userId, setUserId] = useState("");
+  const account = useVerifiedAccount();
+  const signedIn = Boolean(account.user),
+    userId = account.user?.id ?? "";
+  const sequence = useRef(0),
+    lock = useRef(false),
+    attemptKeys = useRef(new Map<string, string>());
+  const progress = useRef(
+    new Map<
+      string,
+      {
+        fingerprint: string;
+        idx: number;
+        answer: string;
+        grade: Grade | null;
+        results: Record<string, boolean>;
+      }
+    >(),
+  );
+  const [itemLoading, setItemLoading] = useState(false);
   const [rows, setRows] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -47,84 +70,174 @@ export function AssignmentsLive() {
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   async function load() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setSignedIn(false);
+    if (!account.user) {
+      setLoading(false);
       return;
     }
-    setSignedIn(true);
-    setUserId(user.id);
-    const [{ data: a }, { data: s }] = await Promise.all([
-      supabase
-        .from("assignments")
-        .select("id,title,instructions,due_at,published_at,classes(name)")
-        .order("due_at", { ascending: true }),
-      supabase
-        .from("assignment_submissions")
-        .select("assignment_id,submitted_at,score,metadata")
-        .eq("student_id", user.id),
-    ]);
-    setRows((a ?? []) as Assignment[]);
-    setSubmissions((s ?? []) as Submission[]);
+    const token = account.revision.current;
+    setLoading(true);
+    setError("");
+    try {
+      const [assignments, submissions] = await boundedRead(
+        Promise.all([
+          supabase
+            .from("assignments")
+            .select("id,title,instructions,due_at,published_at,classes(name)")
+            .not("published_at", "is", null)
+            .order("due_at", { ascending: true }),
+          supabase
+            .from("assignment_submissions")
+            .select("assignment_id,submitted_at,score,metadata")
+            .eq("student_id", account.user.id),
+        ]),
+      );
+      if (token !== account.revision.current) return;
+      if (assignments.error || submissions.error)
+        throw assignments.error ?? submissions.error;
+      setRows((assignments.data ?? []) as Assignment[]);
+      setSubmissions((submissions.data ?? []) as Submission[]);
+    } catch {
+      if (token === account.revision.current)
+        setError(
+          "تعذّر تحميل الواجبات وحالة التسليم. أعد المحاولة عند عودة الاتصال.",
+        );
+    } finally {
+      if (token === account.revision.current) setLoading(false);
+    }
   }
-
   useEffect(() => {
-    void load();
-  }, []);
-
+    ++sequence.current;
+    progress.current.clear();
+    attemptKeys.current.clear();
+    lock.current = false;
+    setRows([]);
+    setSubmissions([]);
+    setSelected(null);
+    setItems([]);
+    setBusy(false);
+    setError("");
+    if (!account.loading) void load();
+    return () => {
+      ++sequence.current;
+    };
+  }, [account.user, account.loading]);
+  function saveProgress() {
+    if (selected)
+      progress.current.set(selected, {
+        fingerprint: items.map((i) => i.question_id).join(","),
+        idx,
+        answer,
+        grade,
+        results,
+      });
+  }
+  function closeAssignment() {
+    if (lock.current) return;
+    saveProgress();
+    ++sequence.current;
+    setSelected(null);
+    setError("");
+  }
   async function openAssignment(id: string) {
+    if (lock.current) return;
+    saveProgress();
+    const seq = ++sequence.current,
+      token = account.revision.current;
     setSelected(id);
+    setItems([]);
+    setItemLoading(true);
     setIdx(0);
     setAnswer("");
     setGrade(null);
     setResults({});
     setError("");
-    const { data, error } = await supabase
-      .from("assignment_items")
-      .select(
-        "assignment_id,position,question_id,questions(id,question_type,prompt_ar,choices_ar)",
-      )
-      .eq("assignment_id", id)
-      .order("position");
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const result = await boundedRead(
+        supabase
+          .from("assignment_items")
+          .select(
+            "assignment_id,position,question_id,questions(id,question_type,prompt_ar,choices_ar)",
+          )
+          .eq("assignment_id", id)
+          .order("position"),
+      );
+      if (seq !== sequence.current || token !== account.revision.current)
+        return;
+      if (result.error) throw result.error;
+      const next = (result.data ?? []) as Item[];
+      setItems(next);
+      const saved = progress.current.get(id);
+      if (
+        saved &&
+        saved.fingerprint === next.map((i) => i.question_id).join(",")
+      ) {
+        setIdx(saved.idx);
+        setAnswer(saved.answer);
+        setGrade(saved.grade);
+        setResults(saved.results);
+      }
+    } catch {
+      if (seq === sequence.current && token === account.revision.current)
+        setError(
+          "تعذّر تحميل أسئلة هذا الواجب. أعد المحاولة؛ لن نعرض أسئلة واجب آخر.",
+        );
+    } finally {
+      if (seq === sequence.current && token === account.revision.current)
+        setItemLoading(false);
     }
-    setItems((data ?? []) as Item[]);
   }
 
   const current = items[idx]?.questions;
   const selectedAssignment = rows.find((x) => x.id === selected);
   const existing = submissions.find((x) => x.assignment_id === selected);
 
+  useUnsavedWork(
+    Boolean(account.user && selected && answer && !existing?.submitted_at),
+  );
   async function check(e: FormEvent) {
     e.preventDefault();
-    if (!current || !answer || busy) return;
+    if (!current || !answer.trim() || lock.current) return;
+    const token = account.revision.current,
+      seq = sequence.current;
+    lock.current = true;
     setBusy(true);
     setError("");
-    const { data, error } = await supabase.rpc("submit_attempt", {
-      p_question_id: current.id,
-      p_response: { value: answer },
-      p_assisted: false,
-      p_idempotency_key: crypto.randomUUID(),
-      p_practice_repeat: false,
-    });
-    if (error) {
-      setError(error.message);
-      setBusy(false);
-      return;
+    const fingerprint = JSON.stringify([selected, current.id, answer]);
+    if (!attemptKeys.current.has(fingerprint))
+      attemptKeys.current.set(fingerprint, crypto.randomUUID());
+    try {
+      const { data, error } = await supabase.rpc("submit_attempt", {
+        p_question_id: current.id,
+        p_response: { value: answer },
+        p_assisted: false,
+        p_idempotency_key: attemptKeys.current.get(fingerprint)!,
+        p_practice_repeat: false,
+      });
+      if (seq !== sequence.current || token !== account.revision.current)
+        return;
+      if (error) throw error;
+      const row = data as Grade | null;
+      if (typeof row?.correct !== "boolean")
+        throw Error("Missing confirmed grade");
+      setGrade(row);
+      setResults((r) => ({ ...r, [current.id]: row.correct! }));
+    } catch {
+      if (seq === sequence.current && token === account.revision.current)
+        setError(
+          "لم يتأكد حفظ الإجابة. أعد المحاولة بنفس الإجابة للتحقق من العملية دون تكرارها.",
+        );
+    } finally {
+      if (seq === sequence.current && token === account.revision.current) {
+        lock.current = false;
+        setBusy(false);
+      }
     }
-    const row = (data ?? {}) as Grade;
-    setGrade(row);
-    setResults((r) => ({ ...r, [current.id]: Boolean(row.correct) }));
-    setBusy(false);
   }
-
   async function next() {
+    if (lock.current || !grade) return;
     if (idx < items.length - 1) {
       setIdx((x) => x + 1);
       setAnswer("");
@@ -132,47 +245,110 @@ export function AssignmentsLive() {
       return;
     }
     if (!selected || !userId) return;
+    const token = account.revision.current,
+      seq = sequence.current;
+    lock.current = true;
     setBusy(true);
     setError("");
-    const correct =
-      Object.values(results).filter(Boolean).length +
-      (grade?.correct && !results[current?.id ?? ""] ? 1 : 0);
-    const metadata = {
-      question_count: items.length,
-      correct_count: correct,
-      client_completed: true,
-    };
-    const { error } = await supabase.from("assignment_submissions").upsert(
-      {
-        assignment_id: selected,
-        student_id: userId,
-        submitted_at: new Date().toISOString(),
-        metadata,
-        score: null,
-      },
-      { onConflict: "assignment_id,student_id" },
-    );
-    if (error) {
-      setError(error.message);
-      setBusy(false);
-      return;
+    try {
+      // The unique (assignment_id,student_id) constraint makes retries safe.
+      // Insert only: a student cannot erase a teacher's grade by upserting.
+      const result = await supabase
+        .from("assignment_submissions")
+        .insert({
+          assignment_id: selected,
+          student_id: userId,
+          submitted_at: new Date().toISOString(),
+          metadata: {
+            question_count: items.length,
+            correct_count: Object.values(results).filter(Boolean).length,
+            client_completed: true,
+          },
+          score: null,
+        })
+        .select("assignment_id,submitted_at,score,metadata")
+        .single();
+      if (seq !== sequence.current || token !== account.revision.current)
+        return;
+      let saved = result.data;
+      if (result.error?.code === "23505") {
+        const confirmed = await boundedRead(
+          supabase
+            .from("assignment_submissions")
+            .select("assignment_id,submitted_at,score,metadata")
+            .eq("assignment_id", selected)
+            .eq("student_id", userId)
+            .single(),
+        );
+        if (seq !== sequence.current || token !== account.revision.current)
+          return;
+        if (confirmed.error) throw confirmed.error;
+        saved = confirmed.data;
+      } else if (result.error) throw result.error;
+      if (!saved?.submitted_at) throw Error("Submission not confirmed");
+      setSubmissions((previous) => [
+        ...previous.filter((r) => r.assignment_id !== selected),
+        saved as Submission,
+      ]);
+      progress.current.delete(selected);
+    } catch {
+      if (seq === sequence.current && token === account.revision.current)
+        setError(
+          "لم يتأكد تسليم الواجب. أعد المحاولة للتحقق من التسليم الموجود دون تغيير تقييم المدرّس.",
+        );
+    } finally {
+      if (seq === sequence.current && token === account.revision.current) {
+        lock.current = false;
+        setBusy(false);
+      }
     }
-    await load();
-    setBusy(false);
   }
 
+  if (account.error)
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>{account.error}</h2>
+        <button type="button" onClick={() => void account.refresh()}>
+          إعادة المحاولة
+        </button>
+      </section>
+    );
+  if (account.loading || loading)
+    return (
+      <section className="aura-loading-state" role="status">
+        <span />
+        <h2>بنرتّب واجباتك…</h2>
+      </section>
+    );
+  if (error && !rows.length)
+    return (
+      <section className="aura-load-error" role="alert">
+        <strong>{error}</strong>
+        <button
+          type="button"
+          onClick={() => {
+            setError("");
+            void load();
+          }}
+        >
+          إعادة المحاولة
+        </button>
+      </section>
+    );
   if (signedIn === false)
     return (
-      <section className="panel" style={{ textAlign: "center", padding: 32 }}>
-        <h2>Assignments مرتبطة بحسابك وفصلك.</h2>
-        <a
-          className="btn"
-          href="/login"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
-        >
-          دخول
-        </a>
-      </section>
+      <ModuleWelcome
+        title="واجباتك، بكل وضوح."
+        description="اعرف المطلوب وموعده، أرسل إجاباتك وتابع التقييم؛ تظهر لك الواجبات المسموح بها لحسابك فقط."
+        icon="check"
+        route="/assignments"
+        eyebrow="من صفّك إلى مساحتك"
+        steps={[
+          "اقرأ التعليمات والموعد",
+          "أجب وسلّم عملك",
+          "راجع تقييم المدرّس",
+        ]}
+      />
     );
 
   if (selected) {
@@ -191,7 +367,8 @@ export function AssignmentsLive() {
           </p>
           <button
             className="btn"
-            onClick={() => setSelected(null)}
+            disabled={busy}
+            onClick={closeAssignment}
             style={{ background: "var(--accent)", color: "var(--surface)" }}
           >
             رجوع للواجبات
@@ -204,7 +381,7 @@ export function AssignmentsLive() {
         <header className="topbar" style={{ marginBottom: 18 }}>
           <div>
             <div className="eyebrow" style={{ color: "var(--accent)" }}>
-              ASSIGNMENT
+              من السؤال إلى التسليم
             </div>
             <h1 style={{ margin: "6px 0 0" }}>{selectedAssignment?.title}</h1>
           </div>
@@ -214,7 +391,25 @@ export function AssignmentsLive() {
         </header>
         <section className="panel" style={{ padding: 28 }}>
           {!current ? (
-            <p>Loading assignment…</p>
+            <div role={error ? "alert" : "status"}>
+              <p>
+                {itemLoading
+                  ? "بنحمّل أسئلة الواجب…"
+                  : error ||
+                    "لا توجد أسئلة متاحة لهذا الواجب. تواصل مع المدرّس."}
+              </p>
+              {error && (
+                <button
+                  type="button"
+                  onClick={() => void openAssignment(selected)}
+                >
+                  إعادة المحاولة
+                </button>
+              )}
+              <button type="button" onClick={closeAssignment}>
+                رجوع للواجبات
+              </button>
+            </div>
           ) : (
             <form onSubmit={check}>
               <h2 style={{ lineHeight: 1.6 }}>{current.prompt_ar}</h2>
@@ -223,7 +418,7 @@ export function AssignmentsLive() {
                   {choices(current.choices_ar).map((x, i) => (
                     <button
                       type="button"
-                      disabled={Boolean(grade)}
+                      disabled={Boolean(grade) || busy}
                       key={x}
                       onClick={() => setAnswer(String(i))}
                       style={{
@@ -251,9 +446,12 @@ export function AssignmentsLive() {
                   className="search"
                   style={{ width: "100%" }}
                   value={answer}
-                  disabled={Boolean(grade)}
+                  disabled={Boolean(grade) || busy}
                   onChange={(e) => setAnswer(e.target.value)}
-                  inputMode="decimal"
+                  inputMode={
+                    current.question_type === "numeric" ? "decimal" : "text"
+                  }
+                  aria-label="إجابتك على السؤال"
                   placeholder="الإجابة…"
                 />
               )}
@@ -272,7 +470,11 @@ export function AssignmentsLive() {
                   <p>{grade.explanation_ar}</p>
                 </div>
               )}
-              {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
+              {error && (
+                <p role="alert" style={{ color: "var(--danger)" }}>
+                  {error}
+                </p>
+              )}
               <div
                 style={{
                   display: "flex",
@@ -284,7 +486,8 @@ export function AssignmentsLive() {
                 <button
                   type="button"
                   className="btn"
-                  onClick={() => setSelected(null)}
+                  disabled={busy}
+                  onClick={closeAssignment}
                   style={{
                     background: "var(--accent-soft)",
                     color: "var(--accent)",
@@ -330,11 +533,11 @@ export function AssignmentsLive() {
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            ASSIGNMENTS
+            واجبات صفّك
           </div>
           <h1 style={{ margin: "6px 0 0" }}>واجباتك</h1>
         </div>
-        <span className="pill">{rows.length} available</span>
+        <span className="pill">{rows.length} واجب متاح</span>
       </header>
       <section className="quest-list">
         {rows.map((row) => {
@@ -349,17 +552,17 @@ export function AssignmentsLive() {
                 <div>
                   <h2>{row.title}</h2>
                   <p style={{ color: "var(--muted)", margin: "5px 0" }}>
-                    {row.classes?.name ?? "Class"} · {row.instructions}
+                    {row.classes?.name ?? "الصفّ"} · {row.instructions}
                   </p>
                 </div>
                 <span className="pill">
                   {sub?.submitted_at
                     ? sub.score == null
-                      ? "Submitted"
-                      : "Score " + sub.score + "%"
+                      ? "تم التسليم"
+                      : "الدرجة: " + sub.score + "%"
                     : overdue
-                      ? "Overdue"
-                      : "Open"}
+                      ? "فات الموعد"
+                      : "متاح"}
                 </span>
               </div>
               <div
@@ -370,10 +573,10 @@ export function AssignmentsLive() {
                   alignItems: "center",
                 }}
               >
-                <small style={{ color: "#7b8ca4" }}>
+                <small style={{ color: "var(--muted)" }}>
                   {row.due_at
-                    ? "Due " + new Date(row.due_at).toLocaleString()
-                    : "No due date"}
+                    ? "الموعد: " + new Date(row.due_at).toLocaleString("ar-EG")
+                    : "بدون موعد محدد"}
                 </small>
                 <button
                   className="btn"
@@ -383,7 +586,7 @@ export function AssignmentsLive() {
                     color: "var(--surface)",
                   }}
                 >
-                  {sub?.submitted_at ? "View" : "Start"}
+                  {sub?.submitted_at ? "عرض التسليم" : "ابدأ الواجب"}
                 </button>
               </div>
             </article>

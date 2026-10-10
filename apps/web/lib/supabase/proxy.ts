@@ -1,14 +1,16 @@
 import {createServerClient} from "@supabase/ssr";
 import {NextResponse,type NextRequest} from "next/server";
-import {SUPABASE_PUBLISHABLE_KEY,SUPABASE_URL} from "./config";
+import {supabaseSdkConfiguration,supabaseFetch,supabaseConfiguration} from "./config";
 
 export async function updateSession(request:NextRequest){
   let response=NextResponse.next({request});
 
+  if (supabaseConfiguration.error) return response;
   const supabase=createServerClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY,
+    supabaseSdkConfiguration.url,
+    supabaseSdkConfiguration.key,
     {
+      global: { fetch: supabaseFetch },
       cookies:{
         getAll(){return request.cookies.getAll();},
         setAll(cookiesToSet){

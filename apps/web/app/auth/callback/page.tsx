@@ -1,46 +1,105 @@
 "use client";
+import { useTranslation, useLocale } from "@/lib/i18n/locale";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { NoataBrand } from "@/components/ui/noata-logo";
 import { createClient } from "@/lib/supabase/client";
+import { localizeAuthError, safeNextPath } from "@/lib/i18n/auth-errors";
+import { normalizedAuthFlow, RECOVERY_GRANT_KEY, recoveryGrantValue, AUTH_COMPLETION_KEY, authCompletionValue } from "@/lib/auth/flows";
+
+function reasonFromCode(code: string | null | undefined) {
+  if (code === "otp_expired" || code === "flow_state_expired" || code === "expired_token")
+    return "expired";
+  if (code === "bad_code_verifier" || code === "flow_state_not_found")
+    return "same_browser";
+  return "invalid";
+}
 
 export default function AuthCallbackPage() {
-  const [message, setMessage] = useState("جاري تأكيد حسابك…");
+  const t = useTranslation();
+  const exchangeStarted = useRef(false);
+  const [state, setState] = useState<{ status: "loading" | "error"; message: string }>({
+    status: "loading", message: t("جارٍ تأكيد الرابط وتسجيل دخولك بأمان…","Confirming your link and securely signing you in…"),
+  });
 
   useEffect(() => {
+    if (exchangeStarted.current) return;
+    exchangeStarted.current = true;
     void (async () => {
-      const code = new URLSearchParams(window.location.search).get("code");
+      const params = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const flow = normalizedAuthFlow(params.get("flow"));
+      const providerError = params.get("error_code") || hash.get("error_code");
+      if (providerError || params.has("error") || hash.has("error")) {
+        window.location.replace("/auth/error?reason=" + (providerError ? reasonFromCode(providerError) : "cancelled"));
+        return;
+      }
+      const code = params.get("code");
       if (!code) {
-        setMessage("رابط التأكيد غير صالح أو منتهي.");
+        window.location.replace("/auth/error?reason=invalid");
         return;
       }
-      const supabase = createClient();
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) {
-        setMessage(error.message);
-        return;
+      try {
+        const { data, error } = await createClient().auth.exchangeCodeForSession(code);
+        // Do not use history.replaceState here: Next's App Router patches it
+        // and can remount the callback without the code before navigation,
+        // misclassifying a successfully verified link as invalid. Every final
+        // window.location.replace below removes the one-time code from history.
+        if (error) {
+          window.location.replace("/auth/error?reason=" + reasonFromCode(error.code));
+          return;
+        }
+        if (!data?.user) {
+          window.location.replace("/auth/error?reason=service");
+          return;
+        }
+        if (flow === "recovery") {
+          try {
+            sessionStorage.setItem(RECOVERY_GRANT_KEY, recoveryGrantValue(data.user.id, Date.now()));
+          } catch {
+            window.location.replace("/auth/error?reason=same_browser");
+            return;
+          }
+          window.location.replace("/auth/update-password");
+          return;
+        }
+        if (flow === "signup") {
+          try {
+            sessionStorage.setItem(AUTH_COMPLETION_KEY, authCompletionValue("verified", data.user.id, Date.now()));
+          } catch {
+            window.location.replace(safeNextPath(params.get("next")));
+            return;
+          }
+          window.location.replace("/auth/complete?type=verified");
+          return;
+        }
+        window.location.replace(safeNextPath(params.get("next")));
+      } catch {
+        // Discard an unexchanged one-time code without triggering a Next router
+        // reconciliation against an empty /auth/callback query.
+        window.location.replace("/auth/error?reason=service");
       }
-      window.location.replace("/");
     })();
   }, []);
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: 20,
-      }}
-    >
-      <section
-        className="panel"
-        style={{ width: "min(460px,100%)", padding: 32, textAlign: "center" }}
-      >
-        <div className="brand-mark" style={{ margin: "0 auto 18px" }}>
-          N
-        </div>
-        <h1>Noata</h1>
-        <p style={{ color: "var(--muted)" }}>{message}</p>
+    <main id="noata-main" className="auth-shell is-centered">
+      <section className="auth-card auth-status" aria-live="polite">
+        <NoataBrand size={44} />
+        {state.status === "loading" ? (
+          <>
+            <span className="auth-spinner" aria-hidden="true" />
+            <h1>{t("لحظة من فضلك","Please wait")}</h1>
+            <p className="auth-lead">{t("جارٍ تأكيد الرابط وتسجيل دخولك بأمان…","Confirming your link and securely signing you in…")}</p>
+          </>
+        ) : (
+          <>
+            <h1>{t("تعذّر إكمال التحقق","Could not complete verification")}</h1>
+            <p className="auth-alert is-error" role="alert">{state.message}</p>
+            <Link className="auth-primary" href="/auth/error?reason=service">{t("عرض خيارات استعادة الوصول","View account recovery options")}</Link>
+          </>
+        )}
       </section>
     </main>
   );

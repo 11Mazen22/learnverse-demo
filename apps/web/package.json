@@ -6,28 +6,43 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/ssr": "0.7.0",
+    "@sparticuz/chromium": "143.0.4",
+    "@supabase/ssr": "0.10.3",
     "@supabase/supabase-js": "2.117.3",
     "katex": "0.19.0",
     "next": "16.4.0",
+    "pdfjs-dist": "5.4.394",
+    "puppeteer-core": "24.40.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "7.0.2",
     "rehype-katex": "7.0.1",
+    "rehype-stringify": "10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "6.0.0",
-    "zod": "4.6.5"
+    "remark-parse": "11.0.0",
+    "remark-rehype": "11.1.2",
+    "unified": "11.0.5",
+    "zod": "4.6.5",
+    "bidi-js": "1.0.3",
+    "fontkit": "2.0.4",
+    "pdfkit": "0.17.2",
+    "swr": "2.5.1"
   },
   "devDependencies": {
+    "@puppeteer/browsers": "2.13.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "24.19.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "axe-core": "4.11.1",
     "tailwindcss": "4.3.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "ws": "8.22.0",
+    "@types/pdfkit": "0.17.6"
   }
 }

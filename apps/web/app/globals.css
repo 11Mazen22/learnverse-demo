@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@font-face{font-family:NoataArabic;src:url("/fonts/noto-sans-arabic.woff2") format("woff2");font-weight:100 900;font-display:swap}
+
 @font-face {
   font-family: Cairo;
   src: url("/fonts/cairo-arabic.woff2") format("woff2");
@@ -14,37 +16,41 @@
   font-display: swap;
 }
 :root {
-  --ink: #253b37;
-  --muted: #667c74;
-  --surface: #fffefa;
-  --surface-soft: #f5f5ef;
-  --line: #e2e7dc;
-  --accent: #245d49;
-  --accent-soft: #e6eee3;
-  --lime: #d4ed89;
+  --ink: #102445;
+  --muted: #61718a;
+  --surface: #ffffff;
+  --surface-soft: #f4f7fc;
+  --line: #dfe7f2;
+  --accent: #0065b5;
+  --accent-soft: #e6f3ff;
+  --lime: #d7edff;
   --success: #227857;
-  --warning: #966a25;
+  --warning: #80571b;
   --danger: #b74242;
-  --blue-500: #245d49;
-  --blue-400: #3b8067;
-  --cyan-300: #aecb73;
-  --navy-950: #163b30;
-  --navy-900: #214c3c;
+  --blue-500: #0065b5;
+  --blue-400: #008ddd;
+  --cyan-300: #68c8ff;
+  --navy-950: #061a40;
+  --navy-900: #102d5c;
   --radius-xl: 28px;
   --radius-lg: 20px;
   --shadow-soft: 0 12px 35px #273d2a08;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
+html[data-theme="light"] {
+  color-scheme: light;
+}
 html[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #e6ece2;
-  --muted: #a1b1a4;
-  --surface: #1c2822;
-  --surface-soft: #141e19;
-  --line: #334337;
-  --accent: #c7e58b;
-  --accent-soft: #2a3c2d;
+  --ink: #edf4ff;
+  --muted: #a5b6d1;
+  --surface: #0d1d38;
+  --surface-soft: #071327;
+  --line: #293951;
+  --accent: #63beff;
+  --accent-soft: #153252;
   --success: #9bd0a5;
+  --warning: #f2c77d;
   --danger: #ffadad;
   --shadow-soft: 0 12px 35px #0002;
 }
@@ -60,7 +66,7 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background: var(--surface-soft);
-  font-family: Cairo, "Segoe UI", system-ui, sans-serif;
+  font-family: NoataArabic, Cairo, "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.7;
 }
@@ -122,10 +128,10 @@ p {
 }
 ::selection {
   background: var(--lime);
-  color: #163b30;
+  color: #061a40;
 }
 :where(a, button, input, textarea, select, [tabindex]):focus-visible {
-  outline: 3px solid #8caa54;
+  outline: 3px solid #009aff;
   outline-offset: 4px;
 }
 input,
@@ -173,8 +179,8 @@ textarea::placeholder {
   width: 43px;
   height: 43px;
   border-radius: 15px;
-  background: #245d49;
-  color: #e3f5c1;
+  background: #0065b5;
+  color: #d7edff;
   font-family: system-ui;
   font-size: 32px;
   font-weight: 850;
@@ -185,7 +191,7 @@ textarea::placeholder {
   transform: rotate(-6deg);
 }
 .brand-mark span {
-  color: #d4ed89;
+  color: #d7edff;
 }
 .brand-copy strong {
   display: block;
@@ -195,7 +201,7 @@ textarea::placeholder {
   line-height: 1.2;
 }
 .brand-dot {
-  color: #89a653;
+  color: #0065b5;
 }
 .brand-copy > span {
   font-size: 10px;
@@ -244,7 +250,7 @@ textarea::placeholder {
 .nav-tag {
   margin-inline-start: auto;
   background: var(--lime);
-  color: #214732;
+  color: #102445;
   padding: 0 6px;
   border-radius: 5px;
   font-size: 9px;
@@ -383,8 +389,8 @@ kbd {
 .hero {
   position: relative;
   isolation: isolate;
-  background: #214e3e;
-  color: #f2f6e9;
+  background: #102d5c;
+  color: #edf4ff;
   border-radius: var(--radius-xl);
   padding: 38px;
   overflow: hidden;
@@ -396,7 +402,7 @@ kbd {
   margin: 10px 0;
 }
 .hero p {
-  color: #d0decd;
+  color: #d2e6ff;
   max-width: 620px;
   margin: 10px 0;
 }
@@ -406,19 +412,19 @@ kbd {
   z-index: -1;
   width: 290px;
   height: 290px;
-  border: 1px solid #cce59c25;
+  border: 1px solid #d7edff25;
   border-radius: 50%;
   inset-inline-end: -100px;
   top: -150px;
   box-shadow:
-    0 0 0 40px #cce59c0b,
-    0 0 0 80px #cce59c08;
+    0 0 0 40px #d7edff0b,
+    0 0 0 80px #d7edff08;
 }
 .eyebrow {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.16em;
-  color: #b9d58f;
+  color: #c5e4ff;
 }
 .hero-actions {
   display: flex;
@@ -440,16 +446,16 @@ kbd {
 }
 .btn-primary {
   background: var(--lime);
-  color: #214532;
+  color: #102445;
 }
 .btn-primary:hover {
-  background: #e1f5b0;
+  background: #eaf5ff;
   transform: translateY(-2px);
 }
 .btn-secondary {
   background: transparent;
-  border-color: #deeac54a;
-  color: #eef4e6;
+  border-color: #d7edff4a;
+  color: #edf4ff;
 }
 .btn-secondary:hover {
   background: #ffffff10;
@@ -699,7 +705,7 @@ kbd {
   place-items: center;
   border-radius: 32px;
   transform: rotate(-12deg);
-  background: #d4ed89;
+  background: #d7edff;
   color: #29533b;
   box-shadow: 15px 18px 0 #071f1a25;
 }
@@ -1149,8 +1155,8 @@ kbd {
   direction: ltr;
   text-align: left;
   overflow: auto;
-  background: #17281f;
-  color: #e3eede;
+  background: #071327;
+  color: #edf4ff;
   padding: 18px;
   border-radius: 12px;
   font-size: 12px;
@@ -1188,7 +1194,7 @@ kbd {
   box-shadow: 0 5px 25px #293f2910;
 }
 .composer-box:focus-within {
-  border-color: #8b9e78;
+  border-color: #699cc5;
 }
 .composer-box textarea {
   width: 100%;
@@ -1627,7 +1633,7 @@ html[data-reduced-motion="true"] *::after {
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-literal {
-  color: #b9dd83;
+  color: #d3eaff;
 }
 .hljs-string,
 .hljs-attr {
@@ -1710,8 +1716,8 @@ html[data-reduced-motion="true"] *::after {
   font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
   font-weight: 900;
   letter-spacing: -0.08em;
-  color: #d9f08a;
-  background: #245d49;
+  color: #e2f3ff;
+  background: #0065b5;
 }
 .owui-brand-mark {
   width: 33px;
@@ -1733,7 +1739,7 @@ html[data-reduced-motion="true"] *::after {
   display: block;
   margin-top: 2px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-icon,
 .owui-round {
@@ -1763,7 +1769,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 8px 10px;
   background: transparent;
   text-align: start;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
 }
 .owui-new-chat:hover {
@@ -1774,7 +1780,7 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-new-chat kbd {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 500;
 }
 .owui-search {
@@ -1795,7 +1801,7 @@ html[data-reduced-motion="true"] *::after {
   outline: 0 !important;
   padding: 7px 0 !important;
   background: transparent !important;
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-sidebar-links,
 .owui-sidebar-footer {
@@ -1820,7 +1826,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 7px 9px;
   text-align: start;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-sidebar-links a:hover,
 .owui-sidebar-links button:hover,
@@ -1835,7 +1841,7 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-sidebar-links i {
   font-style: normal;
-  font-size: 7px;
+  font-size: 12px;
   padding: 2px 5px;
   border-radius: 999px;
   color: var(--accent);
@@ -1855,7 +1861,7 @@ html[data-reduced-motion="true"] *::after {
 .owui-chat-group h3 {
   margin: 0 8px 3px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 650;
   letter-spacing: .02em;
 }
@@ -1885,7 +1891,7 @@ html[data-reduced-motion="true"] *::after {
   background: transparent;
   padding: 4px 6px;
   text-align: start;
-  font-size: 10px;
+  font-size: 14px;
   color: inherit;
 }
 .owui-chat-title span {
@@ -1932,7 +1938,7 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-history-empty p {
   margin: 0;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-sidebar-footer {
   padding-top: 6px;
@@ -1943,6 +1949,7 @@ html[data-reduced-motion="true"] *::after {
   min-width: 0;
   min-height: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100dvh;
   overflow: hidden;
@@ -1980,7 +1987,7 @@ html[data-reduced-motion="true"] *::after {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-status-pill {
   display: inline-flex;
@@ -1990,7 +1997,7 @@ html[data-reduced-motion="true"] *::after {
   padding: 5px 9px;
   color: var(--warning);
   background: color-mix(in srgb, var(--warning) 10%, var(--surface));
-  font-size: 9px;
+  font-size: 13px;
 }
 .mobile-sidebar-trigger {
   display: none;
@@ -2020,14 +2027,14 @@ html[data-reduced-motion="true"] *::after {
 }
 .owui-model-trigger small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.15;
 }
 .owui-model-trigger strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 650;
 }
 .owui-model-menu,
@@ -2068,11 +2075,11 @@ html[data-reduced-motion="true"] *::after {
   min-width: 0;
 }
 .owui-model-menu strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-model-menu small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-model-dot {
   width: 9px;
@@ -2105,7 +2112,7 @@ html[data-reduced-motion="true"] *::after {
   gap: 7px;
   padding: 7px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-messages {
   min-width: 0;
@@ -2138,7 +2145,7 @@ html[data-reduced-motion="true"] *::after {
   height: 58px;
   border-radius: 19px;
   margin-bottom: 17px;
-  box-shadow: 0 12px 35px #245d4926;
+  box-shadow: 0 12px 35px #0065b526;
   transform: rotate(-5deg);
 }
 .owui-welcome-logo span {
@@ -2154,7 +2161,7 @@ html[data-reduced-motion="true"] *::after {
   max-width: 560px;
   margin: 7px 0 21px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
 }
 .owui-suggestions {
   width: min(100%, 620px);
@@ -2183,11 +2190,11 @@ html[data-reduced-motion="true"] *::after {
   display: grid;
 }
 .owui-suggestions strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-suggestions small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2202,12 +2209,12 @@ html[data-reduced-motion="true"] *::after {
   border-radius: 10px;
   padding: 8px 13px;
   color: white;
-  background: #245d49;
-  font-size: 10px;
+  background: #0065b5;
+  font-size: 14px;
   font-weight: 750;
 }
 html[data-theme="dark"] .owui-primary-action {
-  color: #17261e;
+  color: #102445;
   background: var(--accent);
 }
 .owui-message {
@@ -2226,13 +2233,13 @@ html[data-theme="dark"] .owui-primary-action {
   background: var(--surface-soft);
   color: var(--muted);
   font-family: system-ui, sans-serif;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 800;
 }
 .owui-message.assistant .owui-message-avatar {
-  color: #d9f08a;
-  background: #245d49;
-  font-size: 11px;
+  color: #e2f3ff;
+  background: #0065b5;
+  font-size: 14px;
 }
 .owui-message-body {
   min-width: 0;
@@ -2245,11 +2252,11 @@ html[data-theme="dark"] .owui-primary-action {
   margin-bottom: 1px;
 }
 .owui-message-meta strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-message-meta span {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-message.user .ai-rich-message {
   display: inline-block;
@@ -2281,7 +2288,7 @@ html[data-theme="dark"] .owui-primary-action {
   background: transparent;
   color: var(--muted);
   padding: 5px 7px;
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-message-actions button:hover {
   color: var(--ink);
@@ -2313,7 +2320,7 @@ html[data-theme="dark"] .owui-primary-action {
 .owui-thinking em {
   margin-inline-start: 6px;
   font-style: normal;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-loading {
   min-height: 50vh;
@@ -2334,7 +2341,7 @@ html[data-theme="dark"] .owui-primary-action {
 .owui-loading > span:nth-child(3) { animation-delay: .3s; }
 .owui-loading p {
   margin-inline-start: 7px;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-audio-card {
   width: min(100%, var(--owui-content));
@@ -2353,7 +2360,7 @@ html[data-theme="dark"] .owui-primary-action {
   gap: 5px;
 }
 .owui-audio-card strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-audio-card audio {
   width: 100%;
@@ -2363,7 +2370,7 @@ html[data-theme="dark"] .owui-primary-action {
   width: min(100%, var(--owui-content));
   margin: 0 auto;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-error {
   width: min(100%, var(--owui-content));
@@ -2379,12 +2386,12 @@ html[data-theme="dark"] .owui-primary-action {
   background: color-mix(in srgb, var(--danger) 5%, var(--surface));
 }
 .owui-error strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-error p {
   margin: 1px 0 0;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-error button {
   border: 1px solid color-mix(in srgb, var(--danger) 24%, var(--line));
@@ -2392,7 +2399,7 @@ html[data-theme="dark"] .owui-primary-action {
   background: transparent;
   color: inherit;
   padding: 6px 9px;
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-composer-wrap {
   position: relative;
@@ -2454,7 +2461,10 @@ html[data-theme="dark"] .owui-primary-action {
   background: transparent;
   color: var(--muted);
   padding: 0 10px;
-  font-size: 9px;
+  font-size: 13px;
+  /* Theme foreground/background pairs must change together: interpolated
+     colors briefly fall below AA even though both endpoints pass. */
+  transition: transform 0.18s;
 }
 .owui-tool-toggle:hover,
 .owui-tool-toggle.active {
@@ -2463,7 +2473,7 @@ html[data-theme="dark"] .owui-primary-action {
 }
 .owui-char-count {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-send {
   width: 34px;
@@ -2473,7 +2483,7 @@ html[data-theme="dark"] .owui-primary-action {
   display: grid;
   place-items: center;
   color: white;
-  background: #245d49;
+  background: #0065b5;
 }
 .owui-send:disabled {
   color: var(--muted);
@@ -2483,7 +2493,7 @@ html[data-theme="dark"] .owui-primary-action {
   background: var(--danger);
 }
 html[data-theme="dark"] .owui-send:not(:disabled) {
-  color: #14251d;
+  color: #102445;
   background: var(--accent);
 }
 .owui-disclaimer {
@@ -2519,7 +2529,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   display: grid;
 }
 .owui-input-menu strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-input-menu small {
   color: var(--muted);
@@ -2563,7 +2573,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-attachment small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-recording {
   display: flex;
@@ -2571,7 +2581,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   gap: 7px;
   margin: 2px 4px 5px;
   color: var(--danger);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-recording-dot {
   width: 8px;
@@ -2588,7 +2598,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: transparent;
   color: inherit;
   text-decoration: underline;
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-tool-panel {
   position: absolute;
@@ -2611,7 +2621,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   display: grid;
 }
 .owui-tool-panel-head strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-tool-panel-head small {
   color: var(--muted);
@@ -2645,7 +2655,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-tool-list small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-drop-overlay {
   position: absolute;
@@ -2666,7 +2676,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-drop-overlay span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-mobile-sidebar .owui-sidebar {
   width: 100%;
@@ -2687,7 +2697,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .owui-control-grid label > span,
 .owui-settings-content label > span {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-control-grid select,
 .owui-settings-content select {
@@ -2717,11 +2727,11 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   display: grid;
 }
 .owui-setting-switch strong {
-  font-size: 10px;
+  font-size: 14px;
 }
 .owui-setting-switch small {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 13px;
 }
 .owui-setting-switch i {
   min-width: 38px;
@@ -2731,7 +2741,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: color-mix(in srgb, var(--ink) 6%, transparent);
   text-align: center;
   font-style: normal;
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-setting-switch.active i {
   color: var(--accent);
@@ -2751,7 +2761,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   border-radius: 10px;
   background: transparent;
   padding: 7px 12px;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-settings {
   display: grid;
@@ -2777,7 +2787,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   padding: 7px 9px;
   text-align: start;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-settings-tabs button:hover,
 .owui-settings-tabs button.active {
@@ -2797,7 +2807,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .owui-settings-content p {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-settings-content > * + h3 {
   margin-top: 20px;
@@ -2826,7 +2836,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-capability-list small {
   color: var(--muted);
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-privacy-links,
 .owui-export-actions {
@@ -2841,7 +2851,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: transparent;
   padding: 7px 10px;
   color: var(--accent);
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-shortcuts {
   display: grid;
@@ -2856,7 +2866,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 }
 .owui-shortcuts span {
   flex: 1;
-  font-size: 9px;
+  font-size: 13px;
 }
 .owui-shortcuts kbd {
   min-width: 27px;
@@ -2867,7 +2877,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   background: var(--surface-soft);
   text-align: center;
   font-family: ui-monospace, monospace;
-  font-size: 7px;
+  font-size: 12px;
 }
 .owui-dialog-textarea {
   width: 100%;
@@ -2927,7 +2937,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     display: none;
   }
   .owui-model-trigger strong {
-    font-size: 9px;
+    font-size: 13px;
   }
   .owui-navbar-actions .top-icon {
     width: 34px;
@@ -2949,7 +2959,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     font-size: 24px;
   }
   .owui-welcome > p {
-    font-size: 9px;
+    font-size: 13px;
   }
   .owui-suggestions {
     grid-template-columns: 1fr;
@@ -2965,10 +2975,10 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     width: 26px;
     height: 26px;
     border-radius: 8px;
-    font-size: 7px;
+    font-size: 12px;
   }
   .owui-message.assistant .owui-message-avatar {
-    font-size: 9px;
+    font-size: 13px;
   }
   .owui-message .ai-rich-message {
     font-size: 11.5px;
@@ -2987,7 +2997,7 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
   }
   .owui-composer textarea {
     min-height: 44px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .owui-tool-toggle {
     padding-inline: 8px;
@@ -3040,3 +3050,1164 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Noata Aura | Voice is attached to a message, never a detached global player. */
+.owui-inline-player {
+  width: min(100%, 520px);
+  max-width: 100%;
+  margin-block: 12px 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface-soft);
+  display: grid;
+  gap: 8px;
+  overflow: hidden;
+}
+.owui-inline-player-head {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  color: var(--ink);
+  font-size: 13px;
+}
+.owui-inline-player-head strong { flex: 1; font-size: 13px; font-weight: 600; }
+.owui-inline-player-head button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--surface);
+  cursor: pointer;
+}
+.owui-inline-player-head button:focus-visible,
+.owui-voice-pending button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.owui-inline-player audio {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 40px;
+  min-width: 0;
+}
+.owui-voice-pending {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  margin-block: 8px;
+}
+.owui-voice-pending button {
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 6px 12px;
+}
+@media (max-width: 520px) {
+  .owui-inline-player { width: 100%; padding: 8px; }
+}
+
+
+.owui-playback-speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.owui-playback-speed select {
+  width: auto;
+  min-width: 60px;
+  height: 30px;
+  padding-inline: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface);
+  font: inherit;
+}
+.owui-playback-speed select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+
+/* Noata Aura | A real attachment belongs to a specific sent message. */
+.owui-sent-attachment {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin-block: 10px 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 13px;
+}
+.owui-sent-attachment > span {
+  min-width: 0;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.owui-sent-attachment a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.owui-sent-attachment a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.owui-sent-attachment small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+
+/* Noata Aura AI — unified editorial workspace rather than stacked utility cards. */
+.owui-layout {
+  --owui-content: 850px;
+  --aura-accent: var(--accent);
+  background:
+    radial-gradient(circle at 56% -24%, color-mix(in srgb, var(--lime) 11%, transparent), transparent 45%),
+    var(--surface);
+}
+.owui-sidebar {
+  background: color-mix(in srgb, var(--surface-soft) 83%, var(--surface));
+  box-shadow: 1px 0 0 color-mix(in srgb, var(--line) 65%, transparent);
+  padding: 14px 12px;
+  gap: 12px;
+}
+.owui-brand-mark { border-radius: 12px; }
+.owui-sidebar-top { min-height: 64px; border-bottom: 1px solid var(--line); }
+.owui-new-chat {
+  min-height: 47px;
+  background: var(--accent);
+  color: var(--surface);
+  border: 1px solid var(--accent);
+  padding-inline: 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.owui-new-chat:hover { background: color-mix(in srgb, var(--accent) 87%, var(--surface)); color: var(--surface); }
+.owui-search {
+  margin: 4px 0 2px;
+  min-height: 45px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.owui-search input { font-size: 14px; }
+.owui-sidebar-links a, .owui-sidebar-links button, .owui-sidebar-footer button {
+  min-height: 43px;
+  padding-inline: 12px;
+  font-size: 14px;
+}
+.owui-chat-group h3 { font-size: 12px; padding-block: 5px; letter-spacing: 0; }
+.owui-chat-title { font-size: 13px; min-height: 41px; height: auto; }
+.owui-chat-row { min-height: 43px; }
+.owui-chat-row-actions button { min-width: 29px; min-height: 29px; }
+.owui-navbar {
+  min-height: 66px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  backdrop-filter: blur(18px);
+  background: color-mix(in srgb, var(--surface) 93%, transparent);
+}
+.owui-model-trigger {
+  padding: 9px 12px;
+  border-radius: 13px;
+}
+.owui-model-trigger strong { font-size: 14px; }
+.owui-model-trigger small { font-size: 12px; }
+.owui-icon:hover { background: var(--accent-soft); color: var(--accent); }
+.owui-navbar-center .owui-chat-heading { font-size: 13px; }
+.owui-main {
+  background:
+    radial-gradient(ellipse at center 12%, color-mix(in srgb, var(--accent-soft) 20%, transparent) 0%, transparent 55%),
+    var(--surface);
+}
+.owui-welcome { min-height: min(650px, calc(100dvh - 260px)); }
+.owui-welcome-logo {
+  width: 68px; height: 68px; border-radius: 20px; margin-bottom: 22px;
+  box-shadow: 0 18px 45px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.owui-welcome h1 {
+  font-weight: 800;
+  font-size: clamp(29px, 3.3vw, 47px);
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+.owui-welcome > p { max-width: 650px; font-size: clamp(13px, 1vw, 16px); line-height: 1.9; }
+.owui-suggestions { gap: 12px; margin-block: 6px; }
+.owui-suggestions button {
+  min-height: 90px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 93%, var(--surface-soft));
+  padding: 17px;
+  gap: 14px;
+  transition: transform .22s var(--ease), box-shadow .22s, border-color .22s;
+}
+.owui-suggestions button:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.owui-suggestions strong { font-size: 14px; font-weight: 750; }
+.owui-suggestions small { font-size: 12px; white-space: normal; line-height: 1.6; }
+.owui-messages { scroll-padding-block: 60px; padding-block: 24px 36px; }
+.owui-thread { gap: 28px; }
+.owui-message-body { font-size: 15px; }
+.owui-message-meta strong { font-size: 13px; }
+.owui-message-meta span { font-size: 12px; }
+.owui-message .ai-rich-message { font-size: 15px; line-height: 1.9; overflow-wrap: anywhere; }
+.owui-message.user .ai-rich-message { padding: 11px 16px; border-radius: 16px; }
+.owui-message-actions { opacity: .65; }
+.owui-message-actions button { min-height: 35px; min-width: 35px; }
+.owui-composer-wrap { padding-top: 14px; padding-bottom: max(15px, env(safe-area-inset-bottom)); }
+.owui-composer {
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--accent) 21%, var(--line));
+  padding: 10px;
+  box-shadow: 0 12px 44px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.owui-composer textarea { font-size: 15px; min-height: 54px; line-height: 1.75; }
+.owui-tool-toggle { font-size: 13px; }
+.owui-disclaimer { font-size: 11px; margin-block: 9px 0; }
+.owui-tool-list strong, .owui-model-menu strong { font-size: 13px; }
+.owui-tool-list small, .owui-model-menu small { font-size: 12px; }
+.owui-model-menu, .owui-input-menu, .owui-tool-panel {
+  border-radius: 16px;
+  box-shadow: 0 20px 65px color-mix(in srgb, var(--ink) 15%, transparent);
+}
+.aura-attachment-card {
+  display: flex; align-items: center; gap: 12px;
+  max-width: min(560px,100%); padding: 11px 13px;
+  margin-block: 10px;
+  border: 1px solid var(--line); border-radius: 15px;
+  background: var(--surface-soft); box-shadow: 0 4px 14px color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.aura-attachment-type {
+  width: 43px; height: 43px; border-radius: 12px;
+  flex: none; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+}
+.aura-attachment-details { display: grid; min-width: 0; flex: 1; }
+.aura-attachment-details strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aura-attachment-details small { color: var(--muted); font-size: 12px; }
+.aura-attachment-card button, .aura-attachment-download {
+  min-height: 36px; display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 11px; border: 1px solid var(--line); border-radius: 11px;
+  color: var(--accent); background: var(--surface); font-size: 12px; font-weight: 700;
+}
+.aura-attachment-card button:hover { background: var(--accent-soft); }
+.aura-attachment-viewer { display: grid; gap: 12px; max-height: 68dvh; overflow: auto; }
+.aura-attachment-viewer img { max-width: 100%; max-height: 48dvh; object-fit: contain; margin-inline: auto; border-radius: 12px; }
+.aura-attachment-viewer pre {
+  background: var(--surface-soft); border: 1px solid var(--line);
+  border-radius: 12px; max-height: 44dvh; overflow: auto;
+  padding: 18px; font-size: 13px; line-height: 1.8; white-space: pre-wrap;
+  overflow-wrap: anywhere; unicode-bidi: plaintext;
+}
+.aura-document-disclosure { margin: 0; font-size: 13px; color: var(--muted); }
+.aura-attachment-download { justify-self: start; }
+@media (max-width: 980px) {
+ .owui-layout > .owui-sidebar { display: none; }
+ .owui-navbar { min-height: 61px; }
+}
+@media (max-width: 640px) {
+ .owui-welcome { min-height: unset; padding: 34px 7px 18px; }
+ .owui-welcome h1 { font-size: 29px; }
+ .owui-welcome > p { font-size: 13px; }
+ .owui-suggestions button { min-height: 72px; padding: 12px; }
+ .owui-suggestions strong { font-size: 13px; }
+ .owui-suggestions small { font-size: 11px; }
+ .owui-message .ai-rich-message { font-size: 14px; }
+ .owui-navbar { min-height: 53px; }
+ .owui-model-trigger strong { font-size: 12px; }
+ .owui-composer-wrap { padding-inline: 8px; }
+ .owui-disclaimer { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .owui-layout *, .owui-layout *::before, .owui-layout *::after {
+   scroll-behavior: auto !important;
+   animation-duration: .01ms !important;
+   transition-duration: .01ms !important;
+ }
+}
+
+
+/* Noata Aura | shared learning operating system across ALL role workspaces */
+.noata-shell {
+  --aura-wash: color-mix(in srgb, var(--accent-soft) 25%, var(--surface-soft));
+  grid-template-columns: 264px minmax(0, 1fr);
+  background: var(--aura-wash);
+}
+.noata-sidebar {
+  background: color-mix(in srgb, var(--surface) 96%, var(--accent-soft));
+  border-inline-end: 1px solid color-mix(in srgb, var(--accent) 13%, var(--line));
+  padding: 20px 16px;
+  scrollbar-width: thin;
+}
+.noata-sidebar .brand { padding-block: 9px 28px; }
+.noata-sidebar .brand-copy > span { font-size: 12px; letter-spacing: 0; }
+.noata-sidebar .nav-title { font-size: 12px; letter-spacing: .02em; }
+.noata-sidebar .nav-link {
+  font-size: 14px;
+  min-height: 47px;
+  border-radius: 13px;
+  padding-inline: 14px;
+  margin-block: 3px;
+}
+.noata-sidebar .nav-link.active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 13%, transparent);
+}
+.noata-sidebar .sidebar-foot {
+  background: color-mix(in srgb, var(--surface-soft) 75%, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 17px;
+  margin-block: 20px 4px;
+}
+.noata-sidebar .sidebar-foot p { font-size: 15px; }
+.noata-main { padding-inline: clamp(18px, 3.1vw, 58px); }
+.shell-topbar {
+  min-height: 87px;
+  background: color-mix(in srgb, var(--aura-wash) 87%, transparent);
+  position: sticky;
+  top: 0;
+  z-index: 24;
+  backdrop-filter: blur(14px);
+}
+.top-context b { font-size: 17px; }
+.command-trigger {
+  border: 1px solid var(--line);
+  padding: 9px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13px;
+}
+.page-content {
+  max-width: 1480px;
+  padding-bottom: 20px;
+  animation-duration: .26s;
+}
+.page-content .hero, .page-content .dashboard-hero {
+  background:
+    radial-gradient(circle at 83% 20%, #d7edff40, transparent 38%),
+    linear-gradient(135deg, #051b4b, #063d7e 73%, #006bb4);
+  box-shadow: 0 18px 44px #0d2a1a1a;
+  border: 1px solid #d7edff30;
+  border-radius: clamp(22px,2.5vw,32px);
+  padding: clamp(25px,3vw,48px);
+}
+.page-content .hero h1, .page-content .hero h2 {
+  letter-spacing: 0;
+  line-height: 1.65;
+}
+.page-content .eyebrow {
+  letter-spacing: .04em;
+  text-transform: none;
+  font-size: 12px;
+}
+.page-content .panel,
+.page-content .metric-card,
+.page-content .quick-card {
+  border-radius: 20px;
+  border-color: color-mix(in srgb, var(--accent) 10%, var(--line));
+  box-shadow: 0 6px 26px color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.page-content .panel { padding: clamp(19px,2vw,29px); }
+.page-content .metric-card { transition: transform .22s var(--ease), box-shadow .22s; }
+.page-content .metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 35px color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.page-content .metric-card span, .page-content .metric-card small { font-size: 13px; }
+.page-content .quest {
+  border-radius: 16px;
+  transition: transform .18s var(--ease), background .18s, border-color .18s;
+}
+.page-content .quest:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: color-mix(in srgb, var(--surface) 85%, var(--accent-soft));
+}
+.page-content .quest h3 { font-size: 15px; }
+.page-content .quest p { font-size: 13px; line-height: 1.85; }
+.page-content .panel-head h2,
+.page-content .section-heading h2 { font-size: clamp(19px,1.5vw,24px); line-height: 1.65; }
+.page-content .pill { font-size: 12px; padding: 7px 12px; border-radius: 999px; }
+.page-content .btn { font-size: 14px; min-height: 46px; border-radius: 13px; }
+.page-content :is(.quick-card,.btn,.quest,.filter-chip):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.page-footer { font-size: 12px; }
+.noata-dialog {
+  max-width: min(640px,calc(100vw - 22px));
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  box-shadow: 0 28px 70px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+.noata-dialog .dialog-heading h2 { font-size: 19px; }
+.mobile-nav { backdrop-filter: blur(17px); }
+@media(max-width: 1100px) {
+  .noata-shell { grid-template-columns: 222px minmax(0,1fr); }
+  .noata-main { padding-inline: 19px; }
+}
+@media(max-width: 900px) {
+  .noata-shell { display: block; }
+  .noata-sidebar { display: none; }
+  .noata-main { padding-inline: clamp(12px, 4vw, 28px); }
+  .shell-topbar { position: relative; min-height: 71px; }
+  .mobile-menu-content .noata-sidebar { display: flex; }
+}
+@media(max-width: 620px) {
+  .page-content .hero, .page-content .dashboard-hero { padding: 23px 19px; border-radius: 23px; }
+  .page-content .metric-card strong { font-size: 25px; }
+  .page-content .panel { padding: 18px; }
+  .page-content .quest { grid-template-columns: 40px minmax(0,1fr) auto; padding: 12px; gap: 8px; }
+  .noata-main { padding-inline: 12px; }
+  .command-trigger { display: none; }
+}
+@media(prefers-reduced-motion: reduce) {
+ .noata-shell *, .noata-shell *::before, .noata-shell *::after {
+   animation-duration: .01ms !important;
+   transition-duration: .01ms !important;
+   scroll-behavior: auto !important;
+ }
+}
+
+
+/* Noata Aura conversation row menus: legible on touch, RTL and keyboard. */
+.owui-chat-row:has(.aura-history-menu[open]) { z-index: 80; }
+.aura-history-menu { position: relative; flex: none; }
+.aura-history-menu summary {
+  list-style: none;
+  min-width: 38px; min-height: 38px;
+  display: grid; place-items: center; border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.aura-history-menu summary::-webkit-details-marker { display: none; }
+.aura-history-menu summary:hover,
+.aura-history-menu[open] summary {
+  background: var(--accent-soft); color: var(--accent);
+}
+.aura-history-menu-panel {
+  position: absolute; z-index: 90;
+  top: calc(100% + 4px); inset-inline-end: 0;
+  display: grid; gap: 2px;
+  width: max-content; min-width: 196px; padding: 7px;
+  border: 1px solid var(--line); border-radius: 13px;
+  background: var(--surface);
+  box-shadow: 0 16px 44px color-mix(in srgb, var(--ink) 17%, transparent);
+}
+.aura-history-menu-panel button {
+  display: flex; align-items: center; gap: 10px; text-align: start;
+  min-height: 38px; width: 100%; border: 0; border-radius: 9px;
+  background: transparent; color: var(--ink);
+  padding: 8px 10px; font-size: 13px;
+}
+.aura-history-menu-panel button:hover { background: var(--surface-soft); }
+.aura-history-menu-panel button:last-child { color: var(--danger); }
+.aura-history-menu summary:focus-visible,
+.aura-history-menu-panel button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+
+/* Noata Aura — editable Arabic document workspace */
+.aura-studio { display: grid; gap: 14px; max-height: 72dvh; overflow-y: auto; }
+.aura-studio > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.9; }
+.aura-studio-tabs { display: flex; gap: 7px; padding: 5px; border-radius: 13px; background: var(--surface-soft); }
+.aura-studio-tabs button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 40px; flex: 1; border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted); font-size: 14px; font-weight: 700;
+}
+.aura-studio-tabs button[aria-pressed="true"] {
+  background: var(--surface); color: var(--accent);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.aura-studio textarea {
+  display: block; width: 100%; min-height: 260px; resize: vertical;
+  padding: 17px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); font-size: 15px; line-height: 1.95;
+}
+.aura-studio-preview {
+  min-height: 260px; max-height: 45dvh; overflow: auto;
+  padding: 17px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); font-size: 15px;
+}
+.aura-studio-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.aura-studio-footer small { margin-inline-end: auto; color: var(--muted); }
+.aura-studio-footer button {
+  min-height: 40px; padding: 8px 12px; background: var(--surface-soft);
+  border: 1px solid var(--line); border-radius: 10px; font-size: 13px; font-weight: 700;
+}
+.aura-studio-footer button:hover { background: var(--accent-soft); color: var(--accent); }
+.aura-studio-status { background: var(--accent-soft); color: var(--accent) !important; padding: 9px 12px; border-radius: 10px; }
+@media(max-width: 540px){
+ .aura-studio textarea, .aura-studio-preview { min-height: 210px; }
+ .aura-studio-footer button { flex: 1; }
+}
+
+
+/* Noata Aura dashboard: data-backed recommended next step. */
+.aura-next-step {
+  display: flex; align-items: center; gap: 17px;
+  padding: clamp(16px,2vw,24px); margin-block: 21px 5px;
+  background: color-mix(in srgb, var(--surface) 86%, var(--accent-soft));
+  border: 1px solid color-mix(in srgb, var(--accent) 17%, var(--line));
+  border-radius: 22px;
+  box-shadow: 0 9px 25px color-mix(in srgb, var(--accent) 4%, transparent);
+}
+.aura-next-step-icon {
+  width: 56px; height: 56px; flex: none; display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+  border-radius: 16px;
+}
+.aura-next-step-copy { flex: 1; min-width: 0; }
+.aura-next-step-copy span { font-size: 12px; color: var(--accent); font-weight: 700; }
+.aura-next-step-copy h2 { font-size: clamp(17px,1.8vw,23px); margin: 2px 0 3px; line-height: 1.6; }
+.aura-next-step-copy p { margin: 0; font-size: 13px; line-height: 1.8; color: var(--muted); }
+.aura-next-step-action {
+  min-height: 45px; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--accent); color: var(--surface);
+  padding: 9px 15px; border-radius: 12px; font-weight: 750; font-size: 13px;
+}
+.aura-next-step-action:hover { filter: brightness(1.1); }
+@media(max-width: 650px) {
+ .aura-next-step { flex-wrap: wrap; gap: 11px; }
+ .aura-next-step-icon { width: 44px; height: 44px; border-radius: 12px; }
+ .aura-next-step-copy { flex-basis: calc(100% - 65px); }
+ .aura-next-step-action { width: 100%; }
+}
+
+
+/* Noata Aura appearance selector shared across learning and AI navigation */
+.aura-theme-picker { position: relative; z-index: 60; flex: none; }
+.aura-theme-menu {
+  position: absolute; inset-block-start: calc(100% + 9px); inset-inline-end: 0;
+  width: min(300px,calc(100vw - 22px)); padding: 10px;
+  display: grid; gap: 5px; border: 1px solid var(--line);
+  border-radius: 16px; background: var(--surface);
+  box-shadow: 0 22px 60px color-mix(in srgb, var(--ink) 16%, transparent);
+}
+.aura-theme-menu > strong { color: var(--muted); font-size: 12px; padding: 5px 8px 8px; }
+.aura-theme-menu button {
+  width: 100%; min-height: 53px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border: 1px solid transparent;
+  border-radius: 11px; background: transparent; text-align: start;
+}
+.aura-theme-menu button:hover, .aura-theme-menu button.selected {
+  background: var(--accent-soft); color: var(--accent);
+}
+.aura-theme-menu button span { flex: 1; min-width: 0; display: grid; }
+.aura-theme-menu button b { font-size: 14px; }
+.aura-theme-menu button small { color: var(--muted); font-size: 12px; }
+.aura-theme-menu button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.aura-theme-notice {
+  position: absolute; z-index: 62;
+  inset-inline-end: 0; inset-block-start: calc(100% + 210px);
+  width: 270px; padding: 10px; border-radius: 11px;
+  background: var(--accent-soft); color: var(--accent); font-size: 12px;
+}
+
+
+/* Aura 2 — backend-aligned model gallery */
+.owui-model-picker { position: relative; }
+.owui-model-menu.aura-model-gallery {
+  width: min(460px, calc(100vw - 22px));
+  max-height: min(75dvh, 700px);
+  overflow: auto;
+  padding: 12px;
+  z-index: 100;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 20px 65px color-mix(in srgb,var(--ink) 16%,transparent);
+}
+.aura-model-gallery-head { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 7px 5px 15px; }
+.aura-model-gallery-head > strong { font-size: 17px; }
+.aura-model-gallery-head > span { color: var(--muted); font-size: 11px; }
+.aura-model-gallery-list { display: grid; gap: 5px; margin-block: 10px; }
+.owui-model-menu .aura-model-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 76px;
+  text-align: start;
+  padding: 12px 13px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+}
+.owui-model-menu .aura-model-card:hover {
+  border-color: var(--line);
+  background: var(--surface-soft);
+}
+.owui-model-menu .aura-model-card.active {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb,var(--accent) 28%,var(--line));
+}
+.aura-model-card-symbol {
+  width: 42px; height: 42px; flex: none;
+  display: grid; place-items: center;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 12px;
+}
+.aura-model-card-copy { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.aura-model-card-copy strong { font-size: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.aura-model-card-copy strong > span { font-size: 12px; font-weight: 500; color: var(--muted); }
+.aura-model-card-copy small { font-size: 12px; line-height: 1.7; color: var(--muted); }
+.aura-model-features { font-size: 11px; color: var(--accent); font-weight: 700; }
+.owui-model-menu .aura-model-auto {
+  background: color-mix(in srgb,var(--accent-soft) 40%,var(--surface));
+  border-color: var(--line);
+}
+.aura-model-info { display: grid; gap: 10px; border-top: 1px solid var(--line); padding: 11px 5px 3px; }
+.aura-model-info > small { color: var(--muted); font-size: 11px; line-height: 1.8; }
+.aura-model-info button { justify-self: start; }
+@media(max-width: 480px) {
+ .owui-model-menu.aura-model-gallery {
+   position: fixed;
+   inset-block-start: auto;
+   bottom: max(10px,env(safe-area-inset-bottom));
+   inset-inline: 10px;
+   width: calc(100vw - 20px);
+   max-height: 76dvh;
+   border-radius: 22px;
+ }
+ .aura-model-card-copy small { font-size: 12px; }
+}
+
+
+/* Noata Aura Quran — quiet, precise and distinct from the generated AI UI */
+.aura-quran{display:grid;gap:24px;padding-block:3px 25px}
+.aura-quran-header{display:flex;gap:24px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:clamp(20px,3vw,38px)}
+.aura-quran-header h1{font-size:clamp(25px,2.8vw,41px);margin:8px 0;line-height:1.55}
+.aura-quran-header p{margin:0;max-width:640px;color:var(--muted);font-size:14px;line-height:1.85}
+.aura-quran-ai-link{display:inline-flex;gap:8px;align-items:center;justify-content:center;padding:13px 16px;border:1px solid var(--line);border-radius:13px;color:var(--accent);font-size:13px;font-weight:700;white-space:nowrap}
+.aura-quran-ai-link:hover{background:var(--accent-soft)}
+.aura-quran-toolbar{display:flex;gap:13px;align-items:end;flex-wrap:wrap;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:19px}
+.aura-quran-toolbar label{display:grid;gap:5px;min-width:205px}
+.aura-quran-toolbar label span,.aura-quran-font>span{color:var(--muted);font-size:12px}
+.aura-quran-toolbar select{width:100%;min-height:45px;padding:8px 13px;border:1px solid var(--line);border-radius:11px;background:var(--surface-soft)}
+.aura-quran-font{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.aura-quran-font button{min-width:38px;min-height:43px;padding:6px 11px;border:1px solid var(--line);border-radius:11px;background:var(--surface-soft)}
+.aura-quran-search{display:flex;min-width:210px;flex:1;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.aura-quran-search input{border:0!important;min-width:0;width:100%;padding:10px 13px;background:transparent!important}
+.aura-quran-search button{min-width:48px;height:44px;display:grid;place-items:center;color:var(--accent)}
+.aura-quran-reading{max-width:920px;width:100%;margin-inline:auto;overflow:hidden;border:1px solid var(--line);background:var(--surface);border-radius:24px;box-shadow:var(--shadow-soft)}
+.aura-quran-chapter{text-align:center;background:var(--surface-soft);border-bottom:1px solid var(--line);padding:31px 20px}
+.aura-quran-chapter span{font-size:12px;color:var(--muted)}
+.aura-quran-chapter h2{font-size:clamp(30px,3.2vw,42px);font-weight:800;line-height:1.7;margin:0}
+.aura-quran-chapter p{font-size:13px;color:var(--muted);margin:0}
+.aura-quran-state{padding:38px 20px;text-align:center;color:var(--muted)}
+.aura-quran-ayah{padding:28px clamp(16px,3.5vw,44px);border-block-end:1px solid var(--line);scroll-margin-top:25px;transition:background .2s}
+.aura-quran-ayah:target{background:var(--accent-soft)}
+.aura-quran-ayah:last-child{border:0}
+.aura-quran-ayah-actions{display:flex;align-items:center;gap:8px;color:var(--muted);margin-block-end:13px}
+.aura-quran-ayah-actions button{min-width:37px;min-height:37px;display:grid;place-items:center;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--muted)}
+.aura-quran-ayah-actions button:hover,.aura-quran-ayah-actions button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent)}
+.aura-ayah-number{display:grid;place-items:center;min-width:39px;height:39px;border-radius:13px;background:var(--accent-soft);color:var(--accent);font-weight:800}
+.aura-quran-verse{margin:0;line-height:2.65;font-family:"Amiri","Noto Naskh Arabic","Traditional Arabic",Cairo,serif;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
+.aura-quran-verse-number{font-size:.72em;color:var(--accent);white-space:nowrap}
+.aura-quran-bookmarks{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px;border-radius:16px;background:var(--accent-soft);color:var(--accent)}
+.aura-quran-bookmarks strong{font-size:13px}
+.aura-quran-bookmarks button{padding:6px 11px;background:var(--surface);border:1px solid var(--line);border-radius:9px;min-height:33px}
+.aura-quran-search-results{padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface);max-height:350px;overflow:auto;display:grid;gap:7px}
+.aura-quran-search-results .panel-head{margin-bottom:4px}
+.aura-quran-search-results .panel-head button{color:var(--accent);font-size:13px}
+.aura-quran-search-results>button{padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--surface-soft);display:grid;text-align:start;gap:3px}
+.aura-quran-search-results>button strong{font-size:12px;color:var(--accent)}
+.aura-quran-search-results>button span{font-size:14px;line-height:1.85}
+.aura-quran-attribution{max-width:920px;margin-inline:auto;color:var(--ink);font-size:12px;line-height:2}
+.aura-quran-attribution a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;margin-inline:5px}
+@media(max-width:720px){.aura-quran-header{flex-wrap:wrap}.aura-quran-ai-link{width:100%}.aura-quran-toolbar>*{flex:1 1 100%}.aura-quran-toolbar label{min-width:0}.aura-quran-font{justify-content:center}.aura-quran-ayah{padding-block:22px}.aura-quran-verse{line-height:2.45}}
+@media(prefers-reduced-motion:reduce){.aura-quran *, .aura-quran *::before{transition:none!important}}
+
+
+/* Noata Aura real educational workflows */
+.aura-education-entry{display:flex;align-items:center;justify-content:center;gap:10px;min-height:43px;margin:15px auto 0;padding:10px 18px;border:1px solid var(--line);border-radius:13px;background:var(--accent-soft);color:var(--accent);font-weight:750;font-size:13px;max-width:min(100%,680px)}
+.aura-education-entry:hover{background:var(--accent);color:var(--surface)}
+.aura-education-panel{display:grid;gap:17px;max-height:68dvh;overflow-y:auto;min-width:0;padding:3px}
+.aura-education-title{display:flex;gap:11px;align-items:center}
+.aura-education-icon{display:grid;place-items:center;width:46px;height:46px;flex:none;border-radius:14px;color:var(--accent);background:var(--accent-soft)}
+.aura-education-title>div{display:grid;gap:2px}
+.aura-education-title strong{font-size:17px}
+.aura-education-title small{font-size:12px;color:var(--muted)}
+.aura-education-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.aura-education-grid>button{display:flex;align-items:center;gap:9px;min-width:0;min-height:78px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:start;padding:11px}
+.aura-education-grid>button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.aura-education-grid>button:hover{background:var(--surface-soft)}
+.aura-education-grid>button>span{display:grid;gap:1px;min-width:0}
+.aura-education-grid>button strong{font-size:13px}
+.aura-education-grid>button small{font-size:11px;line-height:1.6;color:var(--muted)}
+.aura-education-topic{display:grid;gap:8px}
+.aura-education-topic>span{font-size:13px;font-weight:700}
+.aura-education-topic textarea{width:100%;min-height:95px;resize:vertical;padding:12px 13px;border:1px solid var(--line);border-radius:13px;line-height:1.8}
+.aura-education-prepare{min-height:46px;border:0;border-radius:12px;background:var(--accent);color:var(--surface);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:750}
+.aura-education-error{color:var(--danger);font-size:13px}
+.aura-education-note{font-size:11px;color:var(--muted);line-height:1.8;margin:0}
+@media(max-width:530px){.aura-education-grid{grid-template-columns:1fr}.aura-education-entry{margin-inline:9px;font-size:12px;padding-inline:10px}.aura-education-grid>button{min-height:65px}}
+
+
+/* Noata Aura Phase 4 — honest multi-document composer and citations. */
+.aura-document-tray{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:10px 12px;border:1px dashed var(--line);border-radius:15px;background:var(--surface-soft)}
+.aura-document-tray>small{width:100%;font-size:11px;color:var(--muted);line-height:1.6}
+.aura-document-chip{display:flex;gap:7px;align-items:center;max-width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.aura-document-chip>span{font-size:12px;font-weight:650;max-width:165px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+.aura-document-chip>small{font-size:11px;color:var(--muted)}
+.aura-document-chip button{min-width:28px;min-height:28px;border:0;border-radius:7px;display:grid;place-items:center;color:var(--muted)}
+.aura-document-chip button:hover{background:var(--accent-soft);color:var(--accent)}
+.aura-source-files{display:flex;flex-wrap:wrap;gap:9px;margin-block:11px}
+.aura-source-files button{display:flex;gap:9px;align-items:center;max-width:min(100%,350px);min-height:51px;padding:9px 12px;border:1px solid var(--line);border-radius:13px;background:var(--surface-soft);text-align:start}
+.aura-source-files button:hover{background:var(--accent-soft);border-color:var(--accent)}
+.aura-source-files button span{display:grid;gap:2px;min-width:0}
+.aura-source-files button strong{font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aura-source-files button small{font-size:11px;color:var(--muted)}
+.aura-source-preview{display:grid;gap:13px;max-height:65dvh;overflow-y:auto}
+.aura-source-preview p{margin:0;font-size:13px;line-height:1.8;color:var(--muted)}
+.aura-source-preview pre{max-height:42dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:16px;line-height:1.8;font-size:13px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);unicode-bidi:plaintext}
+.aura-source-preview small{font-size:11px;color:var(--muted);line-height:1.8}
+@media(max-width:520px){.aura-document-chip{flex-basis:100%}.aura-document-chip>span{flex:1;max-width:calc(100vw - 170px)}.aura-source-files button{width:100%}}
+
+
+/* Phase 4 / Progress: an evidence-led skill map, not recycled metric cards. */
+.aura-progress-page{display:grid;gap:25px;padding-bottom:30px}
+.aura-progress-hero{display:flex;align-items:center;gap:30px;justify-content:space-between;min-height:300px;padding:clamp(24px,3vw,44px);background:var(--surface);border:1px solid var(--line);border-radius:27px}
+.aura-progress-intro{max-width:720px}
+.aura-progress-intro .eyebrow{font-size:12px;color:var(--accent);letter-spacing:0}
+.aura-progress-intro h1{font-size:clamp(28px,3vw,42px);line-height:1.5;letter-spacing:0;margin:11px 0 12px}
+.aura-progress-intro>p{color:var(--muted);line-height:1.95;font-size:14px;margin:0;max-width:590px}
+.aura-progress-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:23px}
+.aura-progress-primary,.aura-progress-secondary{min-height:45px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:9px 16px;font-weight:750;font-size:13px;text-decoration:none}
+.aura-progress-primary{color:var(--surface);background:var(--accent);border:1px solid var(--accent)}
+.aura-progress-secondary{color:var(--accent);background:var(--surface-soft);border:1px solid var(--line)}
+.aura-progress-primary:hover{filter:brightness(1.08)}.aura-progress-secondary:hover{background:var(--accent-soft)}
+.aura-progress-ring{position:relative;width:190px;height:190px;color:var(--accent);flex:none}
+.aura-progress-ring svg{display:block;width:100%;height:100%;overflow:visible}
+.aura-progress-ring>div{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:5px}
+.aura-progress-ring strong{font-size:39px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.aura-progress-ring span{font-size:12px;color:var(--muted)}
+.aura-progress-statstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;border:1px solid var(--line);background:var(--line);border-radius:19px;overflow:hidden}
+.aura-progress-statstrip>div{background:var(--surface);padding:22px 20px;display:grid;gap:4px}
+.aura-progress-statstrip span{font-size:12px;color:var(--muted)}
+.aura-progress-statstrip strong{font-size:29px;line-height:1.3;font-variant-numeric:tabular-nums}
+.aura-progress-statstrip small{color:var(--muted);font-size:11px}
+.aura-progress-map{border:1px solid var(--line);border-radius:24px;background:var(--surface);padding:clamp(18px,2.4vw,32px)}
+.aura-progress-map-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:23px}
+.aura-progress-map-heading h2{font-size:clamp(22px,2vw,30px);margin:5px 0 7px}
+.aura-progress-map-heading p{font-size:13px;color:var(--muted);margin:0;line-height:1.8}
+.aura-progress-map-heading button{border:1px solid var(--line);border-radius:11px;display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:8px 12px;font-size:13px}
+.aura-progress-map-heading button:hover{background:var(--surface-soft)}
+.aura-progress-filters{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:16px}
+.aura-progress-filters>div{display:flex;flex-wrap:wrap;gap:7px}
+.aura-progress-filters button{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;min-height:39px;border:1px solid var(--line);border-radius:11px;font-size:13px;color:var(--muted)}
+.aura-progress-filters button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 25%,var(--line));font-weight:750}
+.aura-progress-filters button small{border-radius:7px;background:var(--surface-soft);padding:2px 6px;font-size:11px}
+.aura-progress-filters input{min-width:170px;min-height:41px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);padding:9px 12px;font-size:13px}
+.aura-progress-skill-list{display:grid;gap:9px}
+.aura-progress-skill{display:flex;gap:14px;align-items:center;min-width:0;padding:16px 19px;background:var(--surface-soft);border:1px solid var(--line);border-radius:16px}
+.aura-progress-skill-num{font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted);width:32px}
+.aura-progress-skill-body{flex:1;min-width:0;display:grid;gap:11px}
+.aura-progress-skill-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.aura-progress-skill h3{font-size:15px;margin:0 0 4px}
+.aura-progress-skill p{font-size:12px;color:var(--muted);margin:0;line-height:1.7}
+.aura-progress-skill-status{font-size:11px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 9px;white-space:nowrap;color:var(--muted)}
+.aura-progress-skill-status.due{color:var(--accent);background:var(--accent-soft)}
+.aura-progress-skill-meter{height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+.aura-progress-skill-meter span{height:100%;display:block;background:var(--accent);border-radius:99px;transition:width .25s ease-out}
+.aura-progress-skill-percent{font-size:20px;font-weight:800;min-width:46px;text-align:end;font-variant-numeric:tabular-nums}
+.aura-progress-empty{text-align:center;padding:46px 18px;display:grid;justify-items:center;gap:12px;color:var(--muted)}
+.aura-progress-empty h3{margin:0;color:var(--ink);font-size:19px}
+.aura-progress-empty p{margin:0;font-size:13px;line-height:1.8}
+.aura-progress-loading,.aura-progress-guest{padding:clamp(40px,7vw,85px) 30px;border:1px solid var(--line);border-radius:24px;background:var(--surface);text-align:center;display:grid;justify-items:center;gap:16px}
+.aura-progress-guest h1,.aura-progress-loading h1{font-size:clamp(24px,3vw,35px);margin:0;line-height:1.6}
+.aura-progress-loading p,.aura-progress-guest p{color:var(--muted);max-width:570px;font-size:14px;line-height:1.9;margin:0}
+.aura-progress-loading-mark{width:42px;height:42px;border:4px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:aura-progress-spin .8s linear infinite}
+@keyframes aura-progress-spin{to{transform:rotate(360deg)}}
+.aura-progress-error{font-size:13px;color:var(--danger)}.aura-progress-refreshing{color:var(--muted);font-size:13px}
+@media(max-width:1040px){.aura-progress-hero{gap:10px}.aura-progress-ring{width:150px;height:150px}.aura-progress-statstrip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:670px){.aura-progress-hero{flex-direction:column;align-items:stretch}.aura-progress-ring{align-self:center}.aura-progress-filters{align-items:stretch;flex-direction:column}.aura-progress-filters input{width:100%}.aura-progress-skill{padding:13px;gap:9px}.aura-progress-skill-top{align-items:start;flex-wrap:wrap}.aura-progress-skill-percent{font-size:16px;min-width:35px}.aura-progress-statstrip>div{padding:17px 14px}}
+@media(prefers-reduced-motion:reduce){.aura-progress-skill-meter span{transition:none}.aura-progress-loading-mark{animation:none}}
+
+
+/* Phase 4 / Settings: purpose-built account command center. */
+.aura-settings-page{display:grid;gap:23px;padding-bottom:33px}
+.aura-settings-heading{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:clamp(23px,3vw,36px);border-radius:25px;border:1px solid var(--line);background:var(--surface)}
+.aura-settings-heading .eyebrow{font-size:12px;color:var(--accent)}
+.aura-settings-heading h1{font-size:clamp(27px,3vw,39px);line-height:1.6;margin:7px 0 8px}
+.aura-settings-heading p{font-size:13px;line-height:1.9;color:var(--muted);max-width:650px;margin:0}
+.aura-settings-email{font-size:12px;border:1px solid var(--line);padding:9px 12px;border-radius:12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.aura-settings-nav{position:sticky;top:82px;z-index:20;display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding:9px;background:color-mix(in srgb,var(--surface) 93%,transparent);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:15px}
+.aura-settings-nav>a{white-space:nowrap;min-height:37px;padding:9px 15px;border-radius:10px;font-size:13px;font-weight:700;color:var(--muted)}
+.aura-settings-nav>a:hover,.aura-settings-nav>a:focus-visible{background:var(--accent-soft);color:var(--accent)}
+.aura-settings-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;align-items:start}
+.aura-settings-section{min-width:0;display:grid;gap:18px;padding:clamp(20px,2vw,29px);border:1px solid var(--line);border-radius:21px;background:var(--surface);scroll-margin-top:142px}
+.aura-settings-section-top{display:flex;gap:12px;align-items:center}
+.aura-settings-section-top>svg{color:var(--accent);background:var(--accent-soft);box-sizing:content-box;padding:11px;border-radius:13px;flex:none}
+.aura-settings-section-top h2{font-size:19px;line-height:1.5;margin:0 0 5px}
+.aura-settings-section-top p{font-size:12px;color:var(--muted);line-height:1.7;margin:0}
+.aura-settings-label{display:grid;gap:7px;font-size:13px;font-weight:700;min-width:0}
+.aura-settings-label>small{font-size:11px;color:var(--muted);line-height:1.7;font-weight:450}
+.aura-settings-label>input,.aura-settings-label>select,.aura-settings-password>input{width:100%;min-width:0;min-height:47px;padding:10px 13px;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);color:var(--ink);font-size:14px}
+.aura-settings-theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.aura-settings-theme-options button{min-height:70px;padding:10px;border:1px solid var(--line);border-radius:13px;display:grid;justify-items:center;align-content:center;gap:7px;font-size:13px}
+.aura-settings-theme-options button[aria-pressed=true]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:750}
+.aura-settings-switch{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:15px;border-radius:13px;background:var(--surface-soft);border:1px solid var(--line)}
+.aura-settings-switch>span{min-width:0;display:grid;gap:5px}
+.aura-settings-switch strong{font-size:13px}
+.aura-settings-switch small{font-size:11px;color:var(--muted);line-height:1.8}
+.aura-settings-switch input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.aura-settings-savebar{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:13px;padding:17px 21px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:18px;background:var(--accent-soft)}
+.aura-settings-savebar>div{display:grid;gap:4px}
+.aura-settings-savebar strong{font-size:14px}
+.aura-settings-savebar small{font-size:12px;line-height:1.6;color:var(--muted)}
+.aura-settings-savebar button,.aura-settings-password-action{min-height:43px;padding:9px 16px;color:var(--surface);background:var(--accent);border:1px solid var(--accent);border-radius:12px;font-size:13px;font-weight:750}
+.aura-settings-savebar button:disabled,.aura-settings-password-action:disabled{opacity:.55;cursor:not-allowed}
+.aura-settings-notice{grid-column:1/-1;font-size:13px;padding:12px 15px;border-radius:12px;line-height:1.8}
+.aura-settings-notice.error{color:var(--danger);background:var(--surface-soft);border:1px solid var(--line)}
+.aura-settings-notice.success{color:var(--accent);background:var(--accent-soft)}
+.aura-settings-security{max-width:100%;gap:15px}
+.aura-settings-password{display:flex;align-items:center;gap:8px}
+.aura-settings-password button{padding:8px 11px;min-height:45px;border-radius:11px;border:1px solid var(--line);font-size:12px}
+.aura-settings-password-action{justify-self:start}
+.aura-settings-security-foot{font-size:12px;color:var(--muted);line-height:1.8;margin:0}
+.aura-settings-state{display:grid;justify-items:center;gap:14px;text-align:center;background:var(--surface);padding:50px 22px;border:1px solid var(--line);border-radius:22px}
+.aura-settings-state h1{font-size:clamp(23px,3vw,31px);margin:0}
+.aura-settings-state p{margin:0;font-size:13px;line-height:1.9;color:var(--muted)}
+.aura-settings-state a,.aura-settings-state button{padding:11px 16px;border-radius:11px;background:var(--accent);color:var(--surface);font-weight:750}
+@media(max-width:950px){.aura-settings-content{grid-template-columns:1fr}.aura-settings-nav{top:0}}
+@media(max-width:580px){.aura-settings-heading{flex-direction:column;align-items:stretch}.aura-settings-email{max-width:100%;align-self:start}.aura-settings-savebar{flex-direction:column;align-items:stretch}.aura-settings-savebar button{width:100%}.aura-settings-section{padding:19px}}
+
+
+/* Phase 4 / Help: searchable and actionable Arabic guidance. */
+.aura-help-page{display:grid;gap:25px;padding-bottom:31px}
+.aura-help-hero{display:grid;justify-items:center;text-align:center;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:26px;padding:clamp(32px,5vw,63px) 22px}
+.aura-help-hero .eyebrow{color:var(--accent);font-size:12px}
+.aura-help-hero h1{font-size:clamp(29px,4vw,47px);line-height:1.5;margin:0}
+.aura-help-hero>p{color:var(--muted);font-size:14px;line-height:1.9;margin:0;max-width:590px}
+.aura-help-search{display:flex;align-items:center;gap:10px;width:min(660px,100%);margin-top:12px;min-height:56px;background:var(--surface-soft);border:1px solid var(--line);border-radius:15px;padding:9px 14px;color:var(--accent)}
+.aura-help-search:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.aura-help-search input{width:100%;min-width:0;border:0;background:transparent;color:var(--ink);font-size:15px;outline:0}
+.aura-help-search button{min-width:30px;min-height:30px;display:grid;place-items:center;color:var(--muted)}
+.aura-help-content,.aura-help-troubleshooting{display:grid;gap:15px;padding:clamp(19px,2.5vw,32px);background:var(--surface);border:1px solid var(--line);border-radius:23px}
+.aura-help-heading{display:flex;align-items:center;justify-content:space-between;gap:13px}
+.aura-help-heading .eyebrow{font-size:12px;color:var(--accent)}
+.aura-help-heading h2{font-size:clamp(21px,2.3vw,30px);margin:5px 0}
+.aura-help-heading>span{font-size:12px;color:var(--muted)}
+.aura-help-filters{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding-block:2px}
+.aura-help-filters button{min-height:39px;padding:9px 14px;border-radius:99px;border:1px solid var(--line);font-size:13px;color:var(--muted);white-space:nowrap}
+.aura-help-filters button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:750}
+.aura-help-topics{display:grid;gap:9px}
+.aura-help-topic{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:var(--surface-soft)}
+.aura-help-topic>button{display:flex;gap:13px;align-items:center;width:100%;padding:15px;text-align:start;min-height:63px}
+.aura-help-topic>button>svg:first-child{color:var(--accent);flex:none}
+.aura-help-topic>button strong{flex:1;min-width:0;font-size:14px;line-height:1.6}
+.aura-help-topic>button>svg:last-child{color:var(--muted);transition:transform .2s ease}
+.aura-help-topic>button[aria-expanded=true]>svg:last-child{transform:rotate(180deg)}
+.aura-help-topic>button:hover{background:var(--accent-soft)}
+.aura-help-answer{border-top:1px solid var(--line);padding:16px 18px 20px;background:var(--surface);display:grid;gap:15px}
+.aura-help-answer p{margin:0;font-size:14px;color:var(--muted);line-height:2}
+.aura-help-answer a{display:inline-flex;align-items:center;gap:8px;justify-self:start;font-size:13px;font-weight:750;color:var(--accent);padding:8px 11px;border:1px solid var(--line);border-radius:10px}
+.aura-help-answer a:hover{background:var(--accent-soft)}
+.aura-help-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.aura-help-steps>div{display:grid;align-content:start;gap:9px;padding:22px;border-radius:16px;border:1px solid var(--line);background:var(--surface-soft)}
+.aura-help-steps span{display:grid;place-items:center;width:39px;height:39px;border-radius:12px;color:var(--accent);background:var(--accent-soft);font-weight:800}
+.aura-help-steps h3{font-size:16px;margin:3px 0 0}
+.aura-help-steps p{font-size:12px;color:var(--muted);line-height:1.95;margin:0}
+.aura-help-empty{display:grid;justify-items:center;gap:10px;padding:39px 13px;color:var(--muted);text-align:center}
+.aura-help-empty h3{font-size:18px;color:var(--ink);margin:0}
+.aura-help-empty p{font-size:12px;margin:0}
+.aura-help-empty button{margin-top:8px;min-height:42px;padding:10px 14px;border-radius:12px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:750}
+@media(max-width:930px){.aura-help-steps{grid-template-columns:1fr}}
+@media(max-width:540px){.aura-help-hero{padding:30px 17px}.aura-help-hero>p{font-size:13px}.aura-help-topic>button{padding:13px}.aura-help-content,.aura-help-troubleshooting{padding:18px}}
+@media(prefers-reduced-motion:reduce){.aura-help-topic>button>svg:last-child{transition:none}}
+
+/* Noata identity: deep navy, clear blue, generous Arabic rhythm. */
+h1,h2,h3,.brand-copy strong{letter-spacing:0}
+.noata-logo{display:inline-flex;position:relative;flex:none;line-height:1}
+.noata-logo img{display:block;width:100%;height:100%;object-fit:contain}
+.noata-logo .noata-logo-night{display:none}
+html[data-theme="dark"] .noata-logo .noata-logo-day,.noata-logo-on-navy .noata-logo-day{display:none}
+html[data-theme="dark"] .noata-logo .noata-logo-night,.noata-logo-on-navy .noata-logo-night{display:block}
+.brand-copy strong{font-family:Cairo,sans-serif;font-size:28px;color:var(--ink)}
+.owui-welcome-logo,.owui-message-avatar:has(.noata-logo){background:transparent;box-shadow:none}
+.owui-brand strong{font-size:20px;letter-spacing:0}
+.aura-home-return{background:var(--accent-soft);border:1px solid var(--line);border-radius:14px;margin-block:5px 9px;padding:12px!important;min-height:64px!important}
+.aura-home-return span{display:grid;gap:3px}.aura-home-return small{color:var(--muted);font-size:11px}
+.aura-brand-scene{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:270px;color:white;isolation:isolate}
+.aura-brand-halo{position:absolute;inset:12px 0;border:1px solid #ffffff24;border-radius:50%;z-index:-1;background:radial-gradient(circle,#009aff26,transparent 68%)}
+.aura-brand-scene .noata-logo{filter:drop-shadow(0 15px 20px #0002)}
+.aura-scene-caption{letter-spacing:.16em;font:12px Cairo,sans-serif;color:#d9edff}
+.aura-scene-note{display:flex;align-items:center;gap:8px;border:1px solid #ffffff32;padding:8px 14px;border-radius:30px;font-size:12px;background:#ffffff0d}
+.aura-learning-paths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:20px 0 28px;border-block:1px solid var(--line)}
+.aura-learning-paths a{display:flex;align-items:center;gap:14px;padding:22px 14px;min-width:0}
+.aura-learning-paths a+a{border-inline-start:1px solid var(--line)}
+.aura-learning-paths a:hover{background:var(--accent-soft)}
+.aura-learning-paths a>span{font:22px Cairo,sans-serif;color:var(--accent);opacity:.7}
+.aura-learning-paths div{display:grid;flex:1;gap:5px}.aura-learning-paths strong{font-size:15px}.aura-learning-paths small{font-size:12px;color:var(--muted)}
+.aura-studio-title{display:grid;gap:8px;font-weight:650}.aura-studio-title input{padding:12px;border-radius:12px;border:1px solid var(--line);width:100%}
+.aura-document-toolbar,.aura-pdf-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-block:15px}
+.aura-document-toolbar a,.aura-pdf-pagination button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 13px;background:var(--surface-soft)}
+.aura-original-preview canvas{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:12px;background:white}
+.aura-original-preview pre{max-height:52dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface-soft);padding:18px;border-radius:12px;font:14px/1.9 NoataArabic,sans-serif}
+.aura-studio-tabs button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.noata-sidebar .nav-link.active{background:var(--accent-soft);color:var(--accent);border-inline-start:3px solid var(--accent)}
+.owui-composer textarea{font-size:15px;line-height:1.9;letter-spacing:0}
+.owui-new-chat,.owui-send{background:#0065b5;color:white}
+html[data-theme=dark] .owui-new-chat,html[data-theme=dark] .owui-send{background:#008de0;color:#fff}
+.owui-model-trigger{border:1px solid var(--line);background:var(--surface-soft)}
+.owui-model-option{min-height:66px}
+.aura-theme-menu{min-width:260px;border-radius:18px;padding:12px;box-shadow:0 18px 54px #04132824}
+.aura-theme-menu>strong{display:block;padding:6px 9px 12px;font-size:14px}
+.aura-theme-menu button{border-radius:12px;min-height:60px}
+.aura-theme-menu button.selected{background:var(--accent-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 25%,transparent)}
+.top-icon{min-width:42px;min-height:42px}
+@media(max-width:640px){.aura-learning-paths{grid-template-columns:1fr}.aura-learning-paths a{padding:15px 10px}.aura-learning-paths a+a{border-inline-start:0;border-top:1px solid var(--line)}.aura-brand-scene{min-height:210px}.aura-brand-scene .noata-logo{width:125px!important;height:125px!important}.owui-composer textarea{font-size:16px}.aura-document-toolbar strong{font-size:12px}}
+
+.aura-response-player{max-width:540px;padding:16px;margin-top:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface-soft)}
+.aura-player-heading{display:flex;align-items:center;gap:9px;color:var(--accent);font-size:12px;margin-bottom:14px}.aura-player-heading>button{margin-inline-start:auto;background:transparent;border:0;display:grid;place-items:center;min-height:36px;min-width:36px}
+.aura-player-timeline{display:flex;align-items:center;gap:12px}.aura-player-timeline>div{flex:1;min-width:0}.aura-player-timeline input{display:block;width:100%;height:24px;accent-color:var(--accent)}.aura-player-timeline select{border:1px solid var(--line);border-radius:9px;padding:7px;background:var(--surface);font-size:12px}
+.aura-player-play{display:grid;place-items:center;min-width:43px;min-height:43px;border:0;border-radius:50%;background:var(--accent);color:var(--surface)}.aura-player-time{display:flex;justify-content:space-between;font:11px Cairo,sans-serif;color:var(--muted)}.aura-response-player audio{display:none}
+
+.aura-document-chip .aura-pending-preview{display:block;min-width:0;max-width:200px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;border:0;background:transparent;text-align:start;padding:0;color:var(--ink);font-size:12px}
+
+.aura-module-welcome{display:grid;grid-template-columns:1.4fr 1fr;align-items:center;gap:40px;padding:clamp(24px,4vw,56px);border:1px solid var(--line);border-radius:28px;background:linear-gradient(115deg,var(--surface),var(--accent-soft));min-height:360px}
+.aura-module-intro{max-width:650px}.aura-module-intro>.eyebrow{display:block;color:var(--accent);margin-block:22px 10px}.aura-module-intro h1{font-size:clamp(26px,3vw,38px);margin:8px 0 14px;line-height:1.6}.aura-module-intro p{color:var(--muted);line-height:2;margin-bottom:25px}.aura-module-symbol{display:grid;place-items:center;background:var(--accent);color:var(--surface);border-radius:18px;width:62px;height:62px}.aura-module-steps{list-style:none;display:grid;gap:0;padding:0}.aura-module-steps li{display:flex;align-items:center;gap:15px;padding:25px 0;border-bottom:1px solid var(--line)}.aura-module-steps li>span{font:26px Cairo,sans-serif;color:var(--accent);opacity:.7}.aura-module-steps strong{flex:1;font-size:14px}.aura-module-steps svg{color:var(--accent)}
+.aura-device-appearance{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 30px;margin-top:20px;background:var(--surface);border:1px solid var(--line);border-radius:20px}.aura-device-appearance h2{margin:0 0 5px}.aura-device-appearance p{margin:0;color:var(--muted)}
+.aura-mission-stages{list-style:none;margin:20px 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:20px;overflow:hidden;background:var(--surface)}.aura-mission-stages li{display:flex;gap:12px;align-items:center;padding:18px}.aura-mission-stages li+li{border-inline-start:1px solid var(--line)}.aura-mission-stages li>span{display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;min-width:33px;height:33px}.aura-mission-stages li.current{background:var(--accent-soft)}.aura-mission-stages li.current>span{background:var(--accent);color:var(--surface);border-color:var(--accent)}.aura-mission-stages div{display:grid;gap:4px}.aura-mission-stages strong{font-size:13px}.aura-mission-stages small{color:var(--muted);font-size:11px}
+@media(max-width:800px){.aura-module-welcome{grid-template-columns:1fr;gap:18px}.aura-module-steps li{padding:16px 0}.aura-mission-stages li{padding:12px;flex-direction:column;align-items:flex-start;gap:8px}.aura-mission-stages strong{font-size:12px}.aura-mission-stages small{font-size:10px}}
+
+.aura-load-error{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px;border:1px solid var(--line);border-inline-start:4px solid var(--danger);border-radius:18px;background:var(--surface);margin-bottom:20px;color:var(--danger)}.aura-load-error button{border:1px solid var(--line);border-radius:12px;padding:10px 16px;background:var(--surface-soft);color:var(--ink)}
+.aura-loading-state{text-align:center;padding:45px;background:var(--surface);border:1px solid var(--line);border-radius:22px}.aura-loading-state>span{display:inline-block;width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}.aura-loading-state p{color:var(--muted)}.aura-curriculum-unit{position:relative;border-inline-start:3px solid var(--accent)!important}.aura-curriculum-unit .quest-list{border-inline-start:1px solid var(--line);margin-inline-start:20px;padding-inline-start:20px}
+.aura-learning-paths a>span,.aura-module-steps li>span{opacity:1}
+.owui-new-chat kbd{color:inherit;opacity:1}
+html[data-theme=dark] .owui-new-chat,html[data-theme=dark] .owui-send{background:#0065b5;color:white}
+.rank-card{background:var(--accent-soft);color:var(--ink)}.rank-card .tiny-label{color:var(--ink)}
+.aura-quran-header .eyebrow{color:var(--accent)}
+.hero .eyebrow{color:#c5e4ff}
+.progress i{background:var(--accent)}
+.aura-writing-entry{display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 16px;margin:9px auto;border:0;background:transparent;color:var(--accent);font-size:12px;border-radius:10px}.aura-writing-entry:hover{background:var(--accent-soft)}.aura-writing-artifact{display:flex;align-items:center;gap:14px;width:100%;max-width:560px;margin:20px 0;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface-soft);text-align:start}.aura-writing-artifact>span:nth-child(2){display:grid;flex:1;min-width:0;gap:5px}.aura-writing-artifact strong{font-size:14px;overflow-wrap:anywhere}.aura-writing-artifact small{color:var(--muted);font-size:11px}.aura-artifact-icon{display:grid;place-items:center;min-width:43px;height:50px;border:1px solid var(--line);border-radius:9px;color:var(--accent);background:var(--surface)}
+
+
+/* Guest sign-in is used across protected pages, including /boss. Explicit
+   luminance-safe colors prevent contrast changes when the OS switches themes. */
+a.noata-sign-in,
+html[data-theme="dark"] a.noata-sign-in {
+  min-height: 40px;
+  background: #075187;
+  color: #fff;
+  border-color: #075187;
+  font-weight: 750;
+}
+a.noata-sign-in:hover,
+html[data-theme="dark"] a.noata-sign-in:hover {
+  background: #063c66;
+  color: #fff;
+  border-color: #063c66;
+}
+a.noata-sign-in:focus-visible {
+  outline: 3px solid #ffde69;
+  outline-offset: 3px;
+}
+
+/* A readable inbox: read state is explicit, never faded text. */
+.aura-inbox .topbar{gap:18px;flex-wrap:wrap;margin-bottom:24px}
+.aura-inbox .topbar p{color:var(--muted)}
+.aura-inbox-item{display:flex;align-items:flex-start;gap:16px;padding:24px 4px;border-bottom:1px solid var(--line)}
+.aura-inbox-item:last-child{border-bottom:0}
+.aura-inbox-item>div{flex:1;min-width:0;overflow-wrap:anywhere}
+.aura-inbox-item h2{font-size:18px;margin:12px 0 6px}
+.aura-inbox-item p{color:var(--muted);line-height:1.8}
+.aura-inbox-item time{display:block;color:var(--muted);font-size:12px;margin:12px 0}
+.aura-inbox-item a{display:inline-flex;min-height:44px;align-items:center;color:var(--accent);font-weight:700}
+.aura-inbox-marker{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:14px;background:var(--accent-soft);color:var(--accent)}
+.aura-inbox-empty{padding:44px 16px;text-align:center;color:var(--muted)}
+.aura-studio-close-confirm{border:1px solid var(--line);padding:16px;border-radius:14px;background:var(--surface)}
+.aura-studio-close-confirm button{min-height:44px;padding:8px 14px;margin:4px;border:1px solid var(--line);border-radius:10px;color:var(--ink);background:var(--surface)}
+.noata-user-account{max-width:240px;overflow-wrap:anywhere}
+.noata-user-account>[role=alert]{display:block;color:var(--danger);font-size:11px}
+@media(max-width:390px){.aura-inbox-item{gap:10px}.aura-inbox-marker{flex-basis:32px;height:32px}.noata-user-account{max-width:165px}}
+/* Keep every header action visible when account controls cannot fit beside the page title. */
+@media(max-width:390px){
+  .shell-topbar{flex-wrap:wrap;gap:10px;padding-block:10px}
+  .shell-topbar .top-actions{max-width:100%;flex-wrap:wrap;margin-inline-start:auto}
+}
+.aura-quran-chapter-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}
+.aura-quran-chapter-nav button{border:1px solid var(--line);border-radius:12px;min-height:44px;padding:8px 16px;background:var(--surface);color:var(--ink)}
+.aura-quran-chapter-nav span,.aura-quran-notice{color:var(--muted);font-size:14px}
+.aura-staff-status{padding:14px 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow-wrap:anywhere}
+.aura-progress-guest .eyebrow{color:var(--accent)}
+
+/* Legible keyboard hints and compact account identity at narrow widths. */
+.command-trigger kbd{color:var(--ink);background:var(--surface)}
+.noata-user-summary{min-width:0;max-width:150px}
+.noata-user-summary>div,.noata-user-summary>small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.noata-user-account .avatar{flex-shrink:0}
+@media(max-width:480px){.noata-user-summary{display:none}}
+
+/* ---------- Brand lockup ---------- */
+.noata-brand{display:inline-flex;align-items:center;gap:11px;min-width:0;color:var(--ink)}
+.noata-brand-mark{display:grid;place-items:center;flex:none}
+.noata-brand-copy{display:grid;gap:1px;min-width:0;line-height:1.15}
+.noata-brand-copy strong{font-family:Cairo,sans-serif;font-size:22px;font-weight:800;letter-spacing:0;color:var(--ink)}
+.noata-brand-copy small{font-size:12px;color:var(--muted);font-weight:600}
+.noata-brand.is-compact .noata-brand-copy small{display:none}
+
+/* ---------- Grouped sidebar ---------- */
+.noata-sidebar .sidebar-brand{padding:6px 10px 18px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+.sidebar-nav{display:grid;gap:14px;padding-top:6px}
+.nav-group{display:grid;gap:2px}
+.noata-sidebar .nav-group .nav-title{padding:0 12px 4px;font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:0;text-transform:none}
+.noata-sidebar .nav-link{display:flex;align-items:center;gap:10px;min-height:40px;padding:6px 10px;border-radius:12px;font-size:14px;font-weight:600;border-inline-start:3px solid transparent}
+.noata-sidebar .nav-link .nav-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;color:var(--muted);flex:none;transition:background .2s var(--ease),color .2s var(--ease)}
+.noata-sidebar .nav-link .nav-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.noata-sidebar .nav-link:hover .nav-icon{color:var(--accent)}
+.noata-sidebar .nav-link.active .nav-icon{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px #0b2a5014}
+.noata-sidebar .nav-link.active:before{display:none}
+.nav-link-ai .nav-icon{background:var(--accent-soft);color:var(--accent)!important}
+.nav-tag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--accent);color:#fff}
+.noata-sidebar .sidebar-foot{display:grid;gap:10px;margin-top:auto;padding:14px 4px 4px;border-top:1px solid var(--line);background:transparent;border-radius:0}
+.sidebar-ai-card{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;background:var(--accent-soft);color:var(--ink);text-decoration:none;transition:transform .2s var(--ease)}
+.sidebar-ai-card:hover{transform:translateY(-1px)}
+.sidebar-ai-card>span:nth-child(2){display:grid;gap:2px;flex:1;min-width:0}
+.sidebar-ai-card b{font-size:13.5px}
+.sidebar-ai-card small{font-size:11.5px;color:var(--muted);line-height:1.5}
+.sidebar-ai-card>svg{color:var(--accent);flex:none}
+.sidebar-ai-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--accent);color:#fff;flex:none}
+.sidebar-utility{display:grid;gap:2px}
+.noata-sidebar .legal-links{display:flex;gap:6px;justify-content:center;font-size:11.5px;color:var(--muted)}
+.noata-sidebar .legal-links a{color:inherit}
+
+/* ---------- Confirm modal ---------- */
+.noata-confirm{border:0;padding:0;border-radius:22px;width:min(420px,calc(100vw - 32px));background:var(--surface);color:var(--ink);box-shadow:0 30px 80px #0a1d3a33}
+.noata-confirm::backdrop{background:#071327a6;backdrop-filter:blur(3px)}
+.noata-confirm[open]{animation:noata-confirm-in .22s var(--ease)}
+@keyframes noata-confirm-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.noata-confirm-body{display:grid;gap:10px;padding:26px 24px 22px;text-align:center;justify-items:center}
+.noata-confirm-icon{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--accent-soft);color:var(--accent);margin-bottom:4px}
+.noata-confirm[data-tone=danger] .noata-confirm-icon{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+.noata-confirm h2{margin:0;font-size:19px}
+.noata-confirm p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.75}
+.noata-confirm-actions{display:grid;gap:8px;width:100%;margin-top:10px}
+.noata-confirm-actions button{min-height:46px;border-radius:13px;font-weight:700;font-size:15px;cursor:pointer}
+.noata-confirm-primary{border:0;background:var(--accent);color:#fff}
+.noata-confirm[data-tone=danger] .noata-confirm-primary{background:var(--danger)}
+html[data-theme=dark] .noata-confirm-primary{color:#071327}
+.noata-confirm-secondary{border:1px solid var(--line);background:transparent;color:var(--ink)}
+.noata-confirm-actions button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:2px}
+
+/* ---------- Auth ---------- */
+.auth-shell{min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:var(--surface-soft)}
+.auth-shell.is-centered{grid-template-columns:1fr;place-items:center;padding:20px}
+.auth-aside{display:flex;flex-direction:column;justify-content:space-between;gap:32px;padding:44px;background:linear-gradient(160deg,#0b2a52,#0065b5);color:#fff}
+.auth-aside .noata-brand-copy strong,.auth-aside .noata-brand-copy small{color:#fff}
+.auth-aside .noata-logo .noata-logo-day{display:none}.auth-aside .noata-logo .noata-logo-night{display:block}
+.auth-aside-copy h2{font-size:clamp(26px,3vw,36px);line-height:1.35;margin:0 0 12px;text-wrap:balance}
+.auth-aside-copy p{margin:0;opacity:.85;line-height:1.8;max-width:42ch}
+.auth-aside-points{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.auth-aside-points li{display:flex;align-items:center;gap:10px;font-size:14.5px;padding:12px 14px;border-radius:14px;background:#ffffff14}
+.auth-card{display:flex;flex-direction:column;gap:6px;width:min(440px,100%);margin:auto;padding:36px 28px;background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow-soft)}
+.auth-shell:not(.is-centered) .auth-card{margin:auto;align-self:center}
+.auth-card-brand{margin-bottom:14px}
+.auth-shell:not(.is-centered) .auth-card-brand{display:none}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--surface-soft);border:1px solid var(--line);margin-bottom:18px}
+.auth-tabs button{border:0;border-radius:10px;min-height:40px;font-weight:700;background:transparent;color:var(--muted);cursor:pointer}
+.auth-tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px #0b2a5014}
+.auth-eyebrow{margin:0;color:var(--accent);font-weight:700;font-size:13px}
+.auth-card h1{margin:2px 0 4px;font-size:26px;line-height:1.35}
+.auth-lead{margin:0 0 10px;color:var(--muted);line-height:1.8;font-size:14.5px}
+.auth-google{display:flex;align-items:center;justify-content:center;gap:10px;min-height:48px;border:1px solid var(--line);border-radius:13px;background:var(--surface);color:var(--ink);font-weight:700;font-size:15px;cursor:pointer;margin-top:8px}
+.auth-google:hover:not(:disabled){background:var(--surface-soft)}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:14px 0 6px;color:var(--muted);font-size:12.5px}
+.auth-divider:before,.auth-divider:after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-form{display:grid;gap:14px;margin-top:6px}
+.auth-field{display:grid;gap:6px;font-size:13.5px;font-weight:700;color:var(--ink)}
+.auth-field-row{display:flex;justify-content:space-between;align-items:center}
+.auth-field input{width:100%;min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface-soft);color:var(--ink);font:inherit;font-weight:500;font-size:16px}
+.auth-field input[dir=ltr]{text-align:left}
+.auth-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);background:var(--surface)}
+.auth-password{position:relative;display:block}
+.auth-password input{padding-left:78px;padding-right:14px}
+.auth-password button{position:absolute;inset-block:6px;left:6px;border:0;border-radius:9px;padding:0 10px;background:transparent;color:var(--accent);font-weight:700;font-size:12.5px;cursor:pointer}
+.auth-inline-link,.auth-link{border:0;background:transparent;color:var(--accent);font-weight:700;cursor:pointer;font-size:12.5px;padding:0}
+.auth-link{margin:14px auto 0;font-size:14px}
+.auth-primary{display:flex;align-items:center;justify-content:center;min-height:48px;border:0;border-radius:13px;background:var(--accent);color:#fff;font-weight:800;font-size:15.5px;cursor:pointer;text-decoration:none;margin-top:4px}
+html[data-theme=dark] .auth-primary{color:#071327}
+.auth-primary:disabled,.auth-google:disabled{opacity:.6;cursor:not-allowed}
+.auth-alert{margin:0;padding:10px 12px;border-radius:11px;font-size:13.5px;line-height:1.7;font-weight:600}
+.auth-alert.is-error{background:color-mix(in srgb,var(--danger) 11%,transparent);color:var(--danger)}
+.auth-alert.is-success{background:color-mix(in srgb,var(--success) 12%,transparent);color:var(--success)}
+.auth-explore{display:block;margin-top:18px;text-align:center;font-size:13px;color:var(--muted)}
+.auth-verify{display:grid;gap:8px;text-align:center;justify-items:center}
+.auth-verify .auth-primary{width:100%}
+.auth-verify-icon{display:grid;place-items:center;width:58px;height:58px;border-radius:18px;background:var(--accent-soft);color:var(--accent);margin-bottom:6px}
+.auth-verify-tips{list-style:none;margin:4px 0 8px;padding:12px 14px;border-radius:13px;background:var(--surface-soft);display:grid;gap:6px;font-size:13px;color:var(--muted);text-align:start;width:100%}
+.auth-status{align-items:center;text-align:center;gap:12px}
+.auth-status .auth-primary{width:100%}
+.auth-spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--accent-soft);border-top-color:var(--accent);animation:auth-spin .8s linear infinite;margin:10px 0}
+@keyframes auth-spin{to{transform:rotate(360deg)}}
+@media(max-width:860px){.auth-shell{grid-template-columns:1fr}.auth-aside{display:none}.auth-shell .auth-card-brand{display:block!important}.auth-card{margin:20px auto;padding:28px 20px}}
+
+/* ---------- Study workshop ---------- */
+.aura-workshop{display:grid;gap:16px;max-height:72dvh;overflow-y:auto;padding:4px;min-width:0}
+.aura-workshop-head{display:flex;gap:12px;align-items:center}
+.aura-workshop-head>div{display:grid;gap:2px}
+.aura-workshop-head strong{font-size:18px}
+.aura-workshop-head small{color:var(--muted);font-size:13px}
+.aura-workshop-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--accent-soft);color:var(--accent);flex:none}
+.aura-workshop-steps{list-style:none;margin:0;padding:0;display:grid;gap:16px}
+.aura-workshop-steps h3{display:flex;align-items:center;gap:8px;margin:0 0 9px;font-size:14px}
+.aura-workshop-steps h3 span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px}
+html[data-theme=dark] .aura-workshop-steps h3 span{color:#071327}
+.aura-workshop-flows{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.aura-workshop-flows button{display:flex;gap:10px;align-items:flex-start;text-align:start;padding:11px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);cursor:pointer;transition:border-color .15s,background .15s}
+.aura-workshop-flows button:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.aura-workshop-flows button[aria-checked=true]{border-color:var(--accent);background:var(--accent-soft)}
+.aura-workshop-flows button>span:last-child{display:grid;gap:2px;min-width:0}
+.aura-workshop-flows strong{font-size:13.5px}
+.aura-workshop-flows small{font-size:12px;color:var(--muted);line-height:1.5}
+.aura-workshop-flow-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--surface-soft);color:var(--accent);flex:none}
+.aura-workshop-flows button[aria-checked=true] .aura-workshop-flow-icon{background:var(--accent);color:#fff}
+.aura-workshop-topic{width:100%;resize:vertical;min-height:84px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-soft);color:var(--ink);font:inherit;font-size:16px;line-height:1.7}
+.aura-workshop-topic:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.aura-workshop-meta{display:flex;justify-content:flex-end;font-size:11.5px;color:var(--muted);margin-top:4px}
+.aura-workshop-options{display:flex;flex-wrap:wrap;gap:14px}
+.aura-workshop-options fieldset{border:0;padding:0;margin:0;display:grid;gap:6px}
+.aura-workshop-options legend{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.aura-chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.aura-chip-row button{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;font-size:13px;cursor:pointer}
+.aura-chip-row button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.aura-workshop-preview{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--surface-soft);border:1px dashed var(--line);color:var(--accent)}
+.aura-workshop-preview p{margin:0;color:var(--ink);font-size:13.5px;line-height:1.7}
+.aura-workshop-actions{display:flex;flex-wrap:wrap;gap:8px}
+.aura-workshop-actions button{min-height:46px;border-radius:13px;padding:0 18px;font-weight:700;font-size:14.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.aura-workshop-send{flex:1;justify-content:center;border:0;background:var(--accent);color:#fff}
+html[data-theme=dark] .aura-workshop-send{color:#071327}
+.aura-workshop-draft{border:1px solid var(--line);background:transparent;color:var(--ink)}
+.aura-workshop-actions button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:520px){.aura-workshop-flows{grid-template-columns:1fr 1fr}.aura-workshop-flows small{display:none}.aura-workshop-actions button{flex:1 1 100%;justify-content:center}}
