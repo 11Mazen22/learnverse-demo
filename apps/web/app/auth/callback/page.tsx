@@ -1,4 +1,5 @@
 "use client";
+import { useTranslation, useLocale } from "@/lib/i18n/locale";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -16,9 +17,10 @@ function reasonFromCode(code: string | null | undefined) {
 }
 
 export default function AuthCallbackPage() {
+  const t = useTranslation();
   const exchangeStarted = useRef(false);
   const [state, setState] = useState<{ status: "loading" | "error"; message: string }>({
-    status: "loading", message: "جارٍ تأكيد الرابط وتسجيل دخولك بأمان…",
+    status: "loading", message: t("جارٍ تأكيد الرابط وتسجيل دخولك بأمان…","Confirming your link and securely signing you in…"),
   });
 
   useEffect(() => {
@@ -88,14 +90,14 @@ export default function AuthCallbackPage() {
         {state.status === "loading" ? (
           <>
             <span className="auth-spinner" aria-hidden="true" />
-            <h1>لحظة من فضلك</h1>
-            <p className="auth-lead">{state.message}</p>
+            <h1>{t("لحظة من فضلك","Please wait")}</h1>
+            <p className="auth-lead">{t("جارٍ تأكيد الرابط وتسجيل دخولك بأمان…","Confirming your link and securely signing you in…")}</p>
           </>
         ) : (
           <>
-            <h1>تعذّر إكمال التحقق</h1>
+            <h1>{t("تعذّر إكمال التحقق","Could not complete verification")}</h1>
             <p className="auth-alert is-error" role="alert">{state.message}</p>
-            <Link className="auth-primary" href="/auth/error?reason=service">عرض خيارات استعادة الوصول</Link>
+            <Link className="auth-primary" href="/auth/error?reason=service">{t("عرض خيارات استعادة الوصول","View account recovery options")}</Link>
           </>
         )}
       </section>

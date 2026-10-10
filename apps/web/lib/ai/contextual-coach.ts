@@ -1,6 +1,7 @@
 /** Noata route-specific, permission-safe educational coaching suggestions.
  * Intentionally NOT a tool-call or a claim that Noata AI has private context.
  */
+import {EN_COACH_CONTEXTS} from "./contextual-coach.en.ts";
 export type CoachAction = { id:string; label:string; description:string; prompt:string };
 export type CoachContext = { heading:string; intro:string; actions:CoachAction[] };
 const CONTEXTS: Record<string,CoachContext> = {
@@ -366,10 +367,11 @@ const CONTEXTS: Record<string,CoachContext> = {
   }
 };
 export const COACH_ROUTES = Object.freeze(Object.keys(CONTEXTS));
-export function coachForRoute(active:string):CoachContext {
-  if(active.startsWith("/lesson/"))return CONTEXTS["/lesson"];
-  if(active.startsWith("/auth/")||active==="/login"||active==="/signup")return CONTEXTS["/help"];
-  return CONTEXTS[active]??CONTEXTS["/help"];
+export function coachForRoute(active:string,locale:"ar"|"en"="ar"):CoachContext {
+  const contexts=locale==="en"?EN_COACH_CONTEXTS:CONTEXTS;
+  if(active.startsWith("/lesson/"))return contexts["/lesson"];
+  if(active.startsWith("/auth/")||active==="/login"||active==="/signup")return contexts["/help"];
+  return contexts[active]??contexts["/help"];
 }
 export function validatedCoachPrompt(value:string):string|null {
   const clean=value.replace(/[\u0000-\u001f\u007f]/g," ").trim();

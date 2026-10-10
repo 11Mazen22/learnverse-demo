@@ -25,3 +25,12 @@ test("rejects malformed requests without changing user intent",()=>{
   assert.equal(validatedCoachPrompt("x".repeat(1801)),null);
   assert.equal(validatedCoachPrompt("مرحبا\u0000 تجربة طلب واضح"),"مرحبا  تجربة طلب واضح");
 });
+test("all English route assistants have complete English copy and bounded prompts",()=>{
+ for(const route of COACH_ROUTES){
+  const ctx=coachForRoute(route,"en"),ar=coachForRoute(route,"ar");
+  assert.equal(ctx.actions.length,ar.actions.length,route);
+  assert.equal(/[\u0600-\u06ff]/.test(JSON.stringify(ctx)),false,route);
+  for(const action of ctx.actions)assert.equal(validatedCoachPrompt(action.prompt),action.prompt,route+":"+action.id);
+ }
+ assert.equal(coachForRoute("/lesson/123","en").heading,"Lesson companion");
+});

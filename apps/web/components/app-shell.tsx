@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
 import { ThemeControl } from "@/components/preferences/theme-control";
+import { LocaleControl } from "@/components/preferences/locale-control";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { StaffNav } from "@/components/auth/staff-nav";
 import { Icon } from "@/components/ui/icon";
@@ -176,6 +177,7 @@ export function AppShell({
               <kbd>⌘ K</kbd>
             </button>
             <ContextualCoach active={active} />
+            {!account.loading&&!account.user&&<LocaleControl />}
             <ThemeControl />
             <NotificationBell />
             <UserMenu />

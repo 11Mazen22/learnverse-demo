@@ -1,3 +1,5 @@
+"use client";
+import {useTranslation} from "@/lib/i18n/locale";
 type LogoProps = { size?: number; className?: string };
 
 /**
@@ -38,10 +40,12 @@ type BrandProps = {
 /** Original approved Noata lockup with context-aware mark colors. */
 export function NoataBrand({
   size = 40,
-  tagline = "تعلّم · انمُ · أنجز",
+  tagline,
   compact = false,
   className = "",
 }: BrandProps) {
+  const t=useTranslation();
+  const caption=tagline===undefined?t("تعلّم · انمُ · أنجز","Learn · Grow · Achieve"):tagline;
   const classes = ["noata-brand", compact && "is-compact", className].filter(Boolean).join(" ");
   return (
     <span className={classes}>
@@ -50,7 +54,7 @@ export function NoataBrand({
       </span>
       <span className="noata-brand-copy">
         <strong lang="en" dir="ltr">Noata</strong>
-        {tagline && <small>{tagline}</small>}
+        {caption && <small>{caption}</small>}
       </span>
     </span>
   );

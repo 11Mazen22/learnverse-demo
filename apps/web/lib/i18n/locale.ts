@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export type Locale = "ar" | "en";
 const EVENT = "noata-locale-change";
@@ -41,4 +41,10 @@ export function useLocale(): Locale {
 
 export function localized(locale: Locale, ar: string, en: string) {
   return locale === "en" ? en : ar;
+}
+
+/** Stable copy selector for components and their asynchronous callbacks. */
+export function useTranslation() {
+  const locale = useLocale();
+  return useCallback((ar: string, en: string) => localized(locale, ar, en), [locale]);
 }

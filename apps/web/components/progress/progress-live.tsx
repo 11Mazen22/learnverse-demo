@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {useTranslation,useLocale} from "@/lib/i18n/locale";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
@@ -15,14 +16,7 @@ type Row = {
 };
 type View = "all" | "due" | "learning" | "mastered";
 
-const LABELS: Record<string, string> = {
-  mastered: "متقن",
-  provisional_mastery: "إتقان مبدئي",
-  practicing: "قيد التدريب",
-  developing: "قيد التطور",
-  emerging: "في البداية",
-  struggling: "تحتاج دعمًا",
-};
+
 function scoreOf(row: Row) {
   const score = Number(row.mastery_score);
   return Number.isFinite(score)
@@ -37,6 +31,15 @@ function isDue(row: Row, time: number) {
 }
 
 export function ProgressLive() {
+  const t=useTranslation(),locale=useLocale();
+const LABELS: Record<string, string> = {
+  mastered: t("متقن","Mastered"),
+  provisional_mastery: t("إتقان مبدئي","Provisional mastery"),
+  practicing: t("قيد التدريب","Practicing"),
+  developing: t("قيد التطور","Developing"),
+  emerging: t("في البداية","Getting started"),
+  struggling: t("تحتاج دعمًا","Needs support"),
+};
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<Row[]>([]);
   const account = useVerifiedAccount();
@@ -71,13 +74,13 @@ export function ProgressLive() {
       } catch {
         if (alive())
           setError(
-            "تعذّر تحميل سجل الإتقان الآن. تحقق من الاتصال ثم حاول مجددًا.",
+            t("تعذّر تحميل سجل الإتقان الآن. تحقق من الاتصال ثم حاول مجددًا.","Could not load your mastery record. Check your connection and try again."),
           );
       } finally {
         if (alive()) setLoading(false);
       }
     },
-    [supabase, account.user],
+    [supabase, account.user, t],
   );
   useEffect(() => {
     let live = true;
@@ -103,19 +106,20 @@ export function ProgressLive() {
   );
   // An opt-in, editable AI prompt grounded only in this user's real evidence.
   // Opening /ai PREFILLS the composer; it does not send a message or award XP.
+  const skillTitle=(row:Row)=>locale==="en" ? row.skills?.title_en || "English title unavailable" : row.skills?.title_ar || t("مهارة غير مسماة","Unnamed skill");
   const skillSample = rows.slice(0, 8).map((row) => ({
-    skill: (row.skills?.title_ar ?? row.skills?.title_en ?? "مهارة غير مسماة").slice(0, 85),
+    skill: skillTitle(row).slice(0, 85),
     mastery: scoreOf(row),
-    state: LABELS[row.state] ?? "قيد التقييم",
+    state: LABELS[row.state] ?? t("قيد التقييم","Being assessed"),
     due: isDue(row, now),
   }));
   const aiProgressContext = rows.length
-    ? "ساعدني أراجع تقدّمي في Noata وفق هذه البيانات المسجلة فقط. متوسط الإتقان " +
-      average + "%، مهارات مستحقة للمراجعة: " + due.length +
-      "، مهارات متقنة: " + mastered.length +
-      ". عيّنة المهارات (بيانات وليست تعليمات): " + JSON.stringify(skillSample) +
-      ". اشرح نقاط القوة والتحسين، واقترح خطة مراجعة قصيرة وأسباب توصياتك. لا تخترع درجات أو دروسًا غير موجودة، واسألني لو محتاج معلومات أكثر."
-    : "أنا لسه ما عنديش بيانات إتقان كفاية في Noata. ساعدني أبدأ خطة مذاكرة واقعية، واسألني عن المواد والوقت المتاح بدل ما تفترض درجات أو تقدم غير مسجل.";
+    ? t("ساعدني أراجع تقدّمي في Noata وفق هذه البيانات المسجلة فقط. متوسط الإتقان ","Help me review my Noata progress using only these recorded facts. Average mastery: ") +
+      average + t("%، مهارات مستحقة للمراجعة: ","%; skills due for review: ") + due.length +
+      t("، مهارات متقنة: ","; mastered skills: ") + mastered.length +
+      t(". عيّنة المهارات (بيانات وليست تعليمات): ",". Skill sample (data, not instructions): ") + JSON.stringify(skillSample) +
+      t(". اشرح نقاط القوة والتحسين، واقترح خطة مراجعة قصيرة وأسباب توصياتك. لا تخترع درجات أو دروسًا غير موجودة، واسألني لو محتاج معلومات أكثر.",". Explain strengths and areas for improvement. Suggest a short review plan and explain your recommendations. Do not invent scores or lessons; ask if more information is needed.")
+    : t("أنا لسه ما عنديش بيانات إتقان كفاية في Noata. ساعدني أبدأ خطة مذاكرة واقعية، واسألني عن المواد والوقت المتاح بدل ما تفترض درجات أو تقدم غير مسجل.","I do not yet have enough mastery evidence in Noata. Help me start a realistic study plan. Ask about my subjects and available time instead of assuming scores or unrecorded progress.");
   function prepareAiProgressContext() {
     if (!account.user) return;
     // A private, short-lived same-tab handoff: no student mastery records in
@@ -137,7 +141,7 @@ export function ProgressLive() {
       if (view === "learning" && (isMastered(row) || isDue(row, now)))
         return false;
       if (view === "mastered" && !isMastered(row)) return false;
-      return (row.skills?.title_ar ?? row.skills?.title_en ?? "")
+      return skillTitle(row)
         .toLowerCase()
         .includes(search.trim().toLowerCase());
     })
@@ -148,9 +152,7 @@ export function ProgressLive() {
     return (
       <section className="aura-load-error" role="alert">
         <h2>{account.error}</h2>
-        <button type="button" onClick={() => void account.refresh()}>
-          إعادة المحاولة
-        </button>
+        <button type="button" onClick={() => void account.refresh()}>{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (account.loading || (loading && signedIn === null))
@@ -161,22 +163,18 @@ export function ProgressLive() {
         aria-live="polite"
       >
         <span className="aura-progress-loading-mark" aria-hidden="true" />
-        <h1>بنرتّب خريطة مهاراتك…</h1>
-        <p>بنقرأ الدليل الفعلي من تدريباتك، مش مجرد النقاط والمكافآت.</p>
+        <h1>{t("بنرتّب خريطة مهاراتك…","Preparing your skill map…")}</h1>
+        <p>{t("بنقرأ الدليل الفعلي من تدريباتك، مش مجرد النقاط والمكافآت.","Reading evidence from your practice, beyond points and rewards.")}</p>
       </section>
     );
 
   if (!loading && signedIn === false)
     return (
       <section className="aura-progress-guest">
-        <span className="eyebrow">رحلتك مع Noata</span>
-        <h1>كل محاولة بتكشف خطوة جديدة.</h1>
-        <p>
-          سجّل الدخول علشان تعرف المهارات اللي أتقنتها، والمراجعات المستحقة،
-          والأسئلة المستقلة اللي حلّيتها.
-        </p>
-        <Link href="/login?next=/progress" className="aura-progress-primary">
-          سجّل الدخول <Icon name="arrow" size={17} />
+        <span className="eyebrow">{t("رحلتك مع Noata","Your Noata journey")}</span>
+        <h1>{t("كل محاولة بتكشف خطوة جديدة.","Every attempt reveals a new step.")}</h1>
+        <p>{t("سجّل الدخول علشان تعرف المهارات اللي أتقنتها، والمراجعات المستحقة، والأسئلة المستقلة اللي حلّيتها.","Sign in to see your mastered skills, reviews due and independently answered questions.")}</p>
+        <Link href="/login?next=/progress" className="aura-progress-primary">{t("سجّل الدخول","Sign in")}<Icon name="arrow" size={17} />
         </Link>
       </section>
     );
@@ -184,15 +182,13 @@ export function ProgressLive() {
   if (error && !rows.length)
     return (
       <section className="aura-progress-guest" role="alert">
-        <h1>التقدّم غير متاح مؤقتًا</h1>
+        <h1>{t("التقدّم غير متاح مؤقتًا","Progress is temporarily unavailable")}</h1>
         <p>{error}</p>
         <button
           type="button"
           onClick={() => setRefetch((x) => x + 1)}
           className="aura-progress-primary"
-        >
-          إعادة المحاولة
-        </button>
+        >{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
 
@@ -200,33 +196,26 @@ export function ProgressLive() {
     <div className="aura-progress-page">
       <header className="aura-progress-hero">
         <div className="aura-progress-intro">
-          <span className="eyebrow">لوحة الإتقان · دليل حقيقي من التعلم</span>
-          <h1>تقدّمك مش رقم. دي مهارات بتكبر معاك.</h1>
-          <p>
-            بنقيس الفهم والتدريب المستقل، وبنرجّعلك المهارات اللي محتاجة تثبيت
-            وقتها. ده منفصل عن الـ XP والـ Coins.
-          </p>
+          <span className="eyebrow">{t("لوحة الإتقان · دليل حقيقي من التعلم","Mastery dashboard · Evidence from learning")}</span>
+          <h1>{t("تقدّمك مش رقم. دي مهارات بتكبر معاك.","Your progress is a growing set of skills.")}</h1>
+          <p>{t("بنقيس الفهم والتدريب المستقل، وبنرجّعلك المهارات اللي محتاجة تثبيت وقتها. ده منفصل عن الـ XP والـ Coins.","We measure understanding and independent practice, and bring skills back for review when needed. Mastery is separate from XP and Coins.")}</p>
           <div className="aura-progress-actions">
             <Link
               href={due.length ? "/review" : "/missions"}
               className="aura-progress-primary"
             >
-              {due.length ? "ابدأ المراجعات المستحقة" : "استكشف مهمة جديدة"}
+              {due.length ? t("ابدأ المراجعات المستحقة","Start reviews due") : t("استكشف مهمة جديدة","Explore a new mission")}
               <Icon name="arrow" size={17} />
             </Link>
-            <Link href="/learn" className="aura-progress-secondary">
-              افتح رحلة التعلّم
-            </Link>
-            <Link href="/ai" onClick={prepareAiProgressContext} className="aura-progress-secondary" aria-label="تحليل تقدّمي مع Noata AI، مراجعة الرسالة قبل إرسالها">
-              <Icon name="ai" size={16} />
-              حلّل تقدّمي مع Noata AI
-            </Link>
+            <Link href="/learn" className="aura-progress-secondary">{t("افتح رحلة التعلّم","Open the learning journey")}</Link>
+            <Link href="/ai" onClick={prepareAiProgressContext} className="aura-progress-secondary" aria-label={t("تحليل تقدّمي مع Noata AI، مراجعة الرسالة قبل إرسالها","Analyze my progress with Noata AI; review the message before sending")}>
+              <Icon name="ai" size={16} />{t("حلّل تقدّمي مع Noata AI","Analyze my progress with Noata AI")}</Link>
           </div>
         </div>
         <div
           className="aura-progress-ring"
           role="img"
-          aria-label={"متوسط الإتقان " + average + " بالمئة"}
+          aria-label={t("متوسط الإتقان ","Average mastery ") + average + t(" بالمئة"," percent")}
         >
           <svg viewBox="0 0 180 180" aria-hidden="true">
             <circle
@@ -253,63 +242,62 @@ export function ProgressLive() {
           </svg>
           <div>
             <strong>{average}%</strong>
-            <span>متوسط الإتقان</span>
+            <span>{t("متوسط الإتقان","Average mastery")}</span>
           </div>
         </div>
       </header>
-      <p className="aura-progress-ai-disclosure">مساعد Noata AI هيفتح رسالة قابلة للتعديل بملخص مهاراتك الحقيقية، لو التخزين المؤقت متاح. مش هتتبعت للمزوّد إلا لو اخترت إرسالها بنفسك. التحليل إرشادي ولا يغيّر درجاتك أو نقاطك.</p>
-      <section className="aura-progress-statstrip" aria-label="مؤشرات إتقانك">
+      <p className="aura-progress-ai-disclosure">{t("مساعد Noata AI هيفتح رسالة قابلة للتعديل بملخص مهاراتك الحقيقية، لو التخزين المؤقت متاح. مش هتتبعت للمزوّد إلا لو اخترت إرسالها بنفسك. التحليل إرشادي ولا يغيّر درجاتك أو نقاطك.","Noata AI opens an editable summary of your actual skills when temporary storage is available. It is sent to the provider only when you choose to send it. The analysis is guidance and does not change your grades or points.")}</p>
+      <section className="aura-progress-statstrip" aria-label={t("مؤشرات إتقانك","Your mastery indicators")}>
         <div>
-          <span>المهارات المتتبعة</span>
+          <span>{t("المهارات المتتبعة","Skills tracked")}</span>
           <strong>{rows.length}</strong>
-          <small>حسب محاولاتك</small>
+          <small>{t("حسب محاولاتك","Based on your attempts")}</small>
         </div>
         <div>
-          <span>تحتاج مراجعة الآن</span>
+          <span>{t("تحتاج مراجعة الآن","Due for review")}</span>
           <strong>{due.length}</strong>
-          <small>على جدول المراجعة</small>
+          <small>{t("على جدول المراجعة","On your review schedule")}</small>
         </div>
         <div>
-          <span>مهارات قوية</span>
+          <span>{t("مهارات قوية","Strong skills")}</span>
           <strong>{mastered.length}</strong>
-          <small>مبدئيًا أو بالكامل</small>
+          <small>{t("مبدئيًا أو بالكامل","Provisionally or fully mastered")}</small>
         </div>
         <div>
-          <span>دلائل الإجابة المستقلة</span>
+          <span>{t("دلائل الإجابة المستقلة","Independent answer evidence")}</span>
           <strong>{evidence}</strong>
-          <small>أسئلة متنوعة</small>
+          <small>{t("أسئلة متنوعة","Distinct questions")}</small>
         </div>
       </section>
       <section className="aura-progress-map" aria-labelledby="aura-skill-title">
         <div className="aura-progress-map-heading">
           <div>
-            <span className="eyebrow">تفاصيل التعلم</span>
-            <h2 id="aura-skill-title">خريطة المهارات</h2>
-            <p>ابدأ بالأضعف، وارجع للمستحق، واحتفظ بما أتقنته.</p>
+            <span className="eyebrow">{t("تفاصيل التعلم","Learning details")}</span>
+            <h2 id="aura-skill-title">{t("خريطة المهارات","Skill map")}</h2>
+            <p>{t("ابدأ بالأضعف، وارجع للمستحق، واحتفظ بما أتقنته.","Strengthen weaker skills, revisit reviews due and maintain what you have mastered.")}</p>
           </div>
           <button
             type="button"
             onClick={() => setRefetch((x) => x + 1)}
             disabled={loading}
-            aria-label="تحديث خريطة المهارات"
+            aria-label={t("تحديث خريطة المهارات","Refresh skill map")}
           >
-            <Icon name="refresh" size={17} /> تحديث
-          </button>
+            <Icon name="refresh" size={17} />{t("تحديث","Refresh")}</button>
         </div>
         <div className="aura-progress-filters">
-          <div role="group" aria-label="تصفية المهارات">
+          <div role="group" aria-label={t("تصفية المهارات","Filter skills")}>
             {(
               [
-                ["all", "الكل", rows.length],
-                ["due", "للمراجعة", due.length],
+                ["all", t("الكل","All"), rows.length],
+                ["due", t("للمراجعة","Due for review"), due.length],
                 [
                   "learning",
-                  "قيد التطور",
+                  t("قيد التطور","Developing"),
                   rows.length -
                     mastered.length -
                     due.filter((x) => !isMastered(x)).length,
                 ],
-                ["mastered", "متقنة", mastered.length],
+                ["mastered", t("متقنة","Mastered"), mastered.length],
               ] as const
             ).map(([value, label, count]) => (
               <button
@@ -325,10 +313,10 @@ export function ProgressLive() {
           </div>
           <input
             type="search"
-            aria-label="البحث في المهارات"
+            aria-label={t("البحث في المهارات","Search skills")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="دور على مهارة…"
+            placeholder={t("دور على مهارة…","Search for a skill…")}
           />
         </div>
         {error && (
@@ -337,9 +325,7 @@ export function ProgressLive() {
           </p>
         )}
         {loading && (
-          <p role="status" className="aura-progress-refreshing">
-            بنحدّث المعلومات…
-          </p>
+          <p role="status" className="aura-progress-refreshing">{t("بنحدّث المعلومات…","Updating your information…")}</p>
         )}
         <div className="aura-progress-skill-list">
           {filtered.map((row, index) => {
@@ -356,15 +342,13 @@ export function ProgressLive() {
                 <div className="aura-progress-skill-body">
                   <div className="aura-progress-skill-top">
                     <div>
-                      <h3>{row.skills?.title_ar ?? "مهارة غير مسماة"}</h3>
+                      <h3>{skillTitle(row)}</h3>
                       <p>
-                        {LABELS[row.state] ?? "قيد التقييم"} ·{" "}
+                        {LABELS[row.state] ?? t("قيد التقييم","Being assessed")} ·{" "}
                         {Math.max(
                           0,
                           Number(row.independent_distinct_count) || 0,
-                        )}{" "}
-                        إجابات مستقلة
-                      </p>
+                        )}{" "}{t("إجابات مستقلة","independent answers")}</p>
                     </div>
                     <span
                       className={
@@ -372,16 +356,16 @@ export function ProgressLive() {
                       }
                     >
                       {review
-                        ? "مراجعة مستحقة"
+                        ? t("مراجعة مستحقة","Review due")
                         : isMastered(row)
-                          ? "متقنة"
-                          : "قيد التعلّم"}
+                          ? t("متقنة","Mastered")
+                          : t("قيد التعلّم","Learning")}
                     </span>
                   </div>
                   <div
                     className="aura-progress-skill-meter"
                     role="progressbar"
-                    aria-label={"إتقان " + (row.skills?.title_ar ?? "المهارة")}
+                    aria-label={t("إتقان ","Mastery of ") + skillTitle(row)}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={score}
@@ -400,18 +384,16 @@ export function ProgressLive() {
               <Icon name="book" size={28} />
               <h3>
                 {rows.length
-                  ? "مفيش مهارات بنفس التصفية دي"
-                  : "خريطة مهاراتك لسه بتتكوّن"}
+                  ? t("مفيش مهارات بنفس التصفية دي","No skills match these filters")
+                  : t("خريطة مهاراتك لسه بتتكوّن","Your skill map is taking shape")}
               </h3>
               <p>
                 {rows.length
-                  ? "جرّب تصفية مختلفة أو امسح كلمة البحث."
-                  : "ابدأ مهمة أو درس. مع الوقت هتظهر هنا أدلة الإتقان الحقيقية."}
+                  ? t("جرّب تصفية مختلفة أو امسح كلمة البحث.","Try another filter or clear your search.")
+                  : t("ابدأ مهمة أو درس. مع الوقت هتظهر هنا أدلة الإتقان الحقيقية.","Start a mission or lesson. Evidence of your mastery will appear here as you learn.")}
               </p>
               {!rows.length && (
-                <Link href="/missions" className="aura-progress-secondary">
-                  اختار مهمة للبدء
-                </Link>
+                <Link href="/missions" className="aura-progress-secondary">{t("اختار مهمة للبدء","Choose a mission to start")}</Link>
               )}
             </div>
           )}

@@ -17,17 +17,17 @@ export function contrastRatio(a:string,b:string):number {
  const x=relativeLuminance(a),y=relativeLuminance(b);
  return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
 }
-export function validateTokens(value:unknown):DesignTokens {
- if(!value||typeof value!=="object")throw Error("الاقتراح لا يحتوي على ألوان صحيحة.");
+export function validateTokens(value:unknown,locale:"ar"|"en"="ar"):DesignTokens {
+  if(!value||typeof value!=="object")throw Error(locale==="en"?"The suggestion does not contain valid colors.":"الاقتراح لا يحتوي على ألوان صحيحة.");
  const obj=value as Record<string,unknown>;
  const tokens:DesignTokens={accent:String(obj.accent??""),deep:String(obj.deep??""),bright:String(obj.bright??"")};
  for(const [key,color] of Object.entries(tokens)) {
-   if(!HEX.test(color)) throw Error("لون "+key+" غير صالح؛ يجب أن يكون بصيغة HEX.");
+    if(!HEX.test(color)) throw Error(locale==="en"?"Invalid "+key+" color; use a six-digit HEX value.":"لون "+key+" غير صالح؛ يجب أن يكون بصيغة HEX.");
  }
  if(contrastRatio(tokens.accent,"#ffffff")<4.5)
-   throw Error("درجة اللون الرئيسي فاتحة أكثر من اللازم للنص والأزرار على الخلفية البيضاء. اطلب لونًا أغمق.");
+    throw Error(locale==="en"?"The primary color is too light for text and buttons on white. Ask for a darker color.":"درجة اللون الرئيسي فاتحة أكثر من اللازم للنص والأزرار على الخلفية البيضاء. اطلب لونًا أغمق.");
  if(contrastRatio(tokens.deep,"#ffffff")<7)
-   throw Error("لون الخلفية الداكنة لا يحقق تباينًا مناسبًا للنص. اطلب درجة أغمق.");
+    throw Error(locale==="en"?"The dark background does not provide enough text contrast. Ask for a darker shade.":"لون الخلفية الداكنة لا يحقق تباينًا مناسبًا للنص. اطلب درجة أغمق.");
  return tokens;
 }
 /** Recover presentation-only annotations without evaluating model-written code.
@@ -62,8 +62,8 @@ function normalizeAnnotatedJson(raw:string):string {
  }
  return clean;
 }
-export function parseDesignSuggestion(raw:string):{name:string;description:string;tokens:DesignTokens} {
-  if(raw.length>16000)throw Error("رد الذكاء الاصطناعي أكبر من الحد المسموح.");
+export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar"):{name:string;description:string;tokens:DesignTokens} {
+  if(raw.length>16000)throw Error(locale==="en"?"The AI response exceeds the permitted size.":"رد الذكاء الاصطناعي أكبر من الحد المسموح.");
   raw=normalizeAnnotatedJson(raw);
  // A model may wrap its answer in a code fence or add prose containing braces.
  // Read one balanced JSON object at a time rather than spanning the first and
@@ -89,13 +89,12 @@ export function parseDesignSuggestion(raw:string):{name:string;description:strin
   }
   if(obj)break;
  }
- if(!obj)throw Error("رد Fanar ليس JSON صالحًا. جرّب مرة أخرى.");
- if(!obj||typeof obj!=="object")throw Error("صيغة التصميم غير صحيحة.");
+  if(!obj)throw Error(locale==="en"?"Fanar did not return a valid design. Please try again.":"رد Fanar ليس JSON صالحًا. جرّب مرة أخرى.");
  const name=typeof obj.name==="string"?obj.name.trim():"";
  const description=typeof obj.description==="string"?obj.description.trim():"";
  if(name.length<2||name.length>50||description.length>180)
-   throw Error("عنوان أو وصف التصميم خارج الحدود المسموحة.");
- return {name,description,tokens:validateTokens(obj.tokens)};
+    throw Error(locale==="en"?"The design name or description is outside the permitted length.":"عنوان أو وصف التصميم خارج الحدود المسموحة.");
+  return {name,description,tokens:validateTokens(obj.tokens,locale)};
 }
 export function applyCustomDesign(tokens:DesignTokens):void {
  const safe=validateTokens(tokens), root=document.documentElement;

@@ -5,6 +5,7 @@ import {
   boundedRead,
   useVerifiedAccount,
 } from "@/lib/supabase/use-verified-account";
+import { useTranslation } from "@/lib/i18n/locale";
 import { createClient } from "@/lib/supabase/client";
 
 export function RoleGate({
@@ -14,6 +15,7 @@ export function RoleGate({
   allow: ("teacher" | "admin")[];
   children: React.ReactNode;
 }) {
+  const t = useTranslation();
   const supabase = useMemo(() => createClient(), []);
   const account = useVerifiedAccount();
   const allowKey = allow.slice().sort().join(",");
@@ -72,52 +74,44 @@ export function RoleGate({
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>نتحقق من صلاحيات مساحة العمل…</h2>
+        <h2>{t("نتحقق من صلاحيات مساحة العمل…","Checking workspace permissions…")}</h2>
       </section>
     );
   if (account.error || state === "error")
     return (
       <section className="aura-load-error" role="alert">
-        <h2>تعذّر التحقق من الصلاحيات</h2>
-        <p>أعد المحاولة عند عودة الاتصال.</p>
+        <h2>{t("تعذّر التحقق من الصلاحيات","Could not verify permissions")}</h2>
+        <p>{t("أعد المحاولة عند عودة الاتصال.","Try again when your connection returns.")}</p>
         <button
           type="button"
           onClick={() => {
             if (account.error) void account.refresh();
             else setRetry((x) => x + 1);
           }}
-        >
-          إعادة المحاولة
-        </button>
+        >{t("إعادة المحاولة","Try again")}</button>
       </section>
     );
   if (!account.user || state === "signed-out")
     return (
       <section className="panel" style={{ textAlign: "center", padding: 30 }}>
-        <h2>سجّل الدخول أولًا</h2>
+        <h2>{t("سجّل الدخول أولًا","Sign in to continue")}</h2>
         <a
           className="btn"
           style={{ background: "var(--accent)", color: "var(--surface)" }}
           href="/login"
-        >
-          دخول
-        </a>
+        >{t("دخول","Sign in")}</a>
       </section>
     );
   if (state === "denied")
     return (
       <section className="panel" style={{ textAlign: "center", padding: 30 }}>
-        <h2>المساحة دي مش متاحة لحسابك.</h2>
-        <p style={{ color: "var(--muted)" }}>
-          لو محتاج الوصول لمساحة المدرّس، تواصل مع إدارة منصتك.
-        </p>
+        <h2>{t("المساحة دي مش متاحة لحسابك.","This workspace is unavailable for your account.")}</h2>
+        <p style={{ color: "var(--muted)" }}>{t("لو محتاج الوصول لمساحة المدرّس، تواصل مع إدارة منصتك.","Contact your platform administrator if you need access to the teacher workspace.")}</p>
         <a
           className="btn"
           style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
           href="/"
-        >
-          رجوع
-        </a>
+        >{t("رجوع","Back")}</a>
       </section>
     );
   return <>{children}</>;

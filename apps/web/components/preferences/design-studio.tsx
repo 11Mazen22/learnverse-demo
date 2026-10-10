@@ -140,11 +140,11 @@ export function DesignStudio(){
     const firstResponse=await askFanar(request);
     if(currentAccount.current!==owner)return;
     let parsed:ReturnType<typeof parseDesignSuggestion>;
-    try { parsed=parseDesignSuggestion(firstResponse); }
+     try { parsed=parseDesignSuggestion(firstResponse,locale); }
     catch {
       // Retry once for prose, malformed JSON, or an invalid palette.
       if(currentAccount.current!==owner)return;
-      parsed=parseDesignSuggestion(await askFanar(request+"\n\n"+t("المحاولة السابقة لم تكن كائن JSON صالحًا أو لم تحقق شروط الألوان. أعد إنشاء التصميم بكائن JSON واحد صحيح فقط.","The previous response was not valid JSON or did not meet the color requirements. Create the design again as one valid JSON object only.")));
+       parsed=parseDesignSuggestion(await askFanar(request+"\n\n"+t("المحاولة السابقة لم تكن كائن JSON صالحًا أو لم تحقق شروط الألوان. أعد إنشاء التصميم بكائن JSON واحد صحيح فقط.","The previous response was not valid JSON or did not meet the color requirements. Create the design again as one valid JSON object only.")),locale);
     }
     if(currentAccount.current!==owner)return;
     undoPreview();setDraft(parsed);setNotice(t("جهّز Fanar اقتراحًا جديدًا. عاينه وعدّله قبل الحفظ؛ لم يُطبّق بعد.","Fanar created a new suggestion. Preview and refine it before saving; nothing has been applied yet."));
@@ -157,7 +157,7 @@ export function DesignStudio(){
    if(!editingId&&saved.length>=MAX_DESIGNS){setError(t("وصلت إلى الحد الأقصى: 8 تصاميم. احذف تصميمًا قبل حفظ غيره.","You have reached the limit of 8 designs. Delete one before saving another."));return;}
   setBusy("save");setError("");setNotice("");
   try{
-   const tokens=validateTokens(draft.tokens);
+    const tokens=validateTokens(draft.tokens,locale);
    const builder=editingId
      ? supabase.from("user_theme_designs").update({name:draft.name,description:draft.description,tokens,updated_at:new Date().toISOString()}).eq("id",editingId).eq("user_id",owner)
      : supabase.from("user_theme_designs").insert({user_id:owner,name:draft.name,description:draft.description,tokens,visible:true});

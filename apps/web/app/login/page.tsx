@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useLocale, useTranslation } from "@/lib/i18n/locale";
+import { LocaleControl } from "@/components/preferences/locale-control";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
@@ -10,32 +12,10 @@ import { canonicalAuthOrigin, canonicalLoginDestination } from "@/lib/auth/canon
 import { authCallbackUrl, type AuthFlow } from "@/lib/auth/flows";
 import {newPasswordProblem,MIN_NEW_PASSWORD_LENGTH} from "@/lib/auth/password-policy";
 import { isAuthorizedSupabaseUrl, supabaseConfiguration } from "@/lib/supabase/config";
-import { CONFIGURATION_ERROR_MESSAGE } from "@/lib/supabase/network-policy";
 
 type Mode = "signin" | "signup" | "forgot" | "verify";
 
-const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
-  signin: {
-    eyebrow: "أهلًا بعودتك",
-    title: "أكمل رحلتك",
-    lead: "تقدّمك ومكافآتك ومحادثاتك مع Noata AI محفوظة بأمان في حسابك.",
-  },
-  signup: {
-    eyebrow: "ابدأ رحلتك",
-    title: "أنشئ حسابك في Noata",
-    lead: "كل فكرة جديدة تستحق فرصة. أنشئ حسابك وابدأ التعلّم بطريقتك.",
-  },
-  forgot: {
-    eyebrow: "استعادة الحساب",
-    title: "نسيت كلمة المرور؟",
-    lead: "اكتب البريد المرتبط بحسابك وسنرسل إليك رابطًا آمنًا لتعيين كلمة مرور جديدة.",
-  },
-  verify: {
-    eyebrow: "خطوة أخيرة",
-    title: "تحقّق من بريدك",
-    lead: "",
-  },
-};
+
 
 function GoogleMark() {
   return (
@@ -49,6 +29,30 @@ function GoogleMark() {
 }
 
 export default function LoginPage() {
+  const t = useTranslation();
+  const locale = useLocale();
+const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
+  signin: {
+    eyebrow: t("أهلًا بعودتك","Welcome back"),
+    title: t("أكمل رحلتك","Continue your journey"),
+    lead: t("تقدّمك ومكافآتك ومحادثاتك مع Noata AI محفوظة بأمان في حسابك.","Your progress, rewards and Noata AI conversations are safely saved in your account."),
+  },
+  signup: {
+    eyebrow: t("ابدأ رحلتك","Start your journey"),
+    title: t("أنشئ حسابك في Noata","Create your Noata account"),
+    lead: t("كل فكرة جديدة تستحق فرصة. أنشئ حسابك وابدأ التعلّم بطريقتك.","Every new idea deserves a chance. Create an account and learn your way."),
+  },
+  forgot: {
+    eyebrow: t("استعادة الحساب","Account recovery"),
+    title: t("نسيت كلمة المرور؟","Forgot your password?"),
+    lead: t("اكتب البريد المرتبط بحسابك وسنرسل إليك رابطًا آمنًا لتعيين كلمة مرور جديدة.","Enter your account email to receive a secure link for a new password."),
+  },
+  verify: {
+    eyebrow: t("خطوة أخيرة","One last step"),
+    title: t("تحقّق من بريدك","Check your email"),
+    lead: "",
+  },
+};
   const [mode, setMode] = useState<Mode>("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -90,7 +94,7 @@ export default function LoginPage() {
     setError("");
     try {
       if (supabaseConfiguration.error) {
-        setError(supabaseConfiguration.error);
+        setError(localizeAuthError({code:"SUPABASE_CONFIGURATION_INVALID"},locale));
         return;
       }
       const { data, error } = await createClient().auth.signInWithOAuth({
@@ -101,12 +105,12 @@ export default function LoginPage() {
           skipBrowserRedirect: true,
         },
       });
-      if (error) setError(localizeAuthError(error));
+      if (error) setError(localizeAuthError(error, locale));
       else if (isAuthorizedSupabaseUrl(data.url) && new URL(data.url!).pathname === "/auth/v1/authorize")
         window.location.assign(data.url!);
-      else setError(CONFIGURATION_ERROR_MESSAGE);
+      else setError(localizeAuthError({code:"SUPABASE_CONFIGURATION_INVALID"},locale));
     } catch {
-      setError("تعذّر الاتصال بخدمة Google الآن. تحقّق من اتصالك أو استخدم البريد الإلكتروني.");
+      setError(t("تعذّر الاتصال بخدمة Google الآن. تحقّق من اتصالك أو استخدم البريد الإلكتروني.","Could not connect to Google. Check your connection or sign in with email."));
     } finally {
       // Clear the busy state if the provider rejects the request or navigation
       // does not begin; a successful OAuth redirect leaves this page.
@@ -116,7 +120,7 @@ export default function LoginPage() {
 
   async function resendVerification() {
     if (busy || !email.trim() || beginOnCanonicalHost()) return;
-    if (supabaseConfiguration.error) { setError(supabaseConfiguration.error); return; }
+    if (supabaseConfiguration.error) { setError(localizeAuthError({code:"SUPABASE_CONFIGURATION_INVALID"},locale)); return; }
     setBusy("resend");
     setError("");
     setMessage("");
@@ -126,10 +130,10 @@ export default function LoginPage() {
         email,
         options: { emailRedirectTo: callbackUrl("signup") },
       });
-      if (error) setError(localizeAuthError(error));
-      else setMessage("أرسلنا رسالة تأكيد جديدة. قد تستغرق دقيقة للوصول.");
+      if (error) setError(localizeAuthError(error, locale));
+      else setMessage(t("أرسلنا رسالة تأكيد جديدة. قد تستغرق دقيقة للوصول.","A new confirmation email has been sent. It may take a minute to arrive."));
     } catch {
-      setError("تعذّر إرسال الرسالة الآن. تحقّق من اتصالك بالإنترنت وحاول مرة أخرى.");
+      setError(t("تعذّر إرسال الرسالة الآن. تحقّق من اتصالك بالإنترنت وحاول مرة أخرى.","Could not send the email. Check your connection and try again."));
     } finally {
       setBusy("");
     }
@@ -138,7 +142,7 @@ export default function LoginPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (busy || beginOnCanonicalHost()) return;
-    if (supabaseConfiguration.error) { setError(supabaseConfiguration.error); return; }
+    if (supabaseConfiguration.error) { setError(localizeAuthError({code:"SUPABASE_CONFIGURATION_INVALID"},locale)); return; }
     setBusy("form");
     setError("");
     setMessage("");
@@ -151,11 +155,11 @@ export default function LoginPage() {
       });
       setBusy("");
       if (error) {
-        setError(localizeAuthError(error));
+        setError(localizeAuthError(error, locale));
         return;
       }
       setMessage(
-        "إذا كان البريد مسجّلًا لدينا، فستصلك رسالة تحتوي على رابط لتعيين كلمة مرور جديدة.",
+        t("إذا كان البريد مسجّلًا لدينا، فستصلك رسالة تحتوي على رابط لتعيين كلمة مرور جديدة.","If this email is registered, you will receive a link to set a new password."),
       );
       return;
     }
@@ -168,7 +172,7 @@ export default function LoginPage() {
           window.location.assign("/auth/check-email?type=signup");
           return;
         }
-        setError(localizeAuthError(error));
+        setError(localizeAuthError(error, locale));
         setBusy("");
         return;
       }
@@ -176,7 +180,7 @@ export default function LoginPage() {
       return;
     }
 
-    const passwordError = newPasswordProblem(password);
+    const passwordError = newPasswordProblem(password, locale);
     if (passwordError) {
       setError(passwordError);
       setBusy("");
@@ -192,7 +196,7 @@ export default function LoginPage() {
       },
     });
     if (error) {
-      setError(localizeAuthError(error));
+      setError(localizeAuthError(error, locale));
       setBusy("");
       return;
     }
@@ -203,7 +207,7 @@ export default function LoginPage() {
     setBusy("");
     window.location.assign("/auth/check-email?type=signup");
     } catch {
-      setError("تعذّر الاتصال بالخادم الآن. تحقّق من اتصالك ثم أعد المحاولة.");
+      setError(t("تعذّر الاتصال بالخادم الآن. تحقّق من اتصالك ثم أعد المحاولة.","Could not connect to the server. Check your connection and try again."));
       setBusy("");
     }
   }
@@ -217,8 +221,8 @@ export default function LoginPage() {
         <NoataBrand size={44} />
         <div className="auth-aside-copy">
           <p className="auth-aside-kicker">NOATA · YOUR LEARNING SPACE</p>
-          <h2>مساحة هادية.<span>إنجازات كبيرة.</span></h2>
-          <p>تعلّم على مهلك، واسأل بذكاء، وراقب إنجازاتك في مكان واحد. كل خطوة ليها قيمة.</p>
+          <h2>{t("مساحة هادية.","A calm space.")}<span>{t("إنجازات كبيرة.","Meaningful progress.")}</span></h2>
+          <p>{t("تعلّم على مهلك، واسأل بذكاء، وراقب إنجازاتك في مكان واحد. كل خطوة ليها قيمة.","Learn at your own pace, ask questions and follow your achievements in one place. Every step matters.")}</p>
         </div>
         <div className="auth-aside-stage" aria-hidden="true">
           <span className="auth-aside-stage-glow" />
@@ -226,33 +230,30 @@ export default function LoginPage() {
             <NoataBrand size={83} compact tagline={null} />
             <div className="noata-auth-journey-copy">
               <small>LEARN · PRACTICE · GROW</small>
-              <strong>تعليم منظم. أفكار جديدة. إنجاز بتعبك.</strong>
+              <strong>{t("تعليم منظم. أفكار جديدة. إنجاز بتعبك.","Structured learning. Fresh ideas. Progress you earn.")}</strong>
             </div>
           </div>
           <div className="noata-auth-milestones">
-            <span>01 · افهم</span><span>02 · جرّب</span><span>03 · تقدّم</span>
+            <span>{t("01 · افهم","01 · Understand")}</span><span>{t("02 · جرّب","02 · Practice")}</span><span>{t("03 · تقدّم","03 · Grow")}</span>
           </div>
         </div>
         <ul className="auth-aside-points">
-          <li><Icon name="ai" size={18} /> مذاكرة أذكى في ورشة Noata</li>
-          <li><Icon name="chart" size={18} /> تقدّمك ومكافآتك محفوظة بأمان في حسابك</li>
-          <li><Icon name="check" size={18} /> مهام ومراجعات تبني مستواك خطوة بخطوة</li>
+          <li><Icon name="ai" size={18} />{t("مذاكرة أذكى في ورشة Noata","Study smarter in the Noata workshop")}</li>
+          <li><Icon name="chart" size={18} />{t("تقدّمك ومكافآتك محفوظة بأمان في حسابك","Your progress and rewards are safely saved in your account")}</li>
+          <li><Icon name="check" size={18} />{t("مهام ومراجعات تبني مستواك خطوة بخطوة","Missions and reviews build your skills step by step")}</li>
         </ul>
       </aside>
 
       <section className="auth-card" aria-labelledby="auth-title">
         <div className="auth-card-brand">
           <NoataBrand size={40} />
+          <LocaleControl />
         </div>
 
         {showTabs && (
-          <div className="auth-tabs" role="tablist" aria-label="طريقة الدخول">
-            <button type="button" role="tab" aria-selected={mode === "signin"} onClick={() => switchMode("signin")}>
-              تسجيل الدخول
-            </button>
-            <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => switchMode("signup")}>
-              حساب جديد
-            </button>
+          <div className="auth-tabs" role="tablist" aria-label={t("طريقة الدخول","Sign-in method")}>
+            <button type="button" role="tab" aria-selected={mode === "signin"} onClick={() => switchMode("signin")}>{t("تسجيل الدخول","Sign in")}</button>
+            <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => switchMode("signup")}>{t("حساب جديد","New account")}</button>
           </div>
         )}
 
@@ -261,22 +262,17 @@ export default function LoginPage() {
             <span className="auth-verify-icon"><Icon name="check" size={26} /></span>
             <p className="auth-eyebrow">{copy.eyebrow}</p>
             <h1 id="auth-title">{copy.title}</h1>
-            <p className="auth-lead">
-              أرسلنا رابط التأكيد إلى <b dir="ltr">{email || "بريدك الإلكتروني"}</b>. افتح الرسالة واضغط
-              «تأكيد البريد» وسنكمل تسجيل دخولك تلقائيًا.
-            </p>
+            <p className="auth-lead">{t("أرسلنا رابط التأكيد إلى","We sent a confirmation link to")} <b dir="ltr">{email || t("بريدك الإلكتروني","your email")}</b>{t(". افتح الرسالة واضغط\n              «تأكيد البريد» وسنكمل تسجيل دخولك تلقائيًا.",". Open the email and choose “Confirm email” to continue signing in.")}</p>
             <ul className="auth-verify-tips">
-              <li>لم تصلك الرسالة؟ تحقّق من مجلد الرسائل غير المرغوب فيها.</li>
-              <li>افتح الرابط من نفس المتصفح لإكمال الدخول بسلاسة.</li>
+              <li>{t("لم تصلك الرسالة؟ تحقّق من مجلد الرسائل غير المرغوب فيها.","No email yet? Check your spam folder.")}</li>
+              <li>{t("افتح الرابط من نفس المتصفح لإكمال الدخول بسلاسة.","Open the link in the same browser to finish signing in.")}</li>
             </ul>
             {error && <p className="auth-alert is-error" role="alert">{error}</p>}
             {message && <p className="auth-alert is-success" role="status">{message}</p>}
             <button type="button" className="auth-primary" onClick={resendVerification} disabled={!email || busy !== ""}>
-              {busy === "resend" ? "جارٍ الإرسال…" : "إعادة إرسال رسالة التأكيد"}
+              {busy === "resend" ? t("جارٍ الإرسال…","Sending…") : t("إعادة إرسال رسالة التأكيد","Resend confirmation email")}
             </button>
-            <button type="button" className="auth-link" onClick={() => switchMode("signin")}>
-              العودة إلى تسجيل الدخول
-            </button>
+            <button type="button" className="auth-link" onClick={() => switchMode("signin")}>{t("العودة إلى تسجيل الدخول","Back to sign in")}</button>
           </div>
         ) : (
           <>
@@ -288,31 +284,27 @@ export default function LoginPage() {
               <>
                 <button type="button" className="auth-google" onClick={signInWithGoogle} disabled={busy !== ""}>
                   <GoogleMark />
-                  {busy === "google" ? "جارٍ التحويل إلى Google…" : "المتابعة باستخدام Google"}
+                  {busy === "google" ? t("جارٍ التحويل إلى Google…","Redirecting to Google…") : t("المتابعة باستخدام Google","Continue with Google")}
                 </button>
-                <div className="auth-divider"><span>أو بالبريد الإلكتروني</span></div>
+                <div className="auth-divider"><span>{t("أو بالبريد الإلكتروني","or with email")}</span></div>
               </>
             )}
 
             <form onSubmit={submit} className="auth-form" noValidate={false}>
               {mode === "signup" && (
                 <label className="auth-field">
-                  <span>الاسم</span>
-                  <input required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="كيف نناديك؟" />
+                  <span>{t("الاسم","Name")}</span>
+                  <input required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder={t("كيف نناديك؟","What should we call you?")} />
                 </label>
               )}
               <label className="auth-field">
-                <span>البريد الإلكتروني</span>
+                <span>{t("البريد الإلكتروني","Email")}</span>
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" dir="ltr" placeholder="name@example.com" />
               </label>
               {mode !== "forgot" && (
                 <label className="auth-field">
-                  <span className="auth-field-row">
-                    كلمة المرور
-                    {mode === "signin" && (
-                      <button type="button" className="auth-inline-link" onClick={() => window.location.assign("/auth/forgot-password")}>
-                        نسيت كلمة المرور؟
-                      </button>
+                  <span className="auth-field-row">{t("كلمة المرور","Password")}{mode === "signin" && (
+                      <button type="button" className="auth-inline-link" onClick={() => window.location.assign("/auth/forgot-password")}>{t("نسيت كلمة المرور؟","Forgot your password?")}</button>
                     )}
                   </span>
                   <span className="auth-password">
@@ -324,10 +316,10 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete={mode === "signup" ? "new-password" : "current-password"}
                       dir="ltr"
-                      placeholder={mode === "signup" ? "12 حرفًا على الأقل" : "••••••••"}
+                      placeholder={mode === "signup" ? t("12 حرفًا على الأقل","At least 12 characters") : "••••••••"}
                     />
-                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}>
-                      {showPassword ? "إخفاء" : "إظهار"}
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? t("إخفاء كلمة المرور","Hide password") : t("إظهار كلمة المرور","Show password")}>
+                      {showPassword ? t("إخفاء","Hide") : t("إظهار","Show")}
                     </button>
                   </span>
                 </label>
@@ -336,26 +328,22 @@ export default function LoginPage() {
               {message && <p className="auth-alert is-success" role="status">{message}</p>}
               <button className="auth-primary" disabled={busy !== ""}>
                 {busy === "form"
-                  ? "جارٍ التنفيذ…"
+                  ? t("جارٍ التنفيذ…","Please wait…")
                   : mode === "signin"
-                    ? "تسجيل الدخول"
+                    ? t("تسجيل الدخول","Sign in")
                     : mode === "signup"
-                      ? "إنشاء الحساب"
-                      : "إرسال رابط الاستعادة"}
+                      ? t("إنشاء الحساب","Create account")
+                      : t("إرسال رابط الاستعادة","Send recovery link")}
               </button>
             </form>
 
             {mode === "forgot" && (
-              <button type="button" className="auth-link" onClick={() => switchMode("signin")}>
-                العودة إلى تسجيل الدخول
-              </button>
+              <button type="button" className="auth-link" onClick={() => switchMode("signin")}>{t("العودة إلى تسجيل الدخول","Back to sign in")}</button>
             )}
           </>
         )}
 
-        <Link href="/" className="auth-explore">
-          استكشف Noata دون حساب
-        </Link>
+        <Link href="/" className="auth-explore">{t("استكشف Noata دون حساب","Explore Noata without an account")}</Link>
       </section>
     </main>
   );

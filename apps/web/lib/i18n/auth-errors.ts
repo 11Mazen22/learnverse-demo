@@ -1,6 +1,5 @@
 /**
- * Maps Supabase Auth error codes/messages to friendly Arabic copy so raw
- * English server strings never reach the interface.
+ * Maps Supabase Auth errors to friendly copy in the selected interface language.
  */
 type AuthLikeError = { code?: string | null; message?: string | null; status?: number | null } | null | undefined;
 
@@ -9,7 +8,7 @@ const BY_CODE: Record<string, string> = {
   email_not_confirmed: "لم يتم تأكيد بريدك بعد. افتح رسالة التأكيد التي أرسلناها لك ثم سجّل الدخول.",
   user_already_exists: "هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول أو استعادة كلمة المرور.",
   email_exists: "هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول أو استعادة كلمة المرور.",
-  weak_password: "كلمة المرور ضعيفة. استخدم 8 أحرف على الأقل مع مزيج من الحروف والأرقام.",
+  weak_password: "كلمة المرور ضعيفة. استخدم 12 حرفًا على الأقل مع مزيج من الحروف والأرقام.",
   same_password: "كلمة المرور الجديدة يجب أن تختلف عن الحالية.",
   over_email_send_rate_limit: "أرسلنا رسائل كثيرة مؤخرًا. انتظر دقيقة قبل المحاولة مجددًا.",
   over_request_rate_limit: "محاولات كثيرة في وقت قصير. انتظر قليلًا ثم أعد المحاولة.",
@@ -51,7 +50,34 @@ const BY_MESSAGE: [RegExp, string][] = [
 
 export const GENERIC_AUTH_ERROR = "حدث خطأ غير متوقع. حاول مرة أخرى بعد لحظات.";
 
-export function localizeAuthError(error: AuthLikeError): string {
+const EN_BY_CODE: Record<string,string> = {
+ invalid_credentials:"Incorrect email or password. Check both and try again.",
+ email_not_confirmed:"Your email is not confirmed yet. Open your confirmation email, then sign in.",
+ user_already_exists:"This email is already registered. Sign in or recover your password.",
+ email_exists:"This email is already registered. Sign in or recover your password.",
+ weak_password:"Use a stronger password with at least 12 characters and a mix of letters and numbers.",
+ same_password:"Your new password must differ from your current one.",
+ over_email_send_rate_limit:"Several emails were sent recently. Wait a minute before trying again.",
+ over_request_rate_limit:"Too many attempts in a short time. Wait a moment and try again.",
+ too_many_requests:"Too many attempts in a short time. Wait a moment and try again.",
+ otp_expired:"This link has expired. Request a new link.",
+ flow_state_expired:"Your verification session has expired. Start signing in again.",
+ flow_state_not_found:"Could not complete verification in this browser. Start signing in again.",
+ bad_code_verifier:"Open the verification link in the same browser where you requested it.",
+ session_expired:"Your session has expired. Sign in again to continue.",
+ session_not_found:"Your session has expired. Sign in again to continue.",
+ refresh_token_not_found:"Your session has expired. Sign in again to continue.",
+ provider_disabled:"This sign-in method is currently unavailable. Use email instead.",
+ STAGING_CONFIGURATION_MISMATCH:"Noata's staging connection settings do not match. Your data was not sent. Try again after the configuration is corrected.",
+ SUPABASE_CONFIGURATION_INVALID:"Noata's connection settings are incomplete or unauthorized. Your data was not sent. The configuration must be corrected before trying again.",
+ validation_failed:"Check the information you entered and try again.",
+ email_address_invalid:"Enter a valid email address.",
+ signup_disabled:"New account registration is temporarily unavailable.",
+ user_banned:"This account is suspended. Contact support for help.",
+ identity_already_exists:"This account is already linked to another user.",
+ email_conflict_identity_not_deletable:"This email belongs to another account. Sign in using the method you originally used."
+};
+function arabicAuthError(error:AuthLikeError):string {
   if (!error) return GENERIC_AUTH_ERROR;
   if (error.code && BY_CODE[error.code]) return BY_CODE[error.code];
   const message = error.message ?? "";
@@ -60,6 +86,17 @@ export function localizeAuthError(error: AuthLikeError): string {
   if (error.status === 503 || error.status === 502 || error.status === 504) return "خدمة تسجيل الدخول غير متاحة مؤقتًا في بيئة الاختبار. لن نعيد محاولة تسجيل الدخول دون إذنك.";
   if (error.status === 500) return "تعذّر إكمال طلب تسجيل الدخول على الخادم. يُرجى المحاولة لاحقًا.";
   return GENERIC_AUTH_ERROR;
+}
+
+export function localizeAuthError(error: AuthLikeError,locale:"ar"|"en"="ar"):string {
+ const copy=arabicAuthError(error);
+ if(locale==="ar")return copy;
+ const code=Object.keys(BY_CODE).find(key=>BY_CODE[key]===copy);
+ if(code)return EN_BY_CODE[code];
+ if(error?.status===503||error?.status===502||error?.status===504)return "The sign-in service is temporarily unavailable. Please try again later.";
+ if(error?.status===500)return "The server could not complete your sign-in request. Please try again later.";
+ if(/fetch|network/i.test(error?.message??""))return "Could not connect to the server. Check your internet connection and try again.";
+ return "An unexpected error occurred. Please try again shortly.";
 }
 
 export function safeNextPath(raw: string | null | undefined, fallback = "/") {
