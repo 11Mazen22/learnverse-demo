@@ -35,6 +35,7 @@ import { ThemeControl } from "@/components/preferences/theme-control";
 import { ConversationHistory } from "./conversation-history";
 import { RichMessage } from "./rich-message";
 import { useAIWorkspace } from "./use-ai-workspace";
+import {useAISuggestions,SuggestedActions} from "./use-ai-suggestions";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
 
@@ -154,6 +155,9 @@ export function NoataAIClient() {
     format: string;
   } | null>(null);
 
+  const suggestions=useAISuggestions({userId:seenAccount.user?.id??null,locale,
+    welcomeVisible:!loading&&!messages.length&&!activeId,
+    welcomeEpoch:workspace.newChatEpoch,conversations,messages,busy,temporary});
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeId),
     [activeId, conversations],
@@ -530,47 +534,8 @@ export function NoataAIClient() {
                   : t("إزاي أقدر أساعدك النهارده؟","How can I help today?")}
               </h1>
               <p>{t("اسأل، ارفع صورة، التقط شاشة، أو اتكلم بصوتك. Noata يساعدك في الشرح والكتابة، مع اختيار نموذج مهيّأ يناسب السؤال. توفّر القدرات يعتمد على الخدمة.","Ask a question, attach an image, capture your screen, or use your voice. Noata helps you understand and write, with a model selected for the task. Availability depends on the provider.")}</p>
-              <div className="owui-suggestions">
-                {[
-                  [
-                    "book",
-                    t("اشرحلي مفهوم صعب","Explain a concept"),
-                    t("اشرحلي مفهوم صعب بطريقة بسيطة وبعدها اختبر فهمي.","Explain a challenging concept simply, then check my understanding."),
-                  ],
-                  [
-                    "target",
-                    t("اختبر فهمي","Check my understanding"),
-                    t("اسألني 3 أسئلة متدرجة عن موضوع هقولهولك.","Ask me three questions of increasing difficulty about a topic I choose."),
-                  ],
-                  [
-                    "image",
-                    t("حلّل صورة","Understand an image"),
-                    t("هرفع صورة، ساعدني أفهم كل اللي فيها خطوة بخطوة.","I will upload an image. Help me understand it step by step."),
-                  ],
-                  [
-                    "edit",
-                    t("رتّب مذاكرتي","Plan my study time"),
-                    t("ساعدني أعمل خطة مذاكرة واقعية ومنظمة.","Help me create a realistic, organized study plan."),
-                  ],
-                  ["chart",t("استكشف الرياضيات","Explore mathematics"),t("اشرح كيف يغيّر المميّز جذور المعادلة التربيعية، مع رسم يمكنني تعديل معاملاته.","Explain how the discriminant changes quadratic roots, with a graph whose coefficients I can adjust.")],
-                  ["search",t("ابحث عن موضوع","Research a topic"),t("ابحث عن أحدث اكتشافات المريخ مع مصادر موثوقة. إذا لم يتوفر البحث المباشر، وضّح ذلك.","Research the latest discoveries about Mars with reliable sources. If live search is unavailable, say so.")],
-                ].map(([icon, title, prompt]) => (
-                  <button
-                    type="button"
-                    key={title}
-                    onClick={() => {
-                      setInput(prompt);
-                      composer.current?.focus();
-                    }}
-                  >
-                    <Icon name={icon} size={18} />
-                    <span>
-                      <strong>{title}</strong>
-                      <small>{prompt}</small>
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <SuggestedActions kind="welcome" locale={locale} items={suggestions.welcome}
+                disabled={busy||loading} onChoose={prompt=>{setInput(prompt);composer.current?.focus();}} />
               <button
                 type="button"
                 className="aura-education-entry"
@@ -794,6 +759,11 @@ export function NoataAIClient() {
                     >{t("إعادة المحاولة","Try again")}</button>
                   )}
               </div>
+            )}
+            {!busy && !loading && !error && messages.at(-1)?.role==="assistant" &&
+             messages.at(-1)?.status==="complete" && (
+              <SuggestedActions kind="followup" locale={locale} items={suggestions.followups}
+                disabled={busy} onChoose={prompt=>void send(undefined,"send",undefined,prompt)} />
             )}
           </div>
         </div>
@@ -1297,6 +1267,12 @@ export function NoataAIClient() {
             {settingsTab === "privacy" && (
               <>
                 <h3>{t("الخصوصية والبيانات","Privacy and data")}</h3>
+                <button type="button" className="noata-personalize" aria-pressed={suggestions.personalized}
+                  disabled={!seenAccount.user?.id||temporary} onClick={()=>suggestions.changePersonalized(!suggestions.personalized)}>
+                  <span><b>{t("اقتراحات مخصّصة من محادثاتي السابقة","Personalize suggestions from recent chats")}</b>
+                    <small>{t("اختياري ومغلق افتراضيًا. يستخدم عناوين آخر المحادثات فقط، ولا يقرأ نصوصها أو ملفاتها.","Opt-in and off by default. Uses recent conversation titles only, not message bodies or files.")}</small></span>
+                  <i>{suggestions.personalized?t("مفعّل","On"):t("مغلق","Off")}</i>
+                </button>
                 <p>{t("سجل المحادثات والملفات مرتبط بحسابك ومحمي بسياسات Supabase. مفاتيح Fanar لا تصل إلى المتصفح.","Your conversation history and files belong to your account and are protected by access policies. Fanar keys are kept on the server.")}</p>
                 <div className="owui-privacy-links">
                   <Link href="/privacy">{t("سياسة الخصوصية","Privacy policy")}</Link>

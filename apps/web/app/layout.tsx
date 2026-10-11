@@ -17,6 +17,7 @@ import "./palette.css";
 import "./brand-system.css";
 import "./contextual-coach.css";
 import "./design-rebirth.css";
+import "./ai-suggestions.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";

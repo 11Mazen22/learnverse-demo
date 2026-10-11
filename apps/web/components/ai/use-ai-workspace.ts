@@ -121,6 +121,7 @@ export function useAIWorkspace() {
   const failedTool = useRef<string | undefined>(undefined);
   const sessionScope = useRef(createSessionGuard());
   const [sessionVersion, setSessionVersion] = useState(0);
+  const [newChatEpoch,setNewChatEpoch] = useState(0);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
   const [ttsModel, setTtsModel] = useState("Fanar-Aura-TTS-2");
   const loadHistory = useCallback(async () => {
@@ -400,6 +401,7 @@ export function useAIWorkspace() {
       return;
     }
     stopVoice();
+    setNewChatEpoch(x=>x+1);
     setDocumentFiles([]);
     setAttachment(null);
     ++openSequence.current;
@@ -1477,6 +1479,7 @@ export function useAIWorkspace() {
   return {
     historyProps,
     sessionVersion,
+    newChatEpoch,
     selectFile,
     captureScreen,
     setMobileHistory,
