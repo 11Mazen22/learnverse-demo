@@ -27,3 +27,25 @@ test("PPTX archive validates with unzip and XML parser",()=>{
   assert.match(slide,/رياضيات/);assert.match(slide,/<p:spTree>/);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test("Distinct Markdown slide headings produce editable slides without requiring ---",()=>{
+ const source="# Introduction\n- First concept\n# خاتمة\n- نتيجة مهمة";
+ const slides=parseNoataSlides(source);
+ assert.equal(slides.length,2);
+ assert.deepEqual(slides.map(x=>x.title),["Introduction","خاتمة"]);
+ const bytes=createNoataPptx(source);
+ if(spawnSync("which",["unzip"]).status!==0)return;
+ const dir=mkdtempSync(join(tmpdir(),"noata-pptx-layout-"));
+ try{
+  const path=join(dir,"style.pptx");writeFileSync(path,bytes);
+  execFileSync("unzip",["-t",path]);
+  const first=execFileSync("unzip",["-p",path,"ppt/slides/slide1.xml"],{encoding:"utf8"});
+  const second=execFileSync("unzip",["-p",path,"ppt/slides/slide2.xml"],{encoding:"utf8"});
+  assert.match(first,/Editable content panel/);
+  assert.match(first,/Accent header rail/);
+  assert.match(first,/225A7A/);
+  assert.match(second,/335FA7/);
+  assert.match(second,/rtl="1"/);
+  assert.match(second,/خاتمة/);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});

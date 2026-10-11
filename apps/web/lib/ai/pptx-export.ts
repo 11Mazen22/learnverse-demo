@@ -10,7 +10,19 @@ const escapeXml=(s:string)=>s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,"").replac
 export type NoataSlide={title:string;lines:string[]};
 export function parseNoataSlides(source:string):NoataSlide[]{
  if(source.length>30000)throw Error("Presentation content exceeds 30,000 characters");
- const segments=source.replace(/\r\n?/g,"\n").split(/^\s*---\s*$/m).filter(v=>v.trim());
+ const normalized=source.replace(/\r\n?/g,"\n");
+ const sections=normalized.split(/^\s*---\s*$/m);
+ const segments=sections.flatMap(section=>{
+  const chunks:string[]=[],lines=section.split("\n");let active:string[]=[];
+  for(const line of lines){
+   if(/^#\s+\S/.test(line)&&active.some(row=>row.trim())){
+    chunks.push(active.join("\n"));active=[];
+   }
+   active.push(line);
+  }
+  if(active.some(row=>row.trim()))chunks.push(active.join("\n"));
+  return chunks;
+ });
  const slides:NoataSlide[]=[];
  for(const segment of segments){
   const lines=segment.split("\n").map(x=>x.trim()).filter(Boolean);
@@ -41,14 +53,28 @@ function shape(id:number,name:string,value:string,coordinates:[number,number,num
   '<p:txBody><a:bodyPr wrap="square" lIns="45720" tIns="45720" rIns="45720" bIns="45720"/>'+
   '<a:lstStyle/>'+paragraphs+'</p:txBody></p:sp>';
 }
-function slideXml(value:NoataSlide,i:number,total:number):string{
- const title=shape(2,"Title",value.title,[650000,490000,10800000,1300000],value.title.length>65?2650:3300,true);
- const body=shape(3,"Content",value.lines.map(x=>"• "+x).join("\n"),[770000,1920000,10500000,4200000],2100);
- const footer=shape(4,"Slide number",String(i+1)+" / "+String(total),[10200000,6260000,900000,340000],1100);
- return header+'<p:sld xmlns:p="'+p+'" xmlns:a="'+a+'" xmlns:r="'+rel+'"><p:cSld>'+
- '<p:bg><p:bgPr><a:solidFill><a:srgbClr val="FAFBFE"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>'+
- '<p:spTree>'+grp+title+body+footer+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+function coloredPanel(id:number,name:string,coordinates:[number,number,number,number],color:string,rounded=false):string{
+ const [x,y,cx,cy]=coordinates;
+ return '<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="'+escapeXml(name)+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>'+
+ '<p:spPr><a:xfrm><a:off x="'+x+'" y="'+y+'"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm>'+
+ '<a:prstGeom prst="'+(rounded?'roundRect':'rect')+'"><a:avLst/></a:prstGeom>'+
+ '<a:solidFill><a:srgbClr val="'+color+'"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>';
 }
+function slideXml(value:NoataSlide,i:number,total:number):string{
+ const colors=["225A7A","335FA7","237D77","7551A2","995C58","496E53"];
+ const accent=colors[i%colors.length],rtl=documentDirection(value.title)==="rtl";
+ const bodyBg=coloredPanel(6,"Editable content panel",[700000,1750000,10800000,4300000],"F2F6FB",true);
+ const top=coloredPanel(5,"Accent header rail",[0,0,12192000,115000],accent);
+ const bar=coloredPanel(7,"Title accent",[rtl?11420000:620000,540000,82000,940000],accent,true);
+ const footRule=coloredPanel(8,"Footer divider",[700000,6180000,10700000,12000],"DBE5EF");
+ const title=shape(2,"Title",value.title,[840000,410000,10480000,1240000],value.title.length>65?2650:3350,true);
+ const body=shape(3,"Content",value.lines.map(x=>"• "+x).join("\n"),[970000,2070000,10150000,3750000],2100);
+ const footer=shape(4,"Slide number",String(i+1)+" / "+String(total),[10150000,6260000,1200000,320000],1100);
+ return header+'<p:sld xmlns:p="'+p+'" xmlns:a="'+a+'" xmlns:r="'+rel+'"><p:cSld>'+
+ '<p:bg><p:bgPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>'+
+ '<p:spTree>'+grp+top+bodyBg+bar+footRule+title+body+footer+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+}
+
 function relationships(rows:{id:number;type:string;target:string}[]):string{
  return header+'<Relationships xmlns="'+pkg+'">'+rows.map(r=>'<Relationship Id="rId'+r.id+'" Type="'+rel+'/'+r.type+'" Target="'+r.target+'"/>').join("")+'</Relationships>';
 }
