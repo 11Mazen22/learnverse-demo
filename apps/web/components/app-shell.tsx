@@ -61,6 +61,9 @@ export function AppShell({
   const [query, setQuery] = useState("");
   const locale = useLocale();
   const t = (ar: string, en: string) => localized(locale, ar, en);
+  const pageLabel = routes.find((route) => route[2] === active)?.[locale === "en" ? 1 : 0] ??
+    (role === "teacher" ? t("\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0645\u0639\u0644\u0651\u0645", "Teacher workspace") : t("\u0625\u062f\u0627\u0631\u0629 Noata", "Manage Noata"));
+  useEffect(() => { document.title = pageLabel + " \u00b7 Noata"; }, [pageLabel, active]);
   const account = useVerifiedAccount();
   const [aiIsNew, setAiIsNew] = useState(false);
   useEffect(() => {

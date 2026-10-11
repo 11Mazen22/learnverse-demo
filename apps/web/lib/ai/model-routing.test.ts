@@ -14,3 +14,9 @@ test("Noata Auto routes varied Arabic requests by their actual request category"
   assert.equal(resolveSuggestedModel("اقرأ الصورة",true),"Fanar-Oryx-IVU-2");
   assert.equal(resolveSuggestedModel("برهن المسألة الصعبة"),"Fanar-C-2-27B");
 });
+
+test("native learning requests use the bilingual schema-following route",()=>{
+ assert.equal(resolveSuggestedModel("Explain quadratic roots with an interactive graph"),"Fanar");
+ assert.equal(resolveSuggestedModel("\u0627\u0634\u0631\u062d \u0628\u0631\u0633\u0645 \u062a\u0641\u0627\u0639\u0644\u064a"),"Fanar");
+ assert.equal(resolveSuggestedModel("Create flashcards about cells"),"Fanar");
+});

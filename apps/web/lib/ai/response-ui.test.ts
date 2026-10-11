@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {validateResponseUi,responseSegments,quadraticValues} from "../../../../supabase/functions/noata-ai/response-ui.ts";
+import {validateResponseUi,responseSegments,responseText,quadraticValues} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 const base={version:1,id:"quadratic-1",title:"Explore the roots",fallback:"Changing the discriminant changes the real roots."};
 test("the component registry rejects unknown types, executable props and unbounded data",()=>{
  assert.ok(validateResponseUi({...base,type:"quadratic",a:1,b:0,c:-1}));
@@ -14,4 +14,11 @@ test("partial widgets stay buffered and malformed complete widgets fall back wit
 });
 test("quadratic calculations cover two roots, repeated roots, complex roots and linear degeneration",()=>{
  assert.deepEqual(quadraticValues(1,0,-1).roots,[-1,1]);assert.deepEqual(quadraticValues(1,2,1).roots,[-1]);assert.equal(quadraticValues(1,0,1).kind,"complex");assert.deepEqual(quadraticValues(0,2,-4).roots,[2]);assert.equal(quadraticValues(0,0,0).kind,"identity");
+});
+
+test("copy and exports replace native protocol while preserving ordinary code",()=>{
+ const content="Explanation\n"+"\x60\x60\x60noata-ui\n"+JSON.stringify({...base,type:"quadratic",a:1,b:0,c:-1})+"\n\x60\x60\x60";
+ assert.equal(responseText(content),"Explanation\n\n\n"+base.fallback);
+ const code="\x60\x60\x60javascript\nconsole.log(1)\n\x60\x60\x60";assert.equal(responseText(code),code);
+ assert.equal(responseText("Before\n\x60\x60\x60noata-ui\n{\"version\":1"),"Before");
 });

@@ -70,3 +70,9 @@ test("specialist access denial is sanitized without exposing the provider body",
  const stream=createFanarStream({model:"Fanar-Sadiq-2",clean,request:async()=>Response.json({detail:"Additional authorization required: not allowed",private:"secret-test-only"},{status:422}),persist:async()=>{}});
  const text=await new Response(stream).text();assert.match(text,/PROVIDER_MODEL_ACCESS_DENIED/);assert.ok(!text.includes("secret-test-only"));assert.ok(!text.includes("Additional authorization"));
 });
+
+test("failed retrieval cannot invoke a provider to invent current research",async()=>{
+ let invoked=false,saved:any;const stream=createFanarStream({model:"Fanar",clean,prepare:async()=>({version:1,status:"unavailable",sources:[],elapsedMs:0}),unavailableContent:()=>"Live research is unavailable.",request:async()=>{invoked=true;return Response.json({});},persist:async(result)=>{saved=result;}});
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
+ assert.equal(invoked,false);assert.equal(saved.model,"Noata");assert.equal(saved.finishReason,"research_unavailable");assert.equal(saved.research.status,"unavailable");assert.equal(frames.at(-1).done,true);
+});

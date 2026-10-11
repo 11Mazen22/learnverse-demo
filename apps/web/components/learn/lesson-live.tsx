@@ -145,23 +145,23 @@ export function LessonLive({ id }: { id: string }) {
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            LESSON
+            {t("\u062f\u0631\u0633","Lesson")}
           </div>
           <h1 style={{ margin: "6px 0 0" }}>{(locale==="en"?lesson.title_en:lesson.title_ar)}</h1>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {completed && (
             <span className="pill">
-              Completed · {Math.round(bestScore ?? 0)}%
+              {t("\u0645\u0643\u062a\u0645\u0644","Completed")} · {Math.round(bestScore ?? 0)}%
             </span>
           )}
-          <span className="pill">{content.duration_minutes ?? 7} min</span>
+          <span className="pill">{content.duration_minutes ?? 7} {t("\u062f\u0642\u0627\u0626\u0642","min")}</span>
         </div>
       </header>
 
       <section className="hero" style={{ padding: 30 }}>
         <div className="eyebrow">
-          {(locale==="en"?lesson.units?.title_en:lesson.units?.title_ar) ?? "NOATA LESSON"}
+          {(locale==="en"?lesson.units?.title_en:lesson.units?.title_ar) ?? t("\u062f\u0631\u0633 Noata","Noata lesson")}
         </div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", margin: "9px 0" }}>
           {(locale==="en"?lesson.title_en:lesson.title_ar)}
@@ -188,7 +188,7 @@ export function LessonLive({ id }: { id: string }) {
         <article className="panel">
           <div className="panel-head">
             <h2>{t("الفكرة الأساسية","The main idea")}</h2>
-            <span className="pill">Concept first</span>
+            <span className="pill">{t("\u0627\u0644\u0641\u0643\u0631\u0629 \u0623\u0648\u0644\u064b\u0627","Concept first")}</span>
           </div>
           <p style={{ fontSize: 17, lineHeight: 2, margin: 0 }}>
             {(locale==="en"?content.summary_en:content.summary_ar) ?? t("محتوى الدرس قيد الإعداد.","Lesson content is being prepared.")}

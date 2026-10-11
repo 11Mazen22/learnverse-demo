@@ -27,6 +27,7 @@ import { ResponseAudioPlayer } from "./response-audio-player";
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { WritingStudio } from "./writing-studio";
 import {ResearchSources} from "./response-components";
+import {responseText} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import { EducationPanel } from "./education-panel";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
@@ -201,7 +202,7 @@ export function NoataAIClient() {
           .filter((m) => m.role !== "system")
           .map(
             (m) =>
-              (m.role === "user" ? t("## أنت","## You") : "## Noata AI") + "\n" + m.content,
+              (m.role === "user" ? t("## أنت","## You") : "## Noata AI") + "\n" + (m.role === "assistant" ? responseText(m.content) : m.content),
           )
           .join("\n\n");
       if (body.length > 200000) {
@@ -230,7 +231,7 @@ export function NoataAIClient() {
         .filter((m) => m.role !== "system")
         .map(
           (m) =>
-            (m.role === "user" ? t("## أنت\n\n","## You ") : "## Noata AI\n\n") + m.content,
+            (m.role === "user" ? t("## أنت\n\n","## You\n\n") : "## Noata AI\n\n") + (m.role === "assistant" ? responseText(m.content) : m.content),
         )
         .join("\n\n---\n\n");
       downloadText(
@@ -627,7 +628,7 @@ export function NoataAIClient() {
                         <button
                           type="button"
                           className="aura-writing-artifact"
-                          onClick={() => setStudioSource(m.content, m.id)}
+                          onClick={() => setStudioSource(responseText(m.content), m.id)}
                         >
                           <span className="aura-artifact-icon">
                             <Icon name="book" size={23} />
@@ -654,7 +655,7 @@ export function NoataAIClient() {
                     <div className="owui-message-actions">
                       <button
                         type="button"
-                        onClick={() => void copy(m.content)}
+                        onClick={() => void copy(m.role === "assistant" ? responseText(m.content) : m.content)}
                         title={t("نسخ","Copy")}
                         aria-label={t("نسخ الرسالة","Copy message")}
                       >
@@ -677,7 +678,7 @@ export function NoataAIClient() {
                         <>
                           <button
                             type="button"
-                            onClick={() => setStudioSource(m.content, m.id)}
+                            onClick={() => setStudioSource(responseText(m.content), m.id)}
                             title={t("تحرير الرد في مساحة الكتابة","Edit answer in writing studio")}
                             aria-label={t("فتح الرد في مساحة الكتابة","Open answer in writing studio")}
                           >
@@ -686,7 +687,7 @@ export function NoataAIClient() {
                           <button
                             type="button"
                             disabled={voiceBusy}
-                            onClick={() => void readAloud(m.content, m.id)}
+                            onClick={() => void readAloud(responseText(m.content), m.id)}
                             title={t("استماع","Listen")}
                             aria-label={t("الاستماع للرد","Listen to answer")}
                           >

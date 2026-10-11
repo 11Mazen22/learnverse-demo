@@ -9,6 +9,7 @@ type Options = {
   windowMs?: number;
   heartbeatMs?: number;
   routeNote?:string;
+  unavailableContent?: (research:Research)=>string;
   prepare?: (signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<Research|undefined>;
 };
 /** Return headers and a ready frame before waiting for upstream inference. */
@@ -21,15 +22,19 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
       const encoder = new TextEncoder(), decoder = new TextDecoder();
       let output = "", buffer = "", finished = false, finishReason = "stop";
       let delivery: "streamed" | "buffered" = "streamed";
-      const started=Date.now();let firstContentMs:number|null=null,research:Research|undefined;
+      const started=Date.now();let firstContentMs:number|null=null,research:Research|undefined,usedModel=options.model;
       const emit = (data: unknown) => { if (!cancelled) controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)); };
-      const result = (incomplete: boolean): StreamResult => ({ kind: "chat", content: options.clean(output), model: options.model, finishReason, incomplete, delivery, ...(research?{research}:{}),...(options.routeNote?{routeNote:options.routeNote}:{}),timings:{firstContentMs,totalMs:Date.now()-started} });
+      const result = (incomplete: boolean): StreamResult => ({ kind: "chat", content: options.clean(output), model: usedModel, finishReason, incomplete, delivery, ...(research?{research}:{}),...(options.routeNote?{routeNote:options.routeNote}:{}),timings:{firstContentMs,totalMs:Date.now()-started} });
       const deadline = setTimeout(() => abort.abort(new DOMException("Generation window elapsed", "TimeoutError")), options.windowMs ?? GENERATION_WINDOW_MS);
       const heartbeat = setInterval(() => emit({ heartbeat: true }), options.heartbeatMs ?? 10_000);
       try {
         emit({ ready: true, model: options.model,routeNote:options.routeNote });
         research=await options.prepare?.(abort.signal,emit);
         if(research)emit({research,status:"preparing"});
+        if(research && research.status!=="complete" && options.unavailableContent){
+          output=options.unavailableContent(research);usedModel="Noata";delivery="buffered";finished=true;finishReason="research_unavailable";firstContentMs=Date.now()-started;
+          emit({content:output,model:usedModel,delivery});
+        } else {
         const response = await options.request(abort.signal);
         if (!response.ok || !response.body) {
           // Interpret provider failures without logging response bodies, prompts or keys.
@@ -76,6 +81,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
              if (finished) break;
             if (part.done) { if (buffer.trim()) frame(buffer); break; }
           }
+        }
         }
         if (cancelled) return;
         if (!finished || !options.clean(output)) throw Error("Interrupted or empty response");

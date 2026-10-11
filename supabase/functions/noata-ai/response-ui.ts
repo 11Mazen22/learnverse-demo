@@ -41,6 +41,10 @@ export function responseSegments(content:string):ResponseSegment[]{
  else if(remaining)output.push({type:"markdown",text:remaining});
  return output;
 }
+/** Human-readable copy/export replaces native controls with their explanation. */
+export function responseText(content:string):string{
+ return responseSegments(content).map(segment=>segment.type==="interactive"?segment.data.fallback:segment.type==="pending"?"":segment.text).join("\n\n").trim();
+}
 export function sanitizeResponseUi(content:string):string{
  return content.replace(/^```noata-ui[^\n]*\n([\s\S]*?)^```\s*$/gm,(block,raw)=>{
   let parsed:unknown;try{if(raw.length<=30000)parsed=JSON.parse(raw);}catch{}
@@ -52,11 +56,11 @@ export function quadraticValues(a:number,b:number,c:number){
  if(a===0)return {discriminant:null,roots:b===0?[]:[-c/b],kind:b===0?(c===0?"identity":"none"):"linear"};
  return {discriminant,roots:discriminant<0?[]:discriminant===0?[-b/(2*a)]:[(-b-Math.sqrt(discriminant))/(2*a),(-b+Math.sqrt(discriminant))/(2*a)],kind:discriminant<0?"complex":discriminant===0?"repeated":"real"};
 }
-export const RESPONSE_UI_POLICY=`When interaction genuinely helps, you may append one fenced noata-ui JSON block after your readable explanation. Never use this for greetings, exact quotations, creative poems, code-only or JSON-only requests. All blocks require version:1, an id with letters/digits/underscores, title in the user's language, and a meaningful fallback explanation. Use only these shapes:
+export const RESPONSE_UI_POLICY=`Noata has verified native interactive components. When the learner explicitly requests an interactive graph, flashcards, quiz, or timeline, append one valid fenced noata-ui JSON block after your readable explanation. The website renders the JSON as real controls. Do not claim these components are unavailable, merely describe nonexistent controls, or redirect to another website. For other requests, use a component only when it genuinely helps. Never use this for greetings, exact quotations, creative poems, code-only or JSON-only requests. All blocks require version:1, an id with letters/digits/underscores, title in the user's language, and a meaningful fallback explanation. Use only these shapes:
 quadratic: {version:1,id,title,fallback,type:"quadratic",a:number,b:number,c:number} (coefficients between -20 and 20)
 flashcards: {...base,type:"flashcards",cards:[{front,back}]} (max 20)
 quiz: {...base,type:"quiz",questions:[{prompt,choices:[string,string,...],answer:zero_based_index,explanation}]} (max 10, 2-5 choices)
 steps: {...base,type:"steps",steps:[{title,body}]} (max 12)
 timeline: {...base,type:"timeline",events:[{date,title,body}]} (max 12)
 comparison: {...base,type:"comparison",columns:[string,...],rows:[[string,...],...]} (max 5 columns, 12 rows)
-Do not add unknown fields, HTML, executable code, URLs, actions, sources or invented evidence to these payloads. Use ordinary Markdown when no interaction helps or you cannot produce a valid payload. Practice quizzes are informal and never grant grades or rewards.`;
+A complete quadratic example is: \n\`\`\`noata-ui\n{"version":1,"id":"quadratic_example","title":"Explore quadratic roots","fallback":"For x squared minus 1, the roots are -1 and 1. The discriminant is 4.","type":"quadratic","a":1,"b":0,"c":-1}\n\`\`\`\nDo not add unknown fields, HTML, executable code, URLs, actions, sources or invented evidence to these payloads. Use ordinary Markdown when no interaction helps or you cannot produce a valid payload. Practice quizzes are informal and never grant grades or rewards.`;

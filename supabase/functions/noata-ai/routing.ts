@@ -12,6 +12,9 @@ export function resolveAutoRoute(text: string, hasImage = false) {
   if (/\b(quran|hadith|islam|fatwa|salah|ramadan|tafsir)\b/i.test(q) ||
       /(قرآن|قران|إسلام|اسلام|فتوى|تفسير آية|تفسير سورة|حديث نبوي|صحة الحديث|رمضان)/.test(q))
     return { model: "Fanar-Sadiq-2", reason: "islamic" };
+  // Native component requests need reliable schema following, not a reasoning transcript.
+  if (/\b(interactive|flashcards?|quiz|timeline|discriminant|quadratic)\b|\u062a\u0641\u0627\u0639\u0644\u064a|\u0628\u0637\u0627\u0642\u0627\u062a \u0645\u0631\u0627\u062c\u0639\u0629|\u062e\u0637 \u0632\u0645\u0646\u064a|\u0645\u0645\u064a\u0632 \u0627\u0644\u0645\u0639\u0627\u062f\u0644\u0629/i.test(q))
+    return { model: "Fanar", reason: "structured_learning" };
   // Length and requests for more detail do not imply complex reasoning.
   if (/\b(prove|proof|derive|debug|algorithm)\b/i.test(q) ||
       /\b(complex|advanced)\b.*\b(math|equation|reasoning|analysis|code)\b/i.test(q) ||
