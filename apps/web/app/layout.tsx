@@ -18,6 +18,7 @@ import "./brand-system.css";
 import "./contextual-coach.css";
 import "./design-rebirth.css";
 import "./ai-suggestions.css";
+import "./ai-interactions.css";
 import "./ai-memory.css";
 import "./ai-library.css";
 import { PwaRegister } from "@/components/pwa-register";

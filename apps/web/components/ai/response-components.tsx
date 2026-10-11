@@ -3,6 +3,7 @@ import {useId,useState} from "react";
 import {useTranslation} from "@/lib/i18n/locale";
 import {quadraticValues,type ResponseUi} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
+import {StudyDeck,LineChart} from "./learning-interactions";
 
 function Quadratic({data}:{data:Extract<ResponseUi,{type:"quadratic"}>}){
  const t=useTranslation(),id=useId();
@@ -23,10 +24,6 @@ function Quadratic({data}:{data:Extract<ResponseUi,{type:"quadratic"}>}){
   <div aria-live="polite" className="noata-calculation"><p>{t("المميّز","Discriminant")}: <bdi>{result.discriminant===null?t("معادلة غير تربيعية","Not quadratic"):display(result.discriminant)}</bdi></p><p>{result.roots.length?t("الجذور الحقيقية","Real roots")+": "+result.roots.map(display).join(", "):result.kind==="identity"?t("كل قيم س تحقق المعادلة.","Every x satisfies the equation."):t("لا توجد جذور حقيقية.","No real roots.")}</p></div>
  </>;
 }
-function Flashcards({data}:{data:Extract<ResponseUi,{type:"flashcards"}>}){
- const t=useTranslation();const [index,setIndex]=useState(0),[back,setBack]=useState(false),card=data.cards[index];
- return <><button type="button" className="noata-flashcard" aria-label={t("اقلب البطاقة","Flip card")} aria-pressed={back} onClick={()=>setBack(!back)}><span>{back?card.back:card.front}</span><small>{t("اضغط لإظهار الوجه الآخر","Select to reveal the other side")}</small></button><div className="noata-widget-controls"><button type="button" disabled={index===0} onClick={()=>{setIndex(index-1);setBack(false);}}>{t("السابق","Previous")}</button><span>{index+1} / {data.cards.length}</span><button type="button" disabled={index===data.cards.length-1} onClick={()=>{setIndex(index+1);setBack(false);}}>{t("التالي","Next")}</button></div></>;
-}
 function Quiz({data}:{data:Extract<ResponseUi,{type:"quiz"}>}){
  const t=useTranslation(),id=useId();const [answers,setAnswers]=useState<Record<number,number>>({}),[checked,setChecked]=useState(false);
  return <><p className="noata-widget-note">{t("تدريب يولّده الذكاء الاصطناعي. راجع المعلومات المهمة؛ لا يؤثر على الدرجات أو المكافآت.","AI-generated practice. Check important facts; this does not affect grades or rewards.")}</p>{data.questions.map((q,i)=><fieldset className="noata-quiz-question" key={i}><legend>{i+1}. {q.prompt}</legend>{q.choices.map((choice,j)=><label key={j}><input type="radio" name={`${id}-${i}`} checked={answers[i]===j} onChange={()=>{setAnswers(old=>({...old,[i]:j}));setChecked(false);}}/>{choice}</label>)}{checked&&<p className="noata-practice-feedback">{answers[i]===q.answer?t("صحيح","Correct"):t("راجع إجابتك","Review your answer")}: {q.explanation}</p>}</fieldset>)}<div className="noata-widget-controls"><button type="button" disabled={Object.keys(answers).length!==data.questions.length} onClick={()=>setChecked(true)}>{t("تحقق من الإجابات","Check answers")}</button><button type="button" onClick={()=>{setAnswers({});setChecked(false);}}>{t("ابدأ مجددًا","Start again")}</button></div>{checked&&<p role="status">{t("إجابات صحيحة","Correct answers")}: {data.questions.filter((q,i)=>answers[i]===q.answer).length} / {data.questions.length}</p>}</>;
@@ -34,7 +31,7 @@ function Quiz({data}:{data:Extract<ResponseUi,{type:"quiz"}>}){
 /** Native allowlist; generated payloads cannot import components or invoke actions. */
 export function ResponseComponent({data}:{data:ResponseUi}){
  return <section className="noata-response-component" dir="auto" aria-label={data.title}><h3>{data.title}</h3>
-  {data.type==="quadratic"?<Quadratic data={data}/>:data.type==="flashcards"?<Flashcards data={data}/>:data.type==="quiz"?<Quiz data={data}/>:data.type==="steps"?<ol className="noata-guided-steps">{data.steps.map((step,i)=><li key={i}><details><summary>{step.title}</summary><p>{step.body}</p></details></li>)}</ol>:data.type==="timeline"?<ol className="noata-timeline">{data.events.map((event,i)=><li key={i}><span>{event.date}</span><h4>{event.title}</h4><p>{event.body}</p></li>)}</ol>:<div className="noata-comparison-scroll" tabIndex={0}><table><caption>{data.title}</caption><thead><tr>{data.columns.map((column,i)=><th scope="col" key={i}>{column}</th>)}</tr></thead><tbody>{data.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>}
+  {data.type==="quadratic"?<Quadratic data={data}/>:data.type==="flashcards"?<StudyDeck data={data}/>:data.type==="quiz"?<Quiz data={data}/>:data.type==="line_chart"?<LineChart data={data}/>:data.type==="steps"?<ol className="noata-guided-steps">{data.steps.map((step,i)=><li key={i}><details><summary>{step.title}</summary><p>{step.body}</p></details></li>)}</ol>:data.type==="timeline"?<ol className="noata-timeline">{data.events.map((event,i)=><li key={i}><span>{event.date}</span><h4>{event.title}</h4><p>{event.body}</p></li>)}</ol>:<div className="noata-comparison-scroll" tabIndex={0}><table><caption>{data.title}</caption><thead><tr>{data.columns.map((column,i)=><th scope="col" key={i}>{column}</th>)}</tr></thead><tbody>{data.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>}
   <details className="noata-widget-fallback"><summary><FallbackLabel/></summary><p>{data.fallback}</p></details>
  </section>;
 }

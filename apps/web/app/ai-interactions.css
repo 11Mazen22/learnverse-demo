@@ -1,0 +1,38 @@
+/* Actual AI interaction surfaces — palette-aware, responsive, reduced-motion safe. */
+.noata-study-deck,.noata-series{display:grid;gap:14px}
+.noata-study-meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px;font-weight:700}
+.noata-study-track{height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+.noata-study-track span{height:100%;background:var(--accent);display:block;border-radius:99px;transition:width 220ms}
+.noata-flip-card{min-height:235px;padding:24px;cursor:pointer;gap:18px;background:linear-gradient(130deg,var(--surface),var(--surface-soft));
+ box-shadow:0 12px 32px color-mix(in srgb,var(--accent) 8%,transparent);transition:transform 170ms,border-color 170ms}
+.noata-flip-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.noata-flip-card.revealed{background:color-mix(in srgb,var(--accent-soft) 32%,var(--surface))}
+.noata-flip-card strong{font-size:clamp(21px,3vw,29px);line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.noata-flip-card small:first-child{color:var(--accent);font-size:11px;font-weight:800}
+.noata-study-review,.noata-study-navigation{display:flex;gap:9px}
+.noata-study-review button,.noata-study-navigation button,.noata-study-finished button{flex:1;min-height:44px;border:1px solid var(--line);border-radius:12px;
+ padding:10px;background:var(--surface-soft);color:var(--ink);font:inherit;font-weight:650;cursor:pointer}
+.noata-study-review button.noata-study-success,.noata-chart-download{background:var(--accent)!important;border-color:var(--accent)!important;color:var(--on-accent,#fff)!important}
+.noata-study-deck button:disabled,.noata-series button:disabled{opacity:.45;cursor:not-allowed}
+.noata-study-finished{display:flex;align-items:center;flex-wrap:wrap;gap:10px;border:1px solid var(--accent);
+ border-radius:14px;background:var(--accent-soft);padding:12px;font-size:13px}
+.noata-study-finished button{flex:0 0 auto;margin-inline-start:auto}
+.noata-series-insights{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.noata-series-insights>div{display:grid;gap:6px;background:var(--surface-soft);border:1px solid var(--line);border-radius:16px;padding:15px}
+.noata-series-insights small{color:var(--muted);font-size:11px}
+.noata-series-insights strong{font-size:clamp(20px,3vw,27px);font-variant-numeric:tabular-nums;color:var(--ink)}
+.noata-series-graph{width:100%;max-width:100%;border-radius:16px;border:1px solid var(--line);background:var(--surface-soft)}
+.noata-series-graph text{fill:var(--muted);font:12px system-ui,sans-serif}
+.noata-series-slider{display:grid;gap:8px;font-size:12px;font-weight:650;color:var(--muted)}
+.noata-series-slider input{width:100%;accent-color:var(--accent);cursor:pointer}
+.noata-series-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.noata-series-actions label{display:flex;align-items:center;gap:6px;margin-inline-end:auto;color:var(--muted);font-size:12px}
+.noata-series-actions button,.noata-series-actions select{min-height:42px;padding:9px;border:1px solid var(--line);border-radius:11px;color:var(--ink);
+ font:inherit;font-size:12px;background:var(--surface-soft);cursor:pointer}
+.noata-series-table{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:13px}
+.noata-series-table table{width:100%;border-collapse:collapse;font-size:12px}
+.noata-series-table :is(th,td){padding:10px;border-bottom:1px solid var(--line);text-align:start}
+.noata-series-table th{position:sticky;top:0;background:var(--surface-soft)}
+@media(max-width:550px){.noata-series-insights{grid-template-columns:1fr}.noata-study-review{flex-direction:column}.noata-series-actions button{flex:1}}
+@media(prefers-reduced-motion:reduce){.noata-flip-card,.noata-study-track span{transition:none}.noata-flip-card:hover{transform:none}}
+html[data-noata-motion="off"] .noata-flip-card,html[data-noata-motion="off"] .noata-study-track span{transition:none!important;transform:none!important}
