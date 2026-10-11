@@ -5,6 +5,12 @@ export type ArtifactIntent={kind:ArtifactKind;usePrevious:boolean};
 export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
  const q=prompt.trim();
  if(!q||q.length>4000)return null;
+ // Ability questions need an answer or clarification, not a downloadable
+ // document containing the model's answer to "can you make PDF?".
+ if(/^(?:can|could|do|does|will|are|is)\s+(?:you|noata)\s+/i.test(q)
+  &&!/(?:\b(?:that|this|previous|above)\b|(?:عن|about|from|containing)\s+\S{4,})/i.test(q))return null;
+ if(/^(?:هل|ممكن|تقدر|تستطيع)\s+/i.test(q)
+  &&!/(?:دا|ده|السابق|عن\s+\S{4,})/i.test(q))return null;
  if(/^(?:(?:how|why|what|explain|teach|tutorial)\b|(?:ازاي|إزاي|كيف|اشرح)(?:\s|$))/i.test(q))return null;
  if(!/\b(?:make|create|generate|export|convert|prepare|download|save|produce|give me|turn)\b|(?:اعمل|اصنع|أنشئ|جهز|حوّل|حول|صمم|نزّل|صدّر|اعمللي)/i.test(q))return null;
  const formats:ArtifactKind[]=[];

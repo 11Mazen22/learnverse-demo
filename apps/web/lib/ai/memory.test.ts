@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {selectRelevantMemories,memorySystemContext} from "../../../../supabase/functions/noata-ai/memory.ts";
+import {selectRelevantMemories,memorySystemContext,lastChatRecallRequested} from "../../../../supabase/functions/noata-ai/memory.ts";
 const data=[
  {id:"a",content:"I prefer mathematics explanations in Arabic.",updated_at:"2026-10-11"},
  {id:"b",content:"My science notes are organized by chapter.",updated_at:"2026-10-10"},
@@ -18,4 +18,11 @@ test("Memory is bounded and hostile formatting cannot become HTML",()=>{
  const ctx=memorySystemContext(source,"Mathematics");
  assert.ok(!ctx.includes("<script>"));
  assert.ok(ctx.includes("untrusted contextual data"));
+});
+
+test("Cross-chat recall only activates for explicit earlier-chat questions",()=>{
+ assert.equal(lastChatRecallRequested("what is the last thing I asked you in the last chat?"),true);
+ assert.equal(lastChatRecallRequested("ما هي آخر حاجة سألتك عنها في الشات اللي فات؟"),true);
+ assert.equal(lastChatRecallRequested("What is the temperature today?"),false);
+ assert.equal(lastChatRecallRequested("Explain a chapter about past tense"),false);
 });

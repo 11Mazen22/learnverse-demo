@@ -86,6 +86,7 @@ export function NoataMemorySettings({owner,open,temporary}:Props){
  }
  return <section className="noata-memory-panel" aria-label={t("الذاكرة","Memory")}>
   <h3>{t("الذاكرة والتحكم في الخصوصية","Memory and privacy controls")}</h3>
+  <p className="noata-memory-note">{t("الذاكرة اختيارية. عند تفعيلها، يمكن لـ Noata استخدام الذكريات المعتمدة للإجابات، وقراءة آخر سؤال في محادثة سابقة عند سؤالك عنها صراحةً. المحادثات المؤقتة مستبعدة.","Memory is optional. When enabled, Noata may use your approved notes in answers and retrieve your last question from an earlier non-temporary chat when you explicitly ask. Temporary chats remain excluded.")}</p>
   <p>{t("اختيارية ومغلقة افتراضيًا. يمكنك إضافة معلومات تريد أن يتذكرها Noata وتعديلها وحذفها. لا ينشئ النظام ذكريات تلقائيًا.","Optional and off by default. Add, edit or delete facts you'd like Noata to remember. No memories are created automatically.")}</p>
   {!owner?<p role="status">{t("سجّل الدخول لإدارة الذاكرة.","Sign in to manage memory.")}</p>:<>
    <button type="button" className="noata-memory-consent" aria-pressed={enabled} disabled={busy||loading} onClick={()=>void changeConsent()}>

@@ -32,6 +32,7 @@ import { detectArtifactIntent, artifactContent } from "@/lib/ai/artifact-intent"
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart } from "@/lib/ai/artifact-chart";
 import { imageGenerationIntent } from "@/lib/ai/image-intent";
+import {isArtifactCapabilityQuestion,safeArtifactReplyOnCapabilityQuestion,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
@@ -563,6 +564,7 @@ export function useAIWorkspace() {
            model:selectedModel??model,
           messages: createAiMessageContext(history),
           attachmentPath,
+          conversationId:history.findLast(item=>item.conversation_id&&item.conversation_id!=="temporary")?.conversation_id,
            stream: true,
            responseLanguage,
            temporary,
@@ -858,6 +860,10 @@ export function useAIWorkspace() {
         );
       }
       assertSession(token);
+      // Correct contradictory provider capability refusals BEFORE persisting.
+      // A plain capability question never triggers an empty/refusal PDF.
+      if (mode==="send" && !tool && !result.incomplete)
+        result={...result,content:safeArtifactReplyOnCapabilityQuestion(text,result.content,locale)};
       if(result.incomplete){
         metadata.incomplete=true;
         setNotice(t("الرد محفوظ جزئيًا. اضغط «كمّل الرد» لإكماله.","Partial answer saved. Choose Continue answer to finish it."));
@@ -902,8 +908,13 @@ export function useAIWorkspace() {
       savedResponse = true;
       // Explicit file requests now produce a genuine owned artifact as part of
       // the answer lifecycle. No file, link or success state is invented on failure.
-      const artifactRequest = mode === "send" && !tool && !temporary && !result.incomplete
-        ? detectArtifactIntent(text) : null;
+      const previousAnswer=history.slice(0,-1).findLast(row=>row.role==="assistant")?.content??"";
+      const fileIntent=mode==="send"&&!tool&&!temporary&&!result.incomplete&&!isArtifactCapabilityQuestion(text)
+        ?detectArtifactIntent(text):null;
+      // Refusals are not document source material. Follow-up exports may use a
+      // prior actual answer, even if Fanar misunderstood the new instruction.
+      const artifactRequest=fileIntent&&canCreateArtifactFromAnswer(responseText(result.content),responseText(previousAnswer),fileIntent.usePrevious)
+        ?fileIntent:null;
       if (artifactRequest) {
         setNotice(t("بننشئ الملف ونفحصه ونحفظه في مكتبتك…","Generating, validating and saving your file…"));
         try {
@@ -911,7 +922,7 @@ export function useAIWorkspace() {
           assertSession(token);
           if (who.error || !who.data.user?.id) throw Error("auth_expired");
           const owner = who.data.user.id;
-          const prior = history.slice(0,-1).findLast(row => row.role === "assistant")?.content ?? "";
+          const prior = previousAnswer;
           const source = artifactContent(artifactRequest,responseText(result.content),responseText(prior));
           const chartData = artifactRequest.kind === "pdf"
             ? findActualLineChart(artifactRequest.usePrevious && prior.trim()?prior:result.content)
@@ -960,7 +971,18 @@ export function useAIWorkspace() {
             title:titleFrom(text,locale),driver
           });
           assertSession(token);
-          assistant={...assistant,metadata:{...assistant.metadata,generatedArtifact:artifact}};
+          // A real artifact was persisted. Remove a conflicting provider refusal
+          // from the visible and stored response only after confirmed success.
+          let finalContent=assistant.content;
+          if(isArtifactRefusal(finalContent)){
+            finalContent=locale==="ar"
+              ?"اتجهّز الملف من محتوى الرد السابق واتحفظ في مكتبتك الخاصة. تقدر تفتحه أو تنزّله من البطاقة تحت."
+              :"The file was created from your previous answer and saved in your private library. You can open or download it below.";
+            const changed=await supabase.from("ai_messages").update({content:finalContent})
+              .eq("id",assistant.id).eq("conversation_id",conversationId).select("id").single();
+            if(changed.error)throw changed.error;
+          }
+          assistant={...assistant,content:finalContent,metadata:{...assistant.metadata,generatedArtifact:artifact}};
           setMessages([...history,assistant]);
           setNotice(t("الملف جاهز وموجود داخل الرد وفي مكتبتك.","Your generated file is ready inside this reply and in your private library."));
         } catch (artifactError) {

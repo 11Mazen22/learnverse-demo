@@ -17,7 +17,7 @@ import {
   getChatModelCards,
   resolveSuggestedModel,
 } from "@/lib/ai/model-routing";
-import { toolsForLocale } from "@/lib/ai/workspace";
+
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
 import { DocumentSourcesMessage } from "./document-sources-message";
@@ -39,11 +39,11 @@ import {useAISuggestions,SuggestedActions} from "./use-ai-suggestions";
 import {NoataMotionControl} from "./motion-control";
 import {NoataMemorySettings} from "./memory-settings";
 import {NoataProjectLibrary} from "./project-library";
-import {NoataLaunchpad} from "./noata-launchpad";
+
 import {NoataCapabilityCenter} from "./noata-capability-center";
 import {NoataAnswerExports} from "./answer-exports";
 import {NoataGeneratedArtifact} from "./generated-artifact";
-import type {LaunchAction} from "@/lib/ai/launch-actions";
+
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
 
@@ -63,7 +63,7 @@ function downloadText(filename: string, text: string, type = "text/plain") {
 
 export function NoataAIClient() {
   const t=useTranslation(),locale=useLocale();
-  const CHAT_MODEL_CARDS=getChatModelCards(locale),TOOLS=toolsForLocale(locale);
+  const CHAT_MODEL_CARDS=getChatModelCards(locale);
   const seenAccount = useVerifiedAccount();
   useEffect(() => {
     if (!seenAccount.loading) markFeatureSeen("ai", AI_INTRO_VERSION, seenAccount.user?.id ?? null);
@@ -106,7 +106,6 @@ export function NoataAIClient() {
     attachment,
     preview,
     setAttachment,
-    showTools,
     input,
     recording,
     elapsed,
@@ -114,7 +113,6 @@ export function NoataAIClient() {
     media,
     picker,
     toggleRecording,
-    setShowTools,
     abort,
     notice,
     mobileHistory,
@@ -255,13 +253,6 @@ export function NoataAIClient() {
     setNotice(t("تم تصدير المحادثة.","Conversation exported."));
   }
 
-  function openLaunchAction(action:LaunchAction){
-    if(action==="study"){setEducationOpen(true);return;}
-    if(action==="write"){setStudioSource(t("# مستند جديد\n\nابدأ الكتابة هنا.","# New document\n\nStart your document here."),"new-document");return;}
-    if(action==="analyze"){setStudioSource(t("# تحليل بيانات\n\n| البند | القيمة |\n|---|---|\n| مثال | 0 |","# Data workspace\n\n| Item | Value |\n|---|---|\n| Example | 0 |"),"data-workspace");return;}
-    if(action==="research"){setInput(t("ابحث عن موضوع أختاره باستخدام مصادر موثوقة وحديثة عند توفر البحث المباشر، ووضح ما يمكن التحقق منه.","Research a topic I choose using credible, recent sources when live search is available. Distinguish verified evidence from uncertainty."));composer.current?.focus();return;}
-    if(action==="projects"||action==="memory"){setSettingsTab(action);setSettingsOpen(true);}
-  }
 
   const sidebar = (
     <ConversationHistory
@@ -549,11 +540,10 @@ export function NoataAIClient() {
                   ? t("أهلًا بيك في Noata AI","Welcome to Noata AI")
                   : t("إزاي أقدر أساعدك النهارده؟","How can I help today?")}
               </h1>
-              <p>{t("اسأل، ارفع صورة، التقط شاشة، أو اتكلم بصوتك. Noata يساعدك في الشرح والكتابة، مع اختيار نموذج مهيّأ يناسب السؤال. توفّر القدرات يعتمد على الخدمة.","Ask a question, attach an image, capture your screen, or use your voice. Noata helps you understand and write, with a model selected for the task. Availability depends on the provider.")}</p>
+              <p>{t("اسأل عن أي حاجة، أو اختار اقتراحًا للبدء.","Ask anything, or pick a suggestion to get started.")}</p>
               <SuggestedActions kind="welcome" locale={locale} items={suggestions.welcome}
                 disabled={busy||loading} onChoose={prompt=>{setInput(prompt);composer.current?.focus();}} />
-              <NoataLaunchpad signedIn={Boolean(seenAccount.user?.id)} disabled={busy||loading}
-                onSelect={openLaunchAction} />
+
               {signedIn === false && (
                 <Link className="owui-primary-action" href="/login?next=/ai">{t("سجّل الدخول وابدأ","Sign in to get started")}<Icon name="arrow" size={15} />
                 </Link>
@@ -590,10 +580,6 @@ export function NoataAIClient() {
                       <NoataGeneratedArtifact value={m.metadata?.generatedArtifact}
                         owner={seenAccount.user?.id??null}/>}
 
-                    {m.role==="assistant"&&m.status==="complete"&&
-                      <NoataAnswerExports text={responseText(m.content)}
-                        title={m.content.match(/^#{1,3}\s+(.+)$/m)?.[1]??t("إجابة Noata AI","Noata AI answer")}
-                        ready={!busy&&signedIn===true}/>}
 
                     {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}
                     {(m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"||m.metadata?.routeNote==="sadiq_unavailable_general_model")&&<p className="noata-widget-note">{m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"?t("صادق 2 غير مفعّل؛ هذا الرد من صادق.","Sadiq 2 is not enabled; this answer used Sadiq."):t("صادق 2 غير مفعّل؛ هذا الرد من النموذج العام.","Sadiq 2 is not enabled; this answer used the general model.")}</p>}
@@ -660,6 +646,18 @@ export function NoataAIClient() {
                           >
                             <Icon name="edit" size={14} />
                           </button>
+                          {m.status==="complete"&&!m.metadata?.generatedArtifact&&(
+                            <details className="noata-inline-export">
+                              <summary aria-label={t("تنزيل الرد كملف","Download answer as a file")} title={t("تصدير الملف","Export file")}>
+                                <Icon name="download" size={15}/>
+                              </summary>
+                              <div className="noata-inline-export-popover">
+                                <NoataAnswerExports text={responseText(m.content)}
+                                  title={m.content.match(/^#{1,3}\s+(.+)$/m)?.[1]??t("إجابة Noata AI","Noata AI answer")}
+                                  ready={!busy&&signedIn===true}/>
+                              </div>
+                            </details>
+                          )}
                           <button
                             type="button"
                             disabled={voiceBusy}
@@ -953,30 +951,16 @@ export function NoataAIClient() {
                           <small>{t("شارك شاشة واختر لقطة للمحادثة","Share a screen and choose a snapshot for this chat")}</small>
                         </span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowTools(true);
-                          setInputMenuOpen(false);
-                        }}
-                      >
-                        <Icon name="sparkles" size={17} />
-                        <span>
-                          <strong>{t("أدوات Fanar","Fanar tools")}</strong>
-                          <small>{t("صورة، ترجمة، شعر، بحث وتحقق","Images, translation, poetry, research, and verification")}</small>
-                        </span>
+                      <button type="button" className="noata-start-document"
+                        onClick={()=>{setStudioSource(t("# مستند جديد\n\nابدأ الكتابة هنا.","# New document\n\nStart your document here."),"new-document");setInputMenuOpen(false);}}>
+                        <Icon name="book" size={17}/>
+                        <span><strong>{t("إنشاء مستند","Create a document")}</strong>
+                        <small>{t("مسودة قابلة للتحرير والتصدير","Editable draft and genuine exports")}</small></span>
                       </button>
                     </div>
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  className={"owui-tool-toggle " + (showTools ? "active" : "")}
-                  onClick={() => setShowTools((x) => !x)}
-                  aria-pressed={showTools}
-                >
-                  <Icon name="sparkles" size={15} />{t("أدوات","Tools")}</button>
 
                 <button
                   className="owui-round"
@@ -1020,39 +1004,6 @@ export function NoataAIClient() {
               </div>
             </div>
 
-            {showTools && (
-              <div className="owui-tool-panel">
-                <div className="owui-tool-panel-head">
-                  <div>
-                    <strong>{t("أدوات Noata AI","Noata AI tools")}</strong>
-                    <small>{t("تُنفّذ كقدرات Fanar مخصصة","Powered by dedicated Fanar capabilities")}</small>
-                  </div>
-                  <button
-                    type="button"
-                    className="owui-icon"
-                    onClick={() => setShowTools(false)}
-                  >
-                    <Icon name="close" size={15} />
-                  </button>
-                </div>
-                <div className="owui-tool-list">
-                  {TOOLS.map((tool) => (
-                    <button
-                      key={tool.action}
-                      type="button"
-                      disabled={busy || !input.trim() || Boolean(attachment)}
-                      onClick={() => void send(undefined, "send", tool.action)}
-                    >
-                      <Icon name={tool.icon} size={17} />
-                      <span>
-                        <strong>{tool.label}</strong>
-                        <small>{tool.description}</small>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </form>
 
           <p className="owui-disclaimer">

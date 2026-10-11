@@ -8,6 +8,8 @@ test("Noata only creates explicitly requested files and uses previous answer for
  assert.deepEqual(detectArtifactIntent("اصنع ملف بوربوينت عن الطاقة"),{kind:"pptx",usePrevious:false});
  assert.deepEqual(detectArtifactIntent("جهز ملف إكسل للدرجات"),{kind:"xlsx",usePrevious:false});
  assert.equal(detectArtifactIntent("How do I create a PDF?"),null);
+ assert.equal(detectArtifactIntent("can you make pdf?"),null);
+ assert.equal(detectArtifactIntent("هل تقدر تعمل PDF؟"),null);
  assert.equal(detectArtifactIntent("إزاي اعمل PDF؟"),null);
  assert.equal(detectArtifactIntent("I read a PDF yesterday"),null);
  assert.equal(detectArtifactIntent("Create PDF and Excel"),null);

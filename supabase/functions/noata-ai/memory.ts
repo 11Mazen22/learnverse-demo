@@ -19,3 +19,12 @@ export function memorySystemContext(items:MemoryItem[],question:string):string{
   ...chosen.map((m,i)=>(i+1)+". "+m.content.replace(/[\r\n\t<>]/g," ").slice(0,500))
  ].join("\n");
 }
+
+/** Deliberately narrow: cross-chat retrieval only for explicit user questions. */
+export function lastChatRecallRequested(request:string):boolean{
+ const q=request.trim().toLocaleLowerCase();
+ if(q.length<7||q.length>2000)return false;
+ return /\b(?:last|previous|earlier|prior)\s+(?:chat|conversation)\b/i.test(q)
+  ||/(?:الشات|المحادثة)\s+(?:اللي\s+فات(?:ت)?|السابقة)/i.test(q)
+  ||/(?:آخر|اخر)\s+(?:سؤال|حاجة|شيء|محـادثة|محادثة)[\s\S]{0,85}(?:شات|المحادثة|محادثة)/i.test(q);
+}

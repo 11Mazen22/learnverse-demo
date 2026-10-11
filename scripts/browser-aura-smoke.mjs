@@ -124,11 +124,11 @@ async function auditSyntheticView(name) {
 async function verifyToolThemeContrast(){
   await command('Emulation.setDeviceMetricsOverride',{width:1920,height:900,deviceScaleFactor:1,mobile:false});
   await navigate('/ai');
-  await waitFor(()=>evaluate('!!document.querySelector(".owui-tool-toggle")'),'AI tools toggle');
+  await waitFor(()=>evaluate('!!document.querySelector(".owui-input-menu-wrap > button")'),'Composer attachment/actions control');
   // Sample actual rendered colors on every animation frame, including the
   // first frame after a scheme change. Waiting for transitions hides this bug.
   const measurements=await evaluate(`(async()=>{
-    const button=document.querySelector('.owui-tool-toggle');
+    const button=document.querySelector('.owui-input-menu-wrap > button');
     const original=document.documentElement.dataset.theme,rows=[];
     const rgb=s=>(s.match(/[\\d.]+/g)||[]).map(Number);
     const luminance=c=>c.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
@@ -141,7 +141,7 @@ async function verifyToolThemeContrast(){
     };
     try{
       for(const active of [false,true]){
-        if((button.getAttribute('aria-pressed')==='true')!==active){button.click();await new Promise(requestAnimationFrame);}
+        if((button.getAttribute('aria-expanded')==='true')!==active){button.click();await new Promise(requestAnimationFrame);}
         for(const theme of ['light','dark']){
           document.documentElement.dataset.theme=theme==='light'?'dark':'light';
           await new Promise(r=>setTimeout(r,220));
@@ -151,11 +151,11 @@ async function verifyToolThemeContrast(){
           rows.push({active,theme,frames});
         }
       }
-    }finally{document.documentElement.dataset.theme=original;if(button.getAttribute('aria-pressed')==='true')button.click();}
+    }finally{document.documentElement.dataset.theme=original;if(button.getAttribute('aria-expanded')==='true')button.click();}
     return rows;
-  })()`,'AI tool toggle theme transition contrast');
+  })()`,'Composer action theme transition contrast');
   await writeFile('artifacts/noata-browser/tool-theme-contrast.json',JSON.stringify(measurements,null,2));
-  for(const row of measurements)invariant(row.frames.every(f=>f.ratio>=4.5),`AI tool toggle ${row.theme} ${row.active?'active':'idle'} remains AA during theme changes (minimum ${Math.min(...row.frames.map(f=>f.ratio)).toFixed(2)}:1)`);
+  for(const row of measurements)invariant(row.frames.every(f=>f.ratio>=4.5),`Composer action ${row.theme} ${row.active?'active':'idle'} remains AA during theme changes (minimum ${Math.min(...row.frames.map(f=>f.ratio)).toFixed(2)}:1)`);
 }
 async function verifyQuranControls(){
   // No production code is altered. Mocked responses make interactive UI
@@ -256,10 +256,15 @@ async function verifyContextualCoach(){
   invariant(await evaluate('document.querySelector("dialog[open] .dialog-heading h2")?.textContent.includes("رفيق رحلة التعلّم")'),"Learn receives a different pedagogical AI context");
   await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
 }
+async function openWritingStudioFromComposer(){
+  await waitFor(async()=>await evaluate('!!document.querySelector(".owui-input-menu-wrap > button")'),"composer action is available");
+  await evaluate('document.querySelector(".owui-input-menu-wrap > button").click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector(".noata-start-document")'),"Create document action is in attachment menu");
+  await evaluate('document.querySelector(".noata-start-document").click()');
+}
 async function verifyWritingAndTheme(){
   await navigate("/ai");
-  await waitFor(async()=>await evaluate('!!document.querySelector(".noata-launch-write")'),"writing entry");
-  await evaluate('document.querySelector(".noata-launch-write").click()');
+  await openWritingStudioFromComposer();
   invariant(await evaluate('!!document.querySelector("dialog[open] .aura-studio textarea")'),"Writing studio opens");
   invariant(await evaluate('(()=>{const v=document.querySelector("dialog[open] .aura-studio textarea")?.value||"";return v.split(String.fromCharCode(10)).length>2 && !v.includes(String.fromCharCode(92)+"n")})()'),"Writing template uses actual newlines, not literal escaped characters");
   await evaluate(`(()=>{const el=document.querySelector('.aura-studio textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'## مستند عربي\\n\\n| مفهوم | قيمة |\\n|---|---|\\n| اختبار | ٣ |');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
@@ -273,13 +278,13 @@ async function verifyWritingAndTheme(){
   await evaluate('document.querySelector("dialog[open] .dialog-heading button").click()');
   await evaluate('Array.from(document.querySelectorAll(".aura-studio-close-confirm button")).find(b=>b.textContent.includes("الاحتفاظ")).click()');
   await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"explicit keep-draft close");
-  await evaluate('document.querySelector(".noata-launch-write").click()');
+  await openWritingStudioFromComposer();
   await waitFor(async()=>await evaluate('document.querySelector("dialog[open] .aura-studio textarea")?.value.includes("مستند عربي")'),"writing draft restores on reopening");
   invariant(true,"Writing draft survives close and reopen");
   await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
   await evaluate('Array.from(document.querySelectorAll(".aura-studio-close-confirm button")).find(b=>b.textContent.includes("تجاهل")).click()');
   await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"discard confirmed draft close");
-  await evaluate('document.querySelector(".noata-launch-write").click()');
+  await openWritingStudioFromComposer();
   await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .aura-studio textarea")'),"fresh draft opens after discard");
   invariant(await evaluate('!document.querySelector("dialog[open] .aura-studio textarea").value.includes("مستند عربي")'),"Discard actually clears retained draft");
   await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
@@ -489,24 +494,17 @@ async function main() {
   })`), "AI workspace DOM");
   console.log("[browser] AI bootstrap state", JSON.stringify(ready));
   await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item").length === 4 && [...document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item")].every(button => !button.disabled && button.textContent?.trim())'), "four interactive AI welcome suggestions / bounded auth initialization", 26000);
-  // Renaissance launchpad must be interactive, bilingual, safe before sign-in,
-  // and must never pretend private account workspaces are available to guests.
-  invariant(await evaluate('document.querySelectorAll(".noata-launchpad .noata-launch-tile").length===6'),
-    "Renaissance AI workspace has six actionable entry points");
-  invariant(await evaluate('document.querySelector(".noata-launch-memory")?.disabled===true && document.querySelector(".noata-launch-projects")?.disabled===true'),
-    "Guest account cannot enter private memory or project workspace");
-  invariant(await evaluate('[...document.querySelectorAll(".noata-launchpad .noata-launch-tile:not(:disabled)")].length===4'),
-    "Four launchpad actions available to guest");
-  await evaluate('document.querySelector(".noata-launch-research")?.click()');
-  const researchDraft=await waitFor(async()=>await evaluate('document.querySelector(".owui-composer textarea")?.value || ""'),
-    "Research launchpad action opens a real editable prompt");
-  invariant(researchDraft.length>35,"Research launchpad action was decorative");
-  await evaluate('document.querySelector(".noata-launchpad .noata-launch-write")?.click()');
+  // Conversation-first layout: no disconnected AI Tools dashboard.
+  invariant(await evaluate('!document.querySelector(".owui-tool-toggle,.owui-tool-panel,.noata-launchpad")'),
+    "No redundant AI Tools tab/panel or oversized six-card launchpad");
+  invariant(await evaluate('!!document.querySelector(".owui-input-menu-wrap > button")'),
+    "Attachments and real document creation remain available via one compact composer menu");
+  await openWritingStudioFromComposer();
   await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .aura-studio")'),
-    "Writing launchpad opens real writing studio");
-  await evaluate('document.querySelector("dialog[open] .noata-dialog-close, dialog[open] button[aria-label*=إغلاق], dialog[open] button[aria-label*=Close]")?.click()');
+    "Compact composer opens functional writing studio");
+  await evaluate('document.querySelector("dialog[open] .dialog-heading button").click()');
   await waitFor(async()=>await evaluate('!document.querySelector("dialog[open] .aura-studio")'),
-    "Writing launchpad can close without unsaved work");
+    "Document editor closes without unsaved work");
   await evaluate('document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item").click()');
   const draft=await waitFor(async()=>await evaluate('document.querySelector(".owui-composer textarea")?.value || ""'),"React suggestion populating composer");
   invariant(draft.length>15,"AI suggestion was visual-only and did not update draft");
@@ -520,7 +518,7 @@ async function main() {
   await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open].noata-dialog--workshop .aura-workshop-scroll")'),"Workshop dialog opens");
   invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button").length===9'),"Nine workshop flows available");
   await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button")[1].click()');
-  invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button[aria-pressed=true]").length===1'),"Workshop pressed selection");
+  invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button[aria-expanded=true]").length===1'),"Workshop pressed selection");
   for (const [workshopWidth,workshopHeight] of [[1920,1080],[1024,768],[768,1024],[390,844],[320,700]]) {
     location.width=workshopWidth;
     await command("Emulation.setDeviceMetricsOverride",{width:workshopWidth,height:workshopHeight,deviceScaleFactor:1,mobile:workshopWidth<=768});
