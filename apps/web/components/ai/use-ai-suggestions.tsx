@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
-import type {Conversation,Message} from "@/lib/ai/workspace";
+import {AI_FUNCTION,type Conversation,type Message} from "@/lib/ai/workspace";
 import {SUGGESTION_CACHE_MS,validateSuggestionResult,welcomeDefaults,type AISuggestion,type SuggestionLocale,type SuggestionKind} from "../../../../supabase/functions/noata-ai/suggestions.ts";
 
 type Options={
@@ -63,7 +63,7 @@ export function useAISuggestions({userId,locale,welcomeVisible,welcomeEpoch,conv
   const controller=new AbortController();
   void (async()=>{
    try{
-    const {data,error}=await supabase.functions.invoke("noata-ai",{
+    const {data,error}=await supabase.functions.invoke(AI_FUNCTION,{
      body:{action:"suggestions",kind:"welcome",locale,personalize:personalized,temporary},
      signal:controller.signal,
     });
@@ -81,7 +81,7 @@ export function useAISuggestions({userId,locale,welcomeVisible,welcomeEpoch,conv
   const controller=new AbortController();
   void (async()=>{
    try{
-    const {data,error}=await supabase.functions.invoke("noata-ai",{
+    const {data,error}=await supabase.functions.invoke(AI_FUNCTION,{
      body:{action:"suggestions",kind:"followup",locale,question:question.slice(0,300),answer:answer.slice(0,900)},
      signal:controller.signal,
     });
