@@ -1,0 +1,20 @@
+/* Genesis 3.0: real, account-owned file delivery inside the assistant response. */
+.noata-generated-file{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin:16px 0;
+ padding:15px 16px;border:1px solid var(--line);border-radius:17px;color:var(--ink);
+ background:linear-gradient(135deg,var(--surface),var(--surface-soft));
+ box-shadow:0 5px 22px color-mix(in srgb,var(--accent) 6%,transparent)}
+.noata-generated-file-symbol{display:grid;place-items:center;flex:0 0 44px;height:44px;border-radius:13px;
+ background:var(--accent-soft);color:var(--accent)}
+.noata-generated-file-info{flex:1;min-width:120px;display:grid;gap:6px;overflow-wrap:anywhere}
+.noata-generated-file-info strong{font-size:13px;font-weight:750}
+.noata-generated-file-info small{font-size:11px;color:var(--muted);line-height:1.6}
+.noata-generated-file-actions{display:flex;gap:7px;flex-wrap:wrap}
+.noata-generated-file-actions button{display:inline-flex;align-items:center;gap:6px;justify-content:center;cursor:pointer;
+ border:1px solid var(--line);border-radius:11px;background:var(--surface-soft);color:var(--ink);
+ min-height:37px;padding:8px 11px;font:inherit;font-size:12px;font-weight:680}
+.noata-generated-file-actions button:last-child{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
+.noata-generated-file-actions button:disabled{opacity:.5;cursor:wait}
+.noata-generated-file-actions button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.noata-generated-file>[role="alert"]{width:100%;margin:0;color:#bb4058;font-size:12px}
+@media(max-width:520px){.noata-generated-file-actions{width:100%}.noata-generated-file-actions button{flex:1}}
+@media(prefers-reduced-motion:reduce){.noata-generated-file *{transition:none!important;animation:none!important}}

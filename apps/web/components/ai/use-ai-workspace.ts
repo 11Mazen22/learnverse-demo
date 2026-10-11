@@ -28,6 +28,9 @@ import { continueChat, type ChatPart } from "@/lib/ai/continuation";
 import { requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
 import {validatedResearch,type Research} from "../../../../supabase/functions/noata-ai/research.ts";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
+import { detectArtifactIntent, artifactContent } from "@/lib/ai/artifact-intent";
+import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
+import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
   validateDocumentBatch,
@@ -890,6 +893,78 @@ export function useAIWorkspace() {
       assertSession(token);
       setMessages([...history, assistant]);
       savedResponse = true;
+      // Explicit file requests now produce a genuine owned artifact as part of
+      // the answer lifecycle. No file, link or success state is invented on failure.
+      const artifactRequest = mode === "send" && !tool && !temporary && !result.incomplete
+        ? detectArtifactIntent(text) : null;
+      if (artifactRequest) {
+        setNotice(t("بننشئ الملف ونفحصه ونحفظه في مكتبتك…","Generating, validating and saving your file…"));
+        try {
+          const who = await supabase.auth.getUser();
+          assertSession(token);
+          if (who.error || !who.data.user?.id) throw Error("auth_expired");
+          const owner = who.data.user.id;
+          const prior = history.slice(0,-1).findLast(row => row.role === "assistant")?.content ?? "";
+          const source = artifactContent(artifactRequest,responseText(result.content),responseText(prior));
+          const id = crypto.randomUUID();
+          const driver:ArtifactDriver = {
+            renderPdf: async(text,title,signal) => {
+              const response = await fetch("/api/documents/pdf",{
+                method:"POST",credentials:"same-origin",
+                headers:{"Content-Type":"application/json","Accept-Language":locale},
+                body:JSON.stringify({text,title:title.slice(0,120)}),signal
+              });
+              if(!response.ok)throw Error("pdf_service_"+response.status);
+              return new Uint8Array(await response.arrayBuffer());
+            },
+            upload:async(path,bytes,mimeType)=>{
+              const result=await supabase.storage.from("noata-ai-artifacts")
+                .upload(path,new Blob([Uint8Array.from(bytes)],{type:mimeType}),{contentType:mimeType,upsert:false});
+              if(result.error)throw result.error;
+            },
+            insert:async(artifact,user_id)=>{
+              const result=await supabase.from("ai_artifacts").insert({
+                id:artifact.id,user_id,filename:artifact.filename,mime_type:artifact.mimeType,
+                storage_path:artifact.storagePath,byte_size:artifact.byteSize
+              });
+              if(result.error)throw result.error;
+            },
+            attach:async artifact=>{
+              const metadata={...(assistant!.metadata ?? {}),generatedArtifact:artifact};
+              const result=await supabase.from("ai_messages").update({
+                metadata:metadata as import("@/lib/supabase/database.types").Json
+              }).eq("id",assistant!.id).eq("conversation_id",conversationId).select("id").single();
+              if(result.error)throw result.error;
+            },
+            remove:async path=>{
+              const result=await supabase.storage.from("noata-ai-artifacts").remove([path]);
+              if(result.error)throw result.error;
+            },
+            removeRecord:async id=>{
+              const result=await supabase.from("ai_artifacts").delete().eq("id",id).eq("user_id",owner);
+              if(result.error)throw result.error;
+            }
+          };
+          const artifact = await createConversationalArtifact({
+            intent:artifactRequest,content:source,owner,id,signal:controller.signal,
+            title:titleFrom(text,locale),driver
+          });
+          assertSession(token);
+          assistant={...assistant,metadata:{...assistant.metadata,generatedArtifact:artifact}};
+          setMessages([...history,assistant]);
+          setNotice(t("الملف جاهز وموجود داخل الرد وفي مكتبتك.","Your generated file is ready inside this reply and in your private library."));
+        } catch (artifactError) {
+          if (sessionScope.current.isCurrent(token)) {
+            const reason=artifactError instanceof Error?artifactError.message:"";
+            const detail=reason==="table_required"
+              ?t("إنشاء Excel يحتاج جدول بيانات حقيقي في الرد.","Excel generation requires an actual data table in the response.")
+              :reason==="slides_required"
+              ?t("إنشاء PowerPoint يحتاج عناوين شرائح منظّمة.","PowerPoint generation requires structured slide headings.")
+              :t("تعذّر توليد الملف أو حفظه؛ الرد النصي محفوظ ويمكن تصديره يدويًا.","File creation or storage failed. The answer remains saved and can be exported manually.");
+            setNotice(detail);
+          }
+        }
+      }
       setAttachment(null);
       setDocumentFiles([]);
       if (picker.current) picker.current.value = "";

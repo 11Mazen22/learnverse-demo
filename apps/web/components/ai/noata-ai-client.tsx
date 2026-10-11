@@ -42,6 +42,7 @@ import {NoataProjectLibrary} from "./project-library";
 import {NoataLaunchpad} from "./noata-launchpad";
 import {NoataCapabilityCenter} from "./noata-capability-center";
 import {NoataAnswerExports} from "./answer-exports";
+import {NoataGeneratedArtifact} from "./generated-artifact";
 import type {LaunchAction} from "@/lib/ai/launch-actions";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
@@ -585,6 +586,10 @@ export function NoataAIClient() {
                       </p>
                     )}
                     <RichMessage content={m.content} research={m.metadata?.research}/>
+                    {m.role==="assistant"&&m.status==="complete"&&
+                      <NoataGeneratedArtifact value={m.metadata?.generatedArtifact}
+                        owner={seenAccount.user?.id??null}/>}
+
                     {m.role==="assistant"&&m.status==="complete"&&
                       <NoataAnswerExports text={responseText(m.content)}
                         title={m.content.match(/^#{1,3}\s+(.+)$/m)?.[1]??t("إجابة Noata AI","Noata AI answer")}
