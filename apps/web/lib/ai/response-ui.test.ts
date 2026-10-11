@@ -46,12 +46,12 @@ test("Line charts reject fabricated structure, injection, invalid values, and ma
 });
 
 test("temperature Markdown tables become genuinely numeric charts, without inventing observations",()=>{
- const source="Actual measurements:\\n\\n| Time | Temperature (°C) |\\n|---|---|\\n| 09:00 | 22 |\\n| 10:00 | 24 |\\n\\nMeasured, not predicted.";
+ const source="Actual measurements:\n\n| Time | Temperature (°C) |\n|---|---|\n| 09:00 | 22 |\n| 10:00 | 24 |\n\nMeasured, not predicted.";
  const segments=interactiveResponseSegments(source);
  assert.deepEqual(segments.map(s=>s.type),["markdown","interactive","markdown"]);
  if(segments[1].type==="interactive"&&segments[1].data.type==="line_chart"){
   assert.deepEqual(segments[1].data.points.map(p=>p.value),[22,24]);
  }else assert.fail("Missing factual chart");
- assert.equal(interactiveResponseSegments("| Time | Temperature |\\n|---|---|\\n| 9:00 | unknown |\\n| 10:00 | 24 |")[0].type,"markdown");
+ assert.equal(interactiveResponseSegments("| Time | Temperature |\n|---|---|\n| 9:00 | unknown |\n| 10:00 | 24 |")[0].type,"markdown");
  assert.equal(interactiveResponseSegments("No measurements given yet.")[0].type,"markdown");
 });
