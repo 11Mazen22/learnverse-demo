@@ -6,10 +6,11 @@ import chromium from "@sparticuz/chromium";
 import {documentHtml, escapeHtml} from "./pdf-export.ts";
 import {acquirePdfSlot} from "./pdf-pressure.ts";
 import {documentDirection} from "./document-direction.ts";
+import {chartPdfMarkup,type LineChartData} from "./line-chart.ts";
 export {PdfBusyError} from "./pdf-pressure.ts";
 
 // Per-instance pressure control. The deployment must also enforce request quotas.
-export async function renderNoataPdf(text: string, title: string, screenshotPath?: string): Promise<Uint8Array> {
+export async function renderNoataPdf(text: string, title: string, screenshotPath?: string, chart?: LineChartData): Promise<Uint8Array> {
   const release = acquirePdfSlot();
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
   let deadline: ReturnType<typeof setTimeout> | undefined;
@@ -35,7 +36,9 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
       if (request.url().startsWith("data:") || request.url() === "about:blank") void request.continue();
       else void request.abort();
     });
-    await page.setContent(await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64")}),{waitUntil:"networkidle0",timeout:15_000});
+    let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64")});
+    if(chart)html=html.replace("</main>",chartPdfMarkup(chart)+"</main>");
+    await page.setContent(html,{waitUntil:"networkidle0",timeout:15_000});
     // Explicitly load both subsets: English-only documents never trigger the
     // Arabic subset naturally, and an unused font is not a failed font.
     await page.evaluate(async () => {
