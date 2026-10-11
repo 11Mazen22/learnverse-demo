@@ -1,4 +1,5 @@
 import {packageZip} from "./docx-export.ts";
+import {parseNoataSheets,createNoataMultiSheetXlsx} from "./xlsx-multisheet.ts";
 const esc=(s:string)=>s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const header='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 const rel='http://schemas.openxmlformats.org/package/2006/relationships';
@@ -25,6 +26,8 @@ export function parseNoataData(text:string):string[][]{
  return [[ "Noata AI", "Content" ], ...lines.map((line,i)=>[String(i+1),line.replace(/^#{1,6}\s+/,"")])];
 }
 export function createNoataXlsx(source:string):Uint8Array{
+ const sheets=parseNoataSheets(source,parseNoataData);
+ if(sheets)return createNoataMultiSheetXlsx(sheets);
  const matrix=parseNoataData(source);
  if(matrix.length===0||matrix.length>1000||matrix.some(row=>row.length>26))throw Error("Spreadsheet dimensions exceed limits");
  const rows=matrix.map((values,r)=>'<row r="'+(r+1)+'">'+values.map((v,c)=>{
