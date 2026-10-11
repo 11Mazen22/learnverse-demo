@@ -63,3 +63,20 @@ html[data-noata-motion="off"] .noata-suggested-item{animation:none!important;tra
 @keyframes noata-research-appear{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:translateY(0);}}
 @media(prefers-reduced-motion:reduce){.noata-research-detail{animation:none;}}
 html[data-reduced-motion="true"] .noata-research-detail,html[data-noata-motion="off"] .noata-research-detail{animation:none!important;}
+
+/* User-selectable motion intensity, with platform accessibility taking priority. */
+.noata-motion-field{border:1px solid var(--line);border-radius:15px;background:var(--surface-soft);padding:15px;margin:14px 0;color:var(--ink);}
+.noata-motion-field legend{font-weight:700;font-size:13px;padding:0 7px;}
+.noata-motion-field p{font-size:12px;line-height:1.7;color:var(--muted);margin:2px 0 12px;}
+.noata-motion-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.noata-motion-options label{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 11px;background:var(--surface);
+ border:1px solid var(--line);border-radius:11px;cursor:pointer;font-size:12px;}
+.noata-motion-options label.active{border-color:var(--accent);background:var(--accent-soft);}
+.noata-motion-options input{accent-color:var(--accent);}
+.noata-motion-options label:focus-within{outline:2px solid var(--accent);outline-offset:2px;}
+html[data-noata-motion="reduce"] .owui-layout :is(button,aside,article,dialog,section,div,span),
+html[data-noata-motion="reduce"] .owui-layout :is(button,aside,article,dialog,section,div,span)::before{
+ animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:90ms!important;}
+html[data-noata-motion="off"] .owui-layout *,html[data-noata-motion="off"] .owui-layout *::before,
+html[data-noata-motion="off"] .owui-layout *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+@media(prefers-reduced-motion:reduce){.owui-layout *,.owui-layout *::before,.owui-layout *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}}

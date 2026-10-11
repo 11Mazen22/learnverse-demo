@@ -36,10 +36,11 @@ import { ConversationHistory } from "./conversation-history";
 import { RichMessage } from "./rich-message";
 import { useAIWorkspace } from "./use-ai-workspace";
 import {useAISuggestions,SuggestedActions} from "./use-ai-suggestions";
+import {NoataMotionControl} from "./motion-control";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
 
-type SettingsTab = "general" | "models" | "voice" | "privacy";
+type SettingsTab = "general" | "appearance" | "models" | "voice" | "privacy";
 
 function downloadText(filename: string, text: string, type = "text/plain") {
   const blob = new Blob([text], { type: type + ";charset=utf-8" });
@@ -1152,6 +1153,7 @@ export function NoataAIClient() {
             {(
               [
                 ["general", t("عام","General"), "sliders"],
+                ["appearance", t("المظهر","Appearance"), "sparkles"],
                 ["models", t("النماذج","Models"), "ai"],
                 ["voice", t("الصوت","Voice"), "mic"],
                 ["privacy", t("الخصوصية","Privacy"), "archive"],
@@ -1197,6 +1199,15 @@ export function NoataAIClient() {
                   </span>
                   <Icon name="keyboard" size={18} />
                 </button>
+              </>
+            )}
+
+            {settingsTab === "appearance" && (
+              <>
+                <h3>{t("المظهر والحركة","Appearance and motion")}</h3>
+                <p>{t("اختار ألوان Noata وحركة الواجهة. إعداد الحركة محفوظ على الجهاز.","Choose your Noata palette and animation level. Motion settings are saved on this device.")}</p>
+                <ThemeControl />
+                <NoataMotionControl />
               </>
             )}
 
