@@ -6,6 +6,7 @@ import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
 import {memorySystemContext,type MemoryItem} from "./memory.ts";
+import {getCapabilityAvailability,validateCapabilityExecution} from "./capabilities.ts";
 
 const FANAR_BASE = Deno.env.get("FANAR_BASE_URL") ?? "https://api.fanar.qa/v1";
 const FANAR_ORIGIN = FANAR_BASE.replace(/\/v1\/?$/, "");
@@ -548,6 +549,13 @@ async function handleJsonAction(
   const action = String(payload.action ?? "chat");
   if (action === "chat") return handleChat(userId, payload, receipt);
   if (action === "suggestions") return handleSuggestions(userId, payload);
+  if (action === "capability_execute") {
+    const parsed=validateCapabilityExecution(payload.capability);
+    if(!parsed.ok)return json({error:parsed.reason},400);
+    if(parsed.request.id==="text.translate")return handleJsonAction(userId,{action:"translate",...parsed.request.input},receipt);
+    if(parsed.request.id==="image.generate")return handleJsonAction(userId,{action:"image",...parsed.request.input},receipt);
+    return json({error:"unsupported_capability"},400);
+  }
 
   if (action === "translate") {
     const quota = await claim(userId, "Fanar-Shaheen-MT-1");
@@ -747,6 +755,12 @@ Deno.serve(async (req) => {
     // that an upstream Fanar inference has already succeeded.
     if (payload.action === "readiness")
       return json({ provider: "Fanar", configured: Boolean(FANAR_KEY) });
+    if (payload.action === "capabilities")
+      return json({kind:"capabilities",capabilities:getCapabilityAvailability({
+        fanar:Boolean(FANAR_KEY),
+        brave:Deno.env.get("NOATA_SEARCH_ENABLED")==="true"&&Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY")),
+        memorySchema:true
+      }),disclaimer:"configured indicates credentials, not a successful live provider request"});
     if (!FANAR_KEY)
       return json({ error: "AI backend is not configured", code: "FANAR_NOT_CONFIGURED" }, 503);
     const claimed = await claimReceipt(user.id, payload);
