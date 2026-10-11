@@ -20,3 +20,17 @@
 .noata-inline-export-popover .noata-artifact-main>button,.noata-inline-export-popover .noata-export-more>summary{min-height:34px}
 @media(max-width:650px){.owui-layout .owui-welcome{margin:12px auto 8px!important;padding:8px 9px!important}.owui-layout .owui-welcome h1{font-size:24px!important}.owui-layout .owui-welcome>p{font-size:12px!important}}
 @media(prefers-reduced-motion:reduce){.noata-inline-export *{transition:none!important;animation:none!important}}
+
+/* Keep the composer action legible through every light/dark transition frame.
+   Direct opaque surface + ink prevents inherited semi-transparent contrast loss. */
+.owui-layout .owui-input-menu-wrap > button.owui-round{
+ color:var(--ink)!important;background-color:var(--surface)!important;
+ border:1px solid var(--line)!important;opacity:1!important;
+ transition:transform 160ms cubic-bezier(.2,.8,.2,1)!important
+}
+.owui-layout .owui-input-menu-wrap > button.owui-round:hover{
+ transform:translateY(-1px)
+}
+.owui-layout .owui-input-menu-wrap > button.owui-round:focus-visible{
+ outline:3px solid var(--accent)!important;outline-offset:2px
+}
