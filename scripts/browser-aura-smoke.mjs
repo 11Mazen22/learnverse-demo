@@ -71,10 +71,32 @@ async function screenshot(file) {
   await writeFile(file,Buffer.from(data.data,"base64"));
   captures.push({file,...location});
 }
+async function settleUiTransitions(stage) {
+  // Wait for finite RUNNING animations only. Paused transitions have unresolved
+  // finished promises and must not cause false accessibility-audit timeouts.
+  // Recheck after a frame so newly started transitions are also observed.
+  const script = `(async()=>{
+    const until=performance.now()+8000;
+    for (;;) {
+      const active=()=>document.getAnimations().filter(a=>a.playState==="running"&&a.effect?.getComputedTiming().iterations!==Infinity);
+      const animations=active();
+      if(!animations.length) {
+        await new Promise(resolve=>requestAnimationFrame(resolve));
+        if(!active().length)return true;
+      }
+      if(performance.now()>until)throw Error("Finite UI animations still running at accessibility audit: "+active().length);
+      await Promise.race([
+        Promise.all(animations.map(a=>a.finished.catch(()=>{}))),
+        new Promise(resolve=>setTimeout(resolve,120))
+      ]);
+    }
+  })()`;
+  await evaluate(script,stage,11000);
+}
 async function auditView(kind) {
 // Theme attributes update before the 180 ms foreground/background transitions finish.
 // Audit the settled interface on every route, as the synthetic views already do.
-await evaluate("Promise.race([Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{}))),new Promise((_,reject)=>setTimeout(()=>reject(Error('UI transitions did not settle before accessibility audit')),2500))])","settled UI transitions",4000);
+await settleUiTransitions("settled UI transitions");
 const clippedHeaderActions=await evaluate("Array.from(document.querySelectorAll('.shell-topbar > .top-actions > a, .shell-topbar > .top-actions > button, .shell-topbar > .top-context > button')).filter(el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&(r.left< -1||r.right>document.documentElement.clientWidth+1)}).map(el=>el.getAttribute('aria-label')||el.textContent.trim())");
 invariant(clippedHeaderActions.length===0,"header actions remain inside the visible viewport: "+clippedHeaderActions.join(", "));
 await evaluate(axeSource);
@@ -91,7 +113,7 @@ async function auditSyntheticView(name) {
       await waitFor(()=>evaluate('document.documentElement.dataset.theme==='+JSON.stringify(theme)),name+" synthetic theme applied");
       // Audit the settled theme, after finite entry/color transitions complete.
       // Infinite decorative animations do not prevent accessibility measurement.
-      await evaluate('Promise.all(document.getAnimations().filter(a=>a.effect?.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})))',"settled synthetic theme");
+      await settleUiTransitions("settled synthetic theme");
       invariant(await evaluate("document.documentElement.scrollWidth-innerWidth<=3"),name+" synthetic viewport overflow "+width);
       await auditView("synthetic-ui-only");
       await screenshot(`artifacts/noata-browser/${name}-synthetic-${width}-${theme}.png`);
