@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { RichMessage } from "./rich-message";
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
+import { downloadNoataXlsx } from "@/lib/ai/xlsx-export";
+import { downloadNoataPptx } from "@/lib/ai/pptx-export";
 import { Icon } from "@/components/ui/icon";
 import { writingDrafts } from "@/lib/ai/session-work";
 
@@ -82,6 +84,19 @@ export function WritingStudio({
       setNotice(t("تم تجهيز ملف Word قابل للتعديل.","Editable Word document prepared."));
     } catch {
       setNotice(t("المستند طويل جدًا للتصدير. قصّره أو حمّله بصيغة Markdown.","This document is too long to export. Shorten it or download Markdown."));
+    }
+  }
+  function saveOffice(format:"xlsx"|"pptx") {
+    try {
+      if(format==="xlsx") downloadNoataXlsx(draft,"noata-data.xlsx");
+      else downloadNoataPptx(draft,"noata-slides.pptx");
+      setNotice(format==="xlsx"
+       ?t("تم إنشاء ملف Excel قابل للتعديل من النص أو الجدول.","Created an editable Excel workbook from the text or table.")
+       :t("تم إنشاء عرض PowerPoint قابل للتعديل. راجع الشرائح قبل المشاركة.","Created an editable PowerPoint deck. Review its slides before sharing."));
+    } catch {
+      setNotice(format==="xlsx"
+       ?t("تعذر تصدير Excel. راجع حجم النص وطول الجداول.","Excel export failed. Check source length and table size.")
+       :t("تعذر تصدير PowerPoint. قصّر النص أو قسّمه إلى شرائح باستخدام --- .","PowerPoint export failed. Shorten the text or separate slides with --- ."));
     }
   }
   async function savePdf(textOnly = false) {
@@ -209,6 +224,12 @@ export function WritingStudio({
           <small>{draft.length.toLocaleString(locale==="en"?"en":"ar-EG")}{t("حرف","characters")}</small>
           <button type="button" disabled={!draft.trim()} onClick={saveWord}>
             Word DOCX
+          </button>
+          <button type="button" disabled={!draft.trim()||draft.length>120000} onClick={()=>saveOffice("xlsx")}>
+            {t("جدول Excel · XLSX","Excel · XLSX")}
+          </button>
+          <button type="button" disabled={!draft.trim()||draft.length>30000} onClick={()=>saveOffice("pptx")}>
+            {t("عرض PowerPoint · PPTX","PowerPoint · PPTX")}
           </button>
           <button
             type="button"
