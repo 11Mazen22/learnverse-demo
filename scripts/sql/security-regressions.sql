@@ -20,6 +20,17 @@ begin
   raise exception 'QA FAIL: invalid operation was allowed: %',label;
 end;
 $$;
+create function qa.artifact_constraint_denied(statement text,label text,expected_state text default '23514') returns text
+language plpgsql as $qa$
+begin
+ begin execute statement;
+ exception when others then
+  if sqlstate=expected_state then return 'QA PASS: '||label;end if;
+  raise exception 'QA FAIL: % rejected for unexpected SQLSTATE % (%): %',label,sqlstate,expected_state,sqlerrm;
+ end;
+ raise exception 'QA FAIL: unexpectedly accepted: %',label;
+end
+$qa$;
 -- Dedicated local identities only. Metadata must never promote their roles.
 insert into auth.users(id,raw_user_meta_data) values
  ('00000000-0000-0000-0000-000000000001','{"role":"admin","display_name":"Local student A"}'),
@@ -185,17 +196,7 @@ select qa.check((select count(*)=0 from public.class_memberships where student_i
 
 -- Genesis 3.0 artifact correctness: actual PostgreSQL constraint/RLS assertions.
 -- Synthetic fixtures in isolated PostgreSQL; separate from authenticated Staging E2E.
-create function qa.artifact_constraint_denied(statement text,label text,expected_state text default '23514') returns text
-language plpgsql as $qa$
-begin
- begin execute statement;
- exception when others then
-  if sqlstate=expected_state then return 'QA PASS: '||label;end if;
-  raise exception 'QA FAIL: % rejected for unexpected SQLSTATE % (%): %',label,sqlstate,expected_state,sqlerrm;
- end;
- raise exception 'QA FAIL: unexpectedly accepted: %',label;
-end
-$qa$;
+
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
 insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
 values('96000000-0000-4000-8000-000000000001',auth.uid(),'study.pdf','application/pdf',
