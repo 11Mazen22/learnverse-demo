@@ -30,7 +30,7 @@ function concat(parts:Uint8Array[]) {
   const out=new Uint8Array(size);let off=0;
   for(const part of parts){out.set(part,off);off+=part.length;}return out;
 }
-function packageZip(files:Record<string,string>):Uint8Array {
+export function packageZip(files:Record<string,string>):Uint8Array {
   const locals:Uint8Array[]=[];const central:Uint8Array[]=[];
   let offset=0;
   for(const [path,value] of Object.entries(files)){
