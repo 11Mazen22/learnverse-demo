@@ -28,11 +28,11 @@ import { continueChat, type ChatPart } from "@/lib/ai/continuation";
 import { requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
 import {validatedResearch,type Research} from "../../../../supabase/functions/noata-ai/research.ts";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
-import { detectArtifactIntent, artifactContent } from "@/lib/ai/artifact-intent";
+import { artifactContent } from "@/lib/ai/artifact-intent";
+import {planNoataRequest} from "@/lib/ai/capability-planner";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart } from "@/lib/ai/artifact-chart";
-import { imageGenerationIntent } from "@/lib/ai/image-intent";
-import {isArtifactCapabilityQuestion,safeArtifactReplyOnCapabilityQuestion,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
+import {safeArtifactReplyOnCapabilityQuestion,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
@@ -688,8 +688,10 @@ export function useAIWorkspace() {
     // A genuine natural-language image request can use Fanar's existing
     // authenticated image capability without opening a separate Tools panel.
     // Editing, SVG, multi-image and Temporary requests are intentionally excluded.
-    if (mode === "send" && !tool && !temporary && !attachment && !documentFiles.length)
-      tool = imageGenerationIntent(text) ?? undefined;
+    const plannedCapability=planNoataRequest(text,{
+      mode,temporary,hasUploads:Boolean(attachment||documentFiles.length),explicitTool:tool
+    });
+    if(!tool && plannedCapability.kind==="image")tool="image";
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
@@ -909,8 +911,8 @@ export function useAIWorkspace() {
       // Explicit file requests now produce a genuine owned artifact as part of
       // the answer lifecycle. No file, link or success state is invented on failure.
       const previousAnswer=history.slice(0,-1).findLast(row=>row.role==="assistant")?.content??"";
-      const fileIntent=mode==="send"&&!tool&&!temporary&&!result.incomplete&&!isArtifactCapabilityQuestion(text)
-        ?detectArtifactIntent(text):null;
+      const fileIntent=!tool&&!result.incomplete&&plannedCapability.kind==="artifact"
+        ?plannedCapability.intent:null;
       // Refusals are not document source material. Follow-up exports may use a
       // prior actual answer, even if Fanar misunderstood the new instruction.
       const artifactRequest=fileIntent&&canCreateArtifactFromAnswer(responseText(result.content),responseText(previousAnswer),fileIntent.usePrevious)
