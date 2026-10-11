@@ -114,8 +114,8 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   own(student,`UPDATE public.ai_memory_consent SET enabled=true WHERE user_id='${student}'`);
   own(student,`INSERT INTO public.ai_user_memories(id,user_id,content) VALUES('${ownMemoryId}','${student}','I prefer math in Arabic')`);
   own(other,`INSERT INTO public.ai_user_memories(id,user_id,content) VALUES('${otherMemoryId}','${other}','I prefer science topics')`);
-  assert.equal(asUser(student,`SELECT count(*) FROM public.ai_user_memories`).split(/\r?\n/).find(x=>/^\\d+$/.test(x)),'1');
-  assert.equal(asUser(other,`SELECT count(*) FROM public.ai_user_memories`).split(/\r?\n/).find(x=>/^\\d+$/.test(x)),'1');
+  assert.equal(asUser(student,`SELECT count(*) FROM public.ai_user_memories`).split(/\r?\n/).find(x=>/^\d+$/.test(x)),'1');
+  assert.equal(asUser(other,`SELECT count(*) FROM public.ai_user_memories`).split(/\r?\n/).find(x=>/^\d+$/.test(x)),'1');
   assert.throws(()=>own(student,`INSERT INTO public.ai_user_memories(user_id,content) VALUES('${other}','Attempt cross-owner insert')`));
   assert.equal(asUser(student,`UPDATE public.ai_user_memories SET content='Cross account manipulation' WHERE id='${otherMemoryId}' RETURNING id`).includes(otherMemoryId),false);
   own(student,`UPDATE public.ai_user_memories SET content='Arabic step by step maths' WHERE id='${ownMemoryId}'`);
