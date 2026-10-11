@@ -22,3 +22,25 @@ test("copy and exports replace native protocol while preserving ordinary code",(
  const code="\x60\x60\x60javascript\nconsole.log(1)\n\x60\x60\x60";assert.equal(responseText(code),code);
  assert.equal(responseText("Before\n\x60\x60\x60noata-ui\n{\"version\":1"),"Before");
 });
+
+test("ordinary Front/Back and Arabic Q/A lists become native cards without deleting surrounding text",()=>{
+ const sample="Here are the cards:\\n\\n**Front:** What is 2 + 3?\\n**Back:** 5\\n\\n**Front:** What is 4 + 5?\\n**Back:** 9\\n\\nStudy again tomorrow.";
+ const repaired=interactiveResponseSegments(sample);
+ assert.deepEqual(repaired.map(x=>x.type),["markdown","interactive","markdown"]);
+ assert.equal(repaired[1].type==="interactive"?repaired[1].data.type:"", "flashcards");
+ const arabic="السؤال: ما ناتج ٢ + ٣؟\\nالإجابة: ٥\\nالسؤال: ما ناتج ٤ + ٥؟\\nالإجابة: ٩";
+ assert.equal(interactiveResponseSegments(arabic)[0].type,"interactive");
+ assert.equal(interactiveResponseSegments(sample,true)[0].type,"markdown");
+ assert.equal(interactiveResponseSegments("Front: hello\\nBack: there")[0].type,"markdown");
+ assert.equal(interactiveResponseSegments("```text\\nFront: x\\nBack: y\\n```")[0].type,"markdown");
+});
+test("Line charts reject fabricated structure, injection, invalid values, and massive payloads",()=>{
+ const chart={version:1,id:"temps",type:"line_chart",title:"Temperature",fallback:"A temperature series chart",xLabel:"Hour",yLabel:"°C",points:[{label:"09:00",value:21},{label:"10:00",value:25}]};
+ assert.equal(validateResponseUi(chart)?.type,"line_chart");
+ for(const invalid of [
+ {...chart,points:[{label:"9",value:1}]},
+ {...chart,points:[{label:"9",value:NaN},{label:"10",value:5}]},
+ {...chart,onclick:"alert(1)"},
+ {...chart,points:Array.from({length:31},(_,i)=>({label:String(i),value:i}))}
+ ])assert.equal(validateResponseUi(invalid),null);
+});

@@ -10,14 +10,14 @@ import { Icon } from "@/components/ui/icon";
 import { safeStorageLink } from "@/lib/ai/workspace";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {displayMarkdown} from "@/lib/ai/display-markdown";
-import {responseSegments} from "../../../../supabase/functions/noata-ai/response-ui.ts";
+import {interactiveResponseSegments} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
 import {ResponseComponent} from "./response-components";
 export const RichMessage=memo(function RichMessage({ content, research, streaming=false }: { content: string;research?:unknown;streaming?:boolean }) {
  const t=useTranslation(),locale=useLocale();
   const [copied, setCopied] = useState(false);
   const evidence=validatedResearch(research);
-  const segments=responseSegments(content);
+  const segments=interactiveResponseSegments(content,streaming);
   return (
     <div dir="auto" className="ai-rich-message">
       {segments.map((segment,index)=>segment.type==="interactive"?<ResponseComponent key={segment.data.id+index} data={segment.data}/>:segment.type==="pending"?<p key={index} className="noata-widget-note">{streaming?t("بنجهّز العرض التفاعلي…","Preparing interactive view…"):t("لم يكتمل العرض التفاعلي. يمكنك قراءة الشرح أو إعادة المحاولة.","The interactive view was incomplete. Read the explanation or try again.")}</p>:segment.type==="fallback"?<p key={index}>{segment.text||t("العرض التفاعلي غير متاح. اقرأ الشرح أعلاه.","Interactive view unavailable. Read the explanation above.")}</p>:<ReactMarkdown key={index}
