@@ -619,7 +619,7 @@ export function NoataAIClient() {
                     )}
                     <RichMessage content={m.content} research={m.metadata?.research}/>
                     {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}
-                    {m.metadata?.routeNote==="sadiq_unavailable_general_model"&&<p className="noata-widget-note">{t("صادق 2 غير مفعّل؛ هذا الرد من النموذج العام.","Sadiq 2 is not enabled; this answer used the general model.")}</p>}
+                    {(m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"||m.metadata?.routeNote==="sadiq_unavailable_general_model")&&<p className="noata-widget-note">{m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"?t("صادق 2 غير مفعّل؛ هذا الرد من صادق.","Sadiq 2 is not enabled; this answer used Sadiq."):t("صادق 2 غير مفعّل؛ هذا الرد من النموذج العام.","Sadiq 2 is not enabled; this answer used the general model.")}</p>}
                     {m.role === "assistant" &&
                       m.status === "complete" &&
                       (/^#{1,3}\s/m.test(m.content) ||

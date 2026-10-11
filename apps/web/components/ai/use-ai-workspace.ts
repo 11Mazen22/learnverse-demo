@@ -602,7 +602,7 @@ export function useAIWorkspace() {
           const event = JSON.parse(frame);
           if (event.error) throw Error(event.error);
           if(event.research)research=validatedResearch(event.research);
-          if(event.routeNote==="sadiq_unavailable_general_model"){routeNote=event.routeNote;setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم النموذج العام لهذا الرد.","Sadiq 2 is not enabled; Auto is using the general model for this answer."));}
+          if(event.routeNote==="sadiq_2_unavailable_sadiq_1"){routeNote=event.routeNote;setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم صادق لهذا الرد.","Sadiq 2 is not enabled; Auto is using Sadiq for this answer."));}
           if(event.status==="searching")setNotice(t("بنبحث عن مصادر موثوقة…","Searching for reliable sources…"));
           if(event.status==="reviewing")setNotice(t("بنراجع المقاطع المسترجعة…","Reviewing retrieved excerpts…"));
           if(event.status==="preparing")setNotice(research?.status==="complete"?t("بنجهّز الرد من المصادر…","Preparing an answer from the sources…"):t("البحث المباشر غير متاح؛ المعلومات الحالية لم يتم التحقق منها.","Live research is unavailable; current information has not been verified."));

@@ -442,7 +442,8 @@ async function handleChat(
   if (model === "auto") {
     model = resolveAutoRoute(latestText, Boolean(payload.attachmentPath)).model;
     if(model==="Fanar-Sadiq-2"&&Deno.env.get("NOATA_SADIQ_2_ENABLED")!=="true"){
-      model="Fanar";routeNote="sadiq_unavailable_general_model";
+      // Sadiq 2 needs extra Fanar authorization; plain Sadiq is allowed by default.
+      model="Fanar-Sadiq";routeNote="sadiq_2_unavailable_sadiq_1";
     }
   }
   if (!CHAT_MODELS.has(model))
