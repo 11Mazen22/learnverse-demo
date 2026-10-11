@@ -466,6 +466,24 @@ async function main() {
   })`), "AI workspace DOM");
   console.log("[browser] AI bootstrap state", JSON.stringify(ready));
   await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item").length === 4 && [...document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item")].every(button => !button.disabled && button.textContent?.trim())'), "four interactive AI welcome suggestions / bounded auth initialization", 26000);
+  // Renaissance launchpad must be interactive, bilingual, safe before sign-in,
+  // and must never pretend private account workspaces are available to guests.
+  invariant(await evaluate('document.querySelectorAll(".noata-launchpad .noata-launch-tile").length===6'),
+    "Renaissance AI workspace has six actionable entry points");
+  invariant(await evaluate('document.querySelector(".noata-launch-memory")?.disabled===true && document.querySelector(".noata-launch-projects")?.disabled===true'),
+    "Guest account cannot enter private memory or project workspace");
+  invariant(await evaluate('[...document.querySelectorAll(".noata-launchpad .noata-launch-tile:not(:disabled)")].length===4'),
+    "Four launchpad actions available to guest");
+  await evaluate('document.querySelector(".noata-launch-research")?.click()');
+  const researchDraft=await waitFor(async()=>await evaluate('document.querySelector(".owui-composer textarea")?.value || ""'),
+    "Research launchpad action opens a real editable prompt");
+  invariant(researchDraft.length>35,"Research launchpad action was decorative");
+  await evaluate('document.querySelector(".noata-launchpad .noata-launch-write")?.click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .aura-studio")'),
+    "Writing launchpad opens real writing studio");
+  await evaluate('document.querySelector("dialog[open] .noata-dialog-close, dialog[open] button[aria-label*=إغلاق], dialog[open] button[aria-label*=Close]")?.click()');
+  await waitFor(async()=>await evaluate('!document.querySelector("dialog[open] .aura-studio")'),
+    "Writing launchpad can close without unsaved work");
   await evaluate('document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item").click()');
   const draft=await waitFor(async()=>await evaluate('document.querySelector(".owui-composer textarea")?.value || ""'),"React suggestion populating composer");
   invariant(draft.length>15,"AI suggestion was visual-only and did not update draft");
