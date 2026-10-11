@@ -905,7 +905,20 @@ export function useAIWorkspace() {
       }
     } catch (e) {
       if (!sessionScope.current.isCurrent(token)) return;
-      setError(friendlyError(e,locale));
+      if (
+        /PROVIDER_MODEL_ACCESS_DENIED/.test(e instanceof Error ? e.message : String(e)) &&
+        model.startsWith("Fanar-Sadiq")
+      ) {
+        // The provider has not authorised this specialist model for the configured key.
+        // Switch to Auto so Retry succeeds on the general model instead of failing again.
+        setModel("auto");
+        setError(
+          t(
+            "صادق غير مصرّح به لمفتاح Fanar الحالي. حوّلنا النموذج إلى الوضع التلقائي؛ اضغط إعادة المحاولة لإرسال رسالتك.",
+            "Sadiq is not authorized for the current Fanar key. We switched to Auto; press Retry to send your message.",
+          ),
+        );
+      } else setError(friendlyError(e,locale));
       if (!assistant && streamed.current.content && mode !== "regenerate") {
         const partial: Message = {
           id: crypto.randomUUID(),
