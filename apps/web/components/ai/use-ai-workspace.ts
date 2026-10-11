@@ -602,7 +602,7 @@ export function useAIWorkspace() {
           const event = JSON.parse(frame);
           if (event.error) throw Error(event.error);
           if(event.research)research=validatedResearch(event.research);
-          if(event.routeNote==="sadiq_unavailable_general_model"){routeNote=event.routeNote;setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم النموذج العام لهذا الرد.","Sadiq 2 is not enabled; Auto is using the general model for this answer."));}
+          if(event.routeNote==="sadiq_2_unavailable_sadiq_1"){routeNote=event.routeNote;setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم صادق لهذا الرد.","Sadiq 2 is not enabled; Auto is using Sadiq for this answer."));}
           if(event.status==="searching")setNotice(t("بنبحث عن مصادر موثوقة…","Searching for reliable sources…"));
           if(event.status==="reviewing")setNotice(t("بنراجع المقاطع المسترجعة…","Reviewing retrieved excerpts…"));
           if(event.status==="preparing")setNotice(research?.status==="complete"?t("بنجهّز الرد من المصادر…","Preparing an answer from the sources…"):t("البحث المباشر غير متاح؛ المعلومات الحالية لم يتم التحقق منها.","Live research is unavailable; current information has not been verified."));
@@ -905,7 +905,20 @@ export function useAIWorkspace() {
       }
     } catch (e) {
       if (!sessionScope.current.isCurrent(token)) return;
-      setError(friendlyError(e,locale));
+      if (
+        /PROVIDER_MODEL_ACCESS_DENIED/.test(e instanceof Error ? e.message : String(e)) &&
+        model.startsWith("Fanar-Sadiq")
+      ) {
+        // The provider has not authorised this specialist model for the configured key.
+        // Switch to Auto so Retry succeeds on the general model instead of failing again.
+        setModel("auto");
+        setError(
+          t(
+            "صادق غير مصرّح به لمفتاح Fanar الحالي. حوّلنا النموذج إلى الوضع التلقائي؛ اضغط إعادة المحاولة لإرسال رسالتك.",
+            "Sadiq is not authorized for the current Fanar key. We switched to Auto; press Retry to send your message.",
+          ),
+        );
+      } else setError(friendlyError(e,locale));
       if (!assistant && streamed.current.content && mode !== "regenerate") {
         const partial: Message = {
           id: crypto.randomUUID(),
