@@ -607,7 +607,7 @@ export function NoataAIClient() {
                       <strong>
                         {m.role === "assistant" ? "Noata AI" : t("أنت","You")}
                       </strong>
-                      {m.role === "assistant" && m.model && (
+                      {m.role === "assistant" && m.model && m.model !== "Noata" && (
                         <span className="owui-provider-info" title={m.model}>{m.model.replace(/^Fanar-?/i, "").replace(/-/g," ")||"Fanar"}</span>
                       )}
                     </div>

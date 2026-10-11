@@ -7,6 +7,9 @@ export function displayMarkdown(content:string):string {
     if(fence)return line;
     // Inline code is a literal example and must retain its markup.
     return line.split(/(`+[^`]*`+)/g).map(part=>part.startsWith("`")?part:
-      part.replace(/(?:<br\s*\/?\s*>|&lt;br\s*\/?\s*&gt;)/gi,line.trim().startsWith("|")?" · ":"\n\n")).join("");
+      part.replace(/(?:<br\s*\/?\s*>|&lt;br\s*\/?\s*&gt;)/gi,line.trim().startsWith("|")?" · ":"\n\n")
+        .replace(/\\\((.+?)\\\)/g,(_,math)=>"$"+math+"$")
+        .replace(/\\\[(.*?)\\\]/g,(_,math) =>"\n\n$$\n"+math+"\n$$\n\n")
+        .replace(/^\s*\\[\[\]]\s*$/g,()=>"$$")).join("");
   }).join("\n");
 }
