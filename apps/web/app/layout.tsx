@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import {cookies} from "next/headers";
+import {LocaleProvider} from "@/lib/i18n/locale";
 import { ConfirmHost } from "@/components/ui/confirm-dialog";
 
 export const viewport: Viewport = {
@@ -37,17 +39,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const initialLocale = (await cookies()).get("noata_locale")?.value === "en" ? "en" : "ar";
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang={initialLocale} dir={initialLocale === "en" ? "ltr" : "rtl"} suppressHydrationWarning>
       <body>
+        <LocaleProvider initialLocale={initialLocale}>
         <LocalizedSkipLink />
         <PwaRegister />
         <ExperienceBoot />
         {children}
         <ConfirmHost />
+        </LocaleProvider>
       </body>
     </html>
   );

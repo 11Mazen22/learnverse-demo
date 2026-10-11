@@ -98,3 +98,9 @@ The existing separate production backup/restore, migration, role, OAuth, rewards
 - [AI SDK chatbot architecture](https://ai-sdk.dev/docs/ai-sdk-ui/chatbot): typed messages and streaming-state boundaries; existing compatible transport retained.
 - [Brave LLM Context](https://api-dashboard.search.brave.com/documentation/services/llm-context): fixed endpoint, extracted grounding and source contract.
 - [WCAG 2.2](https://www.w3.org/TR/WCAG22/) and [OWASP LLM risks](https://genai.owasp.org/llm-top-10/): keyboard/text equivalents and untrusted retrieval boundaries.
+
+## Locale hydration follow-up
+
+The server reads only the non-sensitive noata_locale cookie (validated en/ar). LocaleProvider gives client components the same initial snapshot, preventing returning English users from receiving Arabic server copy and then switching during hydration. applyLocale keeps this cookie aligned with the verified preference; cookies are SameSite=Lax and Secure on HTTPS. Pages now render at request time rather than sharing a locale-specific static response. Existing users whose language exists only in device storage need one client boot to seed the cookie. Browser CI validates both initial HTML language/direction and translated skip links before JavaScript runs.
+
+Real read-only Staging checks found English Mission, Admin, Teacher, Assignments and Progress copy and LTR layouts. Admin had missing draft/published_demo labels and curriculum secondary Arabic titles; these were repaired. No grading, publishing, purchases or role changes were performed in those UI checks. The authenticated account is Admin with no assigned teacher classes; genuine Teacher/Student end-to-end workflows remain unverified.

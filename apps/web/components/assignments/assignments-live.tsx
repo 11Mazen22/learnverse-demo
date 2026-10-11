@@ -523,7 +523,7 @@ export function AssignmentsLive() {
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("واجبات صفّك","Class assignments")}</div>
           <h1 style={{ margin: "6px 0 0" }}>{t("واجباتك","Your assignments")}</h1>
         </div>
-        <span className="pill">{rows.length}{t("واجب متاح","Available assignment")}</span>
+        <span className="pill">{rows.length} {locale==="en"?(rows.length===1?"available assignment":"available assignments"):"\u0648\u0627\u062c\u0628 \u0645\u062a\u0627\u062d"}</span>
       </header>
       <section className="quest-list">
         {rows.map((row) => {

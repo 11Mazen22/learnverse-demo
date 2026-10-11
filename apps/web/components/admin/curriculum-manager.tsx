@@ -656,7 +656,7 @@ export function CurriculumManager() {
               <div>
                 <h2>{locale==="en"?course.title_en:course.title_ar}</h2>
                 <p style={{ margin: "4px 0", color: "var(--muted)" }}>
-                  {locale==="en"?course.title_ar:course.title_en} · {course.slug}
+                  {course.slug}
                 </p>
               </div>
               <button
@@ -680,7 +680,7 @@ export function CurriculumManager() {
                       <div className="quest-icon">{unit.position}</div>
                       <div>
                         <h3>{locale==="en"?unit.title_en:unit.title_ar}</h3>
-                        <p>{locale==="en"?unit.title_ar:unit.title_en}</p>
+                        {locale==="ar"&&<p lang="en" dir="ltr">{unit.title_en}</p>}
                       </div>
                       <span className="pill">
                         {lessons.filter((l) => l.unit_id === unit.id).length}{" "}{t("دروس","lessons")}</span>

@@ -363,6 +363,13 @@ async function main() {
   await sleep(250);
   if(appFailure)throw appFailure;
   if(!appReady)throw Error('Next production server did not become ready');
+  // Check initial HTML before JavaScript: returning English users must not see Arabic hydration copy.
+  for(const [locale,direction,label] of [["en","ltr","Skip to content"],["ar","rtl","\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u062d\u062a\u0648\u0649"]]){
+    const response=await fetch(base+"/help",{headers:{cookie:"noata_locale="+locale},signal:AbortSignal.timeout(15000)});
+    const html=await response.text();
+    invariant(response.ok && new RegExp("<html[^>]*lang=\\\""+locale+"\\\"").test(html) && new RegExp("<html[^>]*dir=\\\""+direction+"\\\"").test(html),"Initial server language and direction "+locale);
+    invariant(new RegExp("class=\\\"skip-link\\\"[^>]*>"+label+"<").test(html),"Initial translated skip link "+locale);
+  }
   browser=await launchQaBrowser({executablePath:binary,artifactsDir:"artifacts/noata-browser"});
   socket=browser.socket;
   console.log("[browser] Chrome startup",JSON.stringify({pid:browser.diagnostics.pid,port:browser.diagnostics.port,version:browser.diagnostics.version.Browser}));

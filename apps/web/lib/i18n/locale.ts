@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { createContext, createElement, useContext, useCallback, useSyncExternalStore, type ReactNode } from "react";
 
 export type Locale = "ar" | "en";
 const EVENT = "noata-locale-change";
+const InitialLocale = createContext<Locale>("ar");
+export function LocaleProvider({initialLocale,children}:{initialLocale:Locale;children:ReactNode}){
+ return createElement(InitialLocale.Provider,{value:initialLocale},children);
+}
 
 export function readLocale(): Locale {
   if (typeof document === "undefined") return "ar";
@@ -17,6 +21,8 @@ export function applyLocale(locale: Locale, persist = true) {
     try { localStorage.setItem("noata-locale", locale); }
     catch { /* The account preference remains authoritative. */ }
   }
+  // A non-sensitive preference lets the next server render start in the chosen language.
+  try { document.cookie = "noata_locale=" + locale + "; Path=/; Max-Age=31536000; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : ""); } catch { /* The current language still works when cookies are disabled. */ }
   window.dispatchEvent(new Event(EVENT));
 }
 
@@ -36,7 +42,8 @@ function subscribe(onChange: () => void) {
 }
 
 export function useLocale(): Locale {
-  return useSyncExternalStore(subscribe, readLocale, () => "ar");
+  const initialLocale = useContext(InitialLocale);
+  return useSyncExternalStore(subscribe, readLocale, () => initialLocale);
 }
 
 export function localized(locale: Locale, ar: string, en: string) {

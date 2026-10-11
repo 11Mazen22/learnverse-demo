@@ -380,8 +380,8 @@ export function RewardsLive() {
           : ledger.length === 0 ? <div className="noata-ledger-message" role="status">{t("مفيش معاملات مؤكدة في حسابك حتى الآن.","There are no confirmed transactions in your account yet.")}</div>
           : <ol className="noata-ledger-list">{ledger.map(entry => {
               const credit = Number(entry.amount) >= 0;
-              const unit = entry.currency === "XP" ? "XP" : entry.currency === "COIN" ? t("عملة","Coin")
-                : entry.currency === "GEM" ? t("جوهرة","Gem") : entry.currency;
+              const unit = entry.currency === "XP" ? "XP" : entry.currency === "COIN" ? t("\u0639\u0645\u0644\u0629",Math.abs(Number(entry.amount))===1?"Coin":"Coins")
+                : entry.currency === "GEM" ? t("\u062c\u0648\u0647\u0631\u0629",Math.abs(Number(entry.amount))===1?"Gem":"Gems") : entry.currency;
               const date = new Date(entry.created_at);
               return <li key={entry.id} className="noata-ledger-entry">
                 <span className={"noata-ledger-symbol " + (credit?"credit":"debit")} aria-hidden="true"><Icon name={credit?"plus":"gift"} size={17}/></span>

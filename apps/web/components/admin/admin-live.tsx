@@ -623,7 +623,7 @@ export function AdminLive() {
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">
               <h2>{t("قائمة المحتوى","Content list")}</h2>
-              <span className="pill">{questions.length}{t("سؤال","Question")}</span>
+              <span className="pill">{questions.length} {locale==="en"?(questions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
             </div>
             <div className="quest-list">
               {questions.slice(0, 30).map((q, i) => {
@@ -645,6 +645,8 @@ export function AdminLive() {
                         ·{" "}
                         {(
                           {
+                            draft: t("\u0645\u0633\u0648\u062f\u0629","Draft"),
+                            published_demo: t("\u0645\u0646\u0634\u0648\u0631 \u062a\u0648\u0636\u064a\u062d\u064a","Published demo"),
                             unpublished: t("غير منشور","Unpublished"),
                             published: t("منشور","Published"),
                             retired: t("متوقف","Paused"),
