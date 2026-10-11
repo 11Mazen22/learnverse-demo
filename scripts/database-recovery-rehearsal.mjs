@@ -45,7 +45,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
     AND table_name IN (SELECT tablename FROM pg_tables WHERE schemaname IN ('public','auth','storage'))
     GROUP BY table_schema,table_name) t;`));
   const ident=s=>'"'+s.replaceAll('"','""')+'"';
-  const fingerprint=db=>columns.map(t=>({table:t.schema+'.'+t.name,value:query(db,`SELECT count(*)||':'||md5(coalesce(string_agg(row_to_json(s)::text,E'\\n' ORDER BY row_to_json(s)::text),'')) FROM (SELECT ${t.columns.map(ident).join(',')} FROM ${ident(t.schema)}.${ident(t.name)}) s;`)}));
+  const fingerprint=db=>columns.map(t=>({table:t.schema+'.'+t.name,value:query(db,`SELECT count(*)||':'||md5(coalesce(string_agg(row_to_json(s)::text,E'\\n' ORDER BY row_to_json(s)::text),'')) FROM (SELECT ${t.columns.map(ident).join(',')} FROM ${ident(t.schema)}.${ident(t.name)}${t.schema==='storage'&&t.name==='buckets'?" WHERE id <> 'noata-ai-artifacts'":''}) s;`)}));
   const original=fingerprint(baseline);
   const dump=pgDump(['-d',baseline,'--format=plain','--no-owner']);
   const backup=directory+'/source-fixture-backup.sql';
@@ -138,6 +138,9 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   assert.equal(asUser(student,`SELECT count(*) FROM public.ai_artifacts`).split(/\r?\n/).find(x=>/^\d+$/.test(x)),'1');
   own(student,`DELETE FROM public.ai_projects WHERE id='${projectId}'`);
   assert.equal(query(restored,`SELECT project_id IS NULL FROM public.ai_artifacts WHERE filename='notes.docx'`),'t');
+  assert.equal(query(restored,`SELECT public::text FROM storage.buckets WHERE id='noata-ai-artifacts'`),'false');
+  assert.equal(query(restored,`SELECT file_size_limit FROM storage.buckets WHERE id='noata-ai-artifacts'`),'12582912');
+  pass('Private artifact bucket created with a 12MiB cap; preexisting bucket fingerprints remain intact');
   pass('Project and artifact owner isolation, composite ownership and project deletion preserve unfiled artifacts');
 
   const palettes=['classic','aura','ocean','forest','sunset','rose','midnight'];
