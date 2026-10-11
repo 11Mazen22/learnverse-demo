@@ -182,6 +182,79 @@ select qa.check((public.transition_question('92286df0-8362-52fa-9f3c-233111d9e38
 select qa.check((public.set_user_role('00000000-0000-0000-0000-000000000002','teacher')->>'role')='teacher','admin role change succeeds');
 select qa.check((select count(*)=1 from public.audit_events where action='ROLE_CHANGED'),'role change has audit evidence');
 select qa.check((select count(*)=0 from public.class_memberships where student_id='00000000-0000-0000-0000-000000000002'),'role change removes stale membership');
+
+-- Genesis 3.0 artifact correctness: actual PostgreSQL constraint/RLS assertions.
+-- Synthetic fixtures in isolated PostgreSQL; separate from authenticated Staging E2E.
+create function qa.artifact_constraint_denied(statement text,label text,expected_state text default '23514') returns text
+language plpgsql as $qa$
+begin
+ begin execute statement;
+ exception when others then
+  if sqlstate=expected_state then return 'QA PASS: '||label;end if;
+  raise exception 'QA FAIL: % rejected for unexpected SQLSTATE % (%): %',label,sqlstate,expected_state,sqlerrm;
+ end;
+ raise exception 'QA FAIL: unexpectedly accepted: %',label;
+end
+$qa$;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+values('96000000-0000-4000-8000-000000000001',auth.uid(),'study.pdf','application/pdf',
+ auth.uid()::text||'/genesis/study.pdf',2108);
+select qa.check(
+ (select mime_type='application/pdf' and byte_size=2108 from public.ai_artifacts where id='96000000-0000-4000-8000-000000000001'),
+ 'authenticated owner can insert and read genuine PDF metadata');
+select qa.check(
+ (select count(*)=6 and bool_and(position(expected.mime in pg_get_constraintdef(c.oid))>0)
+  from pg_constraint c cross join lateral (
+   select unnest(array[
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/markdown','text/plain'
+   ]) as mime
+  ) expected
+  where c.conrelid='public.ai_artifacts'::regclass and c.conname='ai_artifacts_mime_type_check'),
+ 'six supported artifact MIME values retained in constraint');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000002',auth.uid(),'unsafe.exe','application/x-msdownload',auth.uid()::text||'/genesis/unsafe.exe',100)$s$,
+ 'unsupported executable MIME rejected');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000003',auth.uid(),'empty.pdf','application/pdf',auth.uid()::text||'/genesis/empty.pdf',0)$s$,
+ 'zero-byte artifact rejected');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000004',auth.uid(),'oversize.pdf','application/pdf',auth.uid()::text||'/genesis/oversize.pdf',12582913)$s$,
+ 'oversize artifact rejected');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000005',auth.uid(),'../bad.pdf','application/pdf',auth.uid()::text||'/genesis/bad.pdf',100)$s$,
+ 'unsafe artifact filename rejected');
+select qa.denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000006','00000000-0000-0000-0000-000000000002',
+ 'other.pdf','application/pdf','00000000-0000-0000-0000-000000000002/genesis/other.pdf',100)$s$,
+ 'cross-owner PDF metadata insertion blocked by RLS');
+select qa.denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000007',auth.uid(),
+ 'path.pdf','application/pdf','00000000-0000-0000-0000-000000000002/genesis/path.pdf',100)$s$,
+ 'own PDF record cannot point into another account storage path');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from public.ai_artifacts where id='96000000-0000-4000-8000-000000000001'),
+ 'second user cannot see first user PDF artifact');
+with attempted as (delete from public.ai_artifacts where id='96000000-0000-4000-8000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),'second user cannot delete first user PDF artifact');
+reset role;
+select qa.check(
+ (select relrowsecurity from pg_class where oid='public.ai_artifacts'::regclass),
+ 'artifact table RLS remains enabled');
+select qa.check(
+ (select not public and 'application/pdf'=any(allowed_mime_types) and file_size_limit=12582912
+ from storage.buckets where id='noata-ai-artifacts'),
+ 'private bucket, PDF allowlist and 12MiB limit preserved');
 reset role;
 select qa.check((select bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'),'RLS enabled on every application table');
 rollback;
