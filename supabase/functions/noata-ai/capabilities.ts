@@ -12,9 +12,9 @@ export const CAPABILITIES:readonly CapabilityDefinition[]=[
  {id:"document.pdf",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
  {id:"document.docx",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
  {id:"memory.recall",category:"personalization",provider:"local",requiresAuth:true,sideEffects:false},
- {id:"artifact.xlsx",category:"documents",provider:"none",requiresAuth:true,sideEffects:true},
- {id:"artifact.pptx",category:"documents",provider:"none",requiresAuth:true,sideEffects:true},
- {id:"projects.manage",category:"workspace",provider:"none",requiresAuth:true,sideEffects:true}
+ {id:"artifact.xlsx",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
+ {id:"artifact.pptx",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
+ {id:"projects.manage",category:"workspace",provider:"local",requiresAuth:true,sideEffects:true}
 ] as const;
 export type CapabilityAvailability={id:CapabilityId;status:CapabilityStatus;requiresAuth:boolean;sideEffects:boolean};
 export function getCapabilityAvailability(env:{fanar:boolean;brave:boolean;memorySchema:boolean}):CapabilityAvailability[]{

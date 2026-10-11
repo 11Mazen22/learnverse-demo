@@ -39,10 +39,14 @@ import {useAISuggestions,SuggestedActions} from "./use-ai-suggestions";
 import {NoataMotionControl} from "./motion-control";
 import {NoataMemorySettings} from "./memory-settings";
 import {NoataProjectLibrary} from "./project-library";
+import {NoataLaunchpad} from "./noata-launchpad";
+import {NoataCapabilityCenter} from "./noata-capability-center";
+import {NoataAnswerExports} from "./answer-exports";
+import type {LaunchAction} from "@/lib/ai/launch-actions";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
 
-type SettingsTab = "general" | "appearance" | "models" | "voice" | "memory" | "projects" | "privacy";
+type SettingsTab = "general" | "appearance" | "models" | "voice" | "memory" | "projects" | "capabilities" | "privacy";
 
 function downloadText(filename: string, text: string, type = "text/plain") {
   const blob = new Blob([text], { type: type + ";charset=utf-8" });
@@ -248,6 +252,14 @@ export function NoataAIClient() {
       );
     }
     setNotice(t("تم تصدير المحادثة.","Conversation exported."));
+  }
+
+  function openLaunchAction(action:LaunchAction){
+    if(action==="study"){setEducationOpen(true);return;}
+    if(action==="write"){setStudioSource(t("# مستند جديد\\n\\nابدأ الكتابة هنا.","# New document\\n\\nStart your document here."),"new-document");return;}
+    if(action==="analyze"){setStudioSource(t("# تحليل بيانات\\n\\n| البند | القيمة |\\n|---|---|\\n| مثال | 0 |","# Data workspace\\n\\n| Item | Value |\\n|---|---|\\n| Example | 0 |"),"data-workspace");return;}
+    if(action==="research"){setInput(t("ابحث عن موضوع أختاره باستخدام مصادر موثوقة وحديثة عند توفر البحث المباشر، ووضح ما يمكن التحقق منه.","Research a topic I choose using credible, recent sources when live search is available. Distinguish verified evidence from uncertainty."));composer.current?.focus();return;}
+    if(action==="projects"||action==="memory"){setSettingsTab(action);setSettingsOpen(true);}
   }
 
   const sidebar = (
@@ -539,22 +551,8 @@ export function NoataAIClient() {
               <p>{t("اسأل، ارفع صورة، التقط شاشة، أو اتكلم بصوتك. Noata يساعدك في الشرح والكتابة، مع اختيار نموذج مهيّأ يناسب السؤال. توفّر القدرات يعتمد على الخدمة.","Ask a question, attach an image, capture your screen, or use your voice. Noata helps you understand and write, with a model selected for the task. Availability depends on the provider.")}</p>
               <SuggestedActions kind="welcome" locale={locale} items={suggestions.welcome}
                 disabled={busy||loading} onChoose={prompt=>{setInput(prompt);composer.current?.focus();}} />
-              <button
-                type="button"
-                className="aura-education-entry"
-                onClick={() => setEducationOpen(true)}
-              >
-                <Icon name="book" size={19} />{t("افتح ورشة المذاكرة: شرح، اختبارات، ملخصات، وبطاقات مراجعة","Open study workshop: explanations, quizzes, summaries, and flashcards")}</button>
-              <button
-                type="button"
-                className="aura-writing-entry"
-                onClick={() =>
-                  setStudioSource(
-                    input.trim() || t("# مستند جديد\n\nابدأ كتابة أفكارك هنا.","# New document\n\nStart writing your ideas here."),
-                  )
-                }
-              >
-                <Icon name="edit" size={18} />{t("مساحة الكتابة · حرّر، راجع، وصدّر مستندك","Writing studio · edit, preview, and export your document")}</button>
+              <NoataLaunchpad signedIn={Boolean(seenAccount.user?.id)} disabled={busy||loading}
+                onSelect={openLaunchAction} />
               {signedIn === false && (
                 <Link className="owui-primary-action" href="/login?next=/ai">{t("سجّل الدخول وابدأ","Sign in to get started")}<Icon name="arrow" size={15} />
                 </Link>
@@ -587,6 +585,11 @@ export function NoataAIClient() {
                       </p>
                     )}
                     <RichMessage content={m.content} research={m.metadata?.research}/>
+                    {m.role==="assistant"&&m.status==="complete"&&
+                      <NoataAnswerExports text={responseText(m.content)}
+                        title={m.content.match(/^#{1,3}\\s+(.+)$/m)?.[1]??t("إجابة Noata AI","Noata AI answer")}
+                        ready={!busy&&signedIn===true}/>}
+
                     {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}
                     {(m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"||m.metadata?.routeNote==="sadiq_unavailable_general_model")&&<p className="noata-widget-note">{m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"?t("صادق 2 غير مفعّل؛ هذا الرد من صادق.","Sadiq 2 is not enabled; this answer used Sadiq."):t("صادق 2 غير مفعّل؛ هذا الرد من النموذج العام.","Sadiq 2 is not enabled; this answer used the general model.")}</p>}
                     {m.role === "assistant" &&
@@ -1160,6 +1163,7 @@ export function NoataAIClient() {
                 ["voice", t("الصوت","Voice"), "mic"],
                 ["memory", t("الذاكرة","Memory"), "book"],
                 ["projects", t("الملفات","Files"), "archive"],
+                ["capabilities", t("القدرات","Capabilities"), "sliders"],
                 ["privacy", t("الخصوصية","Privacy"), "archive"],
               ] as const
             ).map(([id, label, icon]) => (
@@ -1285,6 +1289,11 @@ export function NoataAIClient() {
 
             {settingsTab === "projects" && (
               <NoataProjectLibrary owner={seenAccount.user?.id??null} open={settingsOpen&&settingsTab==="projects"}/>
+            )}
+
+            {settingsTab === "capabilities" && (
+              <NoataCapabilityCenter owner={seenAccount.user?.id??null}
+                open={settingsOpen&&settingsTab==="capabilities"}/>
             )}
 
             {settingsTab === "privacy" && (

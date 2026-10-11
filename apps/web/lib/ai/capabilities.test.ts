@@ -6,8 +6,8 @@ test("capabilities are unique, have explicit permissions and do not promise unsu
  assert.ok(CAPABILITIES.every(x=>x.requiresAuth));
  const list=getCapabilityAvailability({fanar:false,brave:false,memorySchema:false});
  assert.equal(list.find(x=>x.id==="chat")?.status,"unavailable");
- assert.equal(list.find(x=>x.id==="artifact.xlsx")?.status,"planned");
- assert.equal(list.find(x=>x.id==="artifact.pptx")?.status,"planned");
+ assert.equal(list.find(x=>x.id==="artifact.xlsx")?.status,"local");
+ assert.equal(list.find(x=>x.id==="artifact.pptx")?.status,"local");
  assert.equal(list.find(x=>x.id==="memory.recall")?.status,"unavailable");
  assert.equal(getCapabilityAvailability({fanar:true,brave:true,memorySchema:true}).find(x=>x.id==="research.search")?.status,"configured");
 });
