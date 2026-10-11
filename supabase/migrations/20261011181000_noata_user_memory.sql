@@ -1,6 +1,5 @@
 -- Renaissance 2.0: explicit, user-owned AI memory. Additive, staging-first.
 -- Legacy user_settings.ai_memory_enabled is NOT consent for this system.
-begin;
 create table public.ai_memory_consent (
  user_id uuid primary key references auth.users(id) on delete cascade,
  enabled boolean not null default false,
@@ -29,4 +28,3 @@ revoke all on public.ai_memory_consent,public.ai_user_memories from anon;
 grant select,insert,update,delete on public.ai_memory_consent,public.ai_user_memories to authenticated;
 comment on table public.ai_memory_consent is 'Explicit Noata AI memory consent, independently opt-in. No retroactive consent from legacy user_settings fields.';
 comment on table public.ai_user_memories is 'User-authorized manual AI context only; data isolated with owner RLS. No derived memory indexes in this release.';
-commit;
