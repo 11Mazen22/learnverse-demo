@@ -15,7 +15,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
  try {
   const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')&&!f.endsWith('_private_ai_documents.sql')).sort();
   const before=files.filter(f=>f<'20261008170000'), delta=files.filter(f=>f>='20261008170000');
-  assert.equal(before.length,18);assert.equal(delta.length,6);
+  assert.equal(before.length,18);assert.equal(delta.length,7);
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
@@ -69,9 +69,9 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   // connection rolls back the failed transaction rather than committing it.
   assert.throws(()=>query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nSELECT 1/0; COMMIT;'));
   assert.equal(schemaFingerprint(restored),originalSchema);assert.deepEqual(fingerprint(restored),original);
-  pass('Injected migration failure rolls back all six deltas and preserves original rows/privileges');
+  pass('Injected migration failure rolls back all seven deltas and preserves original rows/privileges');
   query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nCOMMIT;');
-  assert.deepEqual(fingerprint(restored),original);pass('Six deltas preserve every preexisting fixture row and original column');
+  assert.deepEqual(fingerprint(restored),original);pass('Seven deltas preserve every preexisting fixture row and original column');
   assert.equal(query(restored,`SELECT xp||':'||coins||':'||gems FROM public.profiles WHERE id='00000000-0000-0000-0000-000000000020';`),'500:750:0');
   assert.equal(query(restored,`SELECT count(*) FROM public.ledger WHERE currency='GEM';`),'0');
   pass('XP=500 and Coins=750 unchanged; zero Gems and no retroactive rewards');
@@ -125,12 +125,26 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   own(student,`UPDATE public.ai_memory_consent SET enabled=false WHERE user_id='${student}'`);
   assert.equal(query(restored,`SELECT enabled::text FROM public.ai_memory_consent WHERE user_id='${student}'`),'false');
   pass('Memory starts disabled, preserves owner isolation, and supports consent revoke, updates and deletion');
+  // Project workspaces and artifact metadata are constrained by composite owner FKs.
+  const projectId='00000000-0000-0000-0000-000000000070';
+  const otherProject='00000000-0000-0000-0000-000000000071';
+  own(student,`INSERT INTO public.ai_projects(id,user_id,name) VALUES('${projectId}','${student}','Study files')`);
+  own(other,`INSERT INTO public.ai_projects(id,user_id,name) VALUES('${otherProject}','${other}','Other library')`);
+  assert.throws(()=>own(student,`INSERT INTO public.ai_artifacts(id,user_id,project_id,filename,mime_type,storage_path,byte_size)
+   VALUES('00000000-0000-0000-0000-000000000072','${student}','${otherProject}','notes.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document','${student}/notes.docx',123)`));
+  own(student,`INSERT INTO public.ai_artifacts(id,user_id,project_id,filename,mime_type,storage_path,byte_size)
+   VALUES('00000000-0000-0000-0000-000000000073','${student}','${projectId}','notes.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document','${student}/notes.docx',123)`);
+  assert.equal(asUser(other,`SELECT count(*) FROM public.ai_artifacts`).split(/\r?\n/).find(x=>/^\d+$/.test(x)),'0');
+  assert.equal(asUser(student,`SELECT count(*) FROM public.ai_artifacts`).split(/\r?\n/).find(x=>/^\d+$/.test(x)),'1');
+  own(student,`DELETE FROM public.ai_projects WHERE id='${projectId}'`);
+  assert.equal(query(restored,`SELECT project_id IS NULL FROM public.ai_artifacts WHERE filename='notes.docx'`),'t');
+  pass('Project and artifact owner isolation, composite ownership and project deletion preserve unfiled artifacts');
 
   const palettes=['classic','aura','ocean','forest','sunset','rose','midnight'];
   for(const palette of palettes){own(student,`UPDATE public.user_settings SET palette='${palette}' WHERE user_id='${student}'`);assert.equal(query(restored,`SELECT palette FROM public.user_settings WHERE user_id='${student}';`),palette);}
   assert.throws(()=>own(student,`UPDATE public.user_settings SET palette='invalid' WHERE user_id='${student}'`));
   pass('All seven palette values persist; invalid palette rejected in restored incremental schema');
-  outcome.applicationSqlAssertions=24;
+  outcome.applicationSqlAssertions=30;
   query('postgres',`DROP DATABASE ${restored};`);created.splice(created.indexOf(restored),1);
   query('postgres',`CREATE DATABASE ${restored} TEMPLATE template0;`);created.push(restored);
   query(restored,dump);

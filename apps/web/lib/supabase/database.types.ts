@@ -1353,6 +1353,18 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_projects: {
+        Row: {id:string;user_id:string;name:string;instructions:string;created_at:string;updated_at:string}
+        Insert: {id?:string;user_id:string;name:string;instructions?:string;created_at?:string;updated_at?:string}
+        Update: {id?:string;user_id?:string;name?:string;instructions?:string;created_at?:string;updated_at?:string}
+        Relationships: []
+      }
+      ai_artifacts: {
+        Row: {id:string;user_id:string;project_id:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version:number;created_at:string}
+        Insert: {id:string;user_id:string;project_id?:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version?:number;created_at?:string}
+        Update: {id?:string;user_id?:string;project_id?:string|null;filename?:string;mime_type?:string;storage_path?:string;byte_size?:number;version?:number;created_at?:string}
+        Relationships: [{foreignKeyName:"artifact_own_project";columns:["project_id","user_id"];isOneToOne:false;referencedRelation:"ai_projects";referencedColumns:["id","user_id"]}]
+      }
       ai_memory_consent: {
         Row: {user_id:string;enabled:boolean;updated_at:string}
         Insert: {user_id:string;enabled?:boolean;updated_at?:string}
