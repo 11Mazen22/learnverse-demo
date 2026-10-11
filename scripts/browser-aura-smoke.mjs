@@ -236,8 +236,8 @@ async function verifyContextualCoach(){
 }
 async function verifyWritingAndTheme(){
   await navigate("/ai");
-  await waitFor(async()=>await evaluate('!!document.querySelector(".aura-writing-entry")'),"writing entry");
-  await evaluate('document.querySelector(".aura-writing-entry").click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector(".noata-launch-write")'),"writing entry");
+  await evaluate('document.querySelector(".noata-launch-write").click()');
   invariant(await evaluate('!!document.querySelector("dialog[open] .aura-studio textarea")'),"Writing studio opens");
   await evaluate(`(()=>{const el=document.querySelector('.aura-studio textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'## مستند عربي\\n\\n| مفهوم | قيمة |\\n|---|---|\\n| اختبار | ٣ |');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   await evaluate('Array.from(document.querySelectorAll(".aura-studio-tabs button")).find(b=>b.textContent.includes("معاينة")).click()');
@@ -250,13 +250,13 @@ async function verifyWritingAndTheme(){
   await evaluate('document.querySelector("dialog[open] .dialog-heading button").click()');
   await evaluate('Array.from(document.querySelectorAll(".aura-studio-close-confirm button")).find(b=>b.textContent.includes("الاحتفاظ")).click()');
   await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"explicit keep-draft close");
-  await evaluate('document.querySelector(".aura-writing-entry").click()');
+  await evaluate('document.querySelector(".noata-launch-write").click()');
   await waitFor(async()=>await evaluate('document.querySelector("dialog[open] .aura-studio textarea")?.value.includes("مستند عربي")'),"writing draft restores on reopening");
   invariant(true,"Writing draft survives close and reopen");
   await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
   await evaluate('Array.from(document.querySelectorAll(".aura-studio-close-confirm button")).find(b=>b.textContent.includes("تجاهل")).click()');
   await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"discard confirmed draft close");
-  await evaluate('document.querySelector(".aura-writing-entry").click()');
+  await evaluate('document.querySelector(".noata-launch-write").click()');
   await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open] .aura-studio textarea")'),"fresh draft opens after discard");
   invariant(await evaluate('!document.querySelector("dialog[open] .aura-studio textarea").value.includes("مستند عربي")'),"Discard actually clears retained draft");
   await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
