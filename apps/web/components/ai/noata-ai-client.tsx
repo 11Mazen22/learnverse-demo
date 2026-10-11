@@ -38,10 +38,11 @@ import { useAIWorkspace } from "./use-ai-workspace";
 import {useAISuggestions,SuggestedActions} from "./use-ai-suggestions";
 import {NoataMotionControl} from "./motion-control";
 import {NoataMemorySettings} from "./memory-settings";
+import {NoataProjectLibrary} from "./project-library";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
 
-type SettingsTab = "general" | "appearance" | "models" | "voice" | "memory" | "privacy";
+type SettingsTab = "general" | "appearance" | "models" | "voice" | "memory" | "projects" | "privacy";
 
 function downloadText(filename: string, text: string, type = "text/plain") {
   const blob = new Blob([text], { type: type + ";charset=utf-8" });
@@ -1158,6 +1159,7 @@ export function NoataAIClient() {
                 ["models", t("النماذج","Models"), "ai"],
                 ["voice", t("الصوت","Voice"), "mic"],
                 ["memory", t("الذاكرة","Memory"), "book"],
+                ["projects", t("الملفات","Files"), "archive"],
                 ["privacy", t("الخصوصية","Privacy"), "archive"],
               ] as const
             ).map(([id, label, icon]) => (
@@ -1279,6 +1281,10 @@ export function NoataAIClient() {
 
             {settingsTab === "memory" && (
               <NoataMemorySettings owner={seenAccount.user?.id??null} temporary={temporary} open={settingsOpen&&settingsTab==="memory"}/>
+            )}
+
+            {settingsTab === "projects" && (
+              <NoataProjectLibrary owner={seenAccount.user?.id??null} open={settingsOpen&&settingsTab==="projects"}/>
             )}
 
             {settingsTab === "privacy" && (

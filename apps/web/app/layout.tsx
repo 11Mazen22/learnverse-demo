@@ -19,6 +19,7 @@ import "./contextual-coach.css";
 import "./design-rebirth.css";
 import "./ai-suggestions.css";
 import "./ai-memory.css";
+import "./ai-library.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";

@@ -1,0 +1,25 @@
+
+/* Renaissance: private project workspace and artifact list. */
+.noata-library{display:grid;gap:12px;color:var(--ink)}.noata-library h3,.noata-library p{margin:0}
+.noata-library>p{font-size:12px;line-height:1.7;color:var(--muted)}
+.noata-library-create{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.noata-library-create label{grid-column:1/-1;font-weight:700;font-size:12px}
+.noata-library input,.noata-library select{width:100%;min-width:0;border:1px solid var(--line);border-radius:11px;
+ background:var(--surface);color:var(--ink);padding:10px 11px;font:inherit;font-size:12px}
+.noata-library button{cursor:pointer;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;font:inherit;font-size:12px;padding:9px 12px}
+.noata-library button:disabled{opacity:.5;cursor:not-allowed}
+.noata-library button:focus-visible,.noata-library input:focus-visible,.noata-library select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.noata-library-create button{background:var(--accent);color:var(--on-accent,#fff)}
+.noata-library .danger{color:#bc4058}
+.noata-library-projects{max-height:190px;overflow:auto;display:grid;gap:6px}
+.noata-library-projects>div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;
+ border:1px solid var(--line);border-radius:11px;background:var(--surface-soft);font-size:12px}
+.noata-library-projects strong{min-width:0;overflow-wrap:anywhere}
+.noata-library-filter{display:grid;gap:7px;font-size:12px;font-weight:650}
+.noata-library-empty{padding:14px;border-radius:13px;background:var(--surface-soft);color:var(--muted);font-size:12px}
+.noata-library-files{list-style:none;padding:0;margin:0;max-height:320px;overflow:auto;display:grid;gap:8px}
+.noata-library-files li{display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--surface-soft);border:1px solid var(--line);border-radius:13px}
+.noata-library-files li>div{min-width:0;flex:1}.noata-library-files strong{font-size:12px;display:block;overflow-wrap:anywhere}
+.noata-library-files small{color:var(--muted);display:block;margin-top:4px}
+.noata-library-error{color:#bb4058!important}
+@media(max-width:450px){.noata-library-files li{flex-wrap:wrap}.noata-library-files li>div{flex-basis:100%}}
