@@ -1,6 +1,8 @@
 export type SearchPlan = {needed:boolean; reason:"explicit"|"freshness"|"source"|"none"|"opt_out"|"private"; query:string; fresh:boolean};
 export type ResearchSource = {id:number; title:string; url:string; domain:string; excerpt:string; published?:string; retrievedAt:string};
-export type Research = {version:1; status:"complete"|"unavailable"|"failed"; reason?:string; sources:ResearchSource[]; elapsedMs:number};
+export type ResearchStage="searching"|"reviewing"|"complete"|"unavailable"|"failed";
+export type ResearchActivity={stage:ResearchStage;at:string;resultCount?:number};
+export type Research = {version:1; status:"complete"|"unavailable"|"failed"; reason?:string; sources:ResearchSource[]; elapsedMs:number; query?:string; activity?:ResearchActivity[]};
 export function searchPlan(text:string):SearchPlan {
   const query=text.normalize("NFKC").replace(/[\x00-\x1f\x7f]/g," ").replace(/\s+/g," ").trim().split(" ").slice(0,75).join(" ").slice(0,600);
   const plan=(reason:SearchPlan["reason"],needed=false,fresh=false):SearchPlan=>({needed,reason,query,fresh});
@@ -42,12 +44,17 @@ export function normalizeSources(data:unknown,now=new Date().toISOString()):Rese
 }
 let active=0,failures=0,circuitUntil=0;
 export async function runResearch(plan:SearchPlan,options:{key:string;enabled:boolean;signal:AbortSignal;fetcher?:typeof fetch;onStatus?:(status:"searching"|"reviewing")=>void}):Promise<Research> {
-  const started=Date.now(),result=(status:Research["status"],reason?:string,sources:ResearchSource[]=[]):Research=>({version:1,status,reason,sources,elapsedMs:Date.now()-started});
+  const started=Date.now(),activity:ResearchActivity[]=[];
+  const record=(stage:ResearchStage)=>activity.push({stage,at:new Date().toISOString()});
+  const result=(status:Research["status"],reason?:string,sources:ResearchSource[]=[]):Research=>{
+    const final:ResearchActivity={stage:status,at:new Date().toISOString(),...(status==="complete"?{resultCount:sources.length}:{})};
+    return {version:1,status,reason,sources,elapsedMs:Date.now()-started,query:plan.query.slice(0,600),activity:[...activity,final]};
+  };
   if(!options.enabled||!options.key)return result("unavailable","not_configured");
   if(active>=2||Date.now()<circuitUntil)return result("unavailable","temporarily_busy");
   active++;
   try{
-    options.onStatus?.("searching");
+    record("searching");options.onStatus?.("searching");
     const response=await (options.fetcher??fetch)("https://api.search.brave.com/res/v1/llm/context",{
       method:"POST",redirect:"error",headers:{"X-Subscription-Token":options.key,"Content-Type":"application/json",Accept:"application/json"},
       body:JSON.stringify({q:plan.query,count:8,maximum_number_of_urls:5,maximum_number_of_tokens:2048,maximum_number_of_tokens_per_url:512,maximum_number_of_snippets:12,safesearch:"strict",enable_local:false,enable_source_metadata:true,context_threshold_mode:"strict",...(plan.fresh?{freshness:"pm"}:{})}),
@@ -56,7 +63,7 @@ export async function runResearch(plan:SearchPlan,options:{key:string;enabled:bo
     if(!response.ok||!response.body||!response.headers.get("content-type")?.includes("application/json"))throw Error("SEARCH_PROVIDER_FAILED");
     const reader=response.body.getReader(),decoder=new TextDecoder();let text="",bytes=0;
     try{for(;;){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;if(bytes>256_000)throw Error("SEARCH_RESPONSE_LIMIT");text+=decoder.decode(part.value,{stream:true});}text+=decoder.decode();}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
-    options.onStatus?.("reviewing");
+    record("reviewing");options.onStatus?.("reviewing");
     const sources=normalizeSources(JSON.parse(text));
     if(!sources.length) return result("failed","no_sources");
     failures=0;return result("complete",undefined,sources);
@@ -74,5 +81,8 @@ export function validatedResearch(value:unknown):Research|undefined {
   const data=value as Research;
   if(data?.version!==1||!["complete","failed","unavailable"].includes(data.status)||!Array.isArray(data.sources))return undefined;
   const sources=data.sources.slice(0,5).filter(s=>Number.isInteger(s?.id)&&s.id>0&&s.id<=5&&publicSourceUrl(s.url)&&typeof s.title==="string"&&typeof s.domain==="string"&&typeof s.excerpt==="string"&&typeof s.retrievedAt==="string").map(s=>({...s,title:plain(s.title,180),excerpt:plain(s.excerpt,2000)}));
-  return {...data,sources};
+  const query=typeof data.query==="string"?data.query.slice(0,600):undefined;
+  const allowed=new Set<ResearchStage>(["searching","reviewing","complete","unavailable","failed"]);
+  const activity=Array.isArray(data.activity)?data.activity.slice(0,7).filter(x=>x&&allowed.has(x.stage)&&typeof x.at==="string"&&/^\\d{4}-\\d{2}-\\d{2}T/.test(x.at)).map(x=>({stage:x.stage,at:x.at,...(Number.isInteger(x.resultCount)&&x.resultCount>=0&&x.resultCount<=5?{resultCount:x.resultCount}:{})})):undefined;
+  return {...data,sources,...(query?{query}:{}),...(activity?{activity}:{})};
 }

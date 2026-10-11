@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {searchPlan,runResearch,normalizeSources,publicSourceUrl,researchContext} from "../../../../supabase/functions/noata-ai/research.ts";
+import {searchPlan,runResearch,normalizeSources,publicSourceUrl,researchContext,validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
 test("automatic research respects freshness, opt-out, basic questions and private input",()=>{
  assert.equal(searchPlan("What are the latest scientific discoveries about Mars?").needed,true);
  assert.equal(searchPlan("ابحث عن أحدث اكتشافات المريخ").needed,true);
@@ -24,4 +24,17 @@ test("research uses the fixed provider endpoint, real lifecycle events and bound
   return Response.json({grounding:{generic:[{url:"https://science.nasa.gov/mars/",title:"Mars",snippets:["Retrieved text"]}]}});
  }});
  assert.equal(research.status,"complete");assert.deepEqual(events,["searching","reviewing"]);assert.equal(research.sources[0].domain,"science.nasa.gov");
+});
+
+test("research activity preserves recorded stages and exact search text",async()=>{
+ const result=await runResearch(searchPlan("Research orbital mechanics"),{
+  key:"test",enabled:true,signal:new AbortController().signal,
+  fetcher:async()=>Response.json({grounding:{generic:[{url:"https://science.nasa.gov/mars/",title:"Mars",snippets:["Observed facts"]}]}})
+ });
+ assert.equal(result.status,"complete");
+ assert.equal(result.query,"Research orbital mechanics");
+ assert.deepEqual(result.activity?.map(a=>a.stage),["searching","reviewing","complete"]);
+ const validated=validatedResearch(result);
+ assert.equal(validated?.activity?.length,3);
+ assert.equal(validated?.sources.length,1);
 });

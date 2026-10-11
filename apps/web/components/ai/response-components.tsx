@@ -40,7 +40,38 @@ export function ResponseComponent({data}:{data:ResponseUi}){
 }
 function FallbackLabel(){const t=useTranslation();return <>{t("شرح نصي","Text explanation")}</>;}
 export function ResearchSources({research}:{research:unknown}){
- const t=useTranslation(),data=validatedResearch(research);if(!data)return null;
- if(data.status!=="complete")return <p className="noata-research-note">{t("البحث المباشر غير متاح لهذا الرد. المعلومات الحالية لم يتم التحقق منها.","Live research was unavailable for this answer. Current information has not been verified.")}</p>;
- return <details className="noata-source-collection"><summary>{t("المصادر المسترجعة","Retrieved sources")} ({data.sources.length})</summary><ol>{data.sources.map(source=><li key={source.id}><a href={source.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><bdi>[{source.id}] {source.title}</bdi></a><small><bdi>{source.domain}</bdi>{source.published?" · "+source.published:""}</small><p>{source.excerpt}</p></li>)}</ol><p>{t("المقاطع مسترجعة من الويب؛ وجود المصدر لا يعني أن كل ادعاء في الرد مثبت.","These excerpts were retrieved from the web. A listed source does not establish every claim in the answer.")}</p></details>;
+ const t=useTranslation(),data=validatedResearch(research);
+ if(!data)return null;
+ if(data.status!=="complete")return <p className="noata-research-note" role="status">
+  {t("البحث المباشر غير متاح لهذا الرد، ولا توجد مصادر حديثة تم التحقق منها.","Live research was unavailable; no current sources were verified.")}
+ </p>;
+ const labels:Record<string,string>={
+  searching:t("بحث عن المصادر","Searched for sources"),
+  reviewing:t("راجع نتائج البحث","Reviewed search excerpts"),
+  complete:t("اكتمل البحث","Research completed"),
+  unavailable:t("البحث غير متاح","Research unavailable"),
+  failed:t("تعذّر البحث","Research failed")
+ };
+ return <details className="noata-research-trace">
+  <summary className="noata-research-summary"><span className="noata-research-indicator" aria-hidden="true">⌕</span>
+   <span>{t("تم البحث على الويب","Searched the web")} · {data.sources.length} {t("مصادر","sources")}</span>
+   <span className="noata-research-expand">{t("التفاصيل","Details")}</span>
+  </summary>
+  <div className="noata-research-detail">
+   {data.query&&<div className="noata-research-query"><strong>{t("عبارة البحث","Search query")}</strong><p dir="auto">{data.query}</p></div>}
+   {data.activity&&data.activity.length>0&&<ol className="noata-research-activity" aria-label={t("مراحل البحث المسجلة","Recorded research stages")}>
+    {data.activity.map((item,i)=><li key={item.stage+":"+i}>
+     <span className="noata-research-stage-icon" aria-hidden="true">✓</span><span>{labels[item.stage]??item.stage}</span>
+     {item.resultCount!==undefined&&<small>{item.resultCount} {t("مصادر","sources")}</small>}
+    </li>)}
+   </ol>}
+   <strong className="noata-research-source-heading">{t("المصادر المسترجعة","Retrieved sources")}</strong>
+   <ol className="noata-research-links">{data.sources.map(source=><li key={source.id}>
+    <a href={source.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><bdi>[{source.id}] {source.title}</bdi></a>
+    <small><bdi>{source.domain}</bdi>{source.published?" · "+source.published:""}</small>
+    <p>{source.excerpt}</p>
+   </li>)}</ol>
+   <p className="noata-research-disclaimer">{t("المصادر المسترجعة لا تثبت تلقائيًا كل معلومة في الإجابة. تحقّق من الادعاءات المهمة.","Retrieved sources do not automatically verify every claim. Check important conclusions.")}</p>
+  </div>
+ </details>;
 }
