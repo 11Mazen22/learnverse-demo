@@ -256,8 +256,8 @@ export function NoataAIClient() {
 
   function openLaunchAction(action:LaunchAction){
     if(action==="study"){setEducationOpen(true);return;}
-    if(action==="write"){setStudioSource(t("# مستند جديد\\n\\nابدأ الكتابة هنا.","# New document\\n\\nStart your document here."),"new-document");return;}
-    if(action==="analyze"){setStudioSource(t("# تحليل بيانات\\n\\n| البند | القيمة |\\n|---|---|\\n| مثال | 0 |","# Data workspace\\n\\n| Item | Value |\\n|---|---|\\n| Example | 0 |"),"data-workspace");return;}
+    if(action==="write"){setStudioSource(t("# مستند جديد\n\nابدأ الكتابة هنا.","# New document\n\nStart your document here."),"new-document");return;}
+    if(action==="analyze"){setStudioSource(t("# تحليل بيانات\n\n| البند | القيمة |\n|---|---|\n| مثال | 0 |","# Data workspace\n\n| Item | Value |\n|---|---|\n| Example | 0 |"),"data-workspace");return;}
     if(action==="research"){setInput(t("ابحث عن موضوع أختاره باستخدام مصادر موثوقة وحديثة عند توفر البحث المباشر، ووضح ما يمكن التحقق منه.","Research a topic I choose using credible, recent sources when live search is available. Distinguish verified evidence from uncertainty."));composer.current?.focus();return;}
     if(action==="projects"||action==="memory"){setSettingsTab(action);setSettingsOpen(true);}
   }

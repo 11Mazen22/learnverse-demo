@@ -239,6 +239,7 @@ async function verifyWritingAndTheme(){
   await waitFor(async()=>await evaluate('!!document.querySelector(".noata-launch-write")'),"writing entry");
   await evaluate('document.querySelector(".noata-launch-write").click()');
   invariant(await evaluate('!!document.querySelector("dialog[open] .aura-studio textarea")'),"Writing studio opens");
+  invariant(await evaluate('(()=>{const v=document.querySelector("dialog[open] .aura-studio textarea")?.value||"";return v.split(String.fromCharCode(10)).length>2 && !v.includes(String.fromCharCode(92)+"n")})()'),"Writing template uses actual newlines, not literal escaped characters");
   await evaluate(`(()=>{const el=document.querySelector('.aura-studio textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'## مستند عربي\\n\\n| مفهوم | قيمة |\\n|---|---|\\n| اختبار | ٣ |');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   await evaluate('Array.from(document.querySelectorAll(".aura-studio-tabs button")).find(b=>b.textContent.includes("معاينة")).click()');
   invariant(await evaluate('!!document.querySelector(".aura-studio-preview h2")&&!!document.querySelector(".aura-studio-preview table")'),"Writing preview renders headings and tables");
