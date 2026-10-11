@@ -50,17 +50,15 @@ export function NoataAnswerExports({text,title,ready}:{text:string;title?:string
  }
  if(!ready||!available.length)return null;
  return <div className="noata-answer-artifacts">
-  <div className="noata-artifact-main">
-   {available.includes("pdf")&&<button type="button" onClick={()=>void exportAs("pdf")} disabled={Boolean(busy)} aria-label={t("أنشئ PDF حقيقيًا لهذا الرد","Generate a real PDF from this answer")}>
-    <Icon name="download" size={15}/><span>{busy==="pdf"?t("جارٍ الإنشاء…","Creating…"):t("تنزيل PDF","Download PDF")}</span>
-   </button>}
-   <details className="noata-export-more"><summary>{t("صيغ أخرى","More formats")} <span aria-hidden="true">⌄</span></summary>
-    <div className="noata-export-format-menu">
-     {available.filter(x=>x!=="pdf").map(format=><button type="button" key={format} disabled={Boolean(busy)} onClick={()=>void exportAs(format)}>
-      {format.toUpperCase()}<span>{format==="xlsx"?t("من الجدول","From table"):format==="pptx"?t("من العناوين","From headings"):""}</span>
-     </button>)}
-    </div>
-   </details>
+  <div className="noata-export-choices" role="group" aria-label={t("تنزيل الرد","Download answer")}>
+   {available.map(format=><button
+     key={format} type="button" disabled={Boolean(busy)}
+     onClick={()=>void exportAs(format)}
+     aria-label={format==="pdf"?t("تنزيل PDF","Download PDF"):t("تنزيل بصيغة","Download as")+" "+format.toUpperCase()}>
+     <Icon name="download" size={14}/>
+     <span>{busy===format?t("جارٍ الإنشاء…","Creating…"):
+      format==="docx"?"Word":format==="xlsx"?"Excel":format==="pptx"?"PowerPoint":format==="markdown"?"Markdown":"PDF"}</span>
+    </button>)}
   </div>
   {status&&<p className="noata-artifact-status" role="status">{status}</p>}
  </div>;

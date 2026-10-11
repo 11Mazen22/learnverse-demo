@@ -34,3 +34,16 @@
 .owui-layout .owui-input-menu-wrap > button.owui-round:focus-visible{
  outline:3px solid var(--accent)!important;outline-offset:2px
 }
+
+/* One direct file-format chooser instead of a PDF button nested inside More formats. */
+.noata-inline-export-popover{min-width:174px;padding:7px!important;width:max-content}
+.noata-export-choices{display:grid;grid-template-columns:1fr;gap:2px}
+.noata-export-choices button{display:flex;gap:10px;align-items:center;text-align:start;
+ padding:9px 11px;width:100%;border:0;border-radius:9px;background:transparent;
+ color:var(--ink);font:inherit;font-size:12px;cursor:pointer;min-height:36px}
+.noata-export-choices button:hover{background:var(--surface-soft);color:var(--accent)}
+.noata-export-choices button:disabled{opacity:.52;cursor:wait}
+.noata-export-choices button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.owui-layout .owui-provider-info{display:none}
+.owui-layout .owui-message.user .owui-message-meta{display:none}
+.owui-layout .owui-message .ai-rich-message{line-height:1.72!important}
