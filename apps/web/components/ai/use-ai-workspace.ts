@@ -30,6 +30,7 @@ import {validatedResearch,type Research} from "../../../../supabase/functions/no
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { detectArtifactIntent, artifactContent } from "@/lib/ai/artifact-intent";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
+import { findActualLineChart } from "@/lib/ai/artifact-chart";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
@@ -906,13 +907,16 @@ export function useAIWorkspace() {
           const owner = who.data.user.id;
           const prior = history.slice(0,-1).findLast(row => row.role === "assistant")?.content ?? "";
           const source = artifactContent(artifactRequest,responseText(result.content),responseText(prior));
+          const chartData = artifactRequest.kind === "pdf"
+            ? findActualLineChart(artifactRequest.usePrevious && prior.trim()?prior:result.content)
+            : null;
           const id = crypto.randomUUID();
           const driver:ArtifactDriver = {
             renderPdf: async(text,title,signal) => {
-              const response = await fetch("/api/documents/pdf",{
+              const response = await fetch(chartData?"/api/ai/chart-pdf":"/api/documents/pdf",{
                 method:"POST",credentials:"same-origin",
                 headers:{"Content-Type":"application/json","Accept-Language":locale},
-                body:JSON.stringify({text,title:title.slice(0,120)}),signal
+                body:JSON.stringify(chartData?{chart:chartData}:{text,title:title.slice(0,120)}),signal
               });
               if(!response.ok)throw Error("pdf_service_"+response.status);
               return new Uint8Array(await response.arrayBuffer());
