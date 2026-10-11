@@ -1,5 +1,6 @@
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
 import { createFanarStream } from "./streaming.ts";
+import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,runResearch,researchContext,type Research} from "./research.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
@@ -596,7 +597,9 @@ async function handleJsonAction(
     const first = Array.isArray(data?.data) ? data.data[0] : null;
     const b64 = first?.b64_json ?? first?.b64 ?? null;
     if (!b64) return json({ kind: "image", result: data, quota });
+    if(String(b64).length>11200000)return json({error:"Image payload exceeds the supported size"},413);
     const raw = Uint8Array.from(atob(String(b64)), (c) => c.charCodeAt(0));
+    if(!validGeneratedPng(raw))return json({error:"Image provider did not return a valid supported PNG"},502);
     const asset = await storeGenerated(
       userId,
       "images",

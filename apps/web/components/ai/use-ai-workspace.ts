@@ -31,6 +31,7 @@ import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { detectArtifactIntent, artifactContent } from "@/lib/ai/artifact-intent";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart } from "@/lib/ai/artifact-chart";
+import { imageGenerationIntent } from "@/lib/ai/image-intent";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
@@ -682,6 +683,11 @@ export function useAIWorkspace() {
               : attachment?.type.startsWith("image/")
                 ? t("حلّل الصورة المرفقة.","Analyze the attached image.")
                 : "");
+    // A genuine natural-language image request can use Fanar's existing
+    // authenticated image capability without opening a separate Tools panel.
+    // Editing, SVG, multi-image and Temporary requests are intentionally excluded.
+    if (mode === "send" && !tool && !temporary && !attachment && !documentFiles.length)
+      tool = imageGenerationIntent(text) ?? undefined;
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
