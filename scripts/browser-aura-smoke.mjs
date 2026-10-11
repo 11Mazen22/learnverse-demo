@@ -313,7 +313,7 @@ async function verifyPaletteBrandConsistency(){
 async function verifyDocuments(){
   for(const [name,marker] of [["source.txt","مصدر فعلي"],["source.md","محتوى Markdown"],["source.csv","المفهوم"],["source.json","محتوى JSON"],["arabic-longform.docx","تجربة تعلّم"],["arabic-longform.pdf",null]]){
     await navigate("/ai");
-    await waitFor(async()=>await evaluate('!!document.querySelector(".owui-suggestions button")'),"AI hydration");
+    await waitFor(async()=>await evaluate('!!document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item")'),"AI hydration");
     const dom=await command("DOM.getDocument");const input=await command("DOM.querySelector",{nodeId:dom.root.nodeId,selector:"input[type=file]"});
     invariant(!!input.nodeId,"Document picker exists");
     await command("DOM.setFileInputFiles",{nodeId:input.nodeId,files:[resolve("artifacts/noata-documents/"+name)]});
@@ -328,7 +328,7 @@ async function verifyDocuments(){
     invariant(true,"Document preview keyboard close");
   }
   await navigate('/ai');
-  await waitFor(async()=>await evaluate('!!document.querySelector(".owui-suggestions button")'),"image fixture hydration");
+  await waitFor(async()=>await evaluate('!!document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item")'),"image fixture hydration");
   const dom=await command('DOM.getDocument');
   const input=await command('DOM.querySelector',{nodeId:dom.root.nodeId,selector:'input[type=file]'});
   await command('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[resolve('artifacts/noata-documents/arabic-layout.png')]});
@@ -459,14 +459,14 @@ async function main() {
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await navigate("/ai");
   const ready = await waitFor(async()=>await evaluate(`({
-    suggestions: !!document.querySelector(".owui-suggestions button"),
+    suggestions: !!document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item"),
     loading: !!document.querySelector(".owui-loading"),
     error: document.querySelector('[role="alert"]')?.textContent?.slice(0,200) ?? "",
     text: document.querySelector(".owui-messages")?.innerText?.slice(0,200) ?? ""
   })`), "AI workspace DOM");
   console.log("[browser] AI bootstrap state", JSON.stringify(ready));
-  await waitFor(async()=>await evaluate('!!document.querySelector(".owui-suggestions button")'), "AI welcome suggestions / bounded auth initialization", 26000);
-  await evaluate('document.querySelector(".owui-suggestions button").click()');
+  await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item").length === 4 && [...document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item")].every(button => !button.disabled && button.textContent?.trim())'), "four interactive AI welcome suggestions / bounded auth initialization", 26000);
+  await evaluate('document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item").click()');
   const draft=await waitFor(async()=>await evaluate('document.querySelector(".owui-composer textarea")?.value || ""'),"React suggestion populating composer");
   invariant(draft.length>15,"AI suggestion was visual-only and did not update draft");
   await evaluate('document.querySelector(".owui-model-trigger")?.click()');
