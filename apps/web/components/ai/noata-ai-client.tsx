@@ -1414,6 +1414,7 @@ export function NoataAIClient() {
           studio?.session === workspace.sessionVersion ? studio.source : ""
         }
         draftKey={studio?.key ?? "composer"}
+        owner={seenAccount.user?.id??null}
         onClose={() => setStudioSource(null)}
       />
       <Dialog

@@ -1,11 +1,12 @@
 "use client";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {createClient} from "@/lib/supabase/client";
 import { Dialog } from "@/components/ui/dialog";
 import { RichMessage } from "./rich-message";
-import { downloadNoataDocx } from "@/lib/ai/docx-export";
-import { downloadNoataXlsx } from "@/lib/ai/xlsx-export";
-import { downloadNoataPptx } from "@/lib/ai/pptx-export";
+import { downloadNoataDocx,createNoataDocx } from "@/lib/ai/docx-export";
+import { downloadNoataXlsx,createNoataXlsx } from "@/lib/ai/xlsx-export";
+import { downloadNoataPptx,createNoataPptx } from "@/lib/ai/pptx-export";
 import { Icon } from "@/components/ui/icon";
 import { writingDrafts } from "@/lib/ai/session-work";
 
@@ -15,13 +16,20 @@ export function WritingStudio({
   onClose,
   source,
   draftKey,
+  owner,
 }: {
   open: boolean;
   onClose: () => void;
   source: string;
   draftKey: string;
+  owner: string | null;
 }) {
  const t=useTranslation(),locale=useLocale();
+ const supabase=useMemo(()=>createClient(),[]);
+ const [libraryProjects,setLibraryProjects]=useState<{id:string;name:string}[]>([]);
+ const [saveFormat,setSaveFormat]=useState<"docx"|"xlsx"|"pptx">("docx");
+ const [saveProject,setSaveProject]=useState("");
+ const [savingToLibrary,setSavingToLibrary]=useState(false);
   const [draft, setDraft] = useState(source);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [notice, setNotice] = useState("");
@@ -51,6 +59,14 @@ export function WritingStudio({
       exportRequest.current = null;
     };
   }, [open, source, draftKey, initialTitle]);
+  useEffect(()=>{
+    let alive=true;
+    setLibraryProjects([]);setSaveProject("");
+    if(!open||!owner)return;
+    void supabase.from("ai_projects").select("id,name").eq("user_id",owner).order("updated_at",{ascending:false}).limit(50)
+      .then(({data,error})=>{if(alive&&!error)setLibraryProjects(data??[]);});
+    return ()=>{alive=false;};
+  },[open,owner,supabase]);
   useEffect(() => {
     if (!open || !dirty) return;
     const warn = (event: BeforeUnloadEvent) => {
@@ -98,6 +114,32 @@ export function WritingStudio({
        ?t("تعذر تصدير Excel. راجع حجم النص وطول الجداول.","Excel export failed. Check source length and table size.")
        :t("تعذر تصدير PowerPoint. قصّر النص أو قسّمه إلى شرائح باستخدام --- .","PowerPoint export failed. Shorten the text or separate slides with --- ."));
     }
+  }
+  async function saveToLibrary(){
+    if(!owner||savingToLibrary||!draft.trim())return;
+    setSavingToLibrary(true);setNotice(t("جارٍ حفظ الملف في مكتبتك الخاصة…","Saving the file to your private library…"));
+    let path:string|undefined;
+    try{
+      const id=crypto.randomUUID();
+      const data=saveFormat==="xlsx"?createNoataXlsx(draft):saveFormat==="pptx"?createNoataPptx(draft):createNoataDocx(draft);
+      const filename="noata-"+new Date().toISOString().slice(0,10)+"-"+id.slice(0,8)+"."+saveFormat;
+      const mime=saveFormat==="xlsx"?"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        saveFormat==="pptx"?"application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      path=owner+"/"+id+"/"+filename;
+      const upload=await supabase.storage.from("noata-ai-artifacts").upload(path,new Blob([Uint8Array.from(data)],{type:mime}),{contentType:mime,upsert:false});
+      if(upload.error)throw upload.error;
+      const record=await supabase.from("ai_artifacts").insert({
+        id,user_id:owner,project_id:saveProject&&libraryProjects.some(x=>x.id===saveProject)?saveProject:null,
+        filename,mime_type:mime,storage_path:path,byte_size:data.byteLength
+      });
+      if(record.error)throw record.error;
+      path=undefined;
+      setNotice(t("تم حفظ الملف في مكتبتك. افتح تبويب الملفات من إعدادات Noata AI.","Saved to your library. Open Files in Noata AI settings."));
+    }catch{
+      if(path)await supabase.storage.from("noata-ai-artifacts").remove([path]).catch(()=>{});
+      setNotice(t("تعذّر حفظ الملف. قد تحتاج إلى تفعيل مكتبة الملفات في بيئة العمل.","Could not save the file. Artifact storage may not be enabled in this environment."));
+    }finally{setSavingToLibrary(false);}
   }
   async function savePdf(textOnly = false) {
     if (exporting) return;
@@ -220,6 +262,21 @@ export function WritingStudio({
             <RichMessage content={draft} />
           </div>
         )}
+        {owner&&<div className="noata-studio-library" role="group" aria-label={t("حفظ في المكتبة الخاصة","Save to private library")}>
+          <strong>{t("احتفظ بنسخة في مكتبتك","Keep a copy in your library")}</strong>
+          <div className="noata-studio-library-controls">
+            <label>{t("نوع الملف","Format")}<select value={saveFormat} onChange={e=>setSaveFormat(e.target.value as "docx"|"xlsx"|"pptx")}>
+              <option value="docx">Word DOCX</option><option value="xlsx">Excel XLSX</option><option value="pptx">PowerPoint PPTX</option>
+            </select></label>
+            <label>{t("المشروع","Project")}<select value={saveProject} onChange={e=>setSaveProject(e.target.value)}>
+              <option value="">{t("بدون مشروع","Unfiled")}</option>
+              {libraryProjects.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
+            </select></label>
+            <button type="button" disabled={savingToLibrary||!draft.trim()} onClick={()=>void saveToLibrary()}>
+              {savingToLibrary?t("جارٍ الحفظ…","Saving…"):t("حفظ في المكتبة","Save to library")}
+            </button>
+          </div>
+        </div>}
         <div className="aura-studio-footer">
           <small>{draft.length.toLocaleString(locale==="en"?"en":"ar-EG")}{t("حرف","characters")}</small>
           <button type="button" disabled={!draft.trim()} onClick={saveWord}>
