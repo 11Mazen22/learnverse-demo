@@ -75,11 +75,40 @@ export function repairPlainFlashcards(content:string):{before:string;after:strin
    title:lang==="ar"?"بطاقات مراجعة تفاعلية":"Interactive study cards",
    fallback:cards.map(c=>"Front: "+c.front+" | Back: "+c.back).join("\n"),cards}};
 }
+
+/** Only a literal two-column Markdown table with factual numeric time-series data
+ * can be recovered as a chart. Never infer or synthesize missing measurements.
+ */
+export function repairTabularSeries(content:string):{before:string;after:string;data:Extract<ResponseUi,{type:"line_chart"}>}|null {
+ if(content.length>13000||/```/.test(content))return null;
+ const rows=content.replace(/\r\n?/g,"\n").split("\n");
+ const cells=(s:string)=>s.trim().replace(/^\|/,"").replace(/\|$/,"").split("|").map(v=>v.trim());
+ for(let start=0;start<rows.length-3;start++){
+  if(!/^\s*\|.*\|\s*$/.test(rows[start]))continue;
+  const header=cells(rows[start]);if(header.length!==2)continue;
+  const numericAxis=/^(?:temperature|temp|degrees|degree|°c|°f|value|reading|الحرارة|درجة الحرارة|درجة|القيمة|القراءة)/i;
+  const timeAxis=/^(?:time|hour|day|date|month|year|period|week|الوقت|الزمن|الساعة|اليوم|التاريخ|الشهر|السنة)/i;
+  if(!timeAxis.test(header[0])||!numericAxis.test(header[1]))continue;
+  const sep=cells(rows[start+1]);if(sep.length!==2||!sep.every(x=>/^:?-{3,}:?$/.test(x)))continue;
+  const points:{label:string;value:number}[]=[];let end=start+2;
+  for(;end<rows.length&&/^\s*\|.*\|\s*$/.test(rows[end]);end++){
+   const row=cells(rows[end]);if(row.length!==2||!row[0]||row[0].length>80||!/^[-+]?\d{1,9}(?:\.\d{1,6})?$/.test(row[1]))return null;
+   const value=Number(row[1]);if(!Number.isFinite(value)||Math.abs(value)>1e9)return null;
+   points.push({label:row[0],value});if(points.length>30)return null;
+  }
+  if(points.length<2)continue;
+  return {before:rows.slice(0,start).join("\n").trim(),after:rows.slice(end).join("\n").trim(),
+   data:{version:1,id:"repaired-time-series",type:"line_chart",
+    title:header[1]+" — "+header[0],xLabel:header[0],yLabel:header[1],points,
+    fallback:points.map(x=>x.label+": "+x.value).join("; ")}};
+ }
+ return null;
+}
 /** Recovered cards are only shown when complete; streaming stays literal. */
 export function interactiveResponseSegments(content:string,streaming=false):ResponseSegment[]{
  const result=responseSegments(content);
  if(streaming||result.some(x=>x.type!=="markdown"))return result;
- const repaired=repairPlainFlashcards(content);
+ const repaired=repairPlainFlashcards(content)??repairTabularSeries(content);
  if(!repaired)return result;
  return [...(repaired.before?[{type:"markdown" as const,text:repaired.before}]:[]),
   {type:"interactive" as const,data:repaired.data},
