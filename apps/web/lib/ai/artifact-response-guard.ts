@@ -6,7 +6,7 @@ export function isArtifactCapabilityQuestion(prompt:string):boolean{
  if(!hasFormat)return false;
  const question=/^(?:(?:can|could|do|does|will|are|is)\s+(?:(?:you|noata)\s+)?|(?:هل|ممكن|تقدر|بتقدر|تستطيع|هل\s+تقدر)\s*)/i.test(q);
  const reference=/\b(?:this|that|previous|above|last)\b|(?:دا|ده|دي|هذا|هذه|اللي فوق|السابق)/i.test(q);
- const substantive=/\b(?:about|on|containing|with|from)\s+\S{4,}/i.test(q)||/(?:عن|فيه|يحتوي)\s+\S{4,}/.test(q);
+ const substantive=/\b(?:about|on|containing|with|from)\s+\S+/i.test(q)||/(?:عن|فيه|يحتوي)\s+\S{4,}/.test(q);
  return question&&!reference&&!substantive;
 }
 export function isArtifactRefusal(answer:string):boolean{
