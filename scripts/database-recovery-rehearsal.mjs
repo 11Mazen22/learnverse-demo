@@ -15,7 +15,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
  try {
   const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')&&!f.endsWith('_private_ai_documents.sql')).sort();
   const before=files.filter(f=>f<'20261008170000'), delta=files.filter(f=>f>='20261008170000');
-  assert.equal(before.length,18);assert.equal(delta.length,5);
+  assert.equal(before.length,18);assert.equal(delta.length,6);
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
@@ -69,9 +69,9 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   // connection rolls back the failed transaction rather than committing it.
   assert.throws(()=>query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nSELECT 1/0; COMMIT;'));
   assert.equal(schemaFingerprint(restored),originalSchema);assert.deepEqual(fingerprint(restored),original);
-  pass('Injected migration failure rolls back all five deltas and preserves original rows/privileges');
+  pass('Injected migration failure rolls back all six deltas and preserves original rows/privileges');
   query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nCOMMIT;');
-  assert.deepEqual(fingerprint(restored),original);pass('Five deltas preserve every preexisting fixture row and original column');
+  assert.deepEqual(fingerprint(restored),original);pass('Six deltas preserve every preexisting fixture row and original column');
   assert.equal(query(restored,`SELECT xp||':'||coins||':'||gems FROM public.profiles WHERE id='00000000-0000-0000-0000-000000000020';`),'500:750:0');
   assert.equal(query(restored,`SELECT count(*) FROM public.ledger WHERE currency='GEM';`),'0');
   pass('XP=500 and Coins=750 unchanged; zero Gems and no retroactive rewards');
@@ -106,11 +106,31 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   assert.equal(query(restored,`SELECT active_design_id::text FROM public.user_settings WHERE user_id='${student}';`),'00000000-0000-0000-0000-000000000040');
   assert.equal(asUser(student,`SELECT count(*) FROM public.user_theme_designs WHERE user_id='${other}'`).split(/\r?\n/).find(x=>/^\d+$/.test(x)),'0');
   pass('Owned design persists; cross-owner active reference and cross-account design reads denied');
+  // Memory is explicitly opt-in and account-isolated independently from chat history.
+  const ownMemoryId='00000000-0000-0000-0000-000000000060';
+  const otherMemoryId='00000000-0000-0000-0000-000000000061';
+  own(student,`INSERT INTO public.ai_memory_consent(user_id) VALUES('${student}')`);
+  assert.equal(query(restored,`SELECT enabled::text FROM public.ai_memory_consent WHERE user_id='${student}'`),'false');
+  own(student,`UPDATE public.ai_memory_consent SET enabled=true WHERE user_id='${student}'`);
+  own(student,`INSERT INTO public.ai_user_memories(id,user_id,content) VALUES('${ownMemoryId}','${student}','I prefer math in Arabic')`);
+  own(other,`INSERT INTO public.ai_user_memories(id,user_id,content) VALUES('${otherMemoryId}','${other}','I prefer science topics')`);
+  assert.equal(asUser(student,`SELECT count(*) FROM public.ai_user_memories`).split(/\\r?\\n/).find(x=>/^\\d+$/.test(x)),'1');
+  assert.equal(asUser(other,`SELECT count(*) FROM public.ai_user_memories`).split(/\\r?\\n/).find(x=>/^\\d+$/.test(x)),'1');
+  assert.throws(()=>own(student,`INSERT INTO public.ai_user_memories(user_id,content) VALUES('${other}','Attempt cross-owner insert')`));
+  assert.equal(asUser(student,`UPDATE public.ai_user_memories SET content='Cross account manipulation' WHERE id='${otherMemoryId}' RETURNING id`).includes(otherMemoryId),false);
+  own(student,`UPDATE public.ai_user_memories SET content='Arabic step by step maths' WHERE id='${ownMemoryId}'`);
+  assert.equal(query(restored,`SELECT content FROM public.ai_user_memories WHERE id='${ownMemoryId}'`),'Arabic step by step maths');
+  own(student,`DELETE FROM public.ai_user_memories WHERE id='${ownMemoryId}'`);
+  assert.equal(query(restored,`SELECT count(*) FROM public.ai_user_memories WHERE id='${ownMemoryId}'`),'0');
+  own(student,`UPDATE public.ai_memory_consent SET enabled=false WHERE user_id='${student}'`);
+  assert.equal(query(restored,`SELECT enabled::text FROM public.ai_memory_consent WHERE user_id='${student}'`),'false');
+  pass('Memory starts disabled, preserves owner isolation, and supports consent revoke, updates and deletion');
+
   const palettes=['classic','aura','ocean','forest','sunset','rose','midnight'];
   for(const palette of palettes){own(student,`UPDATE public.user_settings SET palette='${palette}' WHERE user_id='${student}'`);assert.equal(query(restored,`SELECT palette FROM public.user_settings WHERE user_id='${student}';`),palette);}
   assert.throws(()=>own(student,`UPDATE public.user_settings SET palette='invalid' WHERE user_id='${student}'`));
   pass('All seven palette values persist; invalid palette rejected in restored incremental schema');
-  outcome.applicationSqlAssertions=15;
+  outcome.applicationSqlAssertions=24;
   query('postgres',`DROP DATABASE ${restored};`);created.splice(created.indexOf(restored),1);
   query('postgres',`CREATE DATABASE ${restored} TEMPLATE template0;`);created.push(restored);
   query(restored,dump);

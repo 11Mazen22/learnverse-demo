@@ -31,7 +31,7 @@ export function NoataMemorySettings({owner,open,temporary}:Props){
    }finally{if(active&&ownerRef.current===owner)setLoading(false);}
   })();
   return ()=>{active=false;};
- },[open,owner,supabase,locale,t]);
+ },[open,owner,supabase,locale]);
  async function run(action:()=>Promise<void>){
   if(!owner||busy||loading)return;
   setBusy(true);setError("");setNotice("");
