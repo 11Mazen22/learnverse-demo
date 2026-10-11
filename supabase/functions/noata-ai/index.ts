@@ -5,6 +5,7 @@ import {searchPlan,runResearch,researchContext,type Research} from "./research.t
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
+import {memorySystemContext,type MemoryItem} from "./memory.ts";
 
 const FANAR_BASE = Deno.env.get("FANAR_BASE_URL") ?? "https://api.fanar.qa/v1";
 const FANAR_ORIGIN = FANAR_BASE.replace(/\/v1\/?$/, "");
@@ -390,6 +391,17 @@ async function c1Thinking(messages: any[]) {
   return second;
 }
 
+/** Consent is never inferred from historical settings, provider input or chat history. */
+async function loadApprovedMemory(userId:string,request:string,temporary:boolean,model:string):Promise<string>{
+ if(temporary||model.startsWith("Fanar-Sadiq"))return "";
+ const {data:opt,error:consentError}=await admin.from("ai_memory_consent").select("enabled").eq("user_id",userId).maybeSingle();
+ if(consentError||opt?.enabled!==true)return "";
+ const {data:rows,error}=await admin.from("ai_user_memories")
+  .select("id,content,updated_at").eq("user_id",userId).eq("source","manual").order("updated_at",{ascending:false}).limit(30);
+ if(error||!rows)return "";
+ return memorySystemContext(rows as MemoryItem[],request);
+}
+
 async function handleChat(
   userId: string,
   payload: any,
@@ -456,7 +468,8 @@ async function handleChat(
     return json({ error: "Unsupported chat model" }, 400);
   const quota = await claim(userId, model);
   const latestLanguage = (payload.responseLanguage === "en" || payload.responseLanguage === "ar" ? payload.responseLanguage : requestLanguage(latestText)) === "en" ? "English" : "Arabic";
-  const messages = [{ role: "system", content: `${system}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.` }, ...safeMessages];
+  const remembered=await loadApprovedMemory(userId,latestText,payload.temporary===true,model);
+  const messages = [{ role: "system", content: `${system}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
   const body: any = {
     model,
     messages,

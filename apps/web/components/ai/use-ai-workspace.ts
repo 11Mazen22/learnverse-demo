@@ -220,14 +220,13 @@ export function useAIWorkspace() {
           const { data } = await sessionStep(
             supabase
               .from("user_settings")
-              .select("default_ai_model,ai_memory_enabled")
+              .select("default_ai_model")
               .eq("user_id", user.id)
               .maybeSingle(),
           );
           if (!alive || !scope.isCurrent(token)) return;
           if (data) {
             setModel(data.default_ai_model || "auto");
-            setTemporary(!data.ai_memory_enabled);
           }
           await sessionStep(loadHistory());
         }
@@ -561,6 +560,7 @@ export function useAIWorkspace() {
           attachmentPath,
            stream: true,
            responseLanguage,
+           temporary,
            max_tokens:4096,
           requestId: crypto.randomUUID(),
         }),
@@ -1433,7 +1433,6 @@ export function useAIWorkspace() {
         {
           user_id: user.id,
           default_ai_model: model,
-          ai_memory_enabled: !temporary,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" },
