@@ -518,7 +518,7 @@ async function main() {
   await waitFor(async()=>await evaluate('!!document.querySelector("dialog[open].noata-dialog--workshop .aura-workshop-scroll")'),"Workshop dialog opens");
   invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button").length===9'),"Nine workshop flows available");
   await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button")[1].click()');
-  invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button[aria-expanded=true]").length===1'),"Workshop pressed selection");
+  invariant(await evaluate('document.querySelectorAll("dialog[open] .aura-workshop-flows button[aria-pressed=true]").length===1'),"Workshop pressed selection");
   for (const [workshopWidth,workshopHeight] of [[1920,1080],[1024,768],[768,1024],[390,844],[320,700]]) {
     location.width=workshopWidth;
     await command("Emulation.setDeviceMetricsOverride",{width:workshopWidth,height:workshopHeight,deviceScaleFactor:1,mobile:workshopWidth<=768});
