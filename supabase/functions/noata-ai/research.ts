@@ -1,3 +1,9 @@
+/** A bare search command has no topic. Ask once, without consuming a search quota. */
+export function searchNeedsTopic(text:string):boolean{
+ const q=text.normalize("NFKC").trim();
+ return /^(?:(?:please|ok|okay)\s+)?(?:search|browse|research|look up)(?:\s+(?:the\s+web|online))?[.!?]*$/i.test(q)
+  ||/^(?:ابحث|دور|بحث)(?:\s+(?:في\s+الويب|الانترنت|على\s+النت))?[.!؟]*$/.test(q);
+}
 export type SearchPlan = {needed:boolean; reason:"explicit"|"freshness"|"source"|"none"|"opt_out"|"private"; query:string; fresh:boolean};
 export type ResearchSource = {id:number; title:string; url:string; domain:string; excerpt:string; published?:string; retrievedAt:string};
 export type ResearchStage="searching"|"reviewing"|"complete"|"unavailable"|"failed";
@@ -10,6 +16,11 @@ export function searchPlan(text:string):SearchPlan {
   // Never turn uploaded excerpts, credentials or personal identifiers into a web query.
   if(/BEGIN.*DOCUMENT|documentExcerpt|documentSources|-----BEGIN|sb_secret_|sk-[\w-]{8,}|password\s*[:=]|كلمة (?:السر|المرور)|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(query)||text.length>1000) return plan("private");
   const fresh=/\b(latest|today|currently|recent|news|this (?:week|month|year)|current (?:events|status|version|price|scientific|findings))\b|أحدث|آخر (?:أخبار|تطورات)|حالي[ًا]*|اليوم|هذا (?:الأسبوع|الشهر|العام)/i.test(query);
+  // For "search for anything", the learner gave explicit discretion:
+  // choose a useful public demonstration topic instead of querying "anything".
+  // Keep the actual query visible in the research activity for auditability.
+  if(/^(?:(?:ok(?:ay)?[,:]?\s*)?(?:please\s+)?(?:search|browse|look up|research|find sources)\s+(?:the\s+web\s+)?(?:for\s+)?(?:anything|something|whatever)(?:\s+(?:interesting|random))?[.!?]*|(?:ابحث|دور)\s+(?:عن\s+)?(?:أي\s+حاجة|اي\s+حاجه|أي\s+شيء))[.!؟]*$/i.test(query))
+    return {needed:true,reason:"explicit",query:"recent astronomy and space exploration discoveries from authoritative science sources",fresh:true};
   if(/\b(search|browse|look up|research|find sources|verify sources)\b|ابحث|بحث (?:عن|على)|مصادر|تحقق من/i.test(query))return plan("explicit",true,fresh);
   if(fresh)return plan("freshness",true,true);
   if(/https:\/\/|\b(citations?|cite|official documentation|published (?:paper|study))\b|استشهد|توثيق|دراسة منشورة/i.test(query))return plan("source",true);

@@ -1,11 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {searchPlan,runResearch,normalizeSources,publicSourceUrl,researchContext,validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
+import {searchPlan,searchNeedsTopic,runResearch,normalizeSources,publicSourceUrl,researchContext,validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
 test("automatic research respects freshness, opt-out, basic questions and private input",()=>{
  assert.equal(searchPlan("What are the latest scientific discoveries about Mars?").needed,true);
  assert.equal(searchPlan("ابحث عن أحدث اكتشافات المريخ").needed,true);
  for(const query of ["Hello","What is 2 + 2?","Explain photosynthesis step by step.","Don't search. Explain the latest idea from memory.","Search for my password: secret","Research private@example.com"])assert.equal(searchPlan(query).needed,false,query);
  assert.equal(searchPlan("Cite the official documentation for React").needed,true);
+ assert.equal(searchPlan("ok search for anything").needed,true);
+ assert.equal(searchPlan("ok search for anything").query,"recent astronomy and space exploration discoveries from authoritative science sources");
+ assert.equal(searchPlan("ابحث عن أي حاجة").needed,true);
 });
 test("source normalization retains actual excerpts, deduplicates and rejects unsafe links",()=>{
  for(const url of ["http://nasa.gov","https://127.0.0.1/a","https://2130706433/a","https://[::1]/a","https://metadata.internal/a","https://user:secret@nasa.gov","https://nasa.gov:8443/a","javascript:alert(1)"])assert.equal(publicSourceUrl(url),null,url);
@@ -37,4 +40,9 @@ test("research activity preserves recorded stages and exact search text",async()
  const validated=validatedResearch(result);
  assert.equal(validated?.activity?.length,3);
  assert.equal(validated?.sources.length,1);
+});
+
+test("A bare search command asks for a topic without contacting the search provider",()=>{
+ for(const s of ["search","please search","ابحث","بحث"])assert.equal(searchNeedsTopic(s),true,s);
+ for(const s of ["search for anything","ok search for anything","ابحث عن أي حاجة","search latest science breakthroughs"])assert.equal(searchNeedsTopic(s),false,s);
 });

@@ -583,29 +583,6 @@ export function NoataAIClient() {
 
                     {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}
                     {(m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"||m.metadata?.routeNote==="sadiq_unavailable_general_model")&&<p className="noata-widget-note">{m.metadata?.routeNote==="sadiq_2_unavailable_sadiq_1"?t("صادق 2 غير مفعّل؛ هذا الرد من صادق.","Sadiq 2 is not enabled; this answer used Sadiq."):t("صادق 2 غير مفعّل؛ هذا الرد من النموذج العام.","Sadiq 2 is not enabled; this answer used the general model.")}</p>}
-                    {m.role === "assistant" &&
-                      m.status === "complete" &&
-                      (/^#{1,3}\s/m.test(m.content) ||
-                        m.content.length > 1500) && (
-                        <button
-                          type="button"
-                          className="aura-writing-artifact"
-                          onClick={() => setStudioSource(responseText(m.content), m.id)}
-                        >
-                          <span className="aura-artifact-icon">
-                            <Icon name="book" size={23} />
-                          </span>
-                          <span>
-                            <strong>
-                              {m.content
-                                .match(/^#{1,3}\s+(.+)$/m)?.[1]
-                                ?.slice(0, 80) || t("مسودة من هذه الإجابة","Draft from this answer")}
-                            </strong>
-                            <small>{t("حرّر النص · تنزيل Word وPDF وMarkdown","Edit text · download Word, PDF, or Markdown")}</small>
-                          </span>
-                          <Icon name="arrow" size={17} />
-                        </button>
-                      )}
                     {m.role === "user" && (
                       <>
                         <AttachmentMessage metadata={m.metadata} />

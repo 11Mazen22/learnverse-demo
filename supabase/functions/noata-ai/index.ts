@@ -2,7 +2,7 @@
 import { createFanarStream } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
-import {searchPlan,runResearch,researchContext,type Research} from "./research.ts";
+import {searchPlan,searchNeedsTopic,runResearch,researchContext,type Research} from "./research.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
@@ -476,6 +476,15 @@ async function handleChat(
     .find((m: any) => m.role === "user");
   const latestText =
     typeof latestUser?.content === "string" ? latestUser.content : "";
+  // A conversation is not a search engine query box: a bare command needs
+  // one clarification, without sending "search" as a web provider query.
+  if(searchNeedsTopic(latestText)){
+    const lang=payload.responseLanguage==="ar"?"ar":payload.responseLanguage==="en"?"en":requestLanguage(latestText);
+    return json({kind:"chat",model:"Noata",content:lang==="ar"
+      ?"تحب أبحث عن إيه؟ اكتب الموضوع أو السؤال، وهبحث عنه لو البحث المباشر متاح، مع عرض المصادر الفعلية."
+      :"What would you like me to search for? Give me a topic or question. If live search is available, I'll look it up and show the actual sources.",
+      finishReason:"clarification",incomplete:false});
+  }
   let routeNote:string|undefined;
   if (model === "auto") {
     model = resolveAutoRoute(latestText, Boolean(payload.attachmentPath)).model;
