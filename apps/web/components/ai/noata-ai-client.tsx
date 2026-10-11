@@ -587,7 +587,7 @@ export function NoataAIClient() {
                     <RichMessage content={m.content} research={m.metadata?.research}/>
                     {m.role==="assistant"&&m.status==="complete"&&
                       <NoataAnswerExports text={responseText(m.content)}
-                        title={m.content.match(/^#{1,3}\\s+(.+)$/m)?.[1]??t("إجابة Noata AI","Noata AI answer")}
+                        title={m.content.match(/^#{1,3}\s+(.+)$/m)?.[1]??t("إجابة Noata AI","Noata AI answer")}
                         ready={!busy&&signedIn===true}/>}
 
                     {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}
