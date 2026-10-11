@@ -32,7 +32,7 @@ import { artifactContent } from "@/lib/ai/artifact-intent";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart } from "@/lib/ai/artifact-chart";
-import {safeArtifactReplyOnCapabilityQuestion,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
+import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
@@ -822,7 +822,11 @@ export function useAIWorkspace() {
       }
       let result: ChatPart;
       let metadata: Record<string, unknown> = {};
-      if (tool) {
+      const direct=mode==="send"&&!tool?directArtifactAbilityAnswer(text,locale):null;
+      if(direct){
+        metadata.capabilityProbe=true;
+        result={content:direct,model:"Noata"};
+      } else if (tool) {
         const payload: Record<string, unknown> = { action: tool };
         if (tool === "translate")
           Object.assign(payload, {

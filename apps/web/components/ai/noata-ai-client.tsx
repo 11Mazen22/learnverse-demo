@@ -623,7 +623,7 @@ export function NoataAIClient() {
                           >
                             <Icon name="edit" size={14} />
                           </button>
-                          {m.status==="complete"&&!m.metadata?.generatedArtifact&&(
+                          {m.status==="complete"&&!m.metadata?.generatedArtifact&&!m.metadata?.capabilityProbe&&(
                             <details className="noata-inline-export">
                               <summary aria-label={t("تنزيل الرد كملف","Download answer as a file")} title={t("تصدير الملف","Export file")}>
                                 <Icon name="download" size={15}/>

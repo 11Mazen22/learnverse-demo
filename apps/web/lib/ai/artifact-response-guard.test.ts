@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {isArtifactCapabilityQuestion,isArtifactRefusal,safeArtifactReplyOnCapabilityQuestion,canCreateArtifactFromAnswer} from "./artifact-response-guard.ts";
+import {isArtifactCapabilityQuestion,isArtifactRefusal,safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer} from "./artifact-response-guard.ts";
 test("Question about abilities is not a request to create a refusal PDF",()=>{
  assert.equal(isArtifactCapabilityQuestion("can you make pdf?"),true);
  assert.equal(isArtifactCapabilityQuestion("هل تقدر تعمل PDF؟"),true);
@@ -9,7 +9,10 @@ test("Question about abilities is not a request to create a refusal PDF",()=>{
  assert.equal(isArtifactCapabilityQuestion("Make a PDF about temperature."),false);
  assert.ok(isArtifactRefusal("I am unable to generate PDFs at this time. My capabilities do not include creating downloadable files like PDFs."));
  const response=safeArtifactReplyOnCapabilityQuestion("can you make pdf?","I cannot create a PDF.","en");
- assert.match(response,/supports creating downloadable PDF/);
+ assert.match(response,/prepare a downloadable PDF/);
+ assert.match(directArtifactAbilityAnswer("can you make Excel?","en")??"",/Excel file/);
+ assert.match(directArtifactAbilityAnswer("هل تقدر تعمل باوربوينت؟","ar")??"",/PowerPoint/);
+ assert.equal(directArtifactAbilityAnswer("Create a PDF about planets","en"),null);
  assert.ok(!isArtifactRefusal(response));
 });
 test("Never convert refusals or empty text into a completed artifact",()=>{

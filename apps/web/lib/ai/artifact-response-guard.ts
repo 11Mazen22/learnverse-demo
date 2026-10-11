@@ -16,9 +16,20 @@ export function isArtifactRefusal(answer:string):boolean{
 }
 export function safeArtifactReplyOnCapabilityQuestion(prompt:string,answer:string,locale:"en"|"ar"):string{
  if(!isArtifactCapabilityQuestion(prompt)||!isArtifactRefusal(answer))return answer;
+ return directArtifactAbilityAnswer(prompt,locale)??answer;
+}
+/** Answer a capability-probe without asking a model to guess the application's tools.
+ * This is NOT a success receipt; the generated-file card is the sole receipt.
+ */
+export function directArtifactAbilityAnswer(prompt:string,locale:"en"|"ar"):string|null{
+ if(!isArtifactCapabilityQuestion(prompt))return null;
+ const q=prompt.toLowerCase();
+ const format=/\b(?:excel|xlsx)\b|إكسل|اكسل/i.test(q)?"Excel":
+  /\b(?:powerpoint|pptx)\b|باوربوينت/i.test(q)?"PowerPoint":
+  /\b(?:word|docx)\b|وورد/i.test(q)?"Word":"PDF";
  return locale==="ar"
- ? "أيوه، Noata يقدر يجهز ملفات PDF وWord وExcel وPowerPoint قابلة للتنزيل لما إنشاء الملفات يكون متاحًا لحسابك. قولي تحب الملف يحتوي على إيه، ولما الإنشاء والحفظ ينجحوا هتظهر بطاقة الملف في المحادثة. مش هقول إن ملف اتعمل غير لما يكون اتحفظ فعلًا."
- : "Yes. Noata supports creating downloadable PDF, Word, Excel, and PowerPoint files when file generation is available for your account. Tell me what you want included. A file card appears in the chat only after generation and saving succeed—I won't claim a file exists before that.";
+  ?"أيوه، أقدر أجهز ملف "+format+" قابل للتنزيل. تحب يكون فيه إيه؟ هتظهر بطاقة الملف هنا بعد ما الإنشاء والحفظ ينجحوا."
+  :"Yes—I can prepare a downloadable "+format+" file here. What should it contain? I'll show the file only after generation and saving succeed.";
 }
 export function canCreateArtifactFromAnswer(reply:string,previous:string,usePrevious:boolean):boolean{
  const source=usePrevious&&previous.trim()?previous:reply;
