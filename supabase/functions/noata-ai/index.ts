@@ -4,6 +4,7 @@ import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,runResearch,researchContext,type Research} from "./research.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
+import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
 
 const FANAR_BASE = Deno.env.get("FANAR_BASE_URL") ?? "https://api.fanar.qa/v1";
 const FANAR_ORIGIN = FANAR_BASE.replace(/\/v1\/?$/, "");
@@ -40,6 +41,7 @@ const CHAT_MODELS = new Set([
 const QUOTAS: Record<string, { limit: number; window: number }> = {
   web_search: { limit: 5, window: 60 },
   Fanar: { limit: 50, window: 60 },
+  "Noata-Suggestions": { limit: 6, window: 60 },
   "Fanar-S-1-7B": { limit: 50, window: 60 },
   "Fanar-C-1-8.7B": { limit: 50, window: 60 },
   "Fanar-C-2-27B": { limit: 50, window: 60 },
@@ -284,7 +286,7 @@ async function claim(userId: string, capability: string) {
   return row;
 }
 
-async function fanarJson(path: string, body: unknown) {
+async function fanarJson(path: string, body: unknown, timeoutMs=180000) {
   const response = await fetch(FANAR_BASE + path, {
     method: "POST",
     headers: {
@@ -292,7 +294,7 @@ async function fanarJson(path: string, body: unknown) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(180000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -493,6 +495,38 @@ async function handleChat(
   });
 }
 
+/** Provider-generated, validated suggestions. Never blocks the primary chat request. */
+async function handleSuggestions(userId:string,payload:Record<string,unknown>){
+ const kind:SuggestionKind=payload.kind==="followup"?"followup":"welcome";
+ const locale=payload.locale==="en"?"en":"ar";
+ const personalized=kind==="welcome"&&payload.personalize===true&&payload.temporary!==true;
+ const question=kind==="followup"?suggestionContext(payload.question,260):"";
+ const answer=kind==="followup"?suggestionContext(payload.answer,540):"";
+ if(kind==="followup"&&(!question||!answer))return json({kind,suggestions:[],generated:false});
+ let recentTopics:string[]=[];
+ if(personalized){
+  const {data,error}=await admin.from("ai_conversations").select("title").eq("user_id",userId)
+    .eq("temporary",false).order("updated_at",{ascending:false}).limit(6);
+  if(!error)recentTopics=(data??[]).map(row=>suggestionContext(row.title,80)).filter(Boolean);
+ }
+ await claim(userId,"Noata-Suggestions");
+ const rules=[
+  "Create appealing, realistic Noata educational AI next-action suggestions.",
+  'Return ONLY valid JSON: {"suggestions":[{"title":"...","prompt":"..."}]}.',
+  kind==="welcome"?"Exactly FOUR distinct suggestions.":"Exactly THREE distinct follow-ups.",
+  "Title 4-65 characters; prompt 12-380 characters; do not repeat ideas.",
+  "Only suggest actual explanatory, practice, research or writing conversations; no external actions.",
+  "Use the request's language, avoid sensitive details, do not include HTML or commentary."
+ ].join("\n");
+ const {data}=await fanarJson("/chat/completions",{
+  model:"Fanar",messages:[{role:"system",content:rules},
+    {role:"user",content:JSON.stringify({kind,locale,recentTopics,question,answer})}],
+  temperature:0.5,max_tokens:520,stream:false
+ },12000);
+ const suggestions=parseSuggestions(data?.choices?.[0]?.message?.content,kind);
+ return json({kind,suggestions,generated:suggestions.length>0,generatedAt:new Date().toISOString()});
+}
+
 async function handleJsonAction(
   userId: string,
   payload: any,
@@ -500,6 +534,7 @@ async function handleJsonAction(
 ) {
   const action = String(payload.action ?? "chat");
   if (action === "chat") return handleChat(userId, payload, receipt);
+  if (action === "suggestions") return handleSuggestions(userId, payload);
 
   if (action === "translate") {
     const quota = await claim(userId, "Fanar-Shaheen-MT-1");
