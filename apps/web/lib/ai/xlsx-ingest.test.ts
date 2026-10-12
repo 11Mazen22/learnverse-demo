@@ -21,6 +21,8 @@ test("Read actual bilingual, multi-sheet Excel cells as quoted source content",a
  assert.match(extracted.excerpt,/Worksheet: الدرجات/);
  assert.match(extracted.excerpt,/العلوم\s*\|\s*95/);
  assert.match(extracted.excerpt,/formulas were not recalculated/i);
+ assert.match(extracted.excerpt,/Deterministic numeric summaries/);
+ assert.match(extracted.excerpt,/Score: count=2, min=86, max=91, mean=88.5/);
  const context=await extractDocumentBatch([file],"scores");
  assert.equal(context[0].format,"xlsx");
  assert.match(appendDocumentSources("Analyze my grades",context),/grades.xlsx/);

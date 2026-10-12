@@ -3,6 +3,7 @@
  * The spreadsheet is user-provided UNTRUSTED source data; never execute formulas.
  */
 import {inspectOfficeArtifact} from "./studio-file-inspect.ts";
+import {workbookNumericStatistics} from "./xlsx-stats.ts";
 export const MAX_XLSX_BYTES=6*1024*1024;
 const XLSX_MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 export function isXlsxDocument(file:{name:string;type:string}):boolean{
@@ -36,7 +37,11 @@ export async function extractXlsxDocument(file:{
    const line="| "+Array.from({length:count},(_,j)=>cells[j]??"").join(" | ")+" |";
    return i===0?line+"\n| "+Array(count).fill("---").join(" | ")+" |":line;
   });
-  const block="## Worksheet: "+page.title.replace(/[\r\n<>]/g," ").slice(0,80)+"\n"+rowText.join("\n");
+  const stats=workbookNumericStatistics(shown);
+  const analysis=stats.length?"\n\nDeterministic numeric summaries (only values in the visible table; formulas ignored):\n"
+   +stats.map(item=>"- "+item.label+": count="+item.count+", min="+item.minimum+", max="+item.maximum+
+     ", mean="+item.mean+", sum="+item.sum).join("\n"):"";
+  const block="## Worksheet: "+page.title.replace(/[\r\n<>]/g," ").slice(0,80)+"\n"+rowText.join("\n")+analysis;
   if(block.length>remaining){pieces.push(block.slice(0,remaining));truncated=true;break;}
   pieces.push(block);remaining-=block.length;
  }
