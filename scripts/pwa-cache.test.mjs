@@ -57,7 +57,7 @@ test("mutations are never intercepted or represented as offline success", async 
 });
 
 test("worker activation removes only obsolete Noata static caches", async () => {
-  const runtime = worker(["noata-static-v4-official-mark", "noata-static-v5-network-only", "other-app-cache"]);
+  const runtime = worker(["noata-static-v4-official-mark", "noata-static-v5-network-only", "noata-static-v6-localized-offline", "other-app-cache"]);
   await runtime.activate();
-  assert.deepEqual(runtime.calls, ["delete:noata-static-v4-official-mark"]);
+  assert.deepEqual(runtime.calls, ["delete:noata-static-v4-official-mark", "delete:noata-static-v5-network-only"]);
 });
