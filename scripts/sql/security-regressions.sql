@@ -86,6 +86,48 @@ where user_id=auth.uid();
 select qa.check((select active_design_id='99000000-0000-0000-0000-000000000001' from public.user_settings where user_id=auth.uid()),'owner can activate own AI design');
 
 select qa.check((select count(*)=1 from public.ai_messages),'message owner isolation');
+
+-- Optional Noata Memory is owned by the authenticated account. This is an
+-- isolated database fixture, NOT a legitimate signed-in hosted QA session.
+insert into public.ai_memory_consent(user_id,enabled) values(auth.uid(),true);
+insert into public.ai_user_memories(user_id,content,source)
+ values(auth.uid(),'I prefer mathematics explanations in Arabic.','manual');
+select qa.check((select enabled from public.ai_memory_consent where user_id=auth.uid()),
+ 'owner can explicitly opt in to memory');
+select qa.check((select count(*)=1 from public.ai_user_memories where user_id=auth.uid()),
+ 'owner can save and read personal memories');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from public.ai_user_memories),
+ 'second account cannot read first account memory');
+select qa.check((select count(*)=0 from public.ai_memory_consent),
+ 'second account cannot inspect first account memory consent');
+select qa.denied(
+ $m$insert into public.ai_user_memories(user_id,content,source)
+ values('00000000-0000-0000-0000-000000000001','Cross-account writing forbidden','manual')$m$,
+ 'second account cannot insert a memory for the first account');
+with attempted as (update public.ai_user_memories set content='Tampered memory'
+ where user_id='00000000-0000-0000-0000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),
+ 'second account cannot edit first account memory');
+with attempted as (delete from public.ai_user_memories
+ where user_id='00000000-0000-0000-0000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),
+ 'second account cannot erase first account memory');
+with attempted as (update public.ai_memory_consent set enabled=false
+ where user_id='00000000-0000-0000-0000-000000000001' returning user_id)
+select qa.check((select count(*)=0 from attempted),
+ 'second account cannot revoke first account memory consent');
+insert into public.ai_user_memories(user_id,content,source)
+ values(auth.uid(),'I prefer short science summaries.','manual');
+select qa.check((select count(*)=1 from public.ai_user_memories),
+ 'second account can maintain its own separate memories');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select qa.check((select count(*)=1 from public.ai_user_memories),
+ 'first account still sees only its own saved memory');
+update public.ai_memory_consent set enabled=false where user_id=auth.uid();
+select qa.check((select enabled=false from public.ai_memory_consent where user_id=auth.uid()),
+ 'owner can revoke memory consent without needing to delete account');
+
 select qa.check((select count(*)=0 from public.question_keys),'student answer keys denied');
 select qa.check((select count(*)=1 from public.assignments),'student sees published assignments in own class only');
 select qa.denied($s$update public.profiles set role='admin' where id=auth.uid()$s$,'direct role escalation denied');
