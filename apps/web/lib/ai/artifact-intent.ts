@@ -24,7 +24,8 @@ export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
  if(/\bpptx\b|\bpowerpoint\b|\bpresentation\b|بوربوينت|باوربوينت|عرض تقديمي/i.test(q))formats.push("pptx");
  if(formats.length!==1)return null;
  const usePrevious=/\b(?:that|this|above|previous|earlier|last answer)\b|(?:ده|دا|دي|هذا|ذلك|اللي فوق|الرد السابق|الإجابة السابقة)/i.test(q);
- return {kind:formats[0],usePrevious};
+ // Studio requests contain their own quoted file contents. Never substitute a prior chat answer.
+ return {kind:formats[0],usePrevious:raw===q&&usePrevious};
 }
 export function artifactContent(intent:ArtifactIntent,answer:string,previous:string):string{
  return (intent.usePrevious&&previous.trim()?previous:answer).trim();
