@@ -347,9 +347,25 @@ async function verifyDocuments(){
     await command("DOM.setFileInputFiles",{nodeId:input.nodeId,files:[resolve("artifacts/noata-documents/"+name)]});
     await waitFor(async()=>await evaluate('!!document.querySelector(".aura-pending-preview")'),"selected document preview button");
     await evaluate('document.querySelector(".aura-pending-preview").click()');
-    if(marker){await waitFor(async()=>await evaluate('document.querySelector(".aura-original-preview pre")?.textContent.includes('+JSON.stringify(marker)+')'),"real file preview: "+name);invariant(true,"Real "+name+" content");}
-    else {await waitFor(async()=>await evaluate('document.querySelector(".aura-original-preview canvas")?.width>0&&document.querySelector(".aura-pdf-pagination")?.textContent.includes("11")'),"real PDF page preview");invariant(true,"Real PDF page preview");await evaluate('Array.from(document.querySelectorAll(".aura-pdf-pagination button")).find(x=>/التالي|Next/.test(x.textContent)).click()');await waitFor(async()=>await evaluate('/صفحة\\s+2|Page\\s+2/.test(document.querySelector(".aura-pdf-pagination")?.textContent??"")'),"PDF next page");invariant(true,"PDF navigation");}
-    invariant(await evaluate('!!document.querySelector(".aura-document-toolbar a[download]")'),"Original download available: "+name);
+    await waitFor(async()=>await evaluate('!!document.querySelector(".noata-creative-preview")'),"Creative Studio opened genuine source preview: "+name);
+    if(marker){
+      // The Office preview is paginated; search actual rendered pages, not
+      // a hidden text fixture or a synthetic preview container.
+      let found=false;
+      for(let pageIndex=0;pageIndex<15;pageIndex++){
+        if(await evaluate('document.querySelector(".noata-creative-page")?.textContent.includes('+JSON.stringify(marker)+')')){found=true;break;}
+        const canAdvance=await evaluate('!document.querySelector(".noata-creative-pages button:last-child")?.disabled');
+        if(!canAdvance)break;
+        await evaluate('document.querySelector(".noata-creative-pages button:last-child").click()');
+        await waitFor(async()=>await evaluate('!!document.querySelector(".noata-creative-page")'),"Next preview page for "+name);
+      }
+      invariant(found,"Real preview includes expected source bytes/text: "+name);
+    }else{
+      await waitFor(async()=>await evaluate('document.querySelector(".noata-creative-pdf canvas")?.width>0&&document.querySelector(".noata-creative-pages")?.textContent.includes("11")'),"real 11-page PDF preview");
+      await evaluate('document.querySelector(".noata-creative-pages button:last-child").click()');
+      await waitFor(async()=>await evaluate('document.querySelector(".noata-creative-pages")?.textContent.includes("2 / 11")'),"Real PDF next-page navigation");
+    }
+    invariant(await evaluate('!!document.querySelector(".noata-download-original")'),"Unmodified original file has an explicit download action: "+name);
     await screenshot("artifacts/noata-browser/document-"+name.replaceAll(".","-")+".png");
     await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
     await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"document modal Escape");

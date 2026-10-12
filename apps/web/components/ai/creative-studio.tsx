@@ -103,6 +103,19 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
   if(!validArtifactBytes(kind,bytes))throw Error("Generated document failed format validation");
   return bytes;
  }
+ async function downloadOriginal(){
+  if(!loaded||busy)return;
+  setBusy(true);setError("");
+  try{
+   // The source download is byte-for-byte the original File/Blob.
+   // Generating a revision must never silently replace or mutate this file.
+   const bytes=new Uint8Array(await loaded.arrayBuffer());
+   if(!bytes.byteLength||bytes.byteLength>12*1024*1024)throw Error("Original file is unavailable");
+   const originalMime=loaded.type||"application/octet-stream";
+   downloadBytes(bytes,activeName,originalMime);
+  }catch(e){setError(e instanceof Error?e.message:t("تعذّر تنزيل الأصل","Could not download the original file"));}
+  finally{setBusy(false);}
+ }
  async function exportVersion(kind:Format){
   if(!draft.trim()||busy)return;
   setBusy(true);setError("");setStatus("");
@@ -176,6 +189,9 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
      <textarea rows={2} dir="auto" placeholder={t("مثلاً: حسّن التنسيق، أضف أمثلة، وصحح الأخطاء","For example: Improve the structure, add examples, and fix errors")} value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={1200}/>
     </label>
     <div className="noata-creative-buttons">
+     <button type="button" className="noata-download-original" disabled={busy||!loaded} onClick={()=>void downloadOriginal()}>
+      <Icon name="download" size={15}/>{t("تنزيل الملف الأصلي","Download original")}
+     </button>
      <button type="button" disabled={!onAskAI||!instruction.trim()||!draft.trim()} onClick={askAI}><Icon name="sparkles" size={15}/>{t("تحسين بالذكاء الاصطناعي","Improve with AI")}</button>
      <button type="button" disabled={busy||!draft.trim()} onClick={()=>void exportVersion(activeFormat!)}><Icon name="download" size={15}/>{busy?t("جارٍ التصدير…","Exporting…"):t("تنزيل النسخة المعدّلة","Export revised file")}</button>
      <button type="button" disabled={busy||!owner||!draft.trim()} onClick={()=>void saveRevision()}><Icon name="archive" size={15}/>{busy?t("جارٍ التنفيذ…","Working…"):t("حفظ نسخة جديدة في المكتبة","Save revision to library")}</button>
