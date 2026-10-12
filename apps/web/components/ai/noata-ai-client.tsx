@@ -10,7 +10,7 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
  */
 import { NoataLogo } from "@/components/ui/noata-logo";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
 import {
   CHAT_MODEL_CARDS,
@@ -145,6 +145,17 @@ export function NoataAIClient() {
   const [inputMenuOpen, setInputMenuOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
+  const modelTriggerRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!modelMenuOpen) return;
+    const onOutsidePress = (event: PointerEvent) => {
+      if (event.target instanceof Node && !modelPickerRef.current?.contains(event.target))
+        setModelMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onOutsidePress);
+    return () => document.removeEventListener("pointerdown", onOutsidePress);
+  }, [modelMenuOpen]);
   const [studio, setStudio] = useState<{
     source: string;
     key: string;
@@ -192,13 +203,14 @@ export function NoataAIClient() {
         setSettingsOpen(true);
       } else if (event.key === "Escape") {
         setInputMenuOpen(false);
+        if (modelMenuOpen) modelTriggerRef.current?.focus();
         setModelMenuOpen(false);
         setControlsOpen(false);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [composer, newChat]);
+  }, [composer, newChat, modelMenuOpen]);
 
   function exportConversation(format: "markdown" | "json" | "docx") {
     const stamp = new Date().toISOString().slice(0, 10);
@@ -325,11 +337,21 @@ export function NoataAIClient() {
               </button>
             )}
 
-            <div className="owui-model-picker">
+            <div className="owui-model-picker" ref={modelPickerRef}>
               <button
                 type="button"
                 className="owui-model-trigger"
+                ref={modelTriggerRef}
                 onClick={() => setModelMenuOpen((x) => !x)}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setModelMenuOpen(true);
+                    requestAnimationFrame(() => modelPickerRef.current?.querySelector<HTMLButtonElement>(".aura-model-card")?.focus());
+                  }
+                }}
+                aria-label={t("اختيار نموذج الذكاء الاصطناعي","Choose AI model")}
+                aria-controls={modelMenuOpen ? "noata-ai-model-options" : undefined}
                 aria-expanded={modelMenuOpen}
               >
                 <span>
@@ -346,12 +368,20 @@ export function NoataAIClient() {
               {modelMenuOpen && (
                 <div
                   className="owui-model-menu aura-model-gallery"
+                  id="noata-ai-model-options"
                   role="group"
                   aria-label={t("النماذج المهيأة على خادم Noata","Models configured for Noata")}
                 >
                   <div className="aura-model-gallery-head">
-                    <strong>{t("اختار مساعدك","Choose your assistant")}</strong>
-                    <span>{t("فنار · النماذج المهيأة بالخادم","Fanar · available model routes")}</span>
+                    <div className="aura-model-gallery-heading">
+                      <strong>{t("اختار مساعدك","Choose your assistant")}</strong>
+                      <span>{t("فنار · النماذج المهيأة بالخادم","Fanar · available model routes")}</span>
+                    </div>
+                    <button type="button" className="aura-model-gallery-dismiss"
+                      aria-label={t("إغلاق قائمة النماذج","Close model selector")}
+                      onClick={() => { setModelMenuOpen(false); modelTriggerRef.current?.focus(); }}>
+                      <Icon name="close" size={17} />
+                    </button>
                   </div>
                   <button
                     type="button"

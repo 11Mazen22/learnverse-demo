@@ -522,6 +522,33 @@ async function main() {
       invariant(shape.inputs===1&&shape.starters===4&&!shape.old,"ONE single composer and contextual suggestions");
       invariant(shape.overflow<=3&&shape.input.left>=-1&&shape.input.right<=oneWidth+1&&shape.input.top>=0&&shape.input.bottom<=900,"ONE composer visible at "+oneWidth);
       invariant(shape.welcomeBottom<=shape.input.top+1&&shape.suggestionsTop>=shape.input.bottom,"ONE greeting, composer, suggestions reading order");
+      // Model selection must stay onscreen in every reading direction; former
+      // position:fixed inside the backdrop-filter header placed it above view.
+      await evaluate('document.querySelector(".owui-model-trigger").click()');
+      const menuShape=await waitFor(async()=>await evaluate(`(()=>{
+        const trigger=document.querySelector(".owui-model-trigger"),menu=document.querySelector(".owui-model-menu.aura-model-gallery"),list=menu?.querySelector(".aura-model-gallery-list");
+        if(!trigger||!menu||!list)return null;
+        const r=menu.getBoundingClientRect(),t=trigger.getBoundingClientRect();
+        return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,triggerBottom:t.bottom,
+          w:innerWidth,h:innerHeight,expanded:trigger.getAttribute("aria-expanded"),
+          options:list.querySelectorAll(".aura-model-card").length,close:!!menu.querySelector(".aura-model-gallery-dismiss"),
+          position:getComputedStyle(menu).position};
+      })()`),"model gallery at "+oneWidth);
+      invariant(menuShape.expanded==="true"&&menuShape.close&&menuShape.options>=2,
+        "Model gallery has working menu options at "+oneWidth);
+      invariant(menuShape.left>=-1&&menuShape.right<=menuShape.w+1&&menuShape.top>=0&&menuShape.bottom<=menuShape.h+1&&menuShape.top>=menuShape.triggerBottom-2,
+        "Model gallery is fully visible below header at "+oneWidth+": "+JSON.stringify(menuShape));
+      if(oneWidth<=640)invariant(menuShape.position==="absolute","Model gallery avoids fixed positioning on phones");
+      const modelScroll=await evaluate(`(()=>{
+        const list=document.querySelector(".aura-model-gallery-list");list.scrollTop=list.scrollHeight;
+        const last=list.lastElementChild?.getBoundingClientRect(),box=list.getBoundingClientRect();
+        return !!last&&last.top>=box.top-2&&last.bottom<=box.bottom+2;
+      })()`);
+      invariant(modelScroll,"Last model option reachable in scrollable list at "+oneWidth);
+      if([320,390,768,1440].includes(oneWidth))await screenshot("artifacts/noata-browser/one-models-"+oneLocale+"-"+oneWidth+".png");
+      await evaluate('document.querySelector(".aura-model-gallery-dismiss").click()');
+      invariant(await evaluate('!document.querySelector(".owui-model-menu")&&document.querySelector(".owui-model-trigger").getAttribute("aria-expanded")==="false"'),
+        "Model gallery closes cleanly at "+oneWidth);
       if([390,1440].includes(oneWidth))await screenshot("artifacts/noata-browser/one-"+oneLocale+"-"+oneWidth+".png");
     }
   }
