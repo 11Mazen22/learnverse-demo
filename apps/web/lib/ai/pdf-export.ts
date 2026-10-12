@@ -28,6 +28,24 @@ export async function documentHtml(text: string, title: string, fonts: {arabic: 
         if (node.tagName === "img") { node.tagName = "span"; node.children = [{type:"text", value: String(node.properties?.alt ?? (direction === "rtl" ? "صورة" : "Image")) }]; node.properties = {}; }
         if (node.tagName === "a") { node.tagName = "span"; node.properties = {}; }
         for (const child of node.children ?? []) visit(child);
+        // Scientific relations keep their logical meaning inside an Arabic paragraph.
+        // Without an explicit LTR isolate, Skia mirrors inequality glyphs in RTL PDFs.
+        if (["p","strong","em","li","th","td","h1","h2","h3","blockquote"].includes(node.tagName)) {
+          node.children = (node.children ?? []).flatMap((child: any) => {
+            if (child.type !== "text") return [child];
+            const value = String(child.value ?? ""), pieces: any[] = [];
+            let offset = 0;
+            for (const match of value.matchAll(/[→←≤≥∑√∞](?:[ \t]*[→←≤≥∑√∞])*/g)) {
+              const index = match.index ?? 0;
+              if (index > offset) pieces.push({type:"text",value:value.slice(offset,index)});
+              pieces.push({type:"element",tagName:"bdi",properties:{dir:"ltr"},children:[{type:"text",value:match[0]}]});
+              offset = index + match[0].length;
+            }
+            if (!pieces.length) return [child];
+            if (offset < value.length) pieces.push({type:"text",value:value.slice(offset)});
+            return pieces;
+          });
+        }
       }
       visit(tree);
     }).use(rehypeStringify).process(text);

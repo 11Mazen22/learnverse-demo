@@ -14,7 +14,7 @@ const testedRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).std
 const initiallyDirty=!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim();
 const dir="artifacts/noata-documents";
 await mkdir(dir,{recursive:true});
-const text=`# تجربة تعلّم عربية\n\nهذه فقرة عربية متصلة لاختبار تشكيل الحروف واتجاه القراءة. Mixed English: Noata Learning 2026.\n\n6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂\n\nSymbols: → ← ≤ ≥ ∑ √ ∞\n\n## جدول المفاهيم\n\n| المفهوم | التعريف | مثال |\n|---|---|---|\n| الطاقة | القدرة على بذل شغل | الشمس |\n| السرعة | المسافة على الزمن | 12 m/s |\n\n1. اقرأ الدرس بتركيز.\n2. اشرح الفكرة بأسلوبك.\n3. راجع بعد يومين.\n\n$$x^2 + y^2 = z^2$$\n\n`+
+const text=`# تجربة تعلّم عربية\n\nهذه فقرة عربية متصلة لاختبار تشكيل الحروف واتجاه القراءة. Mixed English: Noata Learning 2026.\n\n6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂\n\nSymbols: → ← ≤ ≥ ∑ √ ∞\n\nالرموز: → ← ≤ ≥ ∑ √ ∞\n\n## جدول المفاهيم\n\n| المفهوم | التعريف | مثال |\n|---|---|---|\n| الطاقة | القدرة على بذل شغل | الشمس |\n| السرعة | المسافة على الزمن | 12 m/s |\n\n1. اقرأ الدرس بتركيز.\n2. اشرح الفكرة بأسلوبك.\n3. راجع بعد يومين.\n\n$$x^2 + y^2 = z^2$$\n\n`+
   Array.from({length:38},(_,i)=>`## القسم ${i+1}\n\n${"التعلّم رحلة نبني فيها الفهم بخطوات صغيرة. توضح هذه الفقرة اتصال الحروف والحدود بين صفحات المستند دون قطع العناوين أو تداخل النص. ".repeat(3)}\n\nEnglish reference ${i+1}: Learning should be clear and accessible.\n\n`).join("");
 await writeFile(`${dir}/arabic-longform.md`,text);
 const bytes=await renderNoataPdf(text,"خطة التعلّم · Noata",`${dir}/arabic-layout.png`);
@@ -44,6 +44,7 @@ assert.ok(extracted.includes("هذه فقرة عربية متصلة لاختبا
 for(const symbol of ["→","←","≤","≥","∑","√","∞"])assert.ok(extracted.includes(symbol),"PDF symbol must survive real readback: "+symbol);
 assert.ok(!extracted.includes("\u0000"),"PDF readback must not replace an unsupported glyph with NUL");
 const logical=extracted.replace(/\s+/g," ");
+assert.ok(logical.includes("الرموز: → ← ≤ ≥ ∑ √ ∞"),"RTL source must preserve the exact order and meaning of inequality symbols");
 for(const fragment of ["المفهوم التعريف مثال","الطاقة القدرة على بذل شغل الشمس","السرعة المسافة على الزمن","اقرأ الدرس بتركيز","اشرح الفكرة بأسلوبك","راجع بعد يومين","التعلّم رحلة نبني فيها الفهم بخطوات صغيرة","توضح هذه الفقرة اتصال الحروف والحدود بين صفحات المستند دون قطع العناوين أو تداخل النص"])
  assert.ok(logical.includes(fragment),"Source phrase preserved: "+fragment);
 assert.ok(extracted.includes("Noata"));assert.ok(/التعلّم|التعلم|تجربة/.test(extracted),"Arabic text extraction");

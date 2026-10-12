@@ -78,3 +78,13 @@ The generated PDF title incorrectly used the conversation prompt, and its reacti
 “Improve through chat” was exercised with the actual Arabic source, explicit science corrections and a request for a new PDF. Fanar produced and saved a separate 162 KB file; the original remained. This establishes a basic reconstruction path, not stable artifact identity/version history or formatting preservation. The provider corrected the chloroplast location but introduced an incorrect expansion of G3P. **Scientific answer accuracy is FAIL for this sample**. This needs model/provider evaluation and grounded response checks; successful file creation does not establish intelligence parity or release readiness.
 
 The keyboard-focus follow-up `d28f05f80ccad0eac281c1507faac565285177b0` passed both source and PR CI. Its exact Preview was not present in the deployment inventory. Automatic approval review rejected the documented Preview request twice over omitted-target environment ambiguity; the owner elected to deploy Preview manually. No Production deployment, merge, database/environment/credential write or paid upgrade was performed.
+
+## Exact follow-up Preview execution
+
+Preview `dpl_AayrZcRyUJpS3qMWY4MbuGcUGsaA` / `noata-axr787p9v-noata.vercel.app` became READY for `00d4e733e4ec9704c6c346185d3374a40a89c313`, with the branch Preview alias. No additional deployment mutation was made after the owner chose a manual Preview action.
+
+The live retest returned focus to the “Preview & edit” trigger after closing inspection. The Arabic original downloaded as `مراجعة البناء الضوئي.pdf`, 151,872 bytes, `%PDF-`, SHA-256 `dd5e92604414ad63e1e8839bae6dbea354fe9505f487cdaa9af68f8f3acb8230`. The Blob download was captured by the browser download event.
+
+A fresh short Fanar PDF named `اختبار الرموز العلمية.pdf` rendered and extracted the descriptive title and reaction arrow. All seven requested symbol glyphs existed without NUL. The Arabic-label readback nevertheless swapped `≤` and `≥`; this was a reproducible direction defect. The follow-up HTML renderer isolates scientific symbol runs as LTR, and the real CI fixture now asserts the complete Arabic-label sequence rather than merely checking glyph presence. Exact-head live verification is required after the correction.
+
+The model also omitted a supplied English line despite an exact-copy instruction. Provider instruction adherence is FAIL for that sample. No claim of ChatGPT model equivalence or overall ONE completion is made.
