@@ -16,7 +16,8 @@
 .root :global(.owui-brand small){font-size:11px;line-height:1.5;margin-top:4px}
 .root :global(.owui-brand .noata-logo){width:34px;height:34px}
 .root :global(.owui-new-chat){border:1px solid var(--line);border-radius:13px;min-height:43px;box-shadow:none}
-.root :global(.owui-new-chat kbd){font-size:10px;opacity:.65}
+/* Shortcut label must remain legible in every light/dark palette. */
+.root :global(.owui-new-chat kbd){font-size:10px;opacity:1;color:inherit}
 .root :global(.owui-search){border:0;background:var(--surface);border-radius:12px;padding:9px 11px}
 .root :global(.owui-search input){font-size:12px}
 .root :global(.owui-sidebar-links){gap:2px;padding:2px 0 8px;border:0}
