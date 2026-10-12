@@ -11,7 +11,7 @@ import {originalDocument} from "@/lib/ai/original-documents";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import type {RenderTask,PDFDocumentLoadingTask} from "pdfjs-dist/legacy/build/pdf.mjs";
 type Format=CreatedArtifact["format"];
-function downloadBytes(bytes:Uint8Array,name:string,mime:string){
+export function downloadBytes(bytes:Uint8Array,name:string,mime:string){
  const link=document.createElement("a"),url=URL.createObjectURL(new Blob([Uint8Array.from(bytes)],{type:mime}));
  link.href=url;link.download=name;document.body.append(link);link.click();link.remove();
  window.setTimeout(()=>URL.revokeObjectURL(url),30000);

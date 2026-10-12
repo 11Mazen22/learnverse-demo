@@ -66,3 +66,15 @@ At `50a5b6f485f25c9651f5c8b4c4026c80b1584ed0`, the real authenticated Preview sh
 These results prove this bounded path. They do not establish factual perfection, all formats, semantic orchestration or two-account privacy.
 
 Closing inline inspection left focus on BODY. The follow-up correction returns focus to the preview trigger.
+
+## Additional live Arabic findings and follow-up source corrections
+
+The authenticated `50a5b6f` Preview generated a real Arabic PDF, “مراجعة البناء الضوئي.pdf”, with a one-page joined-Arabic canvas, one composer, no dialog and no horizontal overflow. The actual downloaded bytes were 151,872 bytes with a `%PDF-` signature. The English download was 131,141 bytes with a `%PDF-` signature and a readable name.
+
+The Arabic download filename was percent-encoded by the cross-origin signed download. The artifact card now fetches the owner-checked original bytes through private Storage, validates length/signature and uses the same Blob download as the inline editor. The actual-byte and stale-owner checks remain mandatory. Final live verification is still required.
+
+The generated PDF title incorrectly used the conversation prompt, and its reaction arrow rendered/read back as an unreadable glyph. Source commit `815fbec831d392dc03145255933e0c418a1d0445` uses a sanitized descriptive artifact title, accepts the observed bold-wrapped Markdown heading, rejects request-text filename fallbacks, embeds the existing licensed symbol font and extends actual PDF readback with seven scientific symbols and a no-NUL assertion. Unreadable extracted control bytes are removed from revision prompts with a visible disclosure. Old saved files are preserved.
+
+“Improve through chat” was exercised with the actual Arabic source, explicit science corrections and a request for a new PDF. Fanar produced and saved a separate 162 KB file; the original remained. This establishes a basic reconstruction path, not stable artifact identity/version history or formatting preservation. The provider corrected the chloroplast location but introduced an incorrect expansion of G3P. **Scientific answer accuracy is FAIL for this sample**. This needs model/provider evaluation and grounded response checks; successful file creation does not establish intelligence parity or release readiness.
+
+The keyboard-focus follow-up `d28f05f80ccad0eac281c1507faac565285177b0` passed both source and PR CI. Its exact Preview was not present in the deployment inventory. Automatic approval review rejected the documented Preview request twice over omitted-target environment ambiguity; the owner elected to deploy Preview manually. No Production deployment, merge, database/environment/credential write or paid upgrade was performed.

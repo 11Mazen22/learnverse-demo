@@ -3,7 +3,9 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {useTranslation} from "@/lib/i18n/locale";
 import {Icon} from "@/components/ui/icon";
-import {NoataCreativeStudio} from "./creative-studio";
+import {NoataCreativeStudio,downloadBytes} from "./creative-studio";
+import {validArtifactBytes} from "@/lib/ai/artifact-intent";
+import type {ArtifactKind} from "@/lib/ai/artifact-intent";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 const allowed=["pdf","docx","xlsx","pptx"];
 function valid(value:unknown,owner:string|null):CreatedArtifact|null{
@@ -26,19 +28,22 @@ export function NoataGeneratedArtifact({value,owner,onAskAI,onPrepareEdit}:{valu
  const current=useRef("");current.current=owner+":"+file?.id;
  useEffect(()=>{setStudioOpen(false);setError("");setBusy(false);},[owner,file?.id]);
  if(!file)return null;
- async function open(download:boolean){
+ async function downloadFile(){
   if(!file||!owner||busy)return;
   const ticket=current.current;
   setBusy(true);setError("");
   try{
    const {data,error}=await supabase.from("ai_artifacts").select("id,storage_path,filename").eq("id",file.id).eq("user_id",owner).single();
    if(error||!data||data.storage_path!==file.storagePath||data.filename!==file.filename)throw Error("Not found");
-   const signed=await supabase.storage.from("noata-ai-artifacts").createSignedUrl(file.storagePath,120,{download:download?file.filename:false});
-   if(signed.error||!signed.data?.signedUrl)throw Error("Download unavailable");
+   // A same-origin Blob download preserves Unicode filenames; cross-origin
+   // Content-Disposition can expose an encoded name and ignore link.download.
+   const original=await supabase.storage.from("noata-ai-artifacts").download(file.storagePath);
+   if(original.error||!original.data)throw Error("Download unavailable");
    if(current.current!==ticket)return;
-   const link=document.createElement("a");link.href=signed.data.signedUrl;link.rel="noopener noreferrer";
-   link.target="_blank";if(download)link.download=file.filename;
-   document.body.append(link);link.click();link.remove();
+   const bytes=new Uint8Array(await original.data.arrayBuffer());
+   if(bytes.byteLength!==file.byteSize||!validArtifactBytes(file.format as ArtifactKind,bytes))throw Error("Saved file failed validation");
+   if(current.current!==ticket)return;
+   downloadBytes(bytes,file.filename,file.mimeType);
   }catch{if(current.current===ticket)setError(t("لم نتمكن من فتح الملف؛ ربما حُذف أو انتهت صلاحية الجلسة.","The saved file could not be opened; it may have been deleted or the session expired."));}
   finally{if(current.current===ticket)setBusy(false);}
  }
@@ -48,7 +53,7 @@ export function NoataGeneratedArtifact({value,owner,onAskAI,onPrepareEdit}:{valu
    <small>{file.format.toUpperCase()} · {Math.ceil(file.byteSize/1024)} KB · {t("محفوظ في مكتبتك الخاصة","Saved in your private library")}</small></div>
   <div className="noata-generated-file-actions">
    <button type="button" ref={previewTrigger} disabled={busy} aria-expanded={studioOpen} onClick={()=>setStudioOpen(x=>!x)}><Icon name="edit" size={14}/>{t("معاينة وتحرير","Preview & edit")}</button>
-   <button type="button" disabled={busy} onClick={()=>void open(true)}><Icon name="download" size={14}/>{busy?t("جارٍ الفتح","Opening"):t("تنزيل","Download")}</button>
+   <button type="button" disabled={busy} onClick={()=>void downloadFile()}><Icon name="download" size={14}/>{busy?t("جارٍ التنزيل","Downloading"):t("تنزيل","Download")}</button>
   </div>
   {error&&<p role="alert">{error}</p>}
   <NoataCreativeStudio inline file={studioOpen?file:null} owner={owner} onClose={()=>{setStudioOpen(false);previewTrigger.current?.focus();}} onAskAI={onAskAI} onPrepareEdit={onPrepareEdit}/>
