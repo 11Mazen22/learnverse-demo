@@ -28,6 +28,7 @@ type Props = {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onOpenSettings?: () => void;
+  onOpenLibrary?: () => void;
   onOpenShortcuts?: () => void;
 };
 
@@ -113,7 +114,7 @@ export function ConversationHistory(p: Props) {
 
   if (p.collapsed) {
     return (
-      <aside className="owui-sidebar collapsed" aria-label="Noata AI navigation">
+      <aside className="owui-sidebar collapsed" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
         <div className="owui-rail">
           <button
             type="button"
@@ -153,13 +154,13 @@ export function ConversationHistory(p: Props) {
   }
 
   return (
-    <aside className="owui-sidebar" aria-label="Noata AI navigation">
+    <aside className="owui-sidebar" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
       <div className="owui-sidebar-top">
         <div className="owui-brand">
           <NoataLogo size={44}/>
           <div>
             <strong>Noata AI</strong>
-            <small>{t("مساحة أفكارك الذكية","A space for your ideas")}</small>
+            <small>{t("مساحتك لكل فكرة","Your space for every idea")}</small>
           </div>
         </div>
         <button
@@ -199,6 +200,7 @@ export function ConversationHistory(p: Props) {
           <Icon name="home" size={16} />
           <span><strong>{t("مساحة التعلّم","Learning space")}</strong><small>{t("العودة إلى الرئيسية","Back to home")}</small></span>
         </Link>
+        {p.onOpenLibrary&&<button type="button" onClick={p.onOpenLibrary}><Icon name="archive" size={16}/><span>{t("المشروعات والملفات","Projects and files")}</span></button>}
         <button
           type="button"
           onClick={p.onTemporary}

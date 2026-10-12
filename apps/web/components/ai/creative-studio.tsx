@@ -92,7 +92,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
  async function buildRevision(kind:Format):Promise<Uint8Array>{
   let bytes:Uint8Array;
   if(kind==="pdf"){
-   const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text:draft,title:file?.filename??"Noata Creative Studio"})});
+   const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text:draft,title:file?.filename??activeName})});
    if(!response.ok)throw Error("PDF generation unavailable ("+response.status+")");
    bytes=new Uint8Array(await response.arrayBuffer());
   }else if(kind==="docx")bytes=(await import("@/lib/ai/docx-export")).createNoataDocx(draft);
@@ -159,13 +159,13 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
   onClose();onAskAI(next);
  }
  const pageInfo=inspection?.pages[page-1];const isPdf=activeFormat==="pdf";
- return <Dialog open={Boolean(file||localSource)} onClose={onClose} variant="studio" title={t("Noata Creative Studio · معاينة وتحرير","Noata Creative Studio · Preview & edit")}>
+ return <Dialog open={Boolean(file||localSource)} onClose={onClose} variant="studio" title={t("معاينة الملف وتحريره","Preview & edit file")}>
   <div className="noata-creative-studio" dir={locale==="ar"?"rtl":"ltr"}>
    <header className="noata-creative-header"><span className="noata-creative-symbol"><Icon name="file" size={21}/></span>
     <div><strong dir="auto">{activeName}</strong><p>{t("مساحة واحدة للمعاينة، التعديل، تحسين الذكاء الاصطناعي والتصدير.","One workspace for real previews, editable drafts, AI improvements and exports.")}</p></div></header>
    {error&&<p role="alert" className="noata-creative-error">{error}</p>}
    {!loaded&&!error&&<p role="status">{t("بنفتح الملف الأصلي من مكتبتك الخاصة…","Opening the original from your private library…")}</p>}
-   {loaded&&<div className="noata-creative-tabs" role="group" aria-label={t("وضع الاستوديو","Studio mode")}>
+   {loaded&&<div className="noata-creative-tabs" role="group" aria-label={t("عرض الملف","File view")}>
     <button type="button" aria-pressed={mode==="preview"} onClick={()=>setMode("preview")}>{t("معاينة حقيقية","Real preview")}</button>
     <button type="button" aria-pressed={mode==="edit"} onClick={()=>setMode("edit")}>{t("تعديل نسخة","Edit a revision")}</button>
    </div>}

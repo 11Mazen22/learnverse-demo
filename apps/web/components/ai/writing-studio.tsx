@@ -179,9 +179,9 @@ export function WritingStudio({
     }
   }
   return (
-    <Dialog open={open} onClose={requestClose} variant="studio" title={t("Noata Creative Studio · كتابة وتحرير","Noata Creative Studio · Write & edit")}>
+    <Dialog open={open} onClose={requestClose} variant="studio" title={t("تحرير النص","Edit text")}>
       <div className="aura-studio">
-        <p>{t("حرّر النص بنفسك، راجع شكله، ثم صدّره في ملف حقيقي. النسخة الأصلية من المحادثة لن تتغير.","Edit, preview and export real documents in Noata Creative Studio. Your original conversation stays saved.")}</p>
+        <p>{t("حرّر النص بنفسك، راجع شكله، ثم صدّره في ملف حقيقي. النسخة الأصلية من المحادثة لن تتغير.","Edit this text and review the result. Your original conversation stays saved.")}</p>
         <p className="aura-studio-status">
           {retained
             ? t("تُحفظ المسودة في ذاكرة هذه الجلسة لمدة ٣٠ دقيقة فقط. نزّل نسخة قبل إعادة تحميل الصفحة أو تسجيل الخروج.","Your draft stays in this session for 30 minutes. Download a copy before reloading or signing out.")

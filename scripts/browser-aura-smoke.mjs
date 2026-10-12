@@ -510,6 +510,28 @@ async function main() {
   })`), "AI workspace DOM");
   console.log("[browser] AI bootstrap state", JSON.stringify(ready));
   await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item").length === 4 && [...document.querySelectorAll(".noata-suggested-actions.welcome .noata-suggested-item")].every(button => !button.disabled && button.textContent?.trim())'), "four interactive AI welcome suggestions / bounded auth initialization", 26000);
+  // ONE shell contracts: one composer, keyboard-accessible menus, seven widths,
+  // both reading directions, no separate creation dashboard. These are UI fixtures.
+  for(const oneLocale of ["en","ar"]){
+    await evaluate('localStorage.setItem("noata-locale",'+JSON.stringify(oneLocale)+')');
+    for(const oneWidth of [320,375,390,768,1024,1440,1920]){
+      await command("Emulation.setDeviceMetricsOverride",{width:oneWidth,height:900,deviceScaleFactor:1,mobile:oneWidth<=768});
+      await navigate("/ai");
+      const shape=await evaluate('(()=>{const input=document.querySelector(".owui-composer textarea"),welcome=document.querySelector(".owui-welcome"),suggestions=document.querySelector(".noata-suggested-actions.welcome");const a=input?.getBoundingClientRect(),b=welcome?.getBoundingClientRect(),c=suggestions?.getBoundingClientRect();return{inputs:document.querySelectorAll(".owui-composer textarea").length,locale:document.documentElement.lang,dir:document.querySelector(".owui-layout")?.getAttribute("dir"),overflow:document.documentElement.scrollWidth-innerWidth,input:a&&{left:a.left,right:a.right,top:a.top,bottom:a.bottom},welcomeBottom:b?.bottom,suggestionsTop:c?.top,starters:suggestions?.querySelectorAll("button").length,old:!!document.querySelector(".noata-launchpad,.owui-tool-panel,.noata-inline-export")}})()');
+      invariant(shape.locale===oneLocale&&shape.dir===(oneLocale==="en"?"ltr":"rtl"),"ONE locale at "+oneWidth);
+      invariant(shape.inputs===1&&shape.starters===4&&!shape.old,"ONE single composer and contextual suggestions");
+      invariant(shape.overflow<=3&&shape.input.left>=-1&&shape.input.right<=oneWidth+1&&shape.input.top>=0&&shape.input.bottom<=900,"ONE composer visible at "+oneWidth);
+      invariant(shape.welcomeBottom<=shape.input.top+1&&shape.suggestionsTop>=shape.input.bottom,"ONE greeting, composer, suggestions reading order");
+      if([390,1440].includes(oneWidth))await screenshot("artifacts/noata-browser/one-"+oneLocale+"-"+oneWidth+".png");
+    }
+  }
+  await evaluate('localStorage.setItem("noata-ai-motion-v1","off")');
+  await navigate("/ai");
+  invariant(await evaluate('document.documentElement.getAttribute("data-noata-motion")==="off"'),"ONE saved motion applied before Settings opens");
+  invariant(await evaluate('document.querySelector(".owui-composer-wrap").getAnimations().every(a=>a.playState!=="running")'),"ONE motion off has no composer animation");
+  await evaluate('localStorage.removeItem("noata-ai-motion-v1");localStorage.setItem("noata-locale","ar")');
+  await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+  await navigate("/ai");
   // Conversation-first layout: no disconnected AI Tools dashboard.
   invariant(await evaluate('!document.querySelector(".owui-tool-toggle,.owui-tool-panel,.noata-launchpad")'),
     "No redundant AI Tools tab/panel or oversized six-card launchpad");

@@ -42,7 +42,7 @@ export function NoataGeneratedArtifact({value,owner,onAskAI}:{value:unknown;owne
   <div className="noata-generated-file-info"><strong dir="auto">{file.filename}</strong>
    <small>{file.format.toUpperCase()} · {Math.ceil(file.byteSize/1024)} KB · {t("محفوظ في مكتبتك الخاصة","Saved in your private library")}</small></div>
   <div className="noata-generated-file-actions">
-   <button type="button" disabled={busy} onClick={()=>setStudioOpen(true)}><Icon name="edit" size={14}/>{t("فتح في Noata Creative Studio","Open in Creative Studio")}</button>
+   <button type="button" disabled={busy} onClick={()=>setStudioOpen(true)}><Icon name="edit" size={14}/>{t("معاينة وتحرير","Preview & edit")}</button>
    <button type="button" disabled={busy} onClick={()=>void open(true)}><Icon name="download" size={14}/>{busy?t("جارٍ الفتح","Opening"):t("تنزيل","Download")}</button>
   </div>
   {error&&<p role="alert">{error}</p>}

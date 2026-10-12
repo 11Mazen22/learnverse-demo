@@ -74,7 +74,7 @@ export function NoataProjectLibrary({owner,open}:{owner:string|null;open:boolean
  }
  return <section className="noata-library" aria-label={t("مشروعات ومكتبة Noata","Noata projects and library")}>
   <h3>{t("المشروعات والملفات","Projects and files")}</h3>
-  <p>{t("احفظ ملفات Word وExcel وPowerPoint الناتجة من مساحة الكتابة في مكتبتك الخاصة.","Save Word, Excel and PowerPoint files generated in Writing Studio to your private library.")}</p>
+  <p>{t("ملفاتك المحفوظة من المحادثات والمسودات، في مكان واحد خاص بك.","Your saved conversation files and drafts, together in your private library.")}</p>
   {!owner?<p role="status">{t("سجّل الدخول للوصول إلى الملفات.","Sign in to access files.")}</p>:loading?<p role="status">{t("جارٍ التحميل…","Loading…")}</p>:<>
    <form className="noata-library-create" onSubmit={e=>{e.preventDefault();void createProject();}}>
     <label htmlFor="noata-project-name">{t("مشروع جديد","New project")}</label>

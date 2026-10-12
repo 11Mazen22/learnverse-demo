@@ -13,7 +13,7 @@ export function Dialog({
   onClose: () => void;
   title: string;
   children: ReactNode;
-  variant?: "default" | "workshop" | "studio";
+  variant?: "default" | "workshop" | "studio" | "ai";
 }) {
   const t=useTranslation();
   const ref = useRef<HTMLDialogElement>(null);
