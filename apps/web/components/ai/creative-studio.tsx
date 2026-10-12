@@ -40,7 +40,7 @@ function PdfPage({file,page,onPages}:{file:Blob;page:number;onPages:(n:number)=>
 }
 export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
  file:CreatedArtifact|null;
- localSource?:{name:string;localId:string;format:"pdf"|"docx"|"text"}|null;
+ localSource?:{name:string;localId:string;format:"pdf"|"docx"|"xlsx"|"text"}|null;
  owner:string|null;onClose:()=>void;onAskAI?:(prompt:string)=>void;
 }){
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);

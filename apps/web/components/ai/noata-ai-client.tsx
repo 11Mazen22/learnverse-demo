@@ -158,7 +158,7 @@ export function NoataAIClient() {
   const [pendingPreview, setPendingPreview] = useState<{
     name: string;
     localId: string;
-    format: "pdf" | "docx" | "text";
+    format: "pdf" | "docx" | "xlsx" | "text";
   } | null>(null);
 
   const suggestions=useAISuggestions({userId:seenAccount.user?.id??null,locale,
@@ -783,7 +783,9 @@ export function NoataAIClient() {
                             ? "pdf"
                             : file.name.toLowerCase().endsWith(".docx")
                               ? "docx"
-                              : "text",
+                              : file.name.toLowerCase().endsWith(".xlsx")
+                                ? "xlsx"
+                                : "text",
                         })
                       }
                     >
@@ -885,7 +887,7 @@ export function NoataAIClient() {
               type="file"
               hidden
               multiple
-              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,.docx,.pdf,text/plain,text/markdown,text/csv,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,.docx,.pdf,.xlsx,text/plain,text/markdown,text/csv,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf"
               onChange={(e) => {
                 selectFiles(e.target.files);
                 e.currentTarget.value = "";
@@ -917,7 +919,7 @@ export function NoataAIClient() {
                         <Icon name="image" size={17} />
                         <span>
                           <strong>{t("رفع صورة أو مستند","Upload an image or document")}</strong>
-                          <small>{t("صورة، صوت أو ملف نصي (TXT / MD / CSV / JSON / DOCX / PDF)","Image, audio, or document (TXT / MD / CSV / JSON / DOCX / PDF)")}</small>
+                          <small>{t("صورة، صوت أو ملف نصي (TXT / MD / CSV / JSON / DOCX / PDF / XLSX)","Image, audio, or document (TXT / MD / CSV / JSON / DOCX / PDF / XLSX)")}</small>
                         </span>
                       </button>
                       <button

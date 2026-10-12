@@ -21,7 +21,8 @@ test("real TXT and DOCX contents remain distinguishable and grounded",async()=>{
 test("multi-file quota rejects unsupported formats without inventing PDF analysis",()=>{
  assert.match(validateDocumentBatch(Array.from({length:5},(_,i)=>({name:i+".txt",type:"text/plain",size:2})))??"",/٤/);
  assert.equal(validateDocumentBatch([{name:"lecture.pdf",type:"application/pdf",size:200}]),null);
- assert.match(validateDocumentBatch([{name:"sheet.xlsx",type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",size:200}])??"",/TXT/);
+ assert.equal(validateDocumentBatch([{name:"sheet.xlsx",type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",size:200}]),null);
+ assert.match(validateDocumentBatch([{name:"sheet.xlsm",type:"application/vnd.ms-excel.sheet.macroEnabled.12",size:200}])??"",/TXT/);
 });
 test("source material is bounded, names sanitized and empty metadata ignored",async()=>{
  const files=Array.from({length:4},(_,i)=>plain("f"+i+".txt","س".repeat(10000)));

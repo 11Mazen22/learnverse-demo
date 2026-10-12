@@ -47,3 +47,11 @@
 .owui-layout .owui-provider-info{display:none}
 .owui-layout .owui-message.user .owui-message-meta{display:none}
 .owui-layout .owui-message .ai-rich-message{line-height:1.72!important}
+
+/* Read-only worksheet preview: scrollable, accessible, original data only. */
+.aura-original-sheet{display:grid;gap:12px;min-width:0}
+.aura-original-sheet-table{max-width:100%;max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.aura-original-sheet-table table{border-collapse:collapse;width:max-content;min-width:100%;font-size:12px}
+.aura-original-sheet-table :is(th,td){padding:10px 14px;border-bottom:1px solid var(--line);border-inline-end:1px solid var(--line);text-align:start;white-space:pre-wrap;min-width:90px;max-width:260px;overflow-wrap:anywhere}
+.aura-original-sheet-table th{background:var(--surface-soft);position:sticky;top:0;z-index:1;color:var(--ink)}
+.aura-original-sheet>small{font-size:11px;color:var(--muted)}

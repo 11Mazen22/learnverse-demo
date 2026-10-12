@@ -1,5 +1,6 @@
 import test from "node:test";import assert from "node:assert/strict";
 import {documentPath,isOwnerDocumentPath,validDocumentBytes,documentFormat} from "./document-storage.ts";
+import {createNoataMultiSheetXlsx} from "./xlsx-multisheet.ts";
 import {safeStorageLink} from "./workspace.ts";
 const user="e33a12a6-b488-4d98-9af0-8d76868a65d1",conversation="a52ae1c4-b13e-4a1d-8fd5-5b13b5d4c423",id="59c146f1-cf16-4a47-8b15-6034219b9172";
 test("private documents bind owner, conversation and generated ID; paths cannot escape",()=>{
@@ -20,4 +21,13 @@ test("retained-document links are confined to the authenticated project's privat
  assert.equal(safeStorageLink(link,"https://other.supabase.co","noata-documents"),null);
  assert.equal(safeStorageLink(link.replace("noata-documents","public"),origin,"noata-documents"),null);
  assert.equal(safeStorageLink(link,origin),null);
+});
+
+test("Stored original XLSX accepts real package parts, but rejects disguised files",()=>{
+ const bytes=createNoataMultiSheetXlsx([{name:"Math",rows:[["Name","Score"],["Sara","90"]]},{name:"علوم",rows:[["طالب"],["سارة"]]}]);
+ assert.equal(documentFormat("grades.xlsx")?.mime,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+ assert.equal(validDocumentBytes("grades.xlsx",bytes),true);
+ assert.equal(validDocumentBytes("grades.xlsx",new TextEncoder().encode("fake workbook")),false);
+ assert.equal(validDocumentBytes("grades.xlsm",bytes),false);
+ assert.ok(isOwnerDocumentPath(documentPath(user,conversation,id,"grades.xlsx"),user));
 });

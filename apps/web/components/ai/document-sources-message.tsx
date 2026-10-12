@@ -5,7 +5,7 @@ import {OriginalDocumentPreview} from "./original-document-preview";
 import {Dialog} from "@/components/ui/dialog";
 import {Icon} from "@/components/ui/icon";
 
-type Source={localId?:string;documentId?:string;expiresAt?:string;name:string;format:"text"|"docx"|"pdf";excerpt:string;truncated:boolean};
+type Source={localId?:string;documentId?:string;expiresAt?:string;name:string;format:"text"|"docx"|"pdf"|"xlsx";excerpt:string;truncated:boolean};
 /** Files are read-only extracted source excerpts; original files are not retained. */
 export function DocumentSourcesMessage({sources}:{sources:unknown}){
  const t=useTranslation(),locale=useLocale();
@@ -16,7 +16,7 @@ export function DocumentSourcesMessage({sources}:{sources:unknown}){
         !!value&&typeof value==="object" &&
         typeof value.name==="string" &&
         typeof value.excerpt==="string" &&
-        (value.format==="text"||value.format==="docx"||value.format==="pdf") &&
+        (value.format==="text"||value.format==="docx"||value.format==="pdf"||value.format==="xlsx") &&
         typeof value.truncated==="boolean")
     : [];
   if(!items.length)return null;
@@ -36,7 +36,7 @@ export function DocumentSourcesMessage({sources}:{sources:unknown}){
       {selected&&<div className="aura-source-preview">
         <div className="aura-studio-tabs"><button type="button" aria-pressed={tab==="original"} onClick={()=>setTab("original")}>{t("المستند الأصلي","Original document")}</button><button type="button" aria-pressed={tab==="context"} onClick={()=>setTab("context")}>{t("السياق المرسل للذكاء الاصطناعي","Context sent to AI")}</button></div>
         {tab==="original"?<OriginalDocumentPreview key={selected.localId??selected.documentId??selected.name} source={selected}/>:<>
-        <p>{t("محتوى مستخلص من ملف","Content extracted from a")}{selected.format==="docx"?"Word":selected.format==="pdf"?"PDF":t("نصي","text file")}{t(". محفوظ في سياق هذه المحادثة، راجع تبويب المستند الأصلي للعرض والتنزيل عندما يكون متاحًا.",". Saved in this conversation’s context. Open the Original document tab to view or download it when available.")}</p>
+        <p>{t("محتوى مستخلص من ملف","Content extracted from a")}{selected.format==="docx"?"Word":selected.format==="pdf"?"PDF":selected.format==="xlsx"?"Excel":t("نصي","text file")}{t(". محفوظ في سياق هذه المحادثة، راجع تبويب المستند الأصلي للعرض والتنزيل عندما يكون متاحًا.",". Saved in this conversation’s context. Open the Original document tab to view or download it when available.")}</p>
         {selected.truncated&&<p role="status">{t("المستند طويل؛ تم اختيار مقاطع ضمن حدود السياق، وقد لا تغطي كل معلومات الملف. لا تُعامل المعاينة كمحتوى الملف الكامل.","This document is long. Selected excerpts may not cover every part of the file. This preview is not the complete document.")}</p>}
         <pre dir="auto">{selected.excerpt}</pre>
         <small>{t("إذا طلبت من Noata الاستشهاد بمصدر، راجع الإجابة مقابل النص المستخلص الظاهر هنا.","Check source citations in Noata’s answer against the extracted text shown here.")}</small></>}

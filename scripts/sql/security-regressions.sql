@@ -298,6 +298,10 @@ select qa.check(
  (select not public and 'application/pdf'=any(allowed_mime_types) and file_size_limit=12582912
  from storage.buckets where id='noata-ai-artifacts'),
  'private bucket, PDF allowlist and 12MiB limit preserved');
+select qa.check((select public=false and file_size_limit=8388608 and
+ 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'=any(allowed_mime_types)
+ from storage.buckets where id='noata-documents'),
+ 'Original XLSX uploads remain private and retain the 8MiB bucket cap');
 reset role;
 select qa.check((select bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'),'RLS enabled on every application table');
 rollback;
