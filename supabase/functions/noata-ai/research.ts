@@ -14,7 +14,8 @@ export function searchPlan(text:string):SearchPlan {
   const plan=(reason:SearchPlan["reason"],needed=false,fresh=false):SearchPlan=>({needed,reason,query,fresh});
   if(/(?:do not|don't|without|no)\s+(?:web\s+)?(?:search|browse|internet)|لا تبحث|بدون بحث|من غير بحث/i.test(query)) return plan("opt_out");
   // Never turn uploaded excerpts, credentials or personal identifiers into a web query.
-  if(/BEGIN.*DOCUMENT|documentExcerpt|documentSources|-----BEGIN|sb_secret_|sk-[\w-]{8,}|password\s*[:=]|كلمة (?:السر|المرور)|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(query)||text.length>1000) return plan("private");
+  if(/\[FILE\s+\d+\s*\||\[\/FILE\s+\d+\]|مصادر الملفات المرفقة|BEGIN.*DOCUMENT|documentExcerpt|documentSources|-----BEGIN|sb_secret_|sk-[\w-]{8,}|password\s*[:=]|كلمة (?:السر|المرور)|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(text)||text.length>1000)
+    return {needed:false,reason:"private",query:"",fresh:false};
   const fresh=/\b(latest|today|currently|recent|news|this (?:week|month|year)|current (?:events|status|version|price|scientific|findings))\b|أحدث|آخر (?:أخبار|تطورات)|حالي[ًا]*|اليوم|هذا (?:الأسبوع|الشهر|العام)/i.test(query);
   // For "search for anything", the learner gave explicit discretion:
   // choose a useful public demonstration topic instead of querying "anything".
