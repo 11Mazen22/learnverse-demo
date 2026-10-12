@@ -45,7 +45,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
     AND table_name IN (SELECT tablename FROM pg_tables WHERE schemaname IN ('public','auth','storage'))
     GROUP BY table_schema,table_name) t;`));
   const ident=s=>'"'+s.replaceAll('"','""')+'"';
-  const fingerprint=db=>columns.map(t=>({table:t.schema+'.'+t.name,value:query(db,`SELECT count(*)||':'||md5(coalesce(string_agg(row_to_json(s)::text,E'\\n' ORDER BY row_to_json(s)::text),'')) FROM (SELECT ${t.columns.map(ident).join(',')} FROM ${ident(t.schema)}.${ident(t.name)}${t.schema==='storage'&&t.name==='buckets'?" WHERE id <> 'noata-ai-artifacts'":''}) s;`)}));
+  const fingerprint=db=>columns.map(t=>({table:t.schema+'.'+t.name,value:query(db,`SELECT count(*)||':'||md5(coalesce(string_agg(row_to_json(s)::text,E'\\n' ORDER BY row_to_json(s)::text),'')) FROM (SELECT ${t.columns.map(ident).join(',')} FROM ${ident(t.schema)}.${ident(t.name)}${t.schema==='storage'&&t.name==='buckets'?" WHERE id NOT IN ('noata-ai-artifacts','noata-documents')":''}) s;`)}));
   const original=fingerprint(baseline);
   const dump=pgDump(['-d',baseline,'--format=plain','--no-owner']);
   const backup=directory+'/source-fixture-backup.sql';

@@ -63,7 +63,7 @@ insert into public.ai_messages(id,conversation_id,role,content) values
 select qa.check((select count(*)=5 from public.user_settings),'signup creates settings');
 select qa.check((select count(*)=5 from public.notifications where type='welcome'),'signup creates welcome notification');
 select qa.check((select count(*)=2 from public.notifications where type='assignment'),'assignment publishing notifies only class members');
-select qa.check((select count(*)=0 from storage.buckets where id='noata-documents'),'private-document retention absent');
+select qa.check((select count(*)=1 from storage.buckets where id='noata-documents' and public=false and file_size_limit=8388608),'private-document bucket fixture is private and bounded');
 select qa.check(to_regclass('public.ai_document_files') is null,'private-document metadata table absent');
 select qa.check((select bool_and(not public) from storage.buckets),'base storage buckets private');
 set local role anon;
