@@ -7,6 +7,7 @@ import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
 import {memorySystemContext,lastChatRecallRequested,type MemoryItem} from "./memory.ts";
+import {conversationalMemoryIntent,memoryStorageRefusal,memoryResultMessage} from "./memory-actions.ts";
 import {getCapabilityAvailability,validateCapabilityExecution} from "./capabilities.ts";
 
 const FANAR_BASE = Deno.env.get("FANAR_BASE_URL") ?? "https://api.fanar.qa/v1";
@@ -422,6 +423,63 @@ async function loadApprovedMemory(userId:string,request:string,temporary:boolean
 
 }
 
+
+/** Authenticated Memory actions are deterministic: never claim success from model text. */
+async function executeUserMemoryRequest(userId:string,request:string,temporary:boolean,language:"ar"|"en",conversationId?:string):Promise<string|null>{
+ if(temporary)return null;
+ const action=conversationalMemoryIntent(request);
+ const isPrior=lastChatRecallRequested(request);
+ if(action.kind==="none"&&!isPrior)return null;
+ const {data:consent,error:consentError}=await admin.from("ai_memory_consent").select("enabled")
+  .eq("user_id",userId).maybeSingle();
+ if(consentError)return memoryResultMessage("unavailable",language);
+ if(consent?.enabled!==true)return memoryResultMessage("disabled",language);
+ if(action.kind==="save"){
+  if(memoryStorageRefusal(action.content))return memoryResultMessage("unsafe",language);
+  const {data:existing,error:existingError}=await admin.from("ai_user_memories").select("id,content")
+    .eq("user_id",userId).eq("source","manual").limit(51);
+  if(existingError)return memoryResultMessage("unavailable",language);
+  if(existing?.some(x=>String(x.content).toLocaleLowerCase()===action.content.toLocaleLowerCase()))return memoryResultMessage("exists",language);
+  if((existing?.length??0)>=50)return memoryResultMessage("full",language);
+  const {data:stored,error:insertError}=await admin.from("ai_user_memories").insert({
+   user_id:userId,source:"manual",content:action.content
+  }).select("id,content").single();
+  if(insertError||stored?.content!==action.content)return memoryResultMessage("unavailable",language);
+  return memoryResultMessage("saved",language,action.content);
+ }
+ if(action.kind==="ask"){
+  const {data:items,error}=await admin.from("ai_user_memories").select("content")
+   .eq("user_id",userId).eq("source","manual").order("updated_at",{ascending:false}).limit(12);
+  if(error)return memoryResultMessage("unavailable",language);
+  if(!items?.length)return memoryResultMessage("empty",language);
+  const heading=language==="ar"?"دي الذكريات اللي وافقت إني أستخدمها:":"These are your approved saved memories:";
+  return heading+"\n\n"+items.map(x=>"- "+String(x.content).replace(/[<>\\r\\n]/g," ").slice(0,500)).join("\n")+
+   "\n\n"+(language==="ar"?"تقدر تعدلها أو تحذفها من الإعدادات ← الذاكرة.":"You can edit or delete them under Settings → Memory.");
+ }
+ if(isPrior){
+  let q=admin.from("ai_conversations").select("id,title").eq("user_id",userId)
+    .eq("temporary",false).order("updated_at",{ascending:false}).limit(3);
+  if(conversationId&&/^[0-9a-f-]{36}$/i.test(conversationId))
+    q=q.neq("id",conversationId);
+  const {data:chats,error:chatsError}=await q;
+  if(chatsError)return memoryResultMessage("unavailable",language);
+  for(const chat of chats??[]){
+   const {data:asked,error}=await admin.from("ai_messages").select("content").eq("conversation_id",chat.id)
+    .eq("role","user").order("created_at",{ascending:false}).limit(1);
+   if(error)return memoryResultMessage("unavailable",language);
+   if(asked?.[0]?.content){
+    const remembered=String(asked[0].content).slice(0,850).trim();
+    if(!remembered)return null;
+    return language==="ar"
+      ?"آخر سؤال منك في المحادثة السابقة كان:\n\n> "+remembered.replace(/\n/g,"\n> ")
+      :"Your last question in your previous conversation was:\n\n> "+remembered.replace(/\n/g,"\n> ");
+   }
+  }
+  return language==="ar"?"مفيش محادثة سابقة غير مؤقتة أقدر أرجع لها في حسابك.":"I couldn't find an earlier non-temporary conversation in your account.";
+ }
+ return null;
+}
+
 async function handleChat(
   userId: string,
   payload: any,
@@ -476,6 +534,11 @@ async function handleChat(
     .find((m: any) => m.role === "user");
   const latestText =
     typeof latestUser?.content === "string" ? latestUser.content : "";
+  const directMemory=await executeUserMemoryRequest(userId,latestText,payload.temporary===true,
+    payload.responseLanguage==="ar"?"ar":payload.responseLanguage==="en"?"en":requestLanguage(latestText),
+    typeof payload.conversationId==="string"?payload.conversationId:undefined);
+  if(directMemory!==null)return json({kind:"chat",model:"Noata",content:directMemory,
+    finishReason:"memory_result",incomplete:false});
   // A conversation is not a search engine query box: a bare command needs
   // one clarification, without sending "search" as a web provider query.
   if(searchNeedsTopic(latestText)){
