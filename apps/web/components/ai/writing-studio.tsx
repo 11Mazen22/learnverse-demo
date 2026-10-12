@@ -9,6 +9,7 @@ import { downloadNoataXlsx,createNoataXlsx } from "@/lib/ai/xlsx-export";
 import { downloadNoataPptx,createNoataPptx } from "@/lib/ai/pptx-export";
 import { Icon } from "@/components/ui/icon";
 import { writingDrafts } from "@/lib/ai/session-work";
+import {artifactFilename} from "@/lib/ai/artifact-filename";
 
 /** A genuine editable document workspace for real Noata AI responses. */
 export function WritingStudio({
@@ -87,7 +88,7 @@ export function WritingStudio({
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = "noata-writing.md";
+    a.download = artifactFilename({format:"md",title,content:draft,locale});
     document.body.append(a);
     a.click();
     a.remove();
@@ -96,7 +97,7 @@ export function WritingStudio({
   }
   function saveWord() {
     try {
-      downloadNoataDocx(draft, "noata-writing.docx");
+      downloadNoataDocx(draft, artifactFilename({format:"docx",title,content:draft,locale}));
       setNotice(t("تم تجهيز ملف Word قابل للتعديل.","Editable Word document prepared."));
     } catch {
       setNotice(t("المستند طويل جدًا للتصدير. قصّره أو حمّله بصيغة Markdown.","This document is too long to export. Shorten it or download Markdown."));
@@ -104,8 +105,8 @@ export function WritingStudio({
   }
   function saveOffice(format:"xlsx"|"pptx") {
     try {
-      if(format==="xlsx") downloadNoataXlsx(draft,"noata-data.xlsx");
-      else downloadNoataPptx(draft,"noata-slides.pptx");
+      if(format==="xlsx") downloadNoataXlsx(draft,artifactFilename({format:"xlsx",title,content:draft,locale}));
+      else downloadNoataPptx(draft,artifactFilename({format:"pptx",title,content:draft,locale}));
       setNotice(format==="xlsx"
        ?t("تم إنشاء ملف Excel قابل للتعديل من النص أو الجدول.","Created an editable Excel workbook from the text or table.")
        :t("تم إنشاء عرض PowerPoint قابل للتعديل. راجع الشرائح قبل المشاركة.","Created an editable PowerPoint deck. Review its slides before sharing."));
@@ -122,11 +123,11 @@ export function WritingStudio({
     try{
       const id=crypto.randomUUID();
       const data=saveFormat==="xlsx"?createNoataXlsx(draft):saveFormat==="pptx"?createNoataPptx(draft):createNoataDocx(draft);
-      const filename="noata-"+new Date().toISOString().slice(0,10)+"-"+id.slice(0,8)+"."+saveFormat;
+      const filename=artifactFilename({format:saveFormat,title,content:draft,locale});
       const mime=saveFormat==="xlsx"?"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
         saveFormat==="pptx"?"application/vnd.openxmlformats-officedocument.presentationml.presentation":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      path=owner+"/"+id+"/"+filename;
+      path=owner+"/"+id+"/noata-"+id.slice(0,8)+"."+saveFormat;
       const upload=await supabase.storage.from("noata-ai-artifacts").upload(path,new Blob([Uint8Array.from(data)],{type:mime}),{contentType:mime,upsert:false});
       if(upload.error)throw upload.error;
       const record=await supabase.from("ai_artifacts").insert({
@@ -163,7 +164,7 @@ export function WritingStudio({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = textOnly ? "noata-writing-text.pdf" : "noata-writing.pdf";
+      anchor.download = artifactFilename({format:"pdf",title,content:draft,locale});
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 15000);
       if (!controller.signal.aborted)

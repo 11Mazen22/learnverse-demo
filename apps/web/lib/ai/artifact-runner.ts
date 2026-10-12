@@ -1,3 +1,6 @@
+import {artifactFilename} from "./artifact-filename.ts";
+import {isNonDeliverableDraft} from "./delivery-quality.ts";
+import {isArtifactRefusal} from "./artifact-response-guard.ts";
 /** Genesis artifact transaction: no success until bytes, storage, row and message link exist. */
 import {checkArtifactContent,validArtifactBytes,type ArtifactIntent,type ArtifactKind} from "./artifact-intent.ts";
 export type CreatedArtifact={
@@ -24,6 +27,7 @@ export async function createConversationalArtifact(input:{
  const {intent,content,owner,id,title,signal,driver}=input;
  const invalid=checkArtifactContent(intent.kind,content);
  if(invalid)throw Error(invalid);
+ if(isNonDeliverableDraft(content)||isArtifactRefusal(content))throw Error("unfinished_content");
  if(!/^[0-9a-f-]{36}$/i.test(owner)||!/^[0-9a-f-]{36}$/i.test(id))throw Error("invalid_identity");
  if(signal.aborted)throw Error("cancelled");
  let bytes:Uint8Array;
@@ -33,8 +37,8 @@ export async function createConversationalArtifact(input:{
  else bytes=(await import("./pptx-export.ts")).createNoataPptx(content);
  if(signal.aborted)throw Error("cancelled");
  if(!validArtifactBytes(intent.kind,bytes))throw Error("generated_file_invalid");
- const filename="noata-"+id.slice(0,8)+"."+intent.kind;
- const storagePath=owner+"/"+id+"/"+filename;
+ const filename=artifactFilename({format:intent.kind,title:content.match(/^#\s+(.+)$/m)?.[1]??title,content});
+ const storagePath=owner+"/"+id+"/noata-"+id.slice(0,8)+"."+intent.kind;
  const artifact:CreatedArtifact={id,format:intent.kind,filename,storagePath,mimeType:mime[intent.kind],byteSize:bytes.byteLength};
  let uploaded=false,recorded=false;
  try{

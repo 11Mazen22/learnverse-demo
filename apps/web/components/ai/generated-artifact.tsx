@@ -29,7 +29,7 @@ export function NoataGeneratedArtifact({value,owner,onAskAI}:{value:unknown;owne
   try{
    const {data,error}=await supabase.from("ai_artifacts").select("id,storage_path,filename").eq("id",file.id).eq("user_id",owner).single();
    if(error||!data||data.storage_path!==file.storagePath||data.filename!==file.filename)throw Error("Not found");
-   const signed=await supabase.storage.from("noata-ai-artifacts").createSignedUrl(file.storagePath,120);
+   const signed=await supabase.storage.from("noata-ai-artifacts").createSignedUrl(file.storagePath,120,{download:download?file.filename:false});
    if(signed.error||!signed.data?.signedUrl)throw Error("Download unavailable");
    const link=document.createElement("a");link.href=signed.data.signedUrl;link.rel="noopener noreferrer";
    link.target="_blank";if(download)link.download=file.filename;

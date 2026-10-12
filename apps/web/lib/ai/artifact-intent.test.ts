@@ -36,6 +36,7 @@ test("Generation persists verified bytes before publishing a message artifact",a
  const input={intent:{kind:"pdf" as const,usePrevious:false},content:"# Report",owner,id,title:"Report",signal:new AbortController().signal,driver};
  const result=await createConversationalArtifact(input);
  assert.equal(result.mimeType,"application/pdf");
+ assert.equal(result.filename,"Report.pdf");
  assert.equal(result.storagePath,owner+"/"+id+"/noata-"+id.slice(0,8)+".pdf");
  assert.deepEqual(log,["upload","insert","attach"]);
  log.length=0;
@@ -54,4 +55,11 @@ test("Office file signatures are checked, not merely the extension",()=>{
 test("Creative Studio source is data, not a second competing output-format request",()=>{
  const prompt="Improve and recreate this document as a PDF file with polished headings.\n\nVerified extracted original document content:\n# Instructions\nCreate Excel charts and PowerPoint slides\nMake an image of mountains";
  assert.deepEqual(detectArtifactIntent(prompt),{kind:"pdf",usePrevious:false});
+});
+
+test("Artifact transaction never uploads a clarification reply",async()=>{
+ let invoked=false;
+ const driver={renderPdf:async()=>{invoked=true;return new Uint8Array(250);}} as unknown as ArtifactDriver;
+ await assert.rejects(createConversationalArtifact({intent:{kind:"pdf",usePrevious:false},content:"I need more specific details to proceed. Could you please tell me what aspects of chocolate you want?",owner,id,title:"Chocolate",signal:new AbortController().signal,driver}),/unfinished_content/);
+ assert.equal(invoked,false);
 });

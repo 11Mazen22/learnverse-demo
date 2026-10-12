@@ -1,4 +1,5 @@
 "use client";
+import {artifactFilename} from "@/lib/ai/artifact-filename";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {Dialog} from "@/components/ui/dialog";
 import {Icon} from "@/components/ui/icon";
@@ -121,7 +122,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
   setBusy(true);setError("");setStatus("");
   try{
    const bytes=await buildRevision(kind);
-   downloadBytes(bytes,"noata-revision-"+Date.now()+"."+kind,mime[kind]);
+   downloadBytes(bytes,artifactFilename({format:kind,title:activeName,content:draft,locale,revision:true}),mime[kind]);
    setStatus(t("تم تجهيز نسخة جديدة قابلة للتنزيل. الملف الأصلي لم يتغير.","A downloadable revision was created. The original saved file is unchanged."));
   }catch(e){setError(e instanceof Error?e.message:t("تعذّر تصدير التعديل","Could not export revision"));}
   finally{setBusy(false);}
@@ -134,8 +135,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
    const who=await supabase.auth.getUser();
    if(who.error||who.data.user?.id!==owner)throw Error("Please sign in as the file owner");
    const bytes=await buildRevision(activeFormat),id=crypto.randomUUID();
-   const filename="noata-"+id.slice(0,8)+"."+activeFormat;
-   path=owner+"/"+id+"/"+filename;
+   const filename=artifactFilename({format:activeFormat,title:activeName,content:draft,locale,revision:true});
+   path=owner+"/"+id+"/noata-"+id.slice(0,8)+"."+activeFormat;
    const upload=await supabase.storage.from("noata-ai-artifacts")
      .upload(path,new Blob([Uint8Array.from(bytes)],{type:mime[activeFormat]}),{contentType:mime[activeFormat],upsert:false});
    if(upload.error)throw upload.error;uploaded=true;

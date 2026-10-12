@@ -64,3 +64,26 @@ Production release remains gated by the pre-existing backup/restore, migration, 
 2. Move document revision semantics and preview state into native conversation artifact objects.
 3. Add meaningful safe display filenames independent from internal storage identifiers.
 4. Prove generation, retrieval, edits and account isolation using authorized Staging accounts and real providers.
+
+## Observed defects and repairs
+
+Initial shell candidate: `16a467047ba3bb4a8e58fc32775b20c42fd31351`.
+Remote type checks, unit tests, Deno check, database fixtures, document fixtures and production-mode build passed.
+Chrome caught attachment-button foreground/background interpolation at only 1.17:1 during a theme switch.
+Its colors now change atomically; only press movement transitions. The required contrast gate is retained.
+
+Live read-only inspection found a historical PDF attached to a clarification reply about chocolate.
+The new transaction rejects untitled clarification replies before rendering/uploading.
+A regression test uses the observed reply; titled educational questions remain accepted.
+Historical files are preserved; no existing user artifact is silently rewritten or deleted.
+
+New generated downloads use a bounded sanitized content title, with English/Arabic fallbacks.
+Names reject paths, reserved Windows names, controls, secret-like labels, addresses and long identifiers.
+Internal UUID storage paths remain separate from display names and keep the existing ownership format.
+Downloads use Supabase's signed-download filename option.
+This is a safe naming foundation, not complete model-assisted title planning or stable artifact versioning.
+
+The duplicate nested main element and duplicate skip-target ID are removed.
+The browser contracts now require exactly one main landmark.
+
+Three concurrent corrections were inspected and preserved: fa22e545 (mobile model gallery), 295a18e6 (theme-switch action contrast), f110a351 (new-chat shortcut contrast). The next transaction is based on f110a351 rather than overwriting these changes.

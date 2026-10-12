@@ -14,3 +14,9 @@ test("Bare image requests ask for a subject instead of generating random stock-l
  assert.equal(imageNeedsSubject("Generate an image of Cairo at sunset"),false);
  assert.equal(imageNeedsSubject("Design a futuristic school logo with blue colors"),false);
 });
+
+test("Observed clarification PDF is rejected without blocking titled lesson questions",()=>{
+ assert.equal(isNonDeliverableDraft("I understand you want me to talk about chocolate and create a PDF document. However, I need more specific details to proceed. Could you please tell me what aspects of chocolate you would like me to cover?"),true);
+ assert.equal(isNonDeliverableDraft("أحتاج إلى مزيد من التفاصيل. هل يمكنك توضح الموضوع المطلوب؟"),true);
+ assert.equal(isNonDeliverableDraft("# Interview practice\n\nCould you please tell me how photosynthesis works?\n\nPlants use light energy to make glucose from carbon dioxide and water."),false);
+});

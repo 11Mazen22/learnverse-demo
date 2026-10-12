@@ -52,7 +52,7 @@ export function NoataProjectLibrary({owner,open}:{owner:string|null;open:boolean
   if(!owner||busy)return;
   setBusy(true);setError("");
   try{
-   const {data,error}=await supabase.storage.from("noata-ai-artifacts").createSignedUrl(item.storage_path,120);
+   const {data,error}=await supabase.storage.from("noata-ai-artifacts").createSignedUrl(item.storage_path,120,{download:item.filename});
    if(error||!data?.signedUrl)throw error??Error("signed link missing");
    if(current.current!==owner)return;
    const a=document.createElement("a");a.href=data.signedUrl;a.target="_blank";a.rel="noopener noreferrer";a.download=item.filename;
