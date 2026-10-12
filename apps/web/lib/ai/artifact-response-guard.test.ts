@@ -22,3 +22,8 @@ test("Never convert refusals or empty text into a completed artifact",()=>{
  assert.equal(canCreateArtifactFromAnswer("Yes.","",false),false);
  assert.equal(canCreateArtifactFromAnswer("Here is the lesson on the water cycle with detailed examples.","",false),true);
 });
+
+test("Direct-creation refusals are detected without mistaking plural follow-ups for ability probes",()=>{
+ assert.equal(isArtifactCapabilityQuestion("Can you make a PDF for them?"),false);
+ assert.equal(isArtifactRefusal("I cannot directly create a PDF document."),true);
+});

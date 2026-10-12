@@ -72,3 +72,10 @@ test("Artifact transaction never uploads a clarification reply",async()=>{
  assert.equal(file.filename,"مراجعة البناء الضوئي.pdf");
  assert.equal(renderedTitle,"مراجعة البناء الضوئي");
  });
+
+test("The observed plural PDF follow-up references the actual previous answer",()=>{
+ for(const prompt of ["Make them in a pdf","Convert those into a PDF","Make these a PDF","Save it as a PDF","Can you make a PDF for them?","اعمل دول PDF"]){
+  assert.deepEqual(detectArtifactIntent(prompt),{kind:"pdf",usePrevious:true},prompt);
+ }
+ assert.deepEqual(detectArtifactIntent("Make a PDF about sea level"),{kind:"pdf",usePrevious:false});
+});

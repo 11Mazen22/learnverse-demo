@@ -12,7 +12,7 @@ export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
  // Ability questions need an answer or clarification, not a downloadable
  // document containing the model's answer to "can you make PDF?".
  if(/^(?:can|could|do|does|will|are|is)\s+(?:you|noata)\s+/i.test(q)
-  &&!/(?:\b(?:that|this|previous|above)\b|(?:عن|about|from|containing)\s+\S{4,})/i.test(q))return null;
+  &&!/(?:\b(?:that|this|them|those|these|it|previous|above)\b|(?:عن|about|from|containing)\s+\S{4,})/i.test(q))return null;
  if(/^(?:هل|ممكن|تقدر|تستطيع)\s+/i.test(q)
   &&!/(?:دا|ده|السابق|عن\s+\S{4,})/i.test(q))return null;
  if(/^(?:(?:how|why|what|explain|teach|tutorial)\b|(?:ازاي|إزاي|كيف|اشرح)(?:\s|$))/i.test(q))return null;
@@ -23,7 +23,7 @@ export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
  if(/\bxlsx\b|\bexcel\b|\bspreadsheet\b|إكسل|اكسل/i.test(q))formats.push("xlsx");
  if(/\bpptx\b|\bpowerpoint\b|\bpresentation\b|بوربوينت|باوربوينت|عرض تقديمي/i.test(q))formats.push("pptx");
  if(formats.length!==1)return null;
- const usePrevious=/\b(?:that|this|above|previous|earlier|last answer)\b|(?:ده|دا|دي|هذا|ذلك|اللي فوق|الرد السابق|الإجابة السابقة)/i.test(q);
+ const usePrevious=/\b(?:that|this|them|those|these|it|above|previous|earlier|last answer)\b|(?:ده|دا|دي|دول|هذه|هذا|ذلك|تلك|اللي فوق|الرد السابق|الإجابة السابقة)/i.test(q);
  // Studio requests contain their own quoted file contents. Never substitute a prior chat answer.
  return {kind:formats[0],usePrevious:raw===q&&usePrevious};
 }

@@ -823,10 +823,24 @@ export function useAIWorkspace() {
         setAttachment(null);
         setDocumentFiles([]);
       }
+      const priorUserRequests=history.slice(0,-1).filter(row=>row.role==="user").map(row=>row.content);
+      const contextualFile=mode==="send"&&!tool&&!temporary
+        ?confirmedFileIntent(text,priorUserRequests):null;
+      const requestedFile=plannedCapability.kind==="artifact"?plannedCapability.intent:contextualFile;
+      const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant");
+      const priorFileText=responseText(priorForFile?.content??"");
+      const priorResearch=validatedResearch(priorForFile?.metadata?.research);
+      const convertPrevious=Boolean(requestedFile?.usePrevious&&priorForFile?.status==="complete"
+        &&canCreateArtifactFromAnswer("",priorFileText,true)&&!isNonDeliverableDraft(priorFileText)
+        &&(!priorResearch||priorResearch.status==="complete"));
       let result: ChatPart;
       let metadata: Record<string, unknown> = {};
       const direct=mode==="send"&&!tool?directArtifactAbilityAnswer(text,locale):null;
-      if(needsImageSubject){
+      if(convertPrevious){
+        result={content:requestLanguage(text,locale)==="ar"
+          ?"أستخدم الرد السابق كمصدر للملف المطلوب. نتيجة الإنشاء هتظهر هنا بعد الفحص والحفظ."
+          :"I’m using your previous answer as the source. The file will appear here after validation and saving.",model:"Noata"};
+      } else if(needsImageSubject){
         metadata.capabilityProbe=true;
         result={content:t("تحب أرسم إيه بالضبط؟ اذكر الموضوع أو الفكرة، ومعاها الستايل اللي تفضله لو تحب.","What would you like me to create? Give me a subject or idea, and optionally the style you prefer."),model:"Noata"};
       } else if(direct){
@@ -864,34 +878,33 @@ export function useAIWorkspace() {
                   typeof m.metadata?.attachmentPath === "string",
               )?.metadata?.attachmentPath
             : undefined;
+        // Keep the actual question as the latest user request so current-source
+        // detection and response language are not replaced by delivery instructions.
+        const generationHistory=requestedFile?history.map((row,index)=>index===history.length-1&&row.role==="user"
+          ?{...row,content:row.content+"\n\n"+finishedDocumentInstruction(requestedFile.kind,requestLanguage(text,locale))}:row):history;
         result = await chat(
-          history,
+          generationHistory,
           token,
           controller.signal,
           path ?? (typeof priorPath === "string" ? priorPath : undefined),
         );
       }
       assertSession(token);
-      const priorUserRequests=history.slice(0,-1).filter(row=>row.role==="user").map(row=>row.content);
-      const contextualFile=mode==="send"&&!tool&&!temporary
-        ?confirmedFileIntent(text,priorUserRequests):null;
-      const requestedFile=plannedCapability.kind==="artifact"?plannedCapability.intent:contextualFile;
+      let researchBlocked=Boolean(result.research&&result.research.status!=="complete");
       // Retry a proposed outline once to obtain ACTUAL requested document content.
       // This never stores the synthetic retry instruction in conversation history.
-      if(requestedFile&&!result.incomplete&&isNonDeliverableDraft(responseText(result.content))){
+      if(requestedFile&&!convertPrevious&&!researchBlocked&&!result.incomplete&&(isNonDeliverableDraft(responseText(result.content))||isArtifactRefusal(responseText(result.content)))){
         setNotice(t("الرد مجرد مخطط؛ بنطلب المستند المكتمل قبل إنشاء الملف…","That was only a proposal. Asking for the finished document before creating a file…"));
-        const repairMessage:Message={
-          id:crypto.randomUUID(),conversation_id:conversationId,role:"user",model:null,
-          status:"complete",created_at:new Date().toISOString(),
-          content:finishedDocumentInstruction(requestedFile.kind,requestLanguage(text,locale))
-        };
+        const repairHistory=history.map((row,index)=>index===history.length-1&&row.role==="user"
+          ?{...row,content:row.content+"\n\n"+finishedDocumentInstruction(requestedFile.kind,requestLanguage(text,locale))}:row);
         try{
-          const repaired=await chat([...history,repairMessage],token,controller.signal);
+          const repaired=await chat(repairHistory,token,controller.signal);
           assertSession(token);
           if(!repaired.incomplete&&!isNonDeliverableDraft(responseText(repaired.content))
              &&!isArtifactRefusal(responseText(repaired.content)))result=repaired;
         }catch{ /* Preserve response and never pretend that a real file was created. */ }
       }
+      researchBlocked=Boolean(result.research&&result.research.status!=="complete");
       // Correct contradictory provider capability refusals BEFORE persisting.
       // A plain capability question never triggers an empty/refusal PDF.
       if (mode==="send" && !tool && !result.incomplete)
@@ -937,16 +950,19 @@ export function useAIWorkspace() {
       } else assistant = await persist(assistant);
       assertSession(token);
       setMessages([...history, assistant]);
+      // The persisted reply replaces its streaming copy before file work begins.
+      setPendingText("");
       savedResponse = true;
       // Explicit file requests now produce a genuine owned artifact as part of
       // the answer lifecycle. No file, link or success state is invented on failure.
       const previousAnswer=history.slice(0,-1).findLast(row=>row.role==="assistant")?.content??"";
-      const fileIntent=!tool&&!result.incomplete&&!temporary?requestedFile:null;
+      const fileIntent=!tool&&!result.incomplete&&!temporary&&!researchBlocked?requestedFile:null;
       // Refusals are not document source material. Follow-up exports may use a
       // prior actual answer, even if Fanar misunderstood the new instruction.
       const artifactSource=fileIntent?artifactContent(fileIntent,responseText(result.content),responseText(previousAnswer)):"";
       const artifactRequest=fileIntent&&canCreateArtifactFromAnswer(responseText(result.content),responseText(previousAnswer),fileIntent.usePrevious)
         &&!isNonDeliverableDraft(artifactSource)?fileIntent:null;
+      if(researchBlocked&&requestedFile)setNotice(t("تعذّر جلب المصادر الحالية. لم يتم إنشاء تقرير أو رسم من بيانات غير موثّقة.","Current sources could not be retrieved. No report or chart was created from unverified data."));
       if(fileIntent&&!artifactRequest)setNotice(t("لسه مفيش محتوى نهائي صالح للملف. لم يتم إنشاء PDF أو ملف وهمي.","The reply still lacks finished document content. No empty or misleading file was generated."));
       if (artifactRequest) {
         setNotice(t("بننشئ الملف ونفحصه ونحفظه في مكتبتك…","Generating, validating and saving your file…"));
@@ -1007,8 +1023,8 @@ export function useAIWorkspace() {
           // A real artifact was persisted. Remove a conflicting provider refusal
           // from the visible and stored response only after confirmed success.
           let finalContent=assistant.content;
-          if(isArtifactRefusal(finalContent)){
-            finalContent=locale==="ar"
+          if(convertPrevious||isArtifactRefusal(finalContent)){
+            finalContent=requestLanguage(text,locale)==="ar"
               ?"اتجهّز الملف من محتوى الرد السابق واتحفظ في مكتبتك الخاصة. تقدر تفتحه أو تنزّله من البطاقة تحت."
               :"The file was created from your previous answer and saved in your private library. You can open or download it below.";
             const changed=await supabase.from("ai_messages").update({content:finalContent})

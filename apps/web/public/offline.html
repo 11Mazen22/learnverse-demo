@@ -12,5 +12,21 @@
     p{color:#9fb1c9;line-height:1.8}button{border:0;border-radius:14px;padding:12px 18px;font-weight:800;cursor:pointer}
   </style>
 </head>
-<body><main><div class="mark">N</div><h1>أنت Offline دلوقتي</h1><p>الواجهة الأساسية متاحة، لكن بيانات التقدم وNoata AI محتاجين اتصال علشان نحافظ على التزامن والأمان.</p><button onclick="location.reload()">جرّب الاتصال تاني</button></main></body>
+<body><main><div class="mark">N</div><h1 id="offline-title">أنت غير متصل حاليًا</h1><p id="offline-description">الواجهة الأساسية متاحة، لكن بيانات التقدم وNoata AI محتاجين اتصال علشان نحافظ على التزامن والأمان.</p><button id="offline-retry" onclick="location.reload()">جرّب الاتصال تاني</button></main><script>
+(function(){
+ var locale="ar";
+ try{
+  var cookie=document.cookie.match(/(?:^|;\s*)noata_locale=(en|ar)(?:;|$)/);
+  var preferred=cookie?cookie[1]:localStorage.getItem("noata-locale");
+  if(preferred==="en"||preferred==="ar")locale=preferred;
+ }catch(e){}
+ document.documentElement.lang=locale;
+ document.documentElement.dir=locale==="en"?"ltr":"rtl";
+ if(locale==="en"){
+  document.getElementById("offline-title").textContent="You are offline";
+  document.getElementById("offline-description").textContent="Your learning progress and Noata AI need an internet connection to stay synchronized and secure.";
+  document.getElementById("offline-retry").textContent="Try again";
+ }
+})();
+</script></body>
 </html>

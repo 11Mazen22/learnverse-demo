@@ -39,9 +39,22 @@ function FallbackLabel(){const t=useTranslation();return <>{t("شرح نصي","T
 export function ResearchSources({research}:{research:unknown}){
  const t=useTranslation(),data=validatedResearch(research);
  if(!data)return null;
- if(data.status!=="complete")return <p className="noata-research-note" role="status">
-  {t("البحث المباشر غير متاح لهذا الرد، ولا توجد مصادر حديثة تم التحقق منها.","Live research was unavailable; no current sources were verified.")}
- </p>;
+ if(data.status!=="complete"){
+  const reasons:Record<string,string>={
+   not_configured:t("البحث على الويب غير متصل بهذه المساحة حاليًا.","Web search is not connected to this workspace."),
+   temporarily_busy:t("خدمة البحث مشغولة مؤقتًا. جرّب بعد قليل.","Search is temporarily busy. Try again shortly."),
+   no_sources:t("لم تُرجع الخدمة مقتطفات مصادر يمكن التحقق منها.","No verifiable source excerpts were returned."),
+   provider_unavailable:t("تعذّر الوصول إلى خدمة البحث أو رفضت الطلب.","The search provider could not be reached or rejected the request."),
+   quota_or_service:t("تعذّر البحث بسبب الحصة أو إتاحة الخدمة.","Search could not run because of quota or service availability.")
+  };
+  return <details className="noata-research-trace">
+   <summary className="noata-research-summary">{t("البحث غير متاح","Research unavailable")}</summary>
+   <div className="noata-research-detail">
+    <p role="status">{reasons[data.reason??""]??t("تعذّر استرجاع مصادر مباشرة لهذا الطلب.","Live sources could not be retrieved for this request.")}</p>
+    <p>{t("لم نتحقق من المعلومات الحالية ولم ننشئ بيانات أو مراجع وهمية.","Current claims have not been verified; no data or citations were invented.")}</p>
+   </div>
+  </details>;
+ }
  const labels:Record<string,string>={
   searching:t("بحث عن المصادر","Searched for sources"),
   reviewing:t("راجع نتائج البحث","Reviewed search excerpts"),

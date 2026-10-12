@@ -1,4 +1,4 @@
-const CACHE="noata-static-v5-network-only";
+const CACHE="noata-static-v6-localized-offline";
 const SHELL=["/offline.html","/manifest.webmanifest","/icon.svg","/noata-mark.svg","/noata-mark-light.svg"];
 
 self.addEventListener("install",event=>{
