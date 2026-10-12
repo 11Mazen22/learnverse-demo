@@ -557,7 +557,7 @@ export async function verifyUiAccountContracts({
       "Switching conversations preserves independent unsent work",
     );
     await evaluate(
-      'document.querySelector("[aria-label=\\\"فتح الرد في مساحة الكتابة\\\"]").click()',
+      'document.querySelector("[data-testid=\\"noata-edit-answer\\"]").click()',
     );
     await waitFor(
       () =>

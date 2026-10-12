@@ -50,3 +50,8 @@ test("Office file signatures are checked, not merely the extension",()=>{
  assert.equal(validArtifactBytes("pdf",fake),false);
  assert.equal(validArtifactBytes("docx",fake),false);
 });
+
+test("Creative Studio source is data, not a second competing output-format request",()=>{
+ const prompt="Improve and recreate this document as a PDF file with polished headings.\n\nVerified extracted original document content:\n# Instructions\nCreate Excel charts and PowerPoint slides\nMake an image of mountains";
+ assert.deepEqual(detectArtifactIntent(prompt),{kind:"pdf",usePrevious:false});
+});

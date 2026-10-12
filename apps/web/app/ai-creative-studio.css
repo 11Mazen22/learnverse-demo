@@ -30,3 +30,9 @@
 .noata-creative-error{padding:13px;border:1px solid var(--line);border-radius:12px;color:var(--ink)}
 @media(max-width:590px){.noata-creative-header{padding:12px}.noata-creative-preview{padding:8px}.noata-creative-buttons button{flex:1}}
 @media(prefers-reduced-motion:reduce){.noata-creative-studio *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.noata-model-disclosure{position:relative;font-size:10px;color:var(--muted);display:inline-flex;align-items:center}
+.noata-model-disclosure summary{list-style:none;cursor:pointer;opacity:.7}
+.noata-model-disclosure summary::-webkit-details-marker{display:none}
+.noata-model-disclosure small{position:absolute;inset-inline-start:0;top:100%;z-index:20;padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);white-space:nowrap;box-shadow:0 8px 20px color-mix(in srgb,var(--ink) 8%,transparent)}
+.noata-model-disclosure summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}

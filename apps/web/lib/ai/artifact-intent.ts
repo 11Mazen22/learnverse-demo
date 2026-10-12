@@ -3,8 +3,12 @@ import {hasTableData,hasSlideStructure} from "./answer-export.ts";
 export type ArtifactKind="pdf"|"docx"|"xlsx"|"pptx";
 export type ArtifactIntent={kind:ArtifactKind;usePrevious:boolean};
 export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
- const q=prompt.trim();
- if(!q||q.length>4000)return null;
+ const raw=prompt.trim();
+ if(!raw||raw.length>25000)return null;
+ // Creative Studio includes quoted source text after a known delimiter.
+ // Only the user's top-level instruction may select the requested file type.
+ const q=raw.split(/\n\n(?:Verified extracted original document content:|المحتوى الأصلي للملف:)\s*\n/i)[0];
+ if(q.length>4000)return null;
  // Ability questions need an answer or clarification, not a downloadable
  // document containing the model's answer to "can you make PDF?".
  if(/^(?:can|could|do|does|will|are|is)\s+(?:you|noata)\s+/i.test(q)

@@ -17,3 +17,8 @@ test("Safe boundaries prevent silent side effects in temporary/upload/retry",()=
  assert.equal(planNoataRequest("Draw a dog",{...opts,explicitTool:"translate"}).kind,"chat");
  assert.equal(planNoataRequest("Create a vector SVG icon",{...opts}).kind,"chat");
 });
+
+test("Creative Studio document improvement wins over mentions of images within document content",()=>{
+ const request="Improve and recreate this document as a PDF file.\n\nVerified extracted original document content:\nCreate a picture and an Excel document for students";
+ assert.equal(planNoataRequest(request,{mode:"send",temporary:false,hasUploads:false}).kind,"artifact");
+});

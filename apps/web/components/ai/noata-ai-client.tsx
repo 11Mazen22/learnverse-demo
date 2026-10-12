@@ -21,7 +21,7 @@ import {
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
 import { DocumentSourcesMessage } from "./document-sources-message";
-import { OriginalDocumentPreview } from "./original-document-preview";
+import { NoataCreativeStudio } from "./creative-studio";
 import { stageOriginalDocument } from "@/lib/ai/original-documents";
 import { ResponseAudioPlayer } from "./response-audio-player";
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
@@ -565,7 +565,10 @@ export function NoataAIClient() {
                         {m.role === "assistant" ? "Noata AI" : t("أنت","You")}
                       </strong>
                       {m.role === "assistant" && m.model && m.model !== "Noata" && (
-                        <span className="owui-provider-info" title={m.model}>{m.model.replace(/^Fanar-?/i, "").replace(/-/g," ")||"Fanar"}</span>
+                        <details className="noata-model-disclosure">
+                          <summary aria-label={t("تفاصيل نموذج الإجابة","Answer model details")}>{t("النموذج","Model")}</summary>
+                          <small>{m.model}</small>
+                        </details>
                       )}
                     </div>
                     {m.role === "assistant" && m.status !== "complete" && (
@@ -618,6 +621,7 @@ export function NoataAIClient() {
                         <>
                           <button
                             type="button"
+                            data-testid="noata-edit-answer"
                             onClick={() => setStudioSource(responseText(m.content), m.id)}
                             title={t("تحرير الرد في الاستوديو الإبداعي","Edit answer in Creative Studio")}
                             aria-label={t("فتح الرد في الاستوديو الإبداعي","Open answer in Creative Studio")}
@@ -1323,13 +1327,13 @@ export function NoataAIClient() {
         </div>
       </Dialog>
 
-      <Dialog
-        open={pendingPreview !== null}
-        onClose={() => setPendingPreview(null)}
-        title={pendingPreview?.name ?? t("معاينة المرفق","Preview attachment")}
-      >
-        {pendingPreview && <OriginalDocumentPreview source={pendingPreview} />}
-      </Dialog>
+      <NoataCreativeStudio
+        file={null}
+        localSource={pendingPreview}
+        owner={seenAccount.user?.id??null}
+        onClose={()=>setPendingPreview(null)}
+        onAskAI={prompt=>{if(!busy)void send(undefined,"send",undefined,prompt);}}
+      />
       <Dialog
         open={educationOpen}
         onClose={() => setEducationOpen(false)}
