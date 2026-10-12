@@ -16,7 +16,7 @@ export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
  if(/^(?:هل|ممكن|تقدر|تستطيع)\s+/i.test(q)
   &&!/(?:دا|ده|السابق|عن\s+\S{4,})/i.test(q))return null;
  if(/^(?:(?:how|why|what|explain|teach|tutorial)\b|(?:ازاي|إزاي|كيف|اشرح)(?:\s|$))/i.test(q))return null;
- if(!/\b(?:make|create|generate|export|convert|prepare|download|save|produce|give me|turn)\b|(?:اعمل|اصنع|أنشئ|جهز|حوّل|حول|صمم|نزّل|صدّر|اعمللي)/i.test(q))return null;
+ if(!/\b(?:make|create|recreate|rewrite|improve|revise|polish|generate|export|convert|prepare|download|save|produce|give me|turn)\b|(?:اعمل|اصنع|أنشئ|جهز|حوّل|حول|صمم|نزّل|صدّر|اعمللي|حسّن|حسن|عدّل|عدل)/i.test(q))return null;
  const formats:ArtifactKind[]=[];
  if(/\bpdf\b|بي دي اف|بي دي إف/i.test(q))formats.push("pdf");
  if(/\bdocx\b|\bword (?:document|file)\b|ملف ورد|ملف وورد/i.test(q))formats.push("docx");

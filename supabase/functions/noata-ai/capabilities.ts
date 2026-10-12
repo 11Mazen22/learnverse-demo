@@ -46,3 +46,24 @@ export function validateCapabilityExecution(value:unknown):CapabilityValidation{
  }
  return {ok:false,reason:"unsupported_capability"};
 }
+
+/** Safe provider-aware capability statement for the assistant's system context.
+ * Configuration is not a receipt or proof that a live tool call succeeded.
+ */
+export function capabilitySystemContext(env:{fanar:boolean;brave:boolean;memorySchema:boolean}):string{
+ const list=getCapabilityAvailability(env);
+ const status=(id:CapabilityId)=>list.find(x=>x.id===id)?.status??"unavailable";
+ const available=(id:CapabilityId)=>["local","configured"].includes(status(id));
+ return [
+ "NOATA APP CAPABILITY CONTRACT — authoritative about the surrounding application, not model-generated claims.",
+ "The chat application supports PDF, DOCX, XLSX, and PPTX generation from complete, useful answer content. File cards are evidence ONLY after validation and persistence succeed. It also has a Creative Studio to preview saved PDF pages and Office file content, edit drafts, ask for improvements, export revisions, and save new owner-scoped files. Some complex Office visuals and layout fidelity are not yet preserved on editing.",
+ "Never claim that a file was generated, attached, downloaded or stored from model text alone; wait for the application receipt. Do not ask for another confirmation when the request clearly specifies the deliverable, unless an essential detail is actually missing.",
+ "Image generation: "+(available("image.generate")?"provider credential configured; an explicit single raster image prompt may execute, but success depends on the actual provider response.":"provider unavailable; do not claim an image was created.")+
+  " Image editing, guaranteed transparency, vector SVG and multiple independent image generations are NOT verified features.",
+ "Web research: "+(available("research.search")?"Brave provider is configured; only validated returned sources are live evidence.":"Brave live web provider is NOT configured. Wikipedia snippets may supply encyclopedic background but must not be represented as current web research.")+
+  " Do not invent source links, search activity, dates or verified external pages.",
+ "Speech and voice: "+(available("voice.transcribe")?"provider key configured; actual audio operations are independently authenticated.":"live provider unavailable; do not imply speech recognition succeeded."),
+ "Memory is optional, owner-scoped and consent-gated. Previous chats may only be accessed through authorized verified retrieval in non-temporary conversations. If context is missing, do not guess a prior user's exact words.",
+ "When the user asks what Noata can do, explain concrete supported tasks alongside their constraints. Avoid generic apologies that claim PDF/Word/Excel/PowerPoint creation is inherently impossible."
+ ].join("\n");
+}

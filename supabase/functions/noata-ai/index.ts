@@ -9,7 +9,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
 import {memorySystemContext,lastChatRecallRequested,type MemoryItem} from "./memory.ts";
 import {conversationalMemoryIntent,memoryStorageRefusal,memoryResultMessage} from "./memory-actions.ts";
-import {getCapabilityAvailability,validateCapabilityExecution} from "./capabilities.ts";
+import {getCapabilityAvailability,validateCapabilityExecution,capabilitySystemContext} from "./capabilities.ts";
 
 const FANAR_BASE = Deno.env.get("FANAR_BASE_URL") ?? "https://api.fanar.qa/v1";
 const FANAR_ORIGIN = FANAR_BASE.replace(/\/v1\/?$/, "");
@@ -567,7 +567,12 @@ async function handleChat(
   const quota = await claim(userId, model);
   const latestLanguage = (payload.responseLanguage === "en" || payload.responseLanguage === "ar" ? payload.responseLanguage : requestLanguage(latestText)) === "en" ? "English" : "Arabic";
   const remembered=await loadApprovedMemory(userId,latestText,payload.temporary===true,model,typeof payload.conversationId==="string"?payload.conversationId:undefined);
-  const messages = [{ role: "system", content: `${system}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
+  const capabilities=capabilitySystemContext({
+    fanar:Boolean(FANAR_KEY),
+    brave:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY"))&&Deno.env.get("NOATA_SEARCH_ENABLED")==="true",
+    memorySchema:true
+  });
+  const messages = [{ role: "system", content: `${system}\n${capabilities}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
   const body: any = {
     model,
     messages,
