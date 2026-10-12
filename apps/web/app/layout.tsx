@@ -21,6 +21,7 @@ import "./ai-suggestions.css";
 import "./ai-interactions.css";
 import "./ai-hub.css";
 import "./ai-compact.css";
+import "./ai-creative-studio.css";
 import "./ai-generated-artifact.css";
 import "./ai-memory.css";
 import "./ai-library.css";

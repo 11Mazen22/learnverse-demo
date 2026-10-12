@@ -3,6 +3,7 @@ import {useMemo,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {useTranslation} from "@/lib/i18n/locale";
 import {Icon} from "@/components/ui/icon";
+import {NoataCreativeStudio} from "./creative-studio";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 const allowed=["pdf","docx","xlsx","pptx"];
 function valid(value:unknown,owner:string|null):CreatedArtifact|null{
@@ -17,9 +18,10 @@ function valid(value:unknown,owner:string|null):CreatedArtifact|null{
     typeof x.mimeType!=="string")return null;
  return x as unknown as CreatedArtifact;
 }
-export function NoataGeneratedArtifact({value,owner}:{value:unknown;owner:string|null}){
+export function NoataGeneratedArtifact({value,owner,onAskAI}:{value:unknown;owner:string|null;onAskAI?:(prompt:string)=>void}){
  const t=useTranslation(),supabase=useMemo(()=>createClient(),[]);
  const file=valid(value,owner),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ const [studioOpen,setStudioOpen]=useState(false);
  if(!file)return null;
  async function open(download:boolean){
   if(!file||!owner||busy)return;
@@ -40,9 +42,10 @@ export function NoataGeneratedArtifact({value,owner}:{value:unknown;owner:string
   <div className="noata-generated-file-info"><strong dir="auto">{file.filename}</strong>
    <small>{file.format.toUpperCase()} · {Math.ceil(file.byteSize/1024)} KB · {t("محفوظ في مكتبتك الخاصة","Saved in your private library")}</small></div>
   <div className="noata-generated-file-actions">
-   {file.format==="pdf"&&<button type="button" disabled={busy} onClick={()=>void open(false)}>{t("معاينة","Preview")}</button>}
+   <button type="button" disabled={busy} onClick={()=>setStudioOpen(true)}><Icon name="edit" size={14}/>{t("فتح في Noata Creative Studio","Open in Creative Studio")}</button>
    <button type="button" disabled={busy} onClick={()=>void open(true)}><Icon name="download" size={14}/>{busy?t("جارٍ الفتح","Opening"):t("تنزيل","Download")}</button>
   </div>
   {error&&<p role="alert">{error}</p>}
+  <NoataCreativeStudio file={studioOpen?file:null} owner={owner} onClose={()=>setStudioOpen(false)} onAskAI={onAskAI}/>
  </section>;
 }

@@ -578,7 +578,8 @@ export function NoataAIClient() {
                     <RichMessage content={m.content} research={m.metadata?.research}/>
                     {m.role==="assistant"&&m.status==="complete"&&
                       <NoataGeneratedArtifact value={m.metadata?.generatedArtifact}
-                        owner={seenAccount.user?.id??null}/>}
+                        owner={seenAccount.user?.id??null}
+                        onAskAI={prompt=>{if(!busy)void send(undefined,"send",undefined,prompt);}}/>}
 
 
                     {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}
@@ -618,8 +619,8 @@ export function NoataAIClient() {
                           <button
                             type="button"
                             onClick={() => setStudioSource(responseText(m.content), m.id)}
-                            title={t("تحرير الرد في مساحة الكتابة","Edit answer in writing studio")}
-                            aria-label={t("فتح الرد في مساحة الكتابة","Open answer in writing studio")}
+                            title={t("تحرير الرد في الاستوديو الإبداعي","Edit answer in Creative Studio")}
+                            aria-label={t("فتح الرد في الاستوديو الإبداعي","Open answer in Creative Studio")}
                           >
                             <Icon name="edit" size={14} />
                           </button>
