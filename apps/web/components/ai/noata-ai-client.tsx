@@ -9,6 +9,7 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
  * See docs/THIRD_PARTY_NOTICES.md.
  */
 import { NoataLogo } from "@/components/ui/noata-logo";
+import {answerModelLabel} from "@/lib/ai/answer-model";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
@@ -545,9 +546,9 @@ export function NoataAIClient() {
                       <strong>
                         {m.role === "assistant" ? "Noata AI" : t("أنت","You")}
                       </strong>
-                      {m.role === "assistant" && m.model && m.model !== "Noata" && (
+                      {m.role === "assistant" && answerModelLabel(m.model,locale) && (
                         <details className="noata-model-disclosure">
-                          <summary aria-label={t("تفاصيل نموذج الإجابة","Answer model details")}>{t("النموذج","Model")}</summary>
+                          <summary aria-label={t("نموذج الإجابة: ","Answer model: ")+answerModelLabel(m.model,locale)}><span>{answerModelLabel(m.model,locale)}</span><Icon name="chevron" size={12}/></summary>
                           <small>{m.model}</small>
                         </details>
                       )}
@@ -563,6 +564,7 @@ export function NoataAIClient() {
                     {m.role==="assistant"&&m.status==="complete"&&
                       <NoataGeneratedArtifact value={m.metadata?.generatedArtifact}
                         owner={seenAccount.user?.id??null}
+                        onPrepareEdit={prompt=>{setInput(prompt);setNotice(t("طلب التعديل في مربع الرسالة. راجعه ثم أرسله.","The revision request is in your composer. Review it, then send."));composer.current?.focus();}}
                         onAskAI={prompt=>{if(!busy)void send(undefined,"send",undefined,prompt);}}/>}
 
 

@@ -1,4 +1,5 @@
 "use client";
+import {artifactRevisionPrompt} from "@/lib/ai/artifact-revision-prompt";
 import {artifactFilename} from "@/lib/ai/artifact-filename";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {Dialog} from "@/components/ui/dialog";
@@ -39,21 +40,23 @@ function PdfPage({file,page,onPages}:{file:Blob;page:number;onPages:(n:number)=>
  return <div className="noata-creative-pdf">{error&&<p role="alert">{error}</p>}
   <canvas ref={canvas} role="img" aria-label={t("صفحة PDF","PDF page")+" "+page}/></div>;
 }
-export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
+export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPrepareEdit,inline=false}:{
  file:CreatedArtifact|null;
  localSource?:{name:string;localId:string;format:"pdf"|"docx"|"xlsx"|"text"}|null;
  owner:string|null;onClose:()=>void;onAskAI?:(prompt:string)=>void;
+ inline?:boolean;onPrepareEdit?:(prompt:string)=>void;
 }){
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);
  const [loaded,setLoaded]=useState<Blob|null>(null),[inspection,setInspection]=useState<StudioInspection|null>(null);
  const [draft,setDraft]=useState(""),[mode,setMode]=useState<"preview"|"edit">("preview");
  const [page,setPage]=useState(1),[pageCount,setPageCount]=useState(1),[instruction,setInstruction]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[status,setStatus]=useState("");
+ const operation=useRef("");operation.current=owner+":"+(file?.id??localSource?.localId??"");
  const onPages=useCallback((n:number)=>setPageCount(old=>old===n?old:n),[]);
  const activeFormat=file?.format??(localSource?.format==="text"?"docx":localSource?.format);
  const activeName=file?.filename??localSource?.name??"Noata document";
  useEffect(()=>{
-  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setPage(1);setPageCount(1);setMode("preview");
+  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setMode("preview");
   if(!file&&!localSource)return;
   void(async()=>{
    try{
@@ -106,50 +109,58 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
  }
  async function downloadOriginal(){
   if(!loaded||busy)return;
+  const ticket=operation.current;
   setBusy(true);setError("");
   try{
    // The source download is byte-for-byte the original File/Blob.
    // Generating a revision must never silently replace or mutate this file.
    const bytes=new Uint8Array(await loaded.arrayBuffer());
    if(!bytes.byteLength||bytes.byteLength>12*1024*1024)throw Error("Original file is unavailable");
+   if(operation.current!==ticket)return;
    const originalMime=loaded.type||"application/octet-stream";
    downloadBytes(bytes,activeName,originalMime);
-  }catch(e){setError(e instanceof Error?e.message:t("تعذّر تنزيل الأصل","Could not download the original file"));}
-  finally{setBusy(false);}
+  }catch(e){if(operation.current===ticket)setError(e instanceof Error?e.message:t("تعذّر تنزيل الأصل","Could not download the original file"));}
+  finally{if(operation.current===ticket)setBusy(false);}
  }
  async function exportVersion(kind:Format){
   if(!draft.trim()||busy)return;
+  const ticket=operation.current;
   setBusy(true);setError("");setStatus("");
   try{
    const bytes=await buildRevision(kind);
+   if(operation.current!==ticket)return;
    downloadBytes(bytes,artifactFilename({format:kind,title:activeName,content:draft,locale,revision:true}),mime[kind]);
    setStatus(t("تم تجهيز نسخة جديدة قابلة للتنزيل. الملف الأصلي لم يتغير.","A downloadable revision was created. The original saved file is unchanged."));
-  }catch(e){setError(e instanceof Error?e.message:t("تعذّر تصدير التعديل","Could not export revision"));}
-  finally{setBusy(false);}
+  }catch(e){if(operation.current===ticket)setError(e instanceof Error?e.message:t("تعذّر تصدير التعديل","Could not export revision"));}
+  finally{if(operation.current===ticket)setBusy(false);}
  }
  async function saveRevision(){
   if(!owner||!activeFormat||busy||!draft.trim())return;
+  const ticket=operation.current;
   setBusy(true);setStatus("");setError("");
   let path="",uploaded=false;
   try{
    const who=await supabase.auth.getUser();
+   if(operation.current!==ticket)throw Error("Operation cancelled");
    if(who.error||who.data.user?.id!==owner)throw Error("Please sign in as the file owner");
    const bytes=await buildRevision(activeFormat),id=crypto.randomUUID();
+   if(operation.current!==ticket)throw Error("Operation cancelled");
    const filename=artifactFilename({format:activeFormat,title:activeName,content:draft,locale,revision:true});
    path=owner+"/"+id+"/noata-"+id.slice(0,8)+"."+activeFormat;
    const upload=await supabase.storage.from("noata-ai-artifacts")
      .upload(path,new Blob([Uint8Array.from(bytes)],{type:mime[activeFormat]}),{contentType:mime[activeFormat],upsert:false});
    if(upload.error)throw upload.error;uploaded=true;
+   if(operation.current!==ticket)throw Error("Operation cancelled");
    const row=await supabase.from("ai_artifacts").insert({
     id,user_id:owner,filename,mime_type:mime[activeFormat],
     storage_path:path,byte_size:bytes.byteLength
    }).select("id").single();
    if(row.error||row.data?.id!==id)throw row.error??Error("File metadata could not be saved");
-   setStatus(t("تم حفظ نسخة جديدة في مكتبتك الخاصة. الملف الأصلي لم يتغير.","A new revision was saved in your private library. The original remains unchanged."));
+   if(operation.current===ticket)setStatus(t("تم حفظ نسخة جديدة في مكتبتك الخاصة. الملف الأصلي لم يتغير.","A new revision was saved in your private library. The original remains unchanged."));
   }catch(e){
    if(uploaded)await supabase.storage.from("noata-ai-artifacts").remove([path]).catch(()=>{});
-   setError(e instanceof Error?e.message:t("تعذّر حفظ النسخة","Could not save the revision"));
-  }finally{setBusy(false);}
+   if(operation.current===ticket)setError(e instanceof Error?e.message:t("تعذّر حفظ النسخة","Could not save the revision"));
+  }finally{if(operation.current===ticket)setBusy(false);}
  }
  function askAI(){
   if(!onAskAI||!instruction.trim()||!draft.trim())return;
@@ -160,7 +171,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
   onClose();onAskAI(next);
  }
  const pageInfo=inspection?.pages[page-1];const isPdf=activeFormat==="pdf";
- return <Dialog open={Boolean(file||localSource)} onClose={onClose} variant="studio" title={t("معاينة الملف وتحريره","Preview & edit file")}>
+ const content=<>
+  {inline&&<div className="noata-artifact-inline-heading"><strong>{t("معاينة الملف وتحريره","Preview & edit file")}</strong><button type="button" onClick={onClose} aria-label={t("إغلاق معاينة الملف","Close file preview")}><Icon name="close" size={16}/></button></div>}
   <div className="noata-creative-studio" dir={locale==="ar"?"rtl":"ltr"}>
    <header className="noata-creative-header"><span className="noata-creative-symbol"><Icon name="file" size={21}/></span>
     <div><strong dir="auto">{activeName}</strong><p>{t("مساحة واحدة للمعاينة، التعديل، تحسين الذكاء الاصطناعي والتصدير.","One workspace for real previews, editable drafts, AI improvements and exports.")}</p></div></header>
@@ -186,19 +198,21 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI}:{
     <textarea aria-label={t("محتوى النسخة القابلة للتعديل","Editable revision content")} dir="auto" value={draft} onChange={e=>setDraft(e.target.value)}/>
    </div>}
    {loaded&&inspection&&<div className="noata-creative-actions">
-    <label className="noata-creative-instruction">{t("اطلب تحسينًا من Noata AI","Ask Noata AI to improve this file")}
+    {!inline&&<label className="noata-creative-instruction">{t("اطلب تحسينًا من Noata AI","Ask Noata AI to improve this file")}
      <textarea rows={2} dir="auto" placeholder={t("مثلاً: حسّن التنسيق، أضف أمثلة، وصحح الأخطاء","For example: Improve the structure, add examples, and fix errors")} value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={1200}/>
-    </label>
+    </label>}
     <div className="noata-creative-buttons">
      <button type="button" className="noata-download-original" disabled={busy||!loaded} onClick={()=>void downloadOriginal()}>
       <Icon name="download" size={15}/>{t("تنزيل الملف الأصلي","Download original")}
      </button>
-     <button type="button" disabled={!onAskAI||!instruction.trim()||!draft.trim()} onClick={askAI}><Icon name="sparkles" size={15}/>{t("تحسين بالذكاء الاصطناعي","Improve with AI")}</button>
+     {inline?<button type="button" disabled={!onPrepareEdit||!activeFormat||!draft.trim()} onClick={()=>onPrepareEdit?.(artifactRevisionPrompt(activeFormat!,draft,locale))}><Icon name="sparkles" size={15}/>{t("تحسين عبر المحادثة","Improve through chat")}</button>:<button type="button" disabled={!onAskAI||!instruction.trim()||!draft.trim()} onClick={askAI}><Icon name="sparkles" size={15}/>{t("تحسين بالذكاء الاصطناعي","Improve with AI")}</button>}
      <button type="button" disabled={busy||!draft.trim()} onClick={()=>void exportVersion(activeFormat!)}><Icon name="download" size={15}/>{busy?t("جارٍ التصدير…","Exporting…"):t("تنزيل النسخة المعدّلة","Export revised file")}</button>
      <button type="button" disabled={busy||!owner||!draft.trim()} onClick={()=>void saveRevision()}><Icon name="archive" size={15}/>{busy?t("جارٍ التنفيذ…","Working…"):t("حفظ نسخة جديدة في المكتبة","Save revision to library")}</button>
     </div>
    </div>}
    {status&&<p role="status">{status}</p>}
   </div>
- </Dialog>;
+ </>;
+ if(inline)return file||localSource?<section className="noata-artifact-inline" aria-label={t("معاينة الملف","File preview")}>{content}</section>:null;
+ return <Dialog open={Boolean(file||localSource)} onClose={onClose} variant="studio" title={t("معاينة الملف وتحريره","Preview & edit file")}>{content}</Dialog>;
 }
