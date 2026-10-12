@@ -3,6 +3,7 @@ import { createFanarStream } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,searchNeedsTopic,runResearch,researchContext,type Research} from "./research.ts";
+import {searchEncyclopedia} from "./encyclopedia.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
@@ -91,8 +92,13 @@ function clean(text: string) {
 function unavailableResearchContent(responseLanguage:"ar"|"en"){return responseLanguage==="en"?"Live web research is unavailable for this request. I cannot verify the latest information or provide retrieved citations. Paste a source excerpt for me to explain, or ask for general background that does not require current information.":"\u0627\u0644\u0628\u062d\u062b \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d \u0644\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628. \u0644\u0627 \u0623\u0633\u062a\u0637\u064a\u0639 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0623\u062d\u062f\u062b \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0623\u0648 \u062a\u0642\u062f\u064a\u0645 \u0645\u0635\u0627\u062f\u0631 \u0645\u0633\u062a\u0631\u062c\u0639\u0629. \u0627\u0644\u0635\u0642 \u0645\u0642\u062a\u0637\u0641\u064b\u0627 \u0645\u0646 \u0645\u0635\u062f\u0631 \u0644\u0623\u0634\u0631\u062d\u0647\u060c \u0623\u0648 \u0627\u0637\u0644\u0628 \u0634\u0631\u062d\u064b\u0627 \u0639\u0627\u0645\u064b\u0627 \u0644\u0627 \u064a\u062a\u0637\u0644\u0628 \u0645\u0639\u0644\u0648\u0645\u0627\u062a \u062d\u062f\u064a\u062b\u0629.";}
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
-  if(Deno.env.get("NOATA_SEARCH_ENABLED")==="true"&&Deno.env.get("BRAVE_SEARCH_API_KEY"))await claim(userId,"web_search");
-  return await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,onStatus:status=>emit?.({status})});
+  // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
+  await claim(userId,"web_search");
+  const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,onStatus:status=>emit?.({status})});
+  if(broad.status==="complete"||plan.fresh||plan.reason==="private"||plan.reason==="opt_out")return broad;
+  // Real limited Wikipedia references, never represented as current news.
+  const background=await searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})});
+  return background.status==="complete"?background:broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
 }
 function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar") {

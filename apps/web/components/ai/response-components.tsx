@@ -51,7 +51,9 @@ export function ResearchSources({research}:{research:unknown}){
  };
  return <details className="noata-research-trace">
   <summary className="noata-research-summary"><span className="noata-research-indicator" aria-hidden="true">⌕</span>
-   <span>{t("تم البحث على الويب","Searched the web")} · {data.sources.length} {t("مصادر","sources")}</span>
+   <span>{data.reason==="encyclopedia_background"
+      ?t("مراجع موسوعية من ويكيبيديا","Wikipedia background sources")
+      :t("تم البحث على الويب","Searched the web")} · {data.sources.length} {t("مصادر","sources")}</span>
    <span className="noata-research-expand">{t("التفاصيل","Details")}</span>
   </summary>
   <div className="noata-research-detail">
@@ -68,7 +70,9 @@ export function ResearchSources({research}:{research:unknown}){
     <small><bdi>{source.domain}</bdi>{source.published?" · "+source.published:""}</small>
     <p>{source.excerpt}</p>
    </li>)}</ol>
-   <p className="noata-research-disclaimer">{t("المصادر المسترجعة لا تثبت تلقائيًا كل معلومة في الإجابة. تحقّق من الادعاءات المهمة.","Retrieved sources do not automatically verify every claim. Check important conclusions.")}</p>
+   <p className="noata-research-disclaimer">{data.reason==="encyclopedia_background"
+     ?t("هذه مقاطع من ويكيبيديا للمعلومات العامة، وليست بحثًا حديثًا أو تحققًا من الأخبار.","These are Wikipedia background excerpts, not live news or verification of current claims.")
+     :t("المصادر المسترجعة لا تثبت تلقائيًا كل معلومة في الإجابة. تحقّق من الادعاءات المهمة.","Retrieved sources do not automatically verify every claim. Check important conclusions.")}</p>
   </div>
  </details>;
 }

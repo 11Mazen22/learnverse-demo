@@ -7,7 +7,8 @@ test("automatic research respects freshness, opt-out, basic questions and privat
  for(const query of ["Hello","What is 2 + 2?","Explain photosynthesis step by step.","Don't search. Explain the latest idea from memory.","Search for my password: secret","Research private@example.com"])assert.equal(searchPlan(query).needed,false,query);
  assert.equal(searchPlan("Cite the official documentation for React").needed,true);
  assert.equal(searchPlan("ok search for anything").needed,true);
- assert.equal(searchPlan("ok search for anything").query,"recent astronomy and space exploration discoveries from authoritative science sources");
+ assert.equal(searchPlan("ok search for anything").query,"solar system planets");
+ assert.equal(searchPlan("ok search for anything").fresh,false);
  assert.equal(searchPlan("ابحث عن أي حاجة").needed,true);
 });
 test("source normalization retains actual excerpts, deduplicates and rejects unsafe links",()=>{
