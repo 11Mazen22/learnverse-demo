@@ -76,3 +76,9 @@ test("floating Arabic diacritics remain attached to their glyph after position s
   ];
   assert.equal(reconstructPdfLine(items), "التعلّم");
 });
+
+test("Observed Arabic-labelled scientific symbols preserve LTR order during PDF readback",()=>{
+ const pieces=["→"," ","←"," ","≤"," ","≥"," ","∑"," ","√"," ","∞"," ",":","ز","ﻮ","ﻣ","ﺮ","ﻟ","ا"];
+ const items=pieces.map((str,i)=>({str,transform:[1,0,0,1,i*10,100],width:10,dir:i<15?"ltr":"rtl"}));
+ assert.equal(reconstructPdfLine(items),"الرموز: → ← ≤ ≥ ∑ √ ∞");
+});

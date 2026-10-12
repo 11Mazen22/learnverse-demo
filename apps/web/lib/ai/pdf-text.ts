@@ -63,13 +63,35 @@ export function reconstructPdfLine(items: readonly PdfTextItem[]): string {
       .normalize("NFKC");
     const arabicLetters = (normalized.match(/[\u0600-\u06ff]/g) ?? []).length;
     const latinLetters = (normalized.match(/[a-z]/gi) ?? []).length;
-    if (arabicLetters > latinLetters)
-      return [...physical]
-        .reverse()
-        .map((item) => item.str)
-        .join("")
-        .normalize("NFKC")
-        .trim();
+    if (arabicLetters > latinLetters) {
+      // Reverse RTL run positions, while preserving complete LTR runs (numbers,
+      // English phrases and scientific operators). PDF.js may split each symbol
+      // into its own item, so reversing every item changes the expression.
+      type Direction = "ltr" | "rtl";
+      const neutral = /^[\s:.,;!?،؛؟()[\]{}]+$/;
+      const numeric = /^[\p{N}\s.,:\/+-]+$/u;
+      const directions = physical.map((item): Direction | null => {
+        if (neutral.test(item.str)) return null;
+        if (numeric.test(item.str)) return "ltr";
+        return /[\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff]/.test(item.str) ? "rtl" : "ltr";
+      });
+      const resolved = directions.map((direction, index): Direction => {
+        if (direction) return direction;
+        const before = directions.slice(0, index).reverse().find(Boolean);
+        const after = directions.slice(index + 1).find(Boolean);
+        // Boundary punctuation belongs to the Arabic label, e.g. "الرموز: ".
+        return before === "rtl" || after === "rtl" ? "rtl" : "ltr";
+      });
+      const runs: {direction: Direction; items: PdfTextItem[]}[] = [];
+      physical.forEach((item, index) => {
+        const direction = resolved[index], previous = runs.at(-1);
+        if (previous?.direction === direction) previous.items.push(item);
+        else runs.push({direction, items: [item]});
+      });
+      return runs.reverse()
+        .flatMap((run) => run.direction === "rtl" ? run.items.reverse() : run.items)
+        .map((item) => item.str).join("").normalize("NFKC").trim();
+    }
     const pieces: string[] = [];
     let run: string[] = [];
     const flush = () => {
