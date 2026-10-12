@@ -17,7 +17,7 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
   try {
     let root = join(process.cwd(), "public", "fonts");
     try { await access(root); } catch { root = join(process.cwd(), "apps/web/public/fonts"); }
-    const [arabic, latin] = await Promise.all([readFile(join(root,"cairo-arabic.woff2")),readFile(join(root,"cairo-latin.woff2"))]);
+    const [arabic, latin, symbols] = await Promise.all([readFile(join(root,"cairo-arabic.woff2")),readFile(join(root,"cairo-latin.woff2")),readFile(join(root,"..","..","lib","pdf","fonts","noto-sans-math-latin-400-normal.woff"))]);
     const executablePath = process.env.NOATA_CHROMIUM_PATH || await chromium.executablePath();
     const environment = {...process.env};
     // Packaged Chromium extracts its fonts even outside Lambda, but only Lambda
@@ -36,22 +36,22 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
       if (request.url().startsWith("data:") || request.url() === "about:blank") void request.continue();
       else void request.abort();
     });
-    let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64")});
+    let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64"),symbols:symbols.toString("base64")});
     if(chart)html=html.replace("</main>",chartPdfMarkup(chart)+"</main>");
     await page.setContent(html,{waitUntil:"networkidle0",timeout:15_000});
     // Explicitly load both subsets: English-only documents never trigger the
     // Arabic subset naturally, and an unused font is not a failed font.
     await page.evaluate(async () => {
-      await Promise.all([document.fonts.load('12px Noata', 'English'), document.fonts.load('12px Noata', 'العربية')]);
+      await Promise.all([document.fonts.load('12px Noata', 'English'), document.fonts.load('12px Noata', 'العربية'), document.fonts.load('12px NoataSymbols', '→ ≤ ∑ √')]);
       await document.fonts.ready;
     });
-    const fontsLoaded = await page.evaluate(() => [...document.fonts].length === 2 && [...document.fonts].every(font => font.status === "loaded"));
+    const fontsLoaded = await page.evaluate(() => [...document.fonts].length === 3 && [...document.fonts].every(font => font.status === "loaded"));
     if (!fontsLoaded) throw new Error("PDF fonts failed to load; refusing a blank document");
     if(screenshotPath) { await page.setViewport({width:794,height:1123}); await page.screenshot({path:screenshotPath as `${string}.png`,fullPage:false}); }
     const direction = documentDirection(text);
-    const template = `<style>@font-face{font-family:Noata;src:url(data:font/woff2;base64,${arabic.toString("base64")});unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}@font-face{font-family:Noata;src:url(data:font/woff2;base64,${latin.toString("base64")})}body{font-family:Noata,sans-serif;font-feature-settings:"rlig" 0,"liga" 0,"clig" 0}</style>`;
+    const template = `<style>@font-face{font-family:Noata;src:url(data:font/woff2;base64,${arabic.toString("base64")});unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF}@font-face{font-family:Noata;src:url(data:font/woff2;base64,${latin.toString("base64")})}@font-face{font-family:NoataSymbols;src:url(data:font/woff;base64,${symbols.toString("base64")})}body{font-family:Noata,NoataSymbols,sans-serif;font-feature-settings:"rlig" 0,"liga" 0,"clig" 0}</style>`;
     const bytes = await page.pdf({format:"A4",printBackground:true,preferCSSPageSize:true,displayHeaderFooter:true,
-      headerTemplate:template+`<div style="font:9px Noata,sans-serif;color:#44618a;width:100%;margin:0 18mm;text-align:${direction === "rtl" ? "right" : "left"};direction:${direction}">${escapeHtml(title)}</div>`,
+      headerTemplate:template+`<div style="font:9px Noata,NoataSymbols,sans-serif;color:#44618a;width:100%;margin:0 18mm;text-align:${direction === "rtl" ? "right" : "left"};direction:${direction}">${escapeHtml(title)}</div>`,
       footerTemplate:template+'<div style="font:9px sans-serif;color:#44618a;width:100%;margin:0 18mm;display:flex;justify-content:space-between"><span>Noata · Learn. Grow. Achieve.</span><span class="pageNumber"></span></div>',
       timeout:15_000,tagged:true});
     if(bytes.byteLength > 15*1024*1024) throw new Error("PDF output exceeds size limit");

@@ -17,9 +17,10 @@ function safeTitle(value:string):string{
  return Array.from(clean).slice(0,78).join("").replace(/[.\s]+$/g,"");
 }
 export function artifactFilename(input:{format:DownloadFormat;title?:string;content?:string;locale?:"en"|"ar";revision?:boolean}):string{
- const heading=input.content?.match(/^#\s+(.+)$/m)?.[1]??"";
- const candidate=safeTitle(input.title??"")||safeTitle(heading);
- const ar=input.locale==="ar"||(!input.locale&&/[\u0621-\u064a]/.test(candidate));
+ const heading=input.content?.match(/^(?:\*\*)?\\?#{1,3}\s+(.+?)(?:\*\*)?\s*$/m)?.[1]??"";
+ const requestTitle=/^(?:create|make|generate|export|download|write|rewrite|improve|please|can you|أنشئ|انشئ|اصنع|اعمل|جهز|عدّل|اكتب)(?:\s|$)/i.test((input.title??"").trim());
+ const candidate=safeTitle(heading)||(!requestTitle?safeTitle(input.title??""):"");
+ const ar=input.locale==="ar"||(!input.locale&&/[\u0621-\u064a]/.test(candidate||input.content||input.title||""));
  const fallback=(labels[input.format]??["Learning resource","مورد تعليمي"])[ar?1:0];
  const title=candidate||fallback;
  const suffix=input.revision?(ar?" — نسخة معدلة":" — Revised"):"";

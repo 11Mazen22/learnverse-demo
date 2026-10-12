@@ -15,3 +15,10 @@ test("Filenames reject traversal, device names, secrets, addresses and misleadin
  assert.ok(artifactFilename({format:"pdf",title:"علم ".repeat(100),revision:true}).length<=100);
  assert.equal(artifactFilename({format:"pdf",title:"../../secret",locale:"ar"}),"دليل تعليمي.pdf");
 });
+
+test("Provider bold headings name revisions without copying the user request",()=>{
+ assert.equal(artifactFilename({format:"pdf",title:"أنشئ نسخة PDF عربية مصححة بعنوان مراجعة البناء",content:"**# مراجعة البناء الضوئي – نسخة مصححة**\n\nدرس كامل"}),"مراجعة البناء الضوئي – نسخة مصححة.pdf");
+ assert.equal(artifactFilename({format:"pdf",title:"Create a PDF for this long private request",content:"This finished document has no heading."}),"Learning guide.pdf");
+ assert.equal(artifactFilename({format:"pdf",title:"أنشئ ملف PDF عن العلم",content:"درس مكتمل بلا عنوان"}),"دليل تعليمي.pdf");
+ assert.equal(artifactFilename({format:"pdf",title:"Conversation",content:"\\# Escaped document heading\nBody"}),"Escaped document heading.pdf");
+});

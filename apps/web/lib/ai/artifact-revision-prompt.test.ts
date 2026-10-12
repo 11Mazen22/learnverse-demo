@@ -14,3 +14,11 @@ test("Large extracted revisions disclose their bounded partial source",()=>{
  assert.ok(text.length<15000);
  assert.equal(text.match(/A{14000}/)?.[0].length,14000);
 });
+
+test("Unreadable PDF glyphs are disclosed and control bytes never enter a revision request",()=>{
+ const prompt=artifactRevisionPrompt("pdf","# Test\nA\u0000B\tC","en");
+ assert.match(prompt,/could not be read/);
+ assert.ok(!prompt.includes("\u0000"));
+ assert.ok(prompt.includes("# Test\nAB\tC"));
+ assert.match(artifactRevisionPrompt("pdf","س\u0000ص","ar"),/راجع الملف الأصلي/);
+});

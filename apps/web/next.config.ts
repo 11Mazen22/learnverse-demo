@@ -20,7 +20,7 @@ const nextConfig:NextConfig={
   poweredByHeader:false,
   compress:true,
   serverExternalPackages:["@sparticuz/chromium","puppeteer-core","pdfkit","fontkit"],
-  outputFileTracingIncludes:{"/api/documents/pdf":["./public/fonts/*.woff2","./node_modules/@sparticuz/chromium/bin/**"],"/api/pdf":["./lib/pdf/fonts/**"]},
+  outputFileTracingIncludes:{"/api/documents/pdf":["./public/fonts/*.woff2","./lib/pdf/fonts/noto-sans-math-latin-400-normal.woff","./node_modules/@sparticuz/chromium/bin/**"],"/api/ai/chart-pdf":["./public/fonts/*.woff2","./lib/pdf/fonts/noto-sans-math-latin-400-normal.woff","./node_modules/@sparticuz/chromium/bin/**"],"/api/pdf":["./lib/pdf/fonts/**"]},
   async headers(){
     return [{
       source:"/:path*",

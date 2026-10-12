@@ -63,3 +63,12 @@ test("Artifact transaction never uploads a clarification reply",async()=>{
  await assert.rejects(createConversationalArtifact({intent:{kind:"pdf",usePrevious:false},content:"I need more specific details to proceed. Could you please tell me what aspects of chocolate you want?",owner,id,title:"Chocolate",signal:new AbortController().signal,driver}),/unfinished_content/);
  assert.equal(invoked,false);
 });
+
+ test("A generated PDF uses its descriptive artifact title instead of the conversation prompt",async()=>{
+ const data=new Uint8Array(250);data.set(new TextEncoder().encode("%PDF-1.7"));
+ let renderedTitle="";
+ const driver:ArtifactDriver={renderPdf:async(_source,title)=>{renderedTitle=title;return data;},upload:async()=>{},insert:async()=>{},attach:async()=>{},remove:async()=>{},removeRecord:async()=>{}};
+ const file=await createConversationalArtifact({intent:{kind:"pdf",usePrevious:false},content:"# مراجعة البناء الضوئي\n\nدرس مكتمل",owner,id,title:"Create a downloadable PDF, please...",signal:new AbortController().signal,driver});
+ assert.equal(file.filename,"مراجعة البناء الضوئي.pdf");
+ assert.equal(renderedTitle,"مراجعة البناء الضوئي");
+ });

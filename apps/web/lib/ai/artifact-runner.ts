@@ -30,14 +30,15 @@ export async function createConversationalArtifact(input:{
  if(isNonDeliverableDraft(content)||isArtifactRefusal(content))throw Error("unfinished_content");
  if(!/^[0-9a-f-]{36}$/i.test(owner)||!/^[0-9a-f-]{36}$/i.test(id))throw Error("invalid_identity");
  if(signal.aborted)throw Error("cancelled");
+ const filename=artifactFilename({format:intent.kind,title:content.match(/^#\s+(.+)$/m)?.[1]??title,content});
+ const documentTitle=filename.slice(0,-(intent.kind.length+1));
  let bytes:Uint8Array;
- if(intent.kind==="pdf")bytes=await driver.renderPdf(content,title,signal);
+ if(intent.kind==="pdf")bytes=await driver.renderPdf(content,documentTitle,signal);
  else if(intent.kind==="docx")bytes=(await import("./docx-export.ts")).createNoataDocx(content);
  else if(intent.kind==="xlsx")bytes=(await import("./xlsx-export.ts")).createNoataXlsx(content);
  else bytes=(await import("./pptx-export.ts")).createNoataPptx(content);
  if(signal.aborted)throw Error("cancelled");
  if(!validArtifactBytes(intent.kind,bytes))throw Error("generated_file_invalid");
- const filename=artifactFilename({format:intent.kind,title:content.match(/^#\s+(.+)$/m)?.[1]??title,content});
  const storagePath=owner+"/"+id+"/noata-"+id.slice(0,8)+"."+intent.kind;
  const artifact:CreatedArtifact={id,format:intent.kind,filename,storagePath,mimeType:mime[intent.kind],byteSize:bytes.byteLength};
  let uploaded=false,recorded=false;
