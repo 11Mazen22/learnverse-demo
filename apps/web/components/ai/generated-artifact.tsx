@@ -22,6 +22,7 @@ export function NoataGeneratedArtifact({value,owner,onAskAI,onPrepareEdit}:{valu
  const t=useTranslation(),supabase=useMemo(()=>createClient(),[]);
  const file=valid(value,owner),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const [studioOpen,setStudioOpen]=useState(false);
+ const previewTrigger=useRef<HTMLButtonElement>(null);
  const current=useRef("");current.current=owner+":"+file?.id;
  useEffect(()=>{setStudioOpen(false);setError("");setBusy(false);},[owner,file?.id]);
  if(!file)return null;
@@ -46,10 +47,10 @@ export function NoataGeneratedArtifact({value,owner,onAskAI,onPrepareEdit}:{valu
   <div className="noata-generated-file-info"><strong dir="auto">{file.filename}</strong>
    <small>{file.format.toUpperCase()} · {Math.ceil(file.byteSize/1024)} KB · {t("محفوظ في مكتبتك الخاصة","Saved in your private library")}</small></div>
   <div className="noata-generated-file-actions">
-   <button type="button" disabled={busy} aria-expanded={studioOpen} onClick={()=>setStudioOpen(x=>!x)}><Icon name="edit" size={14}/>{t("معاينة وتحرير","Preview & edit")}</button>
+   <button type="button" ref={previewTrigger} disabled={busy} aria-expanded={studioOpen} onClick={()=>setStudioOpen(x=>!x)}><Icon name="edit" size={14}/>{t("معاينة وتحرير","Preview & edit")}</button>
    <button type="button" disabled={busy} onClick={()=>void open(true)}><Icon name="download" size={14}/>{busy?t("جارٍ الفتح","Opening"):t("تنزيل","Download")}</button>
   </div>
   {error&&<p role="alert">{error}</p>}
-  <NoataCreativeStudio inline file={studioOpen?file:null} owner={owner} onClose={()=>setStudioOpen(false)} onAskAI={onAskAI} onPrepareEdit={onPrepareEdit}/>
+  <NoataCreativeStudio inline file={studioOpen?file:null} owner={owner} onClose={()=>{setStudioOpen(false);previewTrigger.current?.focus();}} onAskAI={onAskAI} onPrepareEdit={onPrepareEdit}/>
  </section>;
 }

@@ -54,3 +54,15 @@ Minimum owner action for management work: reconnect the Supabase plugin and relo
 New candidate CI and live file-generation/revision results must be reported after execution.
 Unimplemented semantic planning, multi-file jobs, deeper memory/project retrieval, image editing, successful live search, genuine role/privacy flows and Production recovery remain separate requirements.
 PR #3 stays Draft/unmerged. Production and local computer files are outside this remote-only change.
+
+## Live results during this milestone
+
+At `50a5b6f485f25c9651f5c8b4c4026c80b1584ed0`, the real authenticated Preview showed:
+- Actual recognized answer model “Fanar”, replacing the raw generic label.
+- A historical private PDF fetched and rendered as a native canvas inside the conversation.
+- Exactly one chat composer, zero open modal dialogs and zero horizontal page overflow during inline inspection.
+- “Improve through chat” populated and focused the existing composer with the extracted source. It did not send a request automatically.
+- A fresh English Fanar request produced complete lesson content and a persisted 129 KB artifact named “QA Photosynthesis Study Guide.pdf”.
+These results prove this bounded path. They do not establish factual perfection, all formats, semantic orchestration or two-account privacy.
+
+Closing inline inspection left focus on BODY. The follow-up correction returns focus to the preview trigger.
