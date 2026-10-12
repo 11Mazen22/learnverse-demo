@@ -158,7 +158,7 @@ export function NoataAIClient() {
   const [pendingPreview, setPendingPreview] = useState<{
     name: string;
     localId: string;
-    format: string;
+    format: "pdf" | "docx" | "text";
   } | null>(null);
 
   const suggestions=useAISuggestions({userId:seenAccount.user?.id??null,locale,
