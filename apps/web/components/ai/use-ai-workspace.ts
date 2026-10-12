@@ -30,6 +30,8 @@ import {validatedResearch,type Research} from "../../../../supabase/functions/no
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { artifactContent } from "@/lib/ai/artifact-intent";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
+import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
+import {confirmedFileIntent,finishedDocumentInstruction} from "@/lib/ai/artifact-followup";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart } from "@/lib/ai/artifact-chart";
 import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
@@ -688,6 +690,7 @@ export function useAIWorkspace() {
     // A genuine natural-language image request can use Fanar's existing
     // authenticated image capability without opening a separate Tools panel.
     // Editing, SVG, multi-image and Temporary requests are intentionally excluded.
+    const needsImageSubject=mode==="send"&&!attachment&&!documentFiles.length&&imageNeedsSubject(text);
     const plannedCapability=planNoataRequest(text,{
       mode,temporary,hasUploads:Boolean(attachment||documentFiles.length),explicitTool:tool
     });
@@ -823,7 +826,10 @@ export function useAIWorkspace() {
       let result: ChatPart;
       let metadata: Record<string, unknown> = {};
       const direct=mode==="send"&&!tool?directArtifactAbilityAnswer(text,locale):null;
-      if(direct){
+      if(needsImageSubject){
+        metadata.capabilityProbe=true;
+        result={content:t("تحب أرسم إيه بالضبط؟ اذكر الموضوع أو الفكرة، ومعاها الستايل اللي تفضله لو تحب.","What would you like me to create? Give me a subject or idea, and optionally the style you prefer."),model:"Noata"};
+      } else if(direct){
         metadata.capabilityProbe=true;
         result={content:direct,model:"Noata"};
       } else if (tool) {
@@ -866,6 +872,26 @@ export function useAIWorkspace() {
         );
       }
       assertSession(token);
+      const priorUserRequests=history.slice(0,-1).filter(row=>row.role==="user").map(row=>row.content);
+      const contextualFile=mode==="send"&&!tool&&!temporary
+        ?confirmedFileIntent(text,priorUserRequests):null;
+      const requestedFile=plannedCapability.kind==="artifact"?plannedCapability.intent:contextualFile;
+      // Retry a proposed outline once to obtain ACTUAL requested document content.
+      // This never stores the synthetic retry instruction in conversation history.
+      if(requestedFile&&!result.incomplete&&isNonDeliverableDraft(responseText(result.content))){
+        setNotice(t("الرد مجرد مخطط؛ بنطلب المستند المكتمل قبل إنشاء الملف…","That was only a proposal. Asking for the finished document before creating a file…"));
+        const repairMessage:Message={
+          id:crypto.randomUUID(),conversation_id:conversationId,role:"user",model:null,
+          status:"complete",created_at:new Date().toISOString(),
+          content:finishedDocumentInstruction(requestedFile.kind,requestLanguage(text,locale))
+        };
+        try{
+          const repaired=await chat([...history,repairMessage],token,controller.signal);
+          assertSession(token);
+          if(!repaired.incomplete&&!isNonDeliverableDraft(responseText(repaired.content))
+             &&!isArtifactRefusal(responseText(repaired.content)))result=repaired;
+        }catch{ /* Preserve response and never pretend that a real file was created. */ }
+      }
       // Correct contradictory provider capability refusals BEFORE persisting.
       // A plain capability question never triggers an empty/refusal PDF.
       if (mode==="send" && !tool && !result.incomplete)
@@ -915,12 +941,13 @@ export function useAIWorkspace() {
       // Explicit file requests now produce a genuine owned artifact as part of
       // the answer lifecycle. No file, link or success state is invented on failure.
       const previousAnswer=history.slice(0,-1).findLast(row=>row.role==="assistant")?.content??"";
-      const fileIntent=!tool&&!result.incomplete&&plannedCapability.kind==="artifact"
-        ?plannedCapability.intent:null;
+      const fileIntent=!tool&&!result.incomplete&&!temporary?requestedFile:null;
       // Refusals are not document source material. Follow-up exports may use a
       // prior actual answer, even if Fanar misunderstood the new instruction.
+      const artifactSource=fileIntent?artifactContent(fileIntent,responseText(result.content),responseText(previousAnswer)):"";
       const artifactRequest=fileIntent&&canCreateArtifactFromAnswer(responseText(result.content),responseText(previousAnswer),fileIntent.usePrevious)
-        ?fileIntent:null;
+        &&!isNonDeliverableDraft(artifactSource)?fileIntent:null;
+      if(fileIntent&&!artifactRequest)setNotice(t("لسه مفيش محتوى نهائي صالح للملف. لم يتم إنشاء PDF أو ملف وهمي.","The reply still lacks finished document content. No empty or misleading file was generated."));
       if (artifactRequest) {
         setNotice(t("بننشئ الملف ونفحصه ونحفظه في مكتبتك…","Generating, validating and saving your file…"));
         try {
