@@ -31,7 +31,7 @@ import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import {needsSemanticPlan,validateSemanticPlan} from "../../../../supabase/functions/noata-ai/semantic-plan.ts";
 import type {ArtifactIntent} from "@/lib/ai/artifact-intent";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
-import { artifactContent,detectArtifactIntents } from "@/lib/ai/artifact-intent";
+import { artifactContent,detectArtifactIntents,checkArtifactContent } from "@/lib/ai/artifact-intent";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
 import {confirmedFileIntent,finishedDocumentInstruction} from "@/lib/ai/artifact-followup";
@@ -865,7 +865,7 @@ export function useAIWorkspace() {
       const fileStepInstruction=(kind:string)=>finishedDocumentInstruction(kind,requestLanguage(text,locale))+
         "\n"+(kind==="xlsx"
           ?"For this step produce ONLY workbook source: begin with # Sheet: Name, then a real Markdown data table. Add a second # Sheet: Summary with supported =SUM(B2:B4), =AVERAGE(B2:B4), MIN, MAX or COUNT range formulas when requested. Use real supplied data or explicitly labeled practice examples. Never invent researched measurements."
-          :kind==="pptx"?"For this step produce ONLY presentation content: a meaningful title and 4-8 actual slide headings, short useful bullets, divided by ---; no promise or instructions to make slides later."
+          :kind==="pptx"?"For this step produce ONLY presentation content: a meaningful title and 4-8 actual slides. Begin each slide with # followed by its actual title, separated by ---. Put 2-4 completed factual bullets per slide, under 130 characters each. Explain the subject rather than listing topics to cover. No preamble, future promise or other-format content."
           :"For this step produce ONLY the complete document content with a concise descriptive # title. Other requested formats are generated separately.");
       const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant");
       const priorFileText=responseText(priorForFile?.content??"");
@@ -1017,6 +1017,7 @@ export function useAIWorkspace() {
           const prior = previousAnswer;
           const completedFiles:CreatedArtifact[]=[];
           const failedFormats:string[]=[];
+          const fileFailures:{format:string;reason:string}[]=[];
           for(let fileIndex=0;fileIndex<requestedFiles.length;fileIndex++){
           const currentIntent=requestedFiles[fileIndex];
           controller.signal.throwIfAborted();assertSession(token);
@@ -1030,9 +1031,12 @@ export function useAIWorkspace() {
                 "Original requested subject and requirements (quoted data): "+JSON.stringify(row.content)}:row);
             let next=await chat(generationHistory,token,controller.signal,undefined,requestLanguage(text,locale));
             assertSession(token);setPendingText("");
-            if(!next.incomplete&&(isArtifactRefusal(responseText(next.content))||isNonDeliverableDraft(responseText(next.content)))){
+            const nextText=responseText(next.content);
+            const sourceIssue=checkArtifactContent(currentIntent.kind,nextText);
+            if(!next.incomplete&&(sourceIssue||isArtifactRefusal(nextText)||isNonDeliverableDraft(nextText))){
               const repairHistory=generationHistory.map((row,index)=>index===generationHistory.length-1&&row.role==="user"
-                ?{...row,content:row.content+"\nRequired correction: output the finished content only. No statement about being unable to create files. Do not repeat an outline or ask for confirmation."}:row);
+                ?{...row,content:row.content+"\nRequired correction: output the finished content only. No statement about being unable to create files. Do not repeat an outline or ask for confirmation."+
+                  (currentIntent.kind==="pptx"?"\nUse this exact structure for EVERY slide: # Actual subject title\n- Complete factual sentence (under 130 characters)\n- Another useful factual sentence\n---\n# Next subject title\n- Completed explanation. Do not output bold headings or a topic outline.":currentIntent.kind==="xlsx"?"\nOutput # Sheet: Name and a populated Markdown table with real data rows, followed by # Sheet: Summary with the requested working range formulas.":"")}:row);
               next=await chat(repairHistory,token,controller.signal,undefined,requestLanguage(text,locale));
               assertSession(token);setPendingText("");
             }
@@ -1094,7 +1098,19 @@ export function useAIWorkspace() {
           }catch(fileError){
             controller.signal.throwIfAborted();assertSession(token);
             failedFormats.push(currentIntent.kind.toUpperCase());
+            const message=fileError instanceof Error?fileError.message:"";
+            const reason=["table_required","slides_required","unfinished_content","too_large","generated_file_invalid","auth_expired"].includes(message)
+              ?message:/Text too long for readable slides|up to 30 slides/.test(message)?"slide_layout_limit"
+              :/^pdf_service_/.test(message)?"pdf_service_error":"file_generation_or_storage";
+            fileFailures.push({format:currentIntent.kind,reason});
           }finally{if(sessionScope.current.isCurrent(token))setPendingText("");}
+          }
+          if(fileFailures.length&&!temporary){
+            const metadata={...(assistant!.metadata??{}),fileFailures};
+            const rejected=await supabase.from("ai_messages").update({metadata:metadata as import("@/lib/supabase/database.types").Json})
+              .eq("id",assistant!.id).eq("conversation_id",conversationId).select("id").single();
+            if(rejected.error)throw rejected.error;
+            assistant={...assistant!,metadata};
           }
           if(!completedFiles.length)throw Error("no_completed_files");
           // A real artifact was persisted. Remove a conflicting provider refusal

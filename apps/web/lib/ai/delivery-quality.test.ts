@@ -20,3 +20,8 @@ test("Observed clarification PDF is rejected without blocking titled lesson ques
  assert.equal(isNonDeliverableDraft("أحتاج إلى مزيد من التفاصيل. هل يمكنك توضح الموضوع المطلوب؟"),true);
  assert.equal(isNonDeliverableDraft("# Interview practice\n\nCould you please tell me how photosynthesis works?\n\nPlants use light energy to make glucose from carbon dioxide and water."),false);
 });
+
+test("The observed Fanar PowerPoint promise is not completed slide content",()=>{
+ assert.equal(isNonDeliverableDraft("Here is the content for the PowerPoint presentation:\n\n**Photosynthesis Fundamentals**\n---\n* Introduction to Photosynthesis\n  - Definition and Importance\n\nPlease note that while I have prepared the content for the PowerPoint presentation, the actual file creation process is handled by the application. Once the content is finalized, the app will generate and store the actual PPTX file."),true);
+ assert.equal(isNonDeliverableDraft("# Chloroplasts\n- The thylakoids support light reactions.\n- The stroma contains Calvin-cycle enzymes."),false);
+});
