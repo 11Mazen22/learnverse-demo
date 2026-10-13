@@ -852,11 +852,13 @@ export function useAIWorkspace() {
           }else if(plan.kind==="clarify"){
             planQuestion=plan.question;requestedFile=null;requestedFiles=[];
           }
+          setNotice("");
         }catch(planningError){
           controller.signal.throwIfAborted();assertSession(token);
           // The conservative existing single-format path remains available.
           // A failed plan is never represented as a completed multi-file operation.
           if(!requestedFile)setNotice(t("تعذّر التأكد من اختيار الملفات. هنحتفظ بالرد؛ مش هنعلن إنشاء ملفات من غير نتيجة فعلية.","File selection could not be verified. The answer will be kept; no file will be claimed without an actual result."));
+          else setNotice("");
         }
       }
       const fileStepInstruction=(kind:string)=>finishedDocumentInstruction(kind,requestLanguage(text,locale))+
@@ -1130,7 +1132,10 @@ export function useAIWorkspace() {
       }
     } catch (e) {
       if (!sessionScope.current.isCurrent(token)) return;
-      if (
+      if(controller.signal.aborted){
+        setError("");
+        setNotice(t("تم إيقاف العملية. الملفات المكتملة محفوظة؛ لم نعلن اكتمال أي جزء لم ينتهِ.","Stopped. Completed deliverables are kept; unfinished work was not marked complete."));
+      } else if (
         /PROVIDER_MODEL_ACCESS_DENIED/.test(e instanceof Error ? e.message : String(e)) &&
         model.startsWith("Fanar-Sadiq")
       ) {

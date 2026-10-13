@@ -55,3 +55,19 @@ Tests and live results must be recorded on PR #3 after they actually execute; th
 - Authorized matching Staging Auth Admin access; real Student/Teacher/Admin, OAuth, rewards and cross-account privacy acceptance.
 - Live configured search/citations, image creation/editing, Sadiq 2 provider entitlement and full model-quality acceptance.
 - Controlled artifact revisions/versioning, deeper project retrieval, remaining formats and complete ONE acceptance.
+
+## Subsequent reproducible failures and corrections
+The first live three-format request returned PLAN_INVALID and a provider file refusal; no file was falsely claimed.
+The candidate now preserves every explicit supported format in request order when planning fails, while keeping bounded model-assisted interpretation for other requests.
+Planner output budget increased from 220 to 600 tokens, with a concrete schema example and safe rejection diagnostics (codes/counts only; no prompt or output logging).
+Fanar's official current OpenAPI schema does not declare response_format; no unsupported JSON-mode parameter was introduced.
+The original-upload test found Storage AccessDenied. Actual policy inspection exposed d.storage_path=d.name due to an unqualified name column.
+Official Storage uploader source shows contentLength during its permission probe and finalized size later.
+Staging migrations 20261013020043 (metadata probe) and 20261013020202 (scope predicates) retain exact size, MIME, owner, conversation and expiry constraints, qualifying objects.name explicitly.
+No extra privileged upload endpoint or broader Storage permissions were added.
+The CI database/recovery fixtures now execute the previously skipped private-document migration and all follow-up source migrations. Storage probe/finalized metadata, different display/path names, cross-owner denial and cleanup order have real isolated SQL assertions.
+Staging now has 31 recorded migrations; Production still has 18.
+Backend version 26 files match the new candidate's function sources; JWT verification remains enabled.
+The prior version 24 was confirmed to match the initial 1b82e3ff function source. Rollback is redeployment of that preserved pinned source, not an unverified credential change.
+Cancellation and timeout handling now ends progress notices and bounds original-file network waits.
+Actual final CI and browser outcomes are recorded in PR #3 after execution.
