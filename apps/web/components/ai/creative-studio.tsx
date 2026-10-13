@@ -15,6 +15,7 @@ import {originalDocument} from "@/lib/ai/original-documents";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import type {RenderTask,PDFDocumentLoadingTask} from "pdfjs-dist/legacy/build/pdf.mjs";
 import type {DocumentStyle} from "@/lib/ai/document-style";
+import {readDocumentSource,storedDocumentSource} from "@/lib/ai/document-presentation";
 type Format=CreatedArtifact["format"];
 export function downloadBytes(bytes:Uint8Array,name:string,mime:string){
  const link=document.createElement("a"),url=URL.createObjectURL(new Blob([Uint8Array.from(bytes)],{type:mime}));
@@ -67,7 +68,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const activeName=file?.filename??localSource?.name??"Noata document";
  useEffect(()=>{
   let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setMode("preview");setOriginalText("");setInstruction("");
-  setOutputFormat(activeFormat??"pdf");
+  setOutputFormat(activeFormat??"pdf");setStyle("classic");setFont("noata");
   if(!file&&!localSource)return;
   void(async()=>{
    try{
@@ -78,8 +79,9 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
      if(row.error||!row.data||row.data.storage_path!==file.storagePath||row.data.filename!==file.filename)throw Error("This file is not available for your account");
      const download=await supabase.storage.from("noata-ai-artifacts").download(file.storagePath);
      if(download.error||!download.data)throw Error("Could not retrieve the saved file");
-     loadedFile=download.data;canonical=row.data.source_content??"";
-     if(row.data.parent_artifact_id){const parent=await supabase.from("ai_artifacts").select("source_content").eq("id",row.data.parent_artifact_id).eq("user_id",owner).maybeSingle();parentSource=parent.data?.source_content??"";}
+     loadedFile=download.data;const saved=readDocumentSource(row.data.source_content);canonical=saved.text;
+     if(live){setStyle(saved.presentation.style);setFont(saved.presentation.font);}
+     if(row.data.parent_artifact_id){const parent=await supabase.from("ai_artifacts").select("source_content").eq("id",row.data.parent_artifact_id).eq("user_id",owner).maybeSingle();parentSource=readDocumentSource(parent.data?.source_content).text;}
      if(!canonical){
       const legacy=await supabase.from("ai_messages").select("content,metadata").eq("role","assistant").eq("status","complete").contains("metadata",{generatedArtifact:{id:file.id}}).limit(1).maybeSingle();
       if(legacy.data?.content)canonical=legacy.data.content;
@@ -175,7 +177,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    if(operation.current!==ticket)throw Error("Operation cancelled");
    const row=await supabase.from("ai_artifacts").insert({
     id,user_id:owner,filename,mime_type:mime[outputFormat],
-    storage_path:path,byte_size:bytes.byteLength,source_content:draft.slice(0,160000),
+    storage_path:path,byte_size:bytes.byteLength,source_content:storedDocumentSource(draft,{style,font}),
     ...(file?{parent_artifact_id:file.id}:localSource?.documentId?{source_document_id:localSource.documentId}:{})
    }).select("id,version").single();
    if(row.error||row.data?.id!==id)throw row.error??Error("File metadata could not be saved");
@@ -190,7 +192,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
   if(draft.length>14000){setError(t("هذا المستند يتجاوز حد التعديل بالذكاء الاصطناعي. حرّر النسخة كاملة هنا أو استخدم مقطعًا أقصر؛ لن نختصر الأصل بصمت.","This document exceeds the AI revision limit. Edit the full copy here or use a shorter excerpt; the original will not be silently shortened."));return;}
   const base=artifactRevisionPrompt(outputFormat,draft,locale);
   const prompt=(instruction.trim()?instruction.trim()+"\n\n":"")+base;
-  const source:LibrarySource={name:activeName,format:outputFormat,...(file?{artifactId:file.id}:localSource?.documentId?{documentId:localSource.documentId}:{})};
+  const source:LibrarySource={name:activeName,format:outputFormat,presentation:{style,font},...(file?{artifactId:file.id}:localSource?.documentId?{documentId:localSource.documentId}:{})};
   if(onPrepareEdit)onPrepareEdit(prompt,source);else if(onAskAI)onAskAI(prompt,source);
  }
  const pageInfo=inspection?.pages[page-1];const isPdf=activeFormat==="pdf";

@@ -35,6 +35,7 @@ import type {ArtifactIntent} from "@/lib/ai/artifact-intent";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import { artifactContent,detectArtifactIntents,checkArtifactContent } from "@/lib/ai/artifact-intent";
 import {documentWithResearch} from "@/lib/ai/research-document";
+import {readDocumentSource,storedDocumentSource,requestedDocumentPresentation,type DocumentPresentation} from "@/lib/ai/document-presentation";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
 import {confirmedFileIntent} from "@/lib/ai/artifact-followup";
@@ -882,13 +883,16 @@ export function useAIWorkspace() {
       }
       const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant"&&row.status==="complete"&&!isArtifactRefusal(responseText(row.content)));
       let priorFileText=responseText(priorForFile?.content??"");
+      let inheritedPresentation:DocumentPresentation|undefined=editingSource?.presentation;
       // A completed file reply is delivery commentary. Reuse its owned canonical
       // content for conversions rather than exporting that commentary as a document.
       const priorArtifact=priorForFile?.metadata?.generatedArtifact as {id?:unknown}|undefined;
       if(requestedFile?.usePrevious&&typeof priorArtifact?.id==="string"){
         const {data,error}=await supabase.from("ai_artifacts").select("source_content").eq("id",priorArtifact.id).maybeSingle();
         assertSession(token);controller.signal.throwIfAborted();
-        if(!error&&typeof data?.source_content==="string"&&data.source_content.trim())priorFileText=data.source_content;
+        if(!error&&typeof data?.source_content==="string"&&data.source_content.trim()){
+          const saved=readDocumentSource(data.source_content);priorFileText=saved.text;inheritedPresentation=saved.presentation;
+        }
         else priorFileText="";
       }
       const priorResearch=validatedResearch(priorForFile?.metadata?.research);
@@ -1067,13 +1071,14 @@ export function useAIWorkspace() {
             const before=split.slice(1).join("\n");
             if(before&&revisionMayLoseContent(before,source,split[0]))throw Error("revision_content_loss");
           }
+          const presentation=requestedDocumentPresentation(text,inheritedPresentation);
           const id = crypto.randomUUID();
           const driver:ArtifactDriver = {
             renderPdf: async(text,title,signal) => {
               const response = await fetch(chartData?"/api/ai/chart-pdf":"/api/documents/pdf",{
                 method:"POST",credentials:"same-origin",
                 headers:{"Content-Type":"application/json","Accept-Language":locale},
-                body:JSON.stringify(chartData?{chart:chartData,text,title:title.slice(0,120)}:{text,title:title.slice(0,120)}),signal
+                body:JSON.stringify(chartData?{chart:chartData,text,title:title.slice(0,120)}:{text,title:title.slice(0,120),...presentation}),signal
               });
               if(!response.ok)throw Error("pdf_service_"+response.status);
               return new Uint8Array(await response.arrayBuffer());
@@ -1086,7 +1091,7 @@ export function useAIWorkspace() {
             insert:async(artifact,user_id)=>{
               const result=await supabase.from("ai_artifacts").insert({
                 id:artifact.id,user_id,filename:artifact.filename,mime_type:artifact.mimeType,
-                storage_path:artifact.storagePath,byte_size:artifact.byteSize,source_content:source.slice(0,160000),
+                storage_path:artifact.storagePath,byte_size:artifact.byteSize,source_content:storedDocumentSource(source,presentation),
                 ...(editingSource?.artifactId?{parent_artifact_id:editingSource.artifactId}:editingSource?.documentId?{source_document_id:editingSource.documentId}:currentIntent.usePrevious&&typeof priorArtifact?.id==="string"?{parent_artifact_id:priorArtifact.id}:{})
               });
               if(result.error)throw result.error;
@@ -1110,7 +1115,7 @@ export function useAIWorkspace() {
           };
           const artifact = await createConversationalArtifact({
             intent:currentIntent,content:source,owner,id,signal:controller.signal,
-            title:titleFrom(text,locale),driver
+            title:titleFrom(text,locale),driver,style:presentation.style
           });
           assertSession(token);
           completedFiles.push(artifact);

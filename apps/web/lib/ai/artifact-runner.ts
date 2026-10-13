@@ -1,3 +1,4 @@
+import type {DocumentStyle} from "./document-style.ts";
 import {artifactFilename} from "./artifact-filename.ts";
 import {isNonDeliverableDraft} from "./delivery-quality.ts";
 import {isArtifactRefusal} from "./artifact-response-guard.ts";
@@ -22,7 +23,7 @@ export type ArtifactDriver={
  removeRecord:(id:string)=>Promise<void>;
 };
 export async function createConversationalArtifact(input:{
- intent:ArtifactIntent;content:string;owner:string;id:string;title:string;signal:AbortSignal;driver:ArtifactDriver;
+ intent:ArtifactIntent;content:string;owner:string;id:string;title:string;signal:AbortSignal;driver:ArtifactDriver;style?:DocumentStyle;
 }):Promise<CreatedArtifact>{
  const {intent,content,owner,id,title,signal,driver}=input;
  const invalid=checkArtifactContent(intent.kind,content);
@@ -40,9 +41,9 @@ export async function createConversationalArtifact(input:{
  const documentTitle=filename.slice(0,-(intent.kind.length+1));
  let bytes:Uint8Array;
  if(intent.kind==="pdf")bytes=await driver.renderPdf(content,documentTitle,signal);
- else if(intent.kind==="docx")bytes=(await import("./docx-export.ts")).createNoataDocx(content);
+ else if(intent.kind==="docx")bytes=(await import("./docx-export.ts")).createNoataDocx(content,input.style);
  else if(intent.kind==="xlsx")bytes=(await import("./xlsx-export.ts")).createNoataXlsx(content);
- else bytes=(await import("./pptx-export.ts")).createNoataPptx(content);
+ else bytes=(await import("./pptx-export.ts")).createNoataPptx(content,input.style);
  if(signal.aborted)throw Error("cancelled");
  if(!validArtifactBytes(intent.kind,bytes))throw Error("generated_file_invalid");
  const storagePath=owner+"/"+id+"/noata-"+id.slice(0,8)+"."+intent.kind;

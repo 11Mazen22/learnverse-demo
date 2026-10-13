@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 const paths: Record<string, string> = {
+  file:"M6 3h8l4 4v14H6Zm8 0v5h4M9 12h6M9 16h6",
   play:"m8 4 12 8-12 8z",
   pause:"M8 5v14M16 5v14",
   bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
