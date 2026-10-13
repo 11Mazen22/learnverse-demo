@@ -118,33 +118,39 @@ export function ConversationHistory(p: Props) {
         <div className="owui-rail">
           <button
             type="button"
-            className="owui-icon"
+            className="owui-icon owui-rail-toggle"
             onClick={p.onToggleCollapse}
             aria-label={t("فتح القائمة الجانبية","Open sidebar")}
-            title={t("فتح القائمة الجانبية","Open sidebar")}
+            data-tooltip={t("فتح القائمة الجانبية","Open sidebar")}
           >
             <Icon name="sidebar" />
           </button>
+          <span className="owui-rail-divider" aria-hidden="true" />
           <button
             type="button"
-            className="owui-icon"
+            className="owui-icon owui-rail-primary"
             onClick={p.onNew}
             disabled={p.busy}
             aria-label={t("محادثة جديدة","New conversation")}
-            title={t("محادثة جديدة","New conversation")}
+            data-tooltip={t("محادثة جديدة","New conversation")}
           >
             <Icon name="edit" />
           </button>
-          <Link className="owui-icon" href="/" aria-label={t("لوحة Noata","Noata dashboard")} title={t("لوحة Noata","Noata dashboard")}>
+          <Link className="owui-icon" href="/" aria-label={t("لوحة Noata","Noata dashboard")} data-tooltip={t("لوحة Noata","Noata dashboard")}>
             <Icon name="home" />
           </Link>
+          {p.onOpenLibrary && (
+            <button type="button" className="owui-icon" onClick={p.onOpenLibrary} aria-label={t("المشروعات والملفات","Projects and files")} data-tooltip={t("المشروعات والملفات","Projects and files")}>
+              <Icon name="archive" />
+            </button>
+          )}
           <span className="owui-rail-spacer" />
           <button
             type="button"
             className="owui-icon"
             onClick={p.onOpenSettings}
             aria-label={t("إعدادات Noata AI","Noata AI settings")}
-            title={t("إعدادات Noata AI","Noata AI settings")}
+            data-tooltip={t("إعدادات Noata AI","Noata AI settings")}
           >
             <Icon name="settings" />
           </button>
@@ -195,6 +201,7 @@ export function ConversationHistory(p: Props) {
         />
       </label>
 
+      <div className="owui-section-label">{t("مساحة العمل","Workspace")}</div>
       <div className="owui-sidebar-links">
         <Link href="/" className="aura-home-return">
           <Icon name="home" size={16} />
@@ -223,6 +230,7 @@ export function ConversationHistory(p: Props) {
         </button>
       </div>
 
+      <div className="owui-section-label owui-history-label">{p.archived ? t("الأرشيف","Archive") : t("المحادثات","Conversations")}</div>
       <div className="owui-history" role="region" aria-label={p.archived ? t("المحادثات المؤرشفة","Archived conversations") : t("المحادثات","Conversations")}>
         {grouped.pinned.length > 0 && (
           <section className="owui-chat-group">
