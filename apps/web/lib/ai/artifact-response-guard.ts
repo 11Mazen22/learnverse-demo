@@ -35,3 +35,8 @@ export function canCreateArtifactFromAnswer(reply:string,previous:string,usePrev
  const source=usePrevious&&previous.trim()?previous:reply;
  return source.trim().length>=20&&!isArtifactRefusal(source);
 }
+
+/** Application clarification, memory and research-failure replies are not source documents. */
+export function canDeliverArtifactTurn(result:{finishReason?:string;incomplete?:boolean;capabilityProbe?:boolean}):boolean{
+ return !result.incomplete&&!result.capabilityProbe&&!["clarification","memory_result","research_unavailable"].includes(result.finishReason??"");
+}

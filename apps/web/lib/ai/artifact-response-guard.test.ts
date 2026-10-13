@@ -27,3 +27,13 @@ test("Direct-creation refusals are detected without mistaking plural follow-ups 
  assert.equal(isArtifactCapabilityQuestion("Can you make a PDF for them?"),false);
  assert.equal(isArtifactRefusal("I cannot directly create a PDF document."),true);
 });
+
+import {canDeliverArtifactTurn} from "./artifact-response-guard.ts";
+import {isNonDeliverableDraft} from "./delivery-quality.ts";
+test("The observed research clarification must never reach an artifact engine",()=>{
+ assert.equal(canDeliverArtifactTurn({finishReason:"clarification"}),false);
+ assert.equal(canDeliverArtifactTurn({finishReason:"research_unavailable"}),false);
+ assert.equal(canDeliverArtifactTurn({finishReason:"stop",capabilityProbe:true}),false);
+ assert.equal(canDeliverArtifactTurn({finishReason:"stop"}),true);
+ assert.equal(isNonDeliverableDraft("Which public topic or claim should I verify? I could not resolve the subject."),true);
+});

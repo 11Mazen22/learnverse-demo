@@ -16,3 +16,13 @@ test("Contextual research never promotes private uploaded source text into a web
  assert.equal(plannedResearchQuery('{"query":"password: secret","needsClarification":false}',searchPlan("Search")),null);
  assert.equal(plannedResearchQuery('{"query":"Jesus","needsClarification":true}',searchPlan("Search")),null);
 });
+
+import {explicitResearchQuery} from "../../../../supabase/functions/noata-ai/query-planning.ts";
+test("Named topics survive a failed planner and relative clauses do not require previous chat context",()=>{
+ const request="Search for Wikipedia background sources on photosynthesis, then create a cited PDF guide. Clearly separate claims from details that still need verification.";
+ assert.equal(refersToConversation(request),false);
+ assert.equal(explicitResearchQuery(request,searchPlan(request))?.query,"photosynthesis");
+ assert.equal(researchPlanningInput(request,[{role:"user",content:request}])?.request,request);
+ assert.equal(explicitResearchQuery("Search all of this",searchPlan("Search all of this")),null);
+ assert.equal(explicitResearchQuery("Search password: private",searchPlan("Search password: private")),null);
+});

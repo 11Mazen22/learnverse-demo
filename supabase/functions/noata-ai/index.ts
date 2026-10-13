@@ -1,4 +1,4 @@
-import {researchPlanningInput,plannedResearchQuery,refersToConversation,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
+import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerReviewReason,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
@@ -607,8 +607,9 @@ async function handleChat(
       ],temperature:0,max_tokens:160,stream:false},12000);
       planned=plannedResearchQuery(data?.choices?.[0]?.message?.content,lookupPlan);
     }catch{ /* A failed plan never sends an ambiguous or private query outward. */ }
+    planned??=explicitResearchQuery(latestText,lookupPlan);
     if(planned)lookupPlan=planned;
-    else if(refersToConversation(latestText))return json({kind:"chat",model:"Noata",
+    else return json({kind:"chat",model:"Noata",
       content:latestLanguage==="English"?"Which public topic or claim should I verify? I couldn't reliably resolve the subject from this conversation.":"أي موضوع عام أو معلومة تحب أتحقق منها؟ لم أتمكن من تحديد المقصود بدقة من سياق المحادثة.",
       finishReason:"clarification",incomplete:false,quota});
   }

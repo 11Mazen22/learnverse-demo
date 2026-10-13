@@ -41,7 +41,7 @@ import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality
 import {confirmedFileIntent} from "@/lib/ai/artifact-followup";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart } from "@/lib/ai/artifact-chart";
-import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
+import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,canDeliverArtifactTurn,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
@@ -881,7 +881,7 @@ export function useAIWorkspace() {
           else setNotice("");
         }
       }
-      const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant"&&row.status==="complete"&&!isArtifactRefusal(responseText(row.content)));
+      const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant"&&row.status==="complete"&&row.metadata?.capabilityProbe!==true&&!isNonDeliverableDraft(responseText(row.content))&&!isArtifactRefusal(responseText(row.content)));
       let priorFileText=responseText(priorForFile?.content??"");
       let inheritedPresentation:DocumentPresentation|undefined=editingSource?.presentation;
       // A completed file reply is delivery commentary. Reuse its owned canonical
@@ -960,12 +960,12 @@ export function useAIWorkspace() {
       let researchBlocked=Boolean(result.research&&result.research.status!=="complete");
       // Retry a proposed outline once to obtain ACTUAL requested document content.
       // This never stores the synthetic retry instruction in conversation history.
-      if(requestedFile&&!convertPrevious&&!researchBlocked&&!result.incomplete&&(isNonDeliverableDraft(responseText(result.content))||isArtifactRefusal(responseText(result.content)))){
+      if(requestedFile&&!convertPrevious&&!researchBlocked&&canDeliverArtifactTurn(result)&&(isNonDeliverableDraft(responseText(result.content))||isArtifactRefusal(responseText(result.content)))){
         setNotice(t("الرد مجرد مخطط؛ بنطلب المستند المكتمل قبل إنشاء الملف…","That was only a proposal. Asking for the finished document before creating a file…"));
         try{
           const repaired=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),requestedFile.kind);
           assertSession(token);
-          if(!repaired.incomplete&&!isNonDeliverableDraft(responseText(repaired.content))
+          if(canDeliverArtifactTurn(repaired)&&!isNonDeliverableDraft(responseText(repaired.content))
              &&!isArtifactRefusal(responseText(repaired.content)))result=repaired;
         }catch{ /* Preserve response and never pretend that a real file was created. */ }
       }
@@ -978,6 +978,7 @@ export function useAIWorkspace() {
         metadata.incomplete=true;
         setNotice(t("الرد محفوظ جزئيًا. اضغط «كمّل الرد» لإكماله.","Partial answer saved. Choose Continue answer to finish it."));
       }
+      if(!canDeliverArtifactTurn(result))metadata.capabilityProbe=true;
       if(result.research)metadata.research=result.research;
       if(result.routeNote)metadata.routeNote=result.routeNote;
       if(result.timings)metadata.timings=result.timings;
@@ -1021,7 +1022,7 @@ export function useAIWorkspace() {
       // Explicit file requests now produce a genuine owned artifact as part of
       // the answer lifecycle. No file, link or success state is invented on failure.
       const previousAnswer=priorFileText;
-      const fileIntent=!tool&&!result.incomplete&&!temporary&&!researchBlocked?requestedFile:null;
+      const fileIntent=!tool&&canDeliverArtifactTurn({...result,capabilityProbe:metadata.capabilityProbe===true})&&!temporary&&!researchBlocked?requestedFile:null;
       // Refusals are not document source material. Follow-up exports may use a
       // prior actual answer, even if Fanar misunderstood the new instruction.
       const artifactSource=fileIntent?artifactContent(fileIntent,responseText(result.content),responseText(previousAnswer)):"";
@@ -1055,7 +1056,7 @@ export function useAIWorkspace() {
               next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind);
               assertSession(token);setPendingText("");
             }
-            if(next.incomplete||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
+            if(!canDeliverArtifactTurn(next)||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
             currentContent=next.content;currentResearch=next.research??result.research;
           }
           const source = documentWithResearch(
