@@ -42,3 +42,18 @@ test("annotation recovery preserves quoted text and rejects unsafe values",()=>{
  assert.throws(()=>parseDesignSuggestion('{"name":"Unsafe","tokens":{"accent":alert(1),"deep":"#1A2021","bright":"#4F8BC3"}}'),/Fanar/);
  assert.throws(()=>parseDesignSuggestion('{"name":"Bright","tokens":{"accent":"#ffffff",// comment\n"deep":"#1A2021","bright":"#4F8BC3"}}'),/فاتحة/);
 });
+
+test("An AI suggestion receives readable shades without weakening persisted HEX/contrast guards",()=>{
+ const raw=JSON.stringify({name:"Calm sky",description:"White space and soft blue",tokens:{accent:"#87CEEB",deep:"#eff6ff",bright:"#a8c5d9"}});
+ assert.throws(()=>parseDesignSuggestion(raw,"en"),/too light/);
+ const generated=parseDesignSuggestion(raw,"en",{adjustContrast:true});
+ assert.equal(generated.contrastAdjusted,true);
+ assert.ok(contrastRatio(generated.tokens.accent,"#ffffff")>=4.5);
+ assert.ok(contrastRatio(generated.tokens.deep,"#ffffff")>=7);
+ assert.equal(generated.tokens.bright,"#a8c5d9");
+ assert.equal(validateTokens(generated.tokens,"en").accent,generated.tokens.accent);
+ assert.throws(()=>parseDesignSuggestion(JSON.stringify({name:"Unsafe",tokens:{accent:"url(javascript:x)",deep:"#ffffff",bright:"#abcdef"}}),"en",{adjustContrast:true}),/HEX/);
+ const safe=parseDesignSuggestion(JSON.stringify({name:"Readable",tokens:{accent:"#24508C",deep:"#132B4D",bright:"#5194CD"}}),"en",{adjustContrast:true});
+ assert.equal(safe.contrastAdjusted,false);
+ assert.equal(safe.tokens.accent,"#24508C");
+});

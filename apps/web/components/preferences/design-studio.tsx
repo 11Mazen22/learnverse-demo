@@ -140,14 +140,14 @@ export function DesignStudio(){
     const firstResponse=await askFanar(request);
     if(currentAccount.current!==owner)return;
     let parsed:ReturnType<typeof parseDesignSuggestion>;
-     try { parsed=parseDesignSuggestion(firstResponse,locale); }
+     try { parsed=parseDesignSuggestion(firstResponse,locale,{adjustContrast:true}); }
     catch {
       // Retry once for prose, malformed JSON, or an invalid palette.
       if(currentAccount.current!==owner)return;
-       parsed=parseDesignSuggestion(await askFanar(request+"\n\n"+t("المحاولة السابقة لم تكن كائن JSON صالحًا أو لم تحقق شروط الألوان. أعد إنشاء التصميم بكائن JSON واحد صحيح فقط.","The previous response was not valid JSON or did not meet the color requirements. Create the design again as one valid JSON object only.")),locale);
+       parsed=parseDesignSuggestion(await askFanar(request+"\n\n"+t("المحاولة السابقة لم تكن كائن JSON صالحًا أو لم تحقق شروط الألوان. أعد إنشاء التصميم بكائن JSON واحد صحيح فقط.","The previous response was not valid JSON or did not meet the color requirements. Create the design again as one valid JSON object only.")),locale,{adjustContrast:true});
     }
     if(currentAccount.current!==owner)return;
-    undoPreview();setDraft(parsed);setNotice(t("جهّز Fanar اقتراحًا جديدًا. عاينه وعدّله قبل الحفظ؛ لم يُطبّق بعد.","Fanar created a new suggestion. Preview and refine it before saving; nothing has been applied yet."));
+    undoPreview();setDraft(parsed);setNotice(parsed.contrastAdjusted?t("جهّز Fanar اقتراحًا جديدًا؛ ضبطنا درجات النص والأزرار لتبقى واضحة. عاينه قبل الحفظ؛ لم يُطبّق بعد.","Fanar created a suggestion. We adjusted text and button shades for readability. Preview it before saving; it has not been applied."):t("جهّز Fanar اقتراحًا جديدًا. عاينه وعدّله قبل الحفظ؛ لم يُطبّق بعد.","Fanar created a new suggestion. Preview and refine it before saving; nothing has been applied yet."));
    }catch(e){if(currentAccount.current===owner)setError(e instanceof Error?e.message:t("تعذّر إنشاء التصميم. حاول مرة أخرى.","Could not create the design. Please try again."));}
    finally{if(currentAccount.current===owner)setBusy("");}
   }

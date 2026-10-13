@@ -17,13 +17,17 @@ export function contrastRatio(a:string,b:string):number {
  const x=relativeLuminance(a),y=relativeLuminance(b);
  return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
 }
-export function validateTokens(value:unknown,locale:"ar"|"en"="ar"):DesignTokens {
+function hexTokens(value:unknown,locale:"ar"|"en"="ar"):DesignTokens {
   if(!value||typeof value!=="object")throw Error(locale==="en"?"The suggestion does not contain valid colors.":"الاقتراح لا يحتوي على ألوان صحيحة.");
  const obj=value as Record<string,unknown>;
  const tokens:DesignTokens={accent:String(obj.accent??""),deep:String(obj.deep??""),bright:String(obj.bright??"")};
  for(const [key,color] of Object.entries(tokens)) {
     if(!HEX.test(color)) throw Error(locale==="en"?"Invalid "+key+" color; use a six-digit HEX value.":"لون "+key+" غير صالح؛ يجب أن يكون بصيغة HEX.");
  }
+ return tokens;
+}
+export function validateTokens(value:unknown,locale:"ar"|"en"="ar"):DesignTokens {
+ const tokens=hexTokens(value,locale);
  if(contrastRatio(tokens.accent,"#ffffff")<4.5)
     throw Error(locale==="en"?"The primary color is too light for text and buttons on white. Ask for a darker color.":"درجة اللون الرئيسي فاتحة أكثر من اللازم للنص والأزرار على الخلفية البيضاء. اطلب لونًا أغمق.");
  if(contrastRatio(tokens.deep,"#ffffff")<7)
@@ -62,7 +66,17 @@ function normalizeAnnotatedJson(raw:string):string {
  }
  return clean;
 }
-export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar"):{name:string;description:string;tokens:DesignTokens} {
+/** Only AI suggestions may be adjusted before preview; saved/user tokens remain strict. */
+function readableShade(color:string,target:number):string {
+ if(contrastRatio(color,"#ffffff")>=target)return color;
+ const channels=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+ for(let step=1;step<=255;step++){
+  const candidate="#"+channels.map(c=>Math.round(c*(1-step/255)).toString(16).padStart(2,"0")).join("");
+  if(contrastRatio(candidate,"#ffffff")>=target)return candidate;
+ }
+ return "#000000";
+}
+export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar",options:{adjustContrast?:boolean}={}):{name:string;description:string;tokens:DesignTokens;contrastAdjusted?:boolean} {
   if(raw.length>16000)throw Error(locale==="en"?"The AI response exceeds the permitted size.":"رد الذكاء الاصطناعي أكبر من الحد المسموح.");
   raw=normalizeAnnotatedJson(raw);
  // A model may wrap its answer in a code fence or add prose containing braces.
@@ -94,7 +108,10 @@ export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar"):{name:st
  const description=typeof obj.description==="string"?obj.description.trim():"";
  if(name.length<2||name.length>50||description.length>180)
     throw Error(locale==="en"?"The design name or description is outside the permitted length.":"عنوان أو وصف التصميم خارج الحدود المسموحة.");
-  return {name,description,tokens:validateTokens(obj.tokens,locale)};
+  const suggested=hexTokens(obj.tokens,locale);
+ const colors=options.adjustContrast?{...suggested,accent:readableShade(suggested.accent,4.5),deep:readableShade(suggested.deep,7)}:suggested;
+ return {name,description,tokens:validateTokens(colors,locale),
+   ...(options.adjustContrast?{contrastAdjusted:colors.accent!==suggested.accent||colors.deep!==suggested.deep}:{})};
 }
 export function applyCustomDesign(tokens:DesignTokens):void {
  const safe=validateTokens(tokens), root=document.documentElement;
