@@ -9,7 +9,7 @@ export function normalizedDocumentSource(text:string):string {
 }
 /** The separate PDF cover already displays a matching first Markdown title. */
 export function withoutDuplicateDocumentTitle(text:string,title:string):string{
- const key=(value:string)=>value.replace(/\.(pdf|docx)$/i,"").replace(/[*_\x60]/g,"").normalize("NFKC").replace(/\s+/g," ").trim().toLocaleLowerCase();
+ const key=(value:string)=>value.replace(/\.(pdf|docx)$/i,"").replace(/[*_\x60]/g,"").normalize("NFKC").replace(/\s+/g," ").trim().replace(/[.!?؟。]+$/u,"").toLocaleLowerCase();
  const first=text.match(/^\s*#{1,2}\s+([^\n]+)(?:\n|$)/);
  return first&&key(first[1])===key(title)?text.slice(first[0].length).trimStart():text;
 }

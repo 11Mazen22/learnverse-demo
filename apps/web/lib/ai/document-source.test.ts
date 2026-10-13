@@ -9,3 +9,8 @@ test("Observed bare-bracket math is repaired without changing fenced code or arb
  assert.equal(withoutDuplicateDocumentTitle("# Photosynthesis Guide\n\n## Introduction\nFacts","Photosynthesis Guide"),"## Introduction\nFacts");
  assert.equal(withoutDuplicateDocumentTitle("## Introduction\nFacts","Photosynthesis Guide"),"## Introduction\nFacts");
 });
+
+test("A filename without terminal punctuation does not duplicate the same opening question",()=>{
+ assert.equal(withoutDuplicateDocumentTitle("## What is Photosynthesis?\n\nFacts","What is Photosynthesis"),"Facts");
+ assert.equal(withoutDuplicateDocumentTitle("## Is it safe?\nFacts","Different topic"),"## Is it safe?\nFacts");
+});
