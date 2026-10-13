@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   if(!admitPdfRequest(user.id))return Response.json({error:"يمكنك إنشاء ثلاثة مستندات في الدقيقة. حاول بعد قليل."},{status:429,headers:{"Retry-After":"60"}});
   try {
     const input = await readPdfInput(request);
-    const output=await renderNoataPdf(input.text,input.title?.trim() || "Noata document",undefined,undefined,input.style);
+    const output=await renderNoataPdf(input.text,input.title?.trim() || "Noata document",undefined,undefined,input.style,input.font);
     return new Response(Uint8Array.from(output),{headers:{"Content-Type":"application/pdf","Content-Disposition":"attachment; filename=noata-document.pdf","Cache-Control":"private, no-store"}});
   }catch(error){
     if(error instanceof PdfRequestError) return Response.json({error:error.message},{status:error.status});

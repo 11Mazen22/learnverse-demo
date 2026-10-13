@@ -11,7 +11,7 @@ import {chartPdfMarkup,type LineChartData} from "./line-chart.ts";
 export {PdfBusyError} from "./pdf-pressure.ts";
 
 // Per-instance pressure control. The deployment must also enforce request quotas.
-export async function renderNoataPdf(text: string, title: string, screenshotPath?: string, chart?: LineChartData,style:DocumentStyle="classic"): Promise<Uint8Array> {
+export async function renderNoataPdf(text: string, title: string, screenshotPath?: string, chart?: LineChartData,style:DocumentStyle="classic",font:"noata"|"editorial"|"mono"="noata"): Promise<Uint8Array> {
   const release = acquirePdfSlot();
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
   let deadline: ReturnType<typeof setTimeout> | undefined;
@@ -19,6 +19,8 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
     let root = join(process.cwd(), "public", "fonts");
     try { await access(root); } catch { root = join(process.cwd(), "apps/web/public/fonts"); }
     const [arabic, latin, symbols] = await Promise.all([readFile(join(root,"cairo-arabic.woff2")),readFile(join(root,"cairo-latin.woff2")),readFile(join(root,"..","..","lib","pdf","fonts","noto-sans-math-latin-400-normal.woff"))]);
+    const extra=font==="noata"?undefined:await readFile(join(root,font==="editorial"?"lora.ttf":"roboto-mono.ttf"));
+    const textFont=font==="editorial"?"NoataEditorial":font==="mono"?"NoataMono":"Noata";
     const executablePath = process.env.NOATA_CHROMIUM_PATH || await chromium.executablePath();
     const environment = {...process.env};
     // Packaged Chromium extracts its fonts even outside Lambda, but only Lambda
@@ -37,16 +39,17 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
       if (request.url().startsWith("data:") || request.url() === "about:blank") void request.continue();
       else void request.abort();
     });
-    let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64"),symbols:symbols.toString("base64")},style);
+    let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64"),symbols:symbols.toString("base64"),extra:extra?.toString("base64")},style,font);
     if(chart)html=html.replace("</main>",chartPdfMarkup(chart)+"</main>");
     await page.setContent(html,{waitUntil:"networkidle0",timeout:15_000});
     // Explicitly load both subsets: English-only documents never trigger the
     // Arabic subset naturally, and an unused font is not a failed font.
-    await page.evaluate(async () => {
+    await page.evaluate(async (family) => {
       await Promise.all([document.fonts.load('12px Noata', 'English'), document.fonts.load('12px Noata', 'العربية'), document.fonts.load('12px NoataSymbols', '→ ≤ ∑ √')]);
+      if(family!=="Noata")await document.fonts.load("12px "+family,"English");
       await document.fonts.ready;
-    });
-    const fontsLoaded = await page.evaluate(() => [...document.fonts].length === 3 && [...document.fonts].every(font => font.status === "loaded"));
+    },textFont);
+    const fontsLoaded = await page.evaluate((expected) => [...document.fonts].length === expected && [...document.fonts].every(font => font.status === "loaded"),extra?4:3);
     if (!fontsLoaded) throw new Error("PDF fonts failed to load; refusing a blank document");
     if(screenshotPath) { await page.setViewport({width:794,height:1123}); await page.screenshot({path:screenshotPath as `${string}.png`,fullPage:false}); }
     const direction = documentDirection(text);

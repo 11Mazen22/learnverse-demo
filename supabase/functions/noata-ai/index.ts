@@ -1,3 +1,4 @@
+import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
 import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./semantic-plan.ts";
@@ -573,7 +574,8 @@ async function handleChat(
     memorySchema:true
   });
   const delivery=fileDeliveryInstruction(payload.artifactFormat,latestLanguage==="English"?"en":"ar");
-  const messages = [{ role: "system", content: `${system}\n${capabilities}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
+  const presentation=delivery?"":answerPresentation(latestText);
+  const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
   const body: any = {
     model,
     messages,

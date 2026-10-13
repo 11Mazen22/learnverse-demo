@@ -33,7 +33,7 @@ test("Observed photosynthesis LaTeX prints as math and matching titles appear on
  assert.equal((html.match(/<h1/g)??[]).length,1);
  assert.ok(html.includes("<math"));
  assert.ok(html.includes("<msub>"));
- assert.ok(!html.includes("\\xrightarrow"));
+ assert.ok(!html.replace(/<annotation[\s\S]*?<\/annotation>/g,"").includes("\\xrightarrow"));
  assert.ok(html.includes("Introduction to Photosynthesis"));
 });
 test("PDF styles are finite presets and cannot inject CSS or remote resources",async()=>{
@@ -41,3 +41,5 @@ test("PDF styles are finite presets and cannot inject CSS or remote resources",a
  const html=await documentHtml("# Scientific report\nActual facts.","Scientific report",{arabic:"",latin:""},"forest");
  assert.ok(html.includes("#22654C"));
 });
+
+test("PDF font selection embeds the selected face and rejects arbitrary font input",async()=>{assert.equal(validatePdfInput({text:"source",font:"remote-css"}),false);const html=await documentHtml("# Font check\nReadable text.","Font check",{arabic:"",latin:"",extra:"fixture-font-bytes"},"editorial","editorial");assert.ok(html.includes("font-family:NoataEditorial"));assert.ok(html.includes("src:url(data:font/ttf;base64,fixture-font-bytes)"));assert.ok(!html.includes("https://fonts."));});

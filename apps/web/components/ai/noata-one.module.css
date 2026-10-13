@@ -177,3 +177,11 @@
 .root :global(.noata-one-actions-menu){position:absolute;inset-inline-end:0;top:calc(100% + 6px);width:215px;max-width:calc(100vw - 24px);display:grid;gap:3px;padding:7px;background:var(--surface);border:1px solid var(--line);border-radius:15px;box-shadow:0 10px 28px color-mix(in srgb,var(--ink) 12%,transparent);animation:panel-in var(--one-menu) var(--one-ease)}
 .root :global(.noata-one-actions-menu button){display:flex;align-items:center;text-align:start;gap:10px;width:100%;min-height:40px;padding:9px 10px;border:0;border-radius:9px;background:transparent;color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
 .root :global(.noata-one-actions-menu button:hover){background:var(--surface-soft)}
+
+@font-face{font-family:NoataEditorial;src:url("/fonts/lora.ttf") format("truetype");font-weight:400 700;font-display:swap;unicode-range:U+0000-024F,U+1E00-1EFF}
+@font-face{font-family:NoataMono;src:url("/fonts/roboto-mono.ttf") format("truetype");font-weight:100 700;font-display:swap;unicode-range:U+0000-024F,U+1E00-1EFF}
+.root :global(.owui-message.assistant .ai-rich-message :is(h1,h2,h3)){font-family:NoataEditorial,NoataArabic,serif;font-weight:650;line-height:1.5;margin-block:1.5em .65em;letter-spacing:-.015em}
+.root :global(.owui-message.assistant .ai-rich-message h2){font-size:1.4em}.root :global(.owui-message.assistant .ai-rich-message h3){font-size:1.15em}.root :global(.owui-message.assistant .ai-rich-message p){margin-block:.65em 1em}
+.root[data-typography="editorial"] :global(.owui-message.assistant .ai-rich-message){font-family:NoataEditorial,NoataArabic,serif;line-height:1.9}
+.root[data-typography="mono"] :global(.owui-message.assistant .ai-rich-message){font-family:NoataMono,NoataArabic,monospace;font-size:14px;line-height:1.85}
+.root :global(.noata-typography-choice){display:grid;gap:8px;margin-top:18px;font-size:13px;font-weight:600}.root :global(.noata-typography-choice select){font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}

@@ -45,7 +45,7 @@ export async function readPdfInput(request: Request, field: "text" | "markdown" 
   const raw: unknown = JSON.parse(new TextDecoder().decode(bytes));
   if (!raw || typeof raw !== "object") throw new PdfRequestError(400, "مستند غير صالح.");
   const value = raw as Record<string, unknown>;
-  const input = {text: value[field], title: value.title,style:value.style};
+  const input = {text: value[field], title: value.title,...(value.style===undefined?{}:{style:value.style}),...(value.font===undefined?{}:{font:value.font})};
   if (!validatePdfInput(input)) throw new PdfRequestError(400, "اكتب مستندًا لا يتجاوز ١٠٠٬٠٠٠ حرف وعنوانًا لا يتجاوز ١٢٠ حرفًا.");
   return input;
 }

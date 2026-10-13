@@ -56,6 +56,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const [loaded,setLoaded]=useState<Blob|null>(null),[inspection,setInspection]=useState<StudioInspection|null>(null);
  const [draft,setDraft]=useState(""),[mode,setMode]=useState<"preview"|"edit"|"compare">("preview");
  const [originalText,setOriginalText]=useState("");
+ const [font,setFont]=useState<"noata"|"editorial"|"mono">("noata");
  const [style,setStyle]=useState<DocumentStyle>("classic");
  const [outputFormat,setOutputFormat]=useState<Format>("pdf");
  const [page,setPage]=useState(1),[pageCount,setPageCount]=useState(1),[instruction,setInstruction]=useState("");
@@ -117,7 +118,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  async function buildRevision(kind:Format):Promise<Uint8Array>{
   let bytes:Uint8Array;
   if(kind==="pdf"){
-   const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text:draft,title:activeName.replace(/\.(pdf|docx|xlsx|pptx)$/i,"").slice(0,120),style})});
+   const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text:draft,title:activeName.replace(/\.(pdf|docx|xlsx|pptx)$/i,"").slice(0,120),style,font})});
    if(!response.ok)throw Error("PDF generation unavailable ("+response.status+")");
    bytes=new Uint8Array(await response.arrayBuffer());
   }else if(kind==="docx")bytes=(await import("@/lib/ai/docx-export")).createNoataDocx(draft,style);
@@ -228,6 +229,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     </label>}
     <label className="noata-creative-instruction">{t("صيغة النسخة الجديدة","New version format")}<select value={outputFormat} onChange={e=>setOutputFormat(e.target.value as Format)}>{(["pdf","docx","xlsx","pptx"] as const).map(kind=><option key={kind} value={kind}>{kind.toUpperCase()}</option>)}</select></label>
     {outputFormat!=="xlsx"&&<label className="noata-creative-instruction">{t("مظهر المستند","Document style")}<select value={style} onChange={e=>setStyle(e.target.value as DocumentStyle)}><option value="classic">{t("كلاسيكي","Classic")}</option><option value="editorial">{t("تحريري دافئ","Warm editorial")}</option><option value="forest">{t("غابة هادئة","Calm forest")}</option></select></label>}
+    {outputFormat==="pdf"&&<label className="noata-creative-instruction">{t("خط PDF المضمّن","Embedded PDF font")}<select value={font} onChange={e=>setFont(e.target.value as "noata"|"editorial"|"mono")}><option value="noata">Noata · Cairo</option><option value="editorial">Lora · Serif</option><option value="mono">Roboto Mono</option></select></label>}
     <div className="noata-creative-buttons">
      <button type="button" className="noata-download-original" disabled={busy||!loaded} onClick={()=>void downloadOriginal()}>
       <Icon name="download" size={15}/>{t("تنزيل الملف الأصلي","Download original")}

@@ -138,6 +138,9 @@ export function NoataAIClient() {
   useUnsavedWork(
     Boolean((hasTypedDraft && input.trim()) || documentFiles.length || attachment),
   );
+  const [typography,setTypography]=useState<"noata"|"editorial"|"mono">("noata");
+  useEffect(()=>{try{const value=localStorage.getItem("noata-ai-typography");if(value==="editorial"||value==="mono")setTypography(value);}catch{}},[]);
+  function changeTypography(value:string){const next=value==="editorial"?"editorial":value==="mono"?"mono":"noata";setTypography(next);try{localStorage.setItem("noata-ai-typography",next);}catch{}}
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -286,6 +289,7 @@ export function NoataAIClient() {
       dir={locale==="en"?"ltr":"rtl"}
       lang={locale}
       className={`${styles.root} owui-layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}
+      data-typography={typography}
       data-empty={!messages.length && !loading ? "true" : "false"}
     >
       {sidebar}
@@ -327,6 +331,17 @@ export function NoataAIClient() {
             >
               <Icon name="menu" />
             </button>
+            {sidebarCollapsed && (
+              <button
+                type="button"
+                className="owui-icon desktop-sidebar-trigger"
+                onClick={() => setSidebarCollapsed(false)}
+                aria-label={t("فتح القائمة الجانبية","Open sidebar")}
+              >
+                <Icon name="sidebar" />
+              </button>
+            )}
+
             <div className="owui-model-picker" ref={modelPickerRef}>
               <button
                 type="button"
@@ -1124,6 +1139,7 @@ export function NoataAIClient() {
                 <p>{t("اختار ألوان Noata وحركة الواجهة. إعداد الحركة محفوظ على الجهاز.","Choose your Noata palette and animation level. Motion settings are saved on this device.")}</p>
                 <ThemeControl />
                 <NoataMotionControl />
+                <label className="noata-typography-choice">{t("خط الردود","Response typography")}<select value={typography} onChange={e=>changeTypography(e.target.value)}><option value="noata">{t("Noata · واضح ومتوازن","Noata · clear and balanced")}</option><option value="editorial">{t("Lora · قراءة تحريرية","Lora · editorial reading")}</option><option value="mono">{t("Roboto Mono · تقني","Roboto Mono · technical")}</option></select></label>
               </>
             )}
 
