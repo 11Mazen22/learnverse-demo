@@ -1087,7 +1087,7 @@ export function useAIWorkspace() {
               const result=await supabase.from("ai_artifacts").insert({
                 id:artifact.id,user_id,filename:artifact.filename,mime_type:artifact.mimeType,
                 storage_path:artifact.storagePath,byte_size:artifact.byteSize,source_content:source.slice(0,160000),
-                ...(editingSource?.artifactId?{parent_artifact_id:editingSource.artifactId}:editingSource?.documentId?{source_document_id:editingSource.documentId}:{})
+                ...(editingSource?.artifactId?{parent_artifact_id:editingSource.artifactId}:editingSource?.documentId?{source_document_id:editingSource.documentId}:currentIntent.usePrevious&&typeof priorArtifact?.id==="string"?{parent_artifact_id:priorArtifact.id}:{})
               });
               if(result.error)throw result.error;
             },

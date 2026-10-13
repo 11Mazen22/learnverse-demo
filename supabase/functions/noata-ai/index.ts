@@ -107,7 +107,7 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   return background.status==="complete"?background:broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
 }
-function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="") {
+function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="",artifactFormat?:unknown) {
   const specialized=model==="Fanar-Sadiq"||model==="Fanar-Sadiq-2";
   // Sadiq is a grounded service with its own prompting and no token stream.
   // Keep a live heartbeat while waiting for its actual JSON response.
@@ -123,7 +123,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
       return research;
     }:undefined,
     review: !specialized&&userId?async(result,signal,emit)=>{
-      const reason=answerReviewReason(actualRequest,result.content,result.research);
+      const reason=answerReviewReason(actualRequest,result.content,result.research,artifactFormat);
       if(!reason)return;
       emit({status:"organizing"});
       const fallback=()=>reason==="research_evidence"&&result.research?limitedResearchSummary(result.research,responseLanguage):undefined;
@@ -132,13 +132,13 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
         const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
           method:"POST",headers:{Authorization:"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
           body:JSON.stringify({model,stream:false,max_tokens:3000,temperature:0.15,messages:[
-            {role:"system",content:answerReviewInstruction(reason,responseLanguage)},
+            {role:"system",content:answerReviewInstruction(reason,responseLanguage)+"\n"+fileDeliveryInstruction(artifactFormat,responseLanguage)},
             {role:"user",content:JSON.stringify({request:actualRequest,previousDraft:result.content.slice(0,20000),...(result.research?{retrievedEvidence:researchContext(result.research)}:{})})}
           ]}),signal:AbortSignal.any([signal,AbortSignal.timeout(45000)])
         });
         if(!reviewed.ok)return fallback();
         const data=await reviewed.json(),candidate=clean(data?.choices?.[0]?.message?.content??"");
-        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewReason(actualRequest,candidate,result.research))return fallback();
+        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewReason(actualRequest,candidate,result.research,artifactFormat))return fallback();
         return candidate;
       }catch{signal.throwIfAborted();return fallback();}
     }:undefined,
@@ -629,7 +629,7 @@ async function handleChat(
     body.enable_thinking = true;
 
   if (payload.stream === true && payload.enable_thinking !== true)
-    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",latestText);
+    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",latestText,payload.artifactFormat);
   const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
   if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});

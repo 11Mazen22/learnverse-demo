@@ -23,3 +23,8 @@ test("A provider failure becomes explicitly limited retrieved evidence, never a 
  assert.match(text,/not a complete fact-check/);assert.match(text,/\[1\]/);assert.match(text,/background excerpts only/);
  assert.doesNotMatch(text,/cannot search|entire earlier answer is correct/);
 });
+
+test("Artifact engines retain their explicit structure and long numeric requests retain depth",()=>{
+ assert.equal(answerReviewReason("Write a long presentation","## Slide 1\nFive concise bullets.",undefined,"pptx"),null);
+ assert.equal(answerReviewReason("Write a detailed 1,500 word guide","Short answer"),"requested_depth");
+});
