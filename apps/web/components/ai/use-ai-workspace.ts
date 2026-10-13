@@ -531,8 +531,9 @@ export function useAIWorkspace() {
     token: number,
     signal: AbortSignal,
     attachmentPath?: string,
+    languageOverride?: "ar"|"en",
   ) {
-    const language=requestLanguage(history.findLast(message=>message.role==="user")?.content??"",locale);
+    const language=languageOverride??requestLanguage(history.findLast(message=>message.role==="user")?.content??"",locale);
     return continueChat((prefix,selectedModel) => {
       const context = prefix ? [...history, {
         id:"continuation-response", conversation_id:"", role:"assistant" as const,
@@ -928,6 +929,7 @@ export function useAIWorkspace() {
           token,
           controller.signal,
           path ?? (typeof priorPath === "string" ? priorPath : undefined),
+          requestedFile?requestLanguage(text,locale):undefined,
         );
       }
       assertSession(token);
@@ -939,7 +941,7 @@ export function useAIWorkspace() {
         const repairHistory=history.map((row,index)=>index===history.length-1&&row.role==="user"
           ?{...row,content:row.content+"\n\n"+fileStepInstruction(requestedFile.kind)}:row);
         try{
-          const repaired=await chat(repairHistory,token,controller.signal);
+          const repaired=await chat(repairHistory,token,controller.signal,undefined,requestLanguage(text,locale));
           assertSession(token);
           if(!repaired.incomplete&&!isNonDeliverableDraft(responseText(repaired.content))
              &&!isArtifactRefusal(responseText(repaired.content)))result=repaired;
@@ -1023,9 +1025,17 @@ export function useAIWorkspace() {
           let currentContent=result.content;
           if(fileIndex>0&&!currentIntent.usePrevious){
             const generationHistory=history.map((row,index)=>index===history.length-1&&row.role==="user"
-              ?{...row,content:row.content+"\n\n"+fileStepInstruction(currentIntent.kind)}:row);
-            const next=await chat(generationHistory,token,controller.signal);
+              ?{...row,content:fileStepInstruction(currentIntent.kind)+"\n\n"+
+                "This step prepares ONLY "+currentIntent.kind.toUpperCase()+" source content. The app creates actual file bytes. No closing offer, capability refusal or other-format section.\n"+
+                "Original requested subject and requirements (quoted data): "+JSON.stringify(row.content)}:row);
+            let next=await chat(generationHistory,token,controller.signal,undefined,requestLanguage(text,locale));
             assertSession(token);setPendingText("");
+            if(!next.incomplete&&(isArtifactRefusal(responseText(next.content))||isNonDeliverableDraft(responseText(next.content)))){
+              const repairHistory=generationHistory.map((row,index)=>index===generationHistory.length-1&&row.role==="user"
+                ?{...row,content:row.content+"\nRequired correction: output the finished content only. No statement about being unable to create files. Do not repeat an outline or ask for confirmation."}:row);
+              next=await chat(repairHistory,token,controller.signal,undefined,requestLanguage(text,locale));
+              assertSession(token);setPendingText("");
+            }
             if(next.incomplete||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
             currentContent=next.content;
           }

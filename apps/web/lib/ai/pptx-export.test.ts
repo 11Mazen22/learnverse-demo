@@ -49,3 +49,10 @@ test("Distinct Markdown slide headings produce editable slides without requiring
   assert.match(second,/خاتمة/);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test("Actual provider bold slide labels preserve separate editable sections",()=>{
+ const source="Here is the content for the PowerPoint presentation:\n\n---\n**Title Slide:** Photosynthesis\n\n**Slide 1: Introduction**\n- Plants convert light energy\n\n**Slide 2: Reactions**\n- Light reactions occur in thylakoids";
+ const slides=parseNoataSlides(source);
+ assert.deepEqual(slides.map(s=>s.title),["Photosynthesis","Introduction","Reactions"]);
+ assert.ok(new TextDecoder().decode(createNoataPptx(source)).includes("Plants convert light energy"));
+});

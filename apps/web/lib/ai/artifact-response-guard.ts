@@ -11,7 +11,7 @@ export function isArtifactCapabilityQuestion(prompt:string):boolean{
 }
 export function isArtifactRefusal(answer:string):boolean{
  const s=answer.slice(0,1800);
- return /(?:i (?:am |['’]?m )?(?:unable|not able)\s+to\s+(?:create|generate|make|produce|provide)|i (?:can(?:not|['’]t)|do not have the (?:ability|capability))\s+(?:directly\s+)?(?:create|generate|make|produce|provide)|my capabilities do not include|cannot create downloadable files)/i.test(s)
+ return /(?:i (?:am |['’]?m )?(?:unable|not able)\s+to\s+(?:directly\s+)?(?:create|generate|make|produce|provide)|i (?:can(?:not|['’]t)|do not have the (?:ability|capability))\s+(?:directly\s+)?(?:create|generate|make|produce|provide)|my capabilities (?:do not|don[’\']t) include|cannot create downloadable files)/i.test(s)
  || /(?:لا أستطيع|لا يمكنني|غير قادر|ماقدرش|مقدرش|مش قادر)\s+(?:على\s+)?(?:إنشاء|توليد|عمل|تجهيز|إنتاج|عمل\s+ملف)/.test(s);
 }
 export function safeArtifactReplyOnCapabilityQuestion(prompt:string,answer:string,locale:"en"|"ar"):string{

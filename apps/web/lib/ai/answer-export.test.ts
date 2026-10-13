@@ -16,3 +16,9 @@ test("Export filenames cannot include unsafe filesystem characters",()=>{
  assert.equal(safeExportStem("<>").length>0,true);
  assert.equal(hasSlideStructure("# Title\nPoint"),true);
 });
+
+test("Comma-bearing refusals and prose cannot become fake workbook data",()=>{
+ assert.equal(hasTableData("I understand you want a PDF guide, PowerPoint presentation, and Excel tracker.\nHowever, I cannot create files, only textual content."),false);
+ assert.equal(hasTableData("Name,Score\nAli,12\nSam,15"),true);
+ assert.equal(hasTableData("Name,Score\nAli,12,extra"),false);
+});

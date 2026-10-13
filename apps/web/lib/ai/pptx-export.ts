@@ -10,7 +10,15 @@ const escapeXml=(s:string)=>s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,"").replac
 export type NoataSlide={title:string;lines:string[]};
 export function parseNoataSlides(source:string):NoataSlide[]{
  if(source.length>30000)throw Error("Presentation content exceeds 30,000 characters");
- const normalized=source.replace(/\r\n?/g,"\n");
+ let normalized=source.replace(/\r\n?/g,"\n");
+ // Fanar's actual slide response uses bold labels; preserve their real sections.
+ normalized=normalized.replace(/^\s*\*\*((?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：].+?)\*\*\s*$/gim,
+  (_,title:string)=>"# "+title.replace(/^(?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：]\s*/i,""));
+ normalized=normalized.replace(/^\s*\*\*((?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：])\*\*\s*(.+)$/gim,(_,label:string,title:string)=>"# "+title);
+ normalized=normalized.replace(/^#{1,3}\s+/gm,"# ");
+ if(/^\s*Here is (?:the )?content for (?:the )?PowerPoint/i.test(normalized)){
+  const at=normalized.search(/^#\s+/m);if(at>=0)normalized=normalized.slice(at);
+ }
  const sections=normalized.split(/^\s*---\s*$/m);
  const segments=sections.flatMap(section=>{
   const chunks:string[]=[],lines=section.split("\n");let active:string[]=[];
