@@ -34,3 +34,5 @@
 .noata-studio-library-controls select:focus-visible,.noata-studio-library-controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .noata-library-files{max-height:440px}.noata-library-files li{flex-wrap:wrap}.noata-library-files li>div{flex:1 1 200px}.noata-file-project{display:grid;gap:4px;font-size:11px;min-width:120px;flex:1 1 120px}.noata-file-project select{padding:7px}.noata-library-media{display:grid;gap:12px;border:1px solid var(--line);border-radius:16px;padding:14px}.noata-library-media img{max-width:100%;max-height:440px;object-fit:contain}.noata-library-media audio{max-width:100%;width:100%}
+
+.noata-library-preview-heading{display:grid;gap:10px;align-items:start}.noata-library-preview-heading button{justify-self:start}.noata-library-preview-heading h4{margin:0;color:var(--ink);font-size:14px;line-height:1.6;overflow-wrap:anywhere}.noata-library-preview-heading h4:focus{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
