@@ -5,7 +5,7 @@ import {OriginalDocumentPreview} from "./original-document-preview";
 import {Dialog} from "@/components/ui/dialog";
 import {Icon} from "@/components/ui/icon";
 
-type Source={localId?:string;documentId?:string;expiresAt?:string;name:string;format:"text"|"docx"|"pdf"|"xlsx";excerpt:string;truncated:boolean};
+type Source={localId?:string;documentId?:string;expiresAt?:string;name:string;format:"text"|"docx"|"pdf"|"xlsx";excerpt:string;truncated:boolean;damagedPages?:number[]};
 /** Files are read-only extracted source excerpts; original files are not retained. */
 export function DocumentSourcesMessage({sources}:{sources:unknown}){
  const t=useTranslation(),locale=useLocale();
@@ -32,6 +32,8 @@ export function DocumentSourcesMessage({sources}:{sources:unknown}){
         </button>
       ))}
     </div>
+    {items.some(item=>Array.isArray(item.damagedPages)&&item.damagedPages.length>0)&&
+      <p role="status">{t("بعض رموز PDF لم تُقرأ بوضوح. وُضعت علامة � بدل الرمز المفقود؛ راجع المستند الأصلي قبل استخدام المعادلات أو الأرقام.","Some PDF glyphs could not be read. They are marked � rather than guessed. Check the original before using formulas or figures.")}</p>}
     <Dialog open={selected!==null} onClose={()=>setActive(null)} title={selected?.name??t("معاينة المصدر","Source preview")}>
       {selected&&<div className="aura-source-preview">
         <div className="aura-studio-tabs"><button type="button" aria-pressed={tab==="original"} onClick={()=>setTab("original")}>{t("المستند الأصلي","Original document")}</button><button type="button" aria-pressed={tab==="context"} onClick={()=>setTab("context")}>{t("السياق المرسل للذكاء الاصطناعي","Context sent to AI")}</button></div>

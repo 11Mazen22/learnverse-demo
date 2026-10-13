@@ -530,7 +530,7 @@ export function NoataAIClient() {
           )}
 
           {!messages.length && !loading && (
-            <NoataWelcome signedIn={signedIn} />
+            <div><NoataWelcome signedIn={signedIn} />{error&&<p className="owui-error" role="alert">{error}</p>}</div>
           )}
 
           <div className="owui-thread">

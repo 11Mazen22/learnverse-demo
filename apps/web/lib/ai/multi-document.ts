@@ -16,6 +16,7 @@ export type DocumentSource={
   format:"text"|"docx"|"pdf"|"xlsx";
   totalPages?:number;
   scannedPages?:number[];
+  damagedPages?:number[];
   excerpt:string;
   truncated:boolean;
 };
@@ -45,7 +46,7 @@ export function appendDocumentSources(prompt:string,raw:unknown):string {
     const excerpt=item.excerpt.slice(0,Math.min(remaining,MAX_SINGLE_DOCUMENT_CONTEXT));
     if(!excerpt)break;
     remaining-=excerpt.length;
-    sections.push("[FILE "+(index+1)+" | "+name+"]\n"+excerpt+"\n[/FILE "+(index+1)+"]");
+    sections.push("[FILE "+(index+1)+" | "+name+"]\n"+(Array.isArray(item.damagedPages)&&item.damagedPages.length?"Extraction warning: some PDF glyphs are unreadable and replaced with �. Do not guess their meaning or claim complete extraction.\n":"")+excerpt+"\n[/FILE "+(index+1)+"]");
     if(remaining<=0)break;
   }
   if(!sections.length)return prompt;
@@ -84,7 +85,7 @@ export async function extractDocumentBatch(files:readonly DocumentFile[],query="
    excerpt,
    truncated:parsed.truncated||selected.truncated,
    ...(pdf
-     ? {totalPages:(parsed as ExtractedPdf).totalPages,scannedPages:(parsed as ExtractedPdf).scannedPages}
+     ? {totalPages:(parsed as ExtractedPdf).totalPages,scannedPages:(parsed as ExtractedPdf).scannedPages,damagedPages:(parsed as ExtractedPdf).damagedPages??[]}
      : {}),
   });
  }

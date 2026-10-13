@@ -1142,6 +1142,7 @@ export function useAIWorkspace() {
       }
     } catch (e) {
       if (!sessionScope.current.isCurrent(token)) return;
+      setNotice("");
       if(controller.signal.aborted){
         setError("");
         setNotice(t("تم إيقاف العملية. الملفات المكتملة محفوظة؛ لم نعلن اكتمال أي جزء لم ينتهِ.","Stopped. Completed deliverables are kept; unfinished work was not marked complete."));

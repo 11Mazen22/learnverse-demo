@@ -4,7 +4,12 @@ export const MAX_PDF_BYTES=8*1024*1024;
 export const MAX_PDF_PAGES=30;
 export const MAX_PDF_CONTEXT=18000;
 export type PdfPage={page:number;text:string;characters:number};
-export type ExtractedPdf={pages:PdfPage[];excerpt:string;totalPages:number;scannedPages:number[];truncated:boolean};
+export type ExtractedPdf={pages:PdfPage[];excerpt:string;totalPages:number;scannedPages:number[];damagedPages?:number[];truncated:boolean};
+/** A missing glyph must be disclosed, not guessed or sent as JSON's forbidden NUL. */
+export function safePdfText(text:string):{text:string;damaged:boolean}{
+ const damaged=text.includes("\u0000");
+ return{text:text.replace(/\u0000/g,"�"),damaged};
+}
 export function isPdfDocument(file:{name:string;type:string}):boolean {
  return /\.pdf$/i.test(file.name)&&(file.type==="application/pdf"||file.type==="");
 }
@@ -43,6 +48,7 @@ export async function extractPdfDocument(file:{
  });
  const pages:PdfPage[]=[];
  const scannedPages:number[]=[];
+ const damagedPages:number[]=[];
  let totalPages=0;
  let truncated=false;
  try{
@@ -54,7 +60,9 @@ export async function extractPdfDocument(file:{
    const page=await document.getPage(number);
    const text=await page.getTextContent({includeMarkedContent:false});
    const lines=pdfTextLines(text.items);
-   const fullPageText=lines.join("\n");
+   const extracted=safePdfText(lines.join("\n"));
+   if(extracted.damaged)damagedPages.push(number);
+   const fullPageText=extracted.text;
    const pageText=fullPageText.slice(0,4000);
    // The excerpt caps each page at 3,200 characters. Never hide that loss.
    if(fullPageText.length>3200)truncated=true;
@@ -71,5 +79,5 @@ export async function extractPdfDocument(file:{
  if(!excerpt.trim()){
   throw Error("لم يمكن استخراج نص من ملف PDF. يبدو أنه ممسوح ضوئيًا؛ OCR غير متاح حاليًا.");
  }
- return {pages,excerpt,totalPages,scannedPages,truncated};
+ return {pages,excerpt,totalPages,scannedPages,damagedPages,truncated};
 }
