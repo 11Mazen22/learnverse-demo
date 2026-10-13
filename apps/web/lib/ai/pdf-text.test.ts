@@ -82,3 +82,5 @@ test("Observed Arabic-labelled scientific symbols preserve LTR order during PDF 
  const items=pieces.map((str,i)=>({str,transform:[1,0,0,1,i*10,100],width:10,dir:i<15?"ltr":"rtl"}));
  assert.equal(reconstructPdfLine(items),"الرموز: → ← ≤ ≥ ∑ √ ∞");
 });
+
+test("Observed serif PDF font switches preserve continuous English words",()=>{assert.equal(reconstructPdfLine([{str:"Pl",transform:[11,0,0,11,51,625],width:9.6},{str:"a",transform:[11,0,0,11,60.6,625],width:5.7},{str:"nts",transform:[11,0,0,11,66.3,625],width:15.9},{str:" ",transform:[11,0,0,11,82.2,625],width:3.8},{str:"transform",transform:[11,0,0,11,85.1,625],width:49}]),"Plants transform");});

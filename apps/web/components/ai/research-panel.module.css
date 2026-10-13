@@ -1,0 +1,39 @@
+/* Actual research evidence. All colors follow the active Noata palette. */
+.panel{margin-block:22px;border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--ink);overflow:hidden;min-width:0;box-shadow:0 8px 26px color-mix(in srgb,var(--accent) 4%,transparent)}
+.panel :global(.noata-research-summary){display:flex;align-items:center;gap:12px;padding:15px 18px;min-height:64px;cursor:pointer;list-style:none;font-size:.9rem;font-weight:650;line-height:1.55;transition:background 180ms ease}
+.panel :global(.noata-research-summary)::-webkit-details-marker{display:none}
+.panel :global(.noata-research-summary):hover{background:var(--surface-soft)}
+.panel :global(.noata-research-summary):focus-visible{outline:2px solid var(--accent);outline-offset:-4px;border-radius:18px}
+.panel :global(.noata-research-indicator){width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:12px;background:var(--accent-soft);color:var(--accent)}
+.panel :global(.noata-research-expand){margin-inline-start:auto;color:var(--muted);font-size:.78rem;font-weight:500}
+.panel :global(.noata-research-chevron){display:flex;flex:none;color:var(--muted);transition:transform 220ms cubic-bezier(.2,.75,.25,1)}
+.panel[open] :global(.noata-research-chevron){transform:rotate(180deg)}
+.panel :global(.noata-research-detail){padding:4px 18px 18px;border-block-start:1px solid var(--line);font-size:.875rem;line-height:1.65}
+.panel[open] :global(.noata-research-detail){animation:reveal 240ms cubic-bezier(.2,.75,.25,1) both}
+.panel :global(.noata-research-query){margin-block:14px;padding:13px 16px;border:1px solid var(--line);border-radius:13px;background:var(--surface-soft)}
+.panel :global(.noata-research-query) strong{font-size:.72rem;font-weight:650;color:var(--muted)}
+.panel :global(.noata-research-query) p{margin:5px 0 0;color:var(--ink);font-size:.95rem;overflow-wrap:anywhere}
+.panel :global(.noata-research-activity){display:grid;gap:10px;list-style:none;padding:0;margin:18px 0}
+.panel :global(.noata-research-activity) li{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.panel[open] :global(.noata-research-activity) li{animation:reveal 200ms ease both}
+.panel :global(.noata-research-stage-icon){display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--line);border-radius:50%;background:var(--surface-soft);color:var(--accent);flex:none}
+.panel :global(.noata-research-activity) small{margin-inline-start:auto;font-size:.72rem;font-variant-numeric:tabular-nums}
+.panel :global(.noata-research-source-heading){display:block;margin-block:20px 12px;font-size:.8rem}
+.panel :global(.noata-research-links){list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.panel :global(.noata-research-links)>li{min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);transition:border-color 180ms ease,box-shadow 180ms ease}
+.panel :global(.noata-research-links)>li:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 5%,transparent)}
+.panel :global(.noata-research-links) a{display:flex;align-items:flex-start;gap:9px;color:var(--ink);font-weight:650;text-decoration:none;line-height:1.5}
+.panel :global(.noata-research-links) a:hover bdi{text-decoration:underline;text-underline-offset:3px}
+.panel :global(.noata-research-links) a:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:3px}
+.panel :global(.noata-research-links) bdi{overflow-wrap:anywhere}
+.panel :global(.noata-source-number){display:grid;place-items:center;flex:none;min-width:24px;height:24px;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-size:.7rem;font-variant-numeric:tabular-nums}
+.panel :global(.noata-source-link-icon){display:flex;margin-inline-start:auto;transform:rotate(135deg);color:var(--muted);flex:none}
+.panel :global(.noata-research-links) small{display:block;margin-block-start:6px;color:var(--muted);font-size:.73rem;overflow-wrap:anywhere}
+.panel :global(.noata-research-links) p{margin:9px 0 0;font-size:.8rem;line-height:1.7;color:var(--muted)}
+.panel :global(.noata-research-disclaimer){display:flex;align-items:flex-start;gap:9px;margin:16px 0 0;padding-block-start:13px;border-block-start:1px solid var(--line);font-size:.76rem;line-height:1.65;color:var(--muted)}
+.panel :global(.noata-research-disclaimer) svg{flex:none;margin-block-start:3px}
+@keyframes reveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@supports(interpolate-size:allow-keywords){.panel{interpolate-size:allow-keywords}.panel::details-content{height:0;overflow:clip;transition:height 240ms cubic-bezier(.2,.75,.25,1),content-visibility 240ms allow-discrete}.panel[open]::details-content{height:auto}}
+@media(max-width:600px){.panel{border-radius:16px}.panel :global(.noata-research-summary){padding:12px;gap:9px;font-size:.82rem}.panel :global(.noata-research-expand){display:none}.panel :global(.noata-research-chevron){margin-inline-start:auto}.panel :global(.noata-research-detail){padding-inline:12px}.panel :global(.noata-research-links)>li{padding:12px}.panel :global(.noata-research-activity) li{font-size:.78rem}}
+@media(prefers-reduced-motion:reduce){.panel::details-content,.panel :global(*){animation:none!important;transition:none!important}}
+:global(html[data-noata-motion="off"]) .panel::details-content,:global(html[data-noata-motion="off"]) .panel :global(*){animation:none!important;transition:none!important}

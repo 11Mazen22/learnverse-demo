@@ -109,11 +109,23 @@ export function reconstructPdfLine(items: readonly PdfTextItem[]): string {
     flush();
     return pieces.join("").normalize("NFKC").trim();
   }
-  return items
-    .map((x) => x.str)
-    .join(" ")
-    .normalize("NFKC")
-    .trim();
+  let output="",previous:PdfTextItem|undefined;
+  for(const item of items){
+    if(!item.str)continue;
+    let separator=previous?" ":"";
+    if(/\s$/.test(output)||/^\s/.test(item.str))separator="";
+    else if(previous&&previous.dir!=="rtl"&&item.dir!=="rtl"
+      && !/[\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff]/.test(previous.str+item.str)
+      && Number.isFinite(previous.transform[4])&&Number.isFinite(item.transform[4])
+      &&typeof previous.width==="number"){
+      const gap=item.transform[4]-(previous.transform[4]+previous.width);
+      // A font switch can split "Plants" into "Pl", "a", "nts". The
+      // glyph positions touch; inventing a space corrupts the source text.
+      if(gap>=-2&&gap<=Math.max(.8,Math.abs(item.transform[0]??1)*.12))separator="";
+    }
+    output+=separator+item.str;previous=item;
+  }
+  return output.normalize("NFKC").trim();
 }
 export function pdfTextLines(raw: readonly unknown[]): string[] {
   const lines: string[] = [];

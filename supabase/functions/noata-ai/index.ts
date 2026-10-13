@@ -117,7 +117,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);
       const messages=providerBody.messages as {role:string;content:unknown}[];
-      messages.splice(Math.max(0,messages.length-1),0,{role:"user",content:researchContext(research)});
+      messages.splice(Math.max(0,messages.length-1),0,{role:specialized?"user":"system",content:researchContext(research)});
       return research;
     }:undefined,
     request: (signal) => fetch(FANAR_BASE + "/chat/completions", {
@@ -611,7 +611,7 @@ async function handleChat(
   const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
   if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});
-  if(research)messages.splice(Math.max(0,messages.length-1),0,{role:"user",content:researchContext(research)});
+  if(research)messages.splice(Math.max(0,messages.length-1),0,{role:"system",content:researchContext(research)});
   let data: any;
   if (model === "Fanar-C-1-8.7B" && payload.enable_thinking === true) {
     data = await c1Thinking(messages);

@@ -34,6 +34,7 @@ import {needsSemanticPlan,validateSemanticPlan} from "../../../../supabase/funct
 import type {ArtifactIntent} from "@/lib/ai/artifact-intent";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import { artifactContent,detectArtifactIntents,checkArtifactContent } from "@/lib/ai/artifact-intent";
+import {documentWithResearch} from "@/lib/ai/research-document";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
 import {confirmedFileIntent} from "@/lib/ai/artifact-followup";
@@ -602,6 +603,7 @@ export function useAIWorkspace() {
       assertSession(token);
       if (data.error) throw Error(String(data.error));
       if (!data.content) throw Error("Empty response");
+      setNotice("");
       return {
         content: String(data.content),
         model: String(data.model ?? model),
@@ -651,6 +653,8 @@ export function useAIWorkspace() {
     }
     if (!done) throw Error("Stream interrupted");
     if (!content.trim()) throw Error("Empty response");
+    assertSession(token);
+    setNotice("");
     return { content, model: used,finishReason,incomplete,research,timings,routeNote };
   }
   async function persist(row: Message) {
@@ -1040,7 +1044,11 @@ export function useAIWorkspace() {
             if(next.incomplete||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
             currentContent=next.content;
           }
-          const source = artifactContent(currentIntent,responseText(currentContent),responseText(prior));
+          const source = documentWithResearch(
+            artifactContent(currentIntent,responseText(currentContent),responseText(prior)),
+            currentIntent.usePrevious?priorForFile?.metadata?.research:result.research,
+            requestLanguage(text,locale),currentIntent.kind,
+          );
           const chartData = currentIntent.kind === "pdf"
             ? findActualLineChart(currentIntent.usePrevious && prior.trim()?prior:currentContent)
             : null;

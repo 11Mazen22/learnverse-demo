@@ -1,5 +1,7 @@
 "use client";
 import {useId,useState} from "react";
+import {Icon} from "@/components/ui/icon";
+import researchStyles from "./research-panel.module.css";
 import {useTranslation} from "@/lib/i18n/locale";
 import {quadraticValues,type ResponseUi} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
@@ -47,8 +49,8 @@ export function ResearchSources({research}:{research:unknown}){
    provider_unavailable:t("تعذّر الوصول إلى خدمة البحث أو رفضت الطلب.","The search provider could not be reached or rejected the request."),
    quota_or_service:t("تعذّر البحث بسبب الحصة أو إتاحة الخدمة.","Search could not run because of quota or service availability.")
   };
-  return <details className="noata-research-trace">
-   <summary className="noata-research-summary">{t("البحث غير متاح","Research unavailable")}</summary>
+  return <details className={`noata-research-trace ${researchStyles.panel}`}>
+   <summary className="noata-research-summary"><span className="noata-research-indicator" aria-hidden="true"><Icon name="search" size={20}/></span><span>{t("البحث غير متاح","Research unavailable")}</span><span className="noata-research-chevron"><Icon name="chevron" size={16}/></span></summary>
    <div className="noata-research-detail">
     <p role="status">{reasons[data.reason??""]??t("تعذّر استرجاع مصادر مباشرة لهذا الطلب.","Live sources could not be retrieved for this request.")}</p>
     <p>{t("لم نتحقق من المعلومات الحالية ولم ننشئ بيانات أو مراجع وهمية.","Current claims have not been verified; no data or citations were invented.")}</p>
@@ -62,30 +64,30 @@ export function ResearchSources({research}:{research:unknown}){
   unavailable:t("البحث غير متاح","Research unavailable"),
   failed:t("تعذّر البحث","Research failed")
  };
- return <details className="noata-research-trace">
-  <summary className="noata-research-summary"><span className="noata-research-indicator" aria-hidden="true">⌕</span>
+ return <details className={`noata-research-trace ${researchStyles.panel}`}>
+  <summary className="noata-research-summary"><span className="noata-research-indicator" aria-hidden="true"><Icon name="search" size={20}/></span>
    <span>{data.reason==="encyclopedia_background"
       ?t("مراجع موسوعية من ويكيبيديا","Wikipedia background sources")
       :t("تم البحث على الويب","Searched the web")} · {data.sources.length} {t("مصادر","sources")}</span>
-   <span className="noata-research-expand">{t("التفاصيل","Details")}</span>
+   <span className="noata-research-expand">{t("التفاصيل","Details")}</span><span className="noata-research-chevron"><Icon name="chevron" size={16}/></span>
   </summary>
   <div className="noata-research-detail">
    {data.query&&<div className="noata-research-query"><strong>{t("عبارة البحث","Search query")}</strong><p dir="auto">{data.query}</p></div>}
    {data.activity&&data.activity.length>0&&<ol className="noata-research-activity" aria-label={t("مراحل البحث المسجلة","Recorded research stages")}>
-    {data.activity.map((item,i)=><li key={item.stage+":"+i}>
-     <span className="noata-research-stage-icon" aria-hidden="true">✓</span><span>{labels[item.stage]??item.stage}</span>
+    {data.activity.map((item,i)=><li key={item.stage+":"+i} style={{animationDelay:`${Math.min(i,4)*35}ms`}}>
+     <span className="noata-research-stage-icon" aria-hidden="true"><Icon name={item.stage==="searching"?"search":item.stage==="reviewing"?"book":item.stage==="complete"?"check":"help"} size={15}/></span><span>{labels[item.stage]??item.stage}</span>
      {item.resultCount!==undefined&&<small>{item.resultCount} {t("مصادر","sources")}</small>}
     </li>)}
    </ol>}
    <strong className="noata-research-source-heading">{t("المصادر المسترجعة","Retrieved sources")}</strong>
    <ol className="noata-research-links">{data.sources.map(source=><li key={source.id}>
-    <a href={source.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><bdi>[{source.id}] {source.title}</bdi></a>
+    <a href={source.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><span className="noata-source-number" aria-hidden="true">{source.id}</span><bdi>[{source.id}] {source.title}</bdi><span className="noata-source-link-icon" aria-hidden="true"><Icon name="arrow" size={15}/></span></a>
     <small><bdi>{source.domain}</bdi>{source.published?" · "+source.published:""}</small>
     <p>{source.excerpt}</p>
    </li>)}</ol>
-   <p className="noata-research-disclaimer">{data.reason==="encyclopedia_background"
+   <p className="noata-research-disclaimer"><Icon name="help" size={16}/><span>{data.reason==="encyclopedia_background"
      ?t("هذه مقاطع من ويكيبيديا للمعلومات العامة، وليست بحثًا حديثًا أو تحققًا من الأخبار.","These are Wikipedia background excerpts, not live news or verification of current claims.")
-     :t("المصادر المسترجعة لا تثبت تلقائيًا كل معلومة في الإجابة. تحقّق من الادعاءات المهمة.","Retrieved sources do not automatically verify every claim. Check important conclusions.")}</p>
+     :t("المصادر المسترجعة لا تثبت تلقائيًا كل معلومة في الإجابة. تحقّق من الادعاءات المهمة.","Retrieved sources do not automatically verify every claim. Check important conclusions.")}</span></p>
   </div>
  </details>;
 }

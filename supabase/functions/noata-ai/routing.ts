@@ -20,6 +20,9 @@ export function resolveAutoRoute(text: string, hasImage = false) {
       /\b(complex|advanced)\b.*\b(math|equation|reasoning|analysis|code)\b/i.test(q) ||
       /(برهن|اثبت|أثبت|اشتق|حلل بعمق|مسألة صعبة|تفكير عميق|خوارزمية)/.test(q))
     return { model: "Fanar-C-2-27B", reason: "deep" };
+  // Requested depth and source verification need instruction-following structure.
+  if (/\b(long|detailed|comprehensive|in.depth|essay|report|talk\s+along|research|verify|citations?|search)\b|بالتفصيل|شرح طويل|مطوّل|شامل|ابحث|تحقق من/i.test(q))
+    return {model:"Fanar-C-1-8.7B",reason:"structured_depth"};
   if (/\b(why|solve|calculate|equation|geometry|physics|logic|compare|explain|analyze|code)\b/i.test(q) ||
       /(لماذا|ليه|احسب|معادلة|هندسة|فيزياء|منطق|اشرح|قارن|حلّل|حلل|برمجة)/.test(q) || /(^|\s)حل(?=\s|$)/.test(q))
     return { model: "Fanar-C-1-8.7B", reason: "reasoning" };

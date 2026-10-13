@@ -114,7 +114,7 @@ for(const [font,expectedFont] of [["editorial","Lora"],["mono","RobotoMono"]]){
  const parsed=await getDocument({data:Uint8Array.from(bytes),isEvalSupported:false,fontExtraProperties:true}).promise;
  let visible="",fonts=[];
  const page=await parsed.getPage(1),content=await page.getTextContent();
- visible=content.items.filter(x=>"str" in x).map(x=>x.str).join(" ");
+ visible=pdfTextLines(content.items).join(" ");
  const operators=await page.getOperatorList();
  for(const dependency of operators.fnArray.map((fn,i)=>fn===OPS.dependency?operators.argsArray[i]:null).filter(Boolean).flat()){
   try{const face=page.commonObjs.get(dependency);if(face?.name)fonts.push(face.name);}catch{}
@@ -122,7 +122,7 @@ for(const [font,expectedFont] of [["editorial","Lora"],["mono","RobotoMono"]]){
  assert.ok(visible.includes("Plants transform light energy"));
  assert.ok(!visible.includes("\\text")&&!visible.includes("\\xrightarrow"),"LaTeX is visibly typeset");
  assert.ok(!visible.includes("\u0000"),"Chemical expressions have no missing glyph NUL");
- assert.equal(content.items.filter(x=>"str" in x&&x.str==="Photosynthesis Guide"&&Math.abs(x.transform[0])>20).length,1,"Exactly one large document title");
+ assert.equal(pdfTextLines(content.items.filter(x=>"str" in x&&Math.abs(x.transform[0])>20)).filter(line=>line==="Photosynthesis Guide").length,1,"Exactly one large document title");
  assert.ok(fonts.some(name=>name.toLowerCase().replace(/[^a-z]/g,"").includes(expectedFont.toLowerCase())),"The selected font is embedded in the actual PDF: "+expectedFont);
  fontChecks.push({font,bytes:bytes.length,pages:parsed.numPages,embeddedFonts:fonts,titleCount:1,mathTypeset:true});
  await parsed.destroy();
