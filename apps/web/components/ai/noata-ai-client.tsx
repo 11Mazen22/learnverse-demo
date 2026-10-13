@@ -484,6 +484,7 @@ export function NoataAIClient() {
           </div>
 
           <div className="owui-navbar-center">
+            <span className="noata-header-brand" dir="ltr"><NoataLogo size={24}/><strong>Noata AI</strong></span>
             {temporary ? (
               <span className="owui-status-pill temporary">
                 <Icon name="clock" size={13} />{t("مؤقتة","Temporary")}</span>
@@ -495,7 +496,7 @@ export function NoataAIClient() {
                 {activeConversation.title}
               </span>
             ) : (
-              <span className="owui-chat-heading">Noata AI</span>
+              null
             )}
           </div>
 

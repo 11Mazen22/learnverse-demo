@@ -11,6 +11,7 @@ type Options = {
   routeNote?:string;
   unavailableContent?: (research:Research)=>string;
   prepare?: (signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<Research|undefined>;
+  review?: (result:StreamResult,signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<string|undefined>;
 };
 /** Return headers and a ready frame before waiting for upstream inference. */
 export function createFanarStream(options: Options): ReadableStream<Uint8Array> {
@@ -85,6 +86,13 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
         }
         if (cancelled) return;
         if (!finished || !options.clean(output)) throw Error("Interrupted or empty response");
+        // One optional bounded review after genuine provider completion. The
+        // final frame replaces the streamed draft; no second assistant row is made.
+        if(finishReason!=="length"&&options.review){
+          await reader?.cancel().catch(()=>{});reader?.releaseLock();reader=undefined;
+          const revised=await options.review(result(false),abort.signal,emit);
+          if(typeof revised==="string"&&revised.trim()&&revised.length<=500000){output=revised;emit({content:options.clean(output),model:usedModel,delivery});}
+        }
         const complete = result(finishReason === "length");
         await options.persist(complete);
         emit({ ...complete, done: true });

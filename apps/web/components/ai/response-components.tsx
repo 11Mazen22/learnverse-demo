@@ -81,7 +81,7 @@ export function ResearchSources({research}:{research:unknown}){
    </ol>}
    <strong className="noata-research-source-heading">{t("المصادر المسترجعة","Retrieved sources")}</strong>
    <ol className="noata-research-links">{data.sources.map(source=><li key={source.id}>
-    <a href={source.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><span className="noata-source-number" aria-hidden="true">{source.id}</span><bdi>[{source.id}] {source.title}</bdi><span className="noata-source-link-icon" aria-hidden="true"><Icon name="arrow" size={15}/></span></a>
+    <a href={source.url} aria-label={"["+source.id+"] "+source.title} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer"><span className="noata-source-number" aria-hidden="true">{source.id}</span><bdi>{source.title}</bdi><span className="noata-source-link-icon" aria-hidden="true"><Icon name="arrow" size={15}/></span></a>
     <small><bdi>{source.domain}</bdi>{source.published?" · "+source.published:""}</small>
     <p>{source.excerpt}</p>
    </li>)}</ol>

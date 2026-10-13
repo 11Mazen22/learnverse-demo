@@ -633,6 +633,7 @@ export function useAIWorkspace() {
           if(event.research)research=validatedResearch(event.research);
           if(event.routeNote==="sadiq_2_unavailable_sadiq_1"){routeNote=event.routeNote;setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم صادق لهذا الرد.","Sadiq 2 is not enabled; Auto is using Sadiq for this answer."));}
           if(event.status==="searching")setNotice(t("بنبحث عن مصادر موثوقة…","Searching for reliable sources…"));
+          if(event.status==="organizing")setNotice(t("بنراجع تنظيم الرد وتوثيق المصادر…","Refining the answer and source citations…"));
           if(event.status==="reviewing")setNotice(t("بنراجع المقاطع المسترجعة…","Reviewing retrieved excerpts…"));
           if(event.status==="preparing")setNotice(research?.status==="complete"?t("بنجهّز الرد من المصادر…","Preparing an answer from the sources…"):t("البحث المباشر غير متاح؛ المعلومات الحالية لم يتم التحقق منها.","Live research is unavailable; current information has not been verified."));
           if (typeof event.content === "string") {
@@ -880,7 +881,16 @@ export function useAIWorkspace() {
         }
       }
       const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant"&&row.status==="complete"&&!isArtifactRefusal(responseText(row.content)));
-      const priorFileText=responseText(priorForFile?.content??"");
+      let priorFileText=responseText(priorForFile?.content??"");
+      // A completed file reply is delivery commentary. Reuse its owned canonical
+      // content for conversions rather than exporting that commentary as a document.
+      const priorArtifact=priorForFile?.metadata?.generatedArtifact as {id?:unknown}|undefined;
+      if(requestedFile?.usePrevious&&typeof priorArtifact?.id==="string"){
+        const {data,error}=await supabase.from("ai_artifacts").select("source_content").eq("id",priorArtifact.id).maybeSingle();
+        assertSession(token);controller.signal.throwIfAborted();
+        if(!error&&typeof data?.source_content==="string"&&data.source_content.trim())priorFileText=data.source_content;
+        else priorFileText="";
+      }
       const priorResearch=validatedResearch(priorForFile?.metadata?.research);
       const convertPrevious=Boolean(requestedFile?.usePrevious&&priorForFile?.status==="complete"
         &&canCreateArtifactFromAnswer("",priorFileText,true)&&!isNonDeliverableDraft(priorFileText)
@@ -1006,7 +1016,7 @@ export function useAIWorkspace() {
       savedResponse = true;
       // Explicit file requests now produce a genuine owned artifact as part of
       // the answer lifecycle. No file, link or success state is invented on failure.
-      const previousAnswer=priorForFile?.content??"";
+      const previousAnswer=priorFileText;
       const fileIntent=!tool&&!result.incomplete&&!temporary&&!researchBlocked?requestedFile:null;
       // Refusals are not document source material. Follow-up exports may use a
       // prior actual answer, even if Fanar misunderstood the new instruction.
@@ -1031,7 +1041,7 @@ export function useAIWorkspace() {
           controller.signal.throwIfAborted();assertSession(token);
           setNotice(t("بنجهّز ملف","Preparing file")+" "+(fileIndex+1)+" / "+requestedFiles.length+" · "+currentIntent.kind.toUpperCase());
           try{
-          let currentContent=result.content;
+          let currentContent=result.content,currentResearch=result.research;
           if(fileIndex>0&&!currentIntent.usePrevious){
             let next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind);
             assertSession(token);setPendingText("");
@@ -1042,11 +1052,11 @@ export function useAIWorkspace() {
               assertSession(token);setPendingText("");
             }
             if(next.incomplete||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
-            currentContent=next.content;
+            currentContent=next.content;currentResearch=next.research??result.research;
           }
           const source = documentWithResearch(
             artifactContent(currentIntent,responseText(currentContent),responseText(prior)),
-            currentIntent.usePrevious?priorForFile?.metadata?.research:result.research,
+            currentIntent.usePrevious?priorForFile?.metadata?.research:currentResearch,
             requestLanguage(text,locale),currentIntent.kind,
           );
           const chartData = currentIntent.kind === "pdf"

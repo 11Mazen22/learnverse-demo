@@ -76,3 +76,19 @@ test("failed retrieval cannot invoke a provider to invent current research",asyn
  const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
  assert.equal(invoked,false);assert.equal(saved.model,"Noata");assert.equal(saved.finishReason,"research_unavailable");assert.equal(saved.research.status,"unavailable");assert.equal(frames.at(-1).done,true);
 });
+
+test("One completed-draft review replaces the content in the same stream and persisted row",async()=>{
+ let calls=0,saved:any;
+ const stream=createFanarStream({model:"Fanar",clean,request:async()=>Response.json({choices:[{message:{content:"Draft"},finish_reason:"stop"}]}),
+ review:async(result,signal,emit)=>{calls++;assert.equal(result.content,"Draft");assert.equal(signal.aborted,false);emit({status:"organizing"});return "## Reviewed answer\nSource-backed content [1].";},persist:async(r)=>{saved=r;}});
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
+ assert.equal(calls,1);assert.equal(saved.content,"## Reviewed answer\nSource-backed content [1].");
+ assert.equal(frames.filter(x=>x.done).length,1);assert.ok(frames.some(x=>x.status==="organizing"));
+});
+test("A truncated provider draft is preserved for continuation without a quality rewrite",async()=>{
+ let calls=0;
+ const stream=createFanarStream({model:"Fanar",clean,request:async()=>Response.json({choices:[{message:{content:"Partial draft"},finish_reason:"length"}]}),
+ review:async()=>{calls++;return "replacement";},persist:async()=>{}});
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
+ assert.equal(calls,0);assert.equal(frames.at(-1).incomplete,true);assert.equal(frames.at(-1).content,"Partial draft");
+});

@@ -1,4 +1,5 @@
 import {researchPlanningInput,plannedResearchQuery,refersToConversation,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
+import {answerReviewReason,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
@@ -106,7 +107,7 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   return background.status==="complete"?background:broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
 }
-function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar") {
+function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="") {
   const specialized=model==="Fanar-Sadiq"||model==="Fanar-Sadiq-2";
   // Sadiq is a grounded service with its own prompting and no token stream.
   // Keep a live heartbeat while waiting for its actual JSON response.
@@ -117,8 +118,29 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);
       const messages=providerBody.messages as {role:string;content:unknown}[];
-      messages.splice(Math.max(0,messages.length-1),0,{role:specialized?"user":"system",content:researchContext(research)});
+      messages.splice(Math.max(0,messages.length-1),0,{role:"user",content:researchContext(research)});
+      if(!specialized&&messages[0]?.role==="system")messages[0].content=String(messages[0].content??"")+ "\nApplication evidence status for THIS request: sources were retrieved. Use the excerpts that follow. Do not say Noata cannot access sources. Limited background cannot verify current claims.";
       return research;
+    }:undefined,
+    review: !specialized&&userId?async(result,signal,emit)=>{
+      const reason=answerReviewReason(actualRequest,result.content,result.research);
+      if(!reason)return;
+      emit({status:"organizing"});
+      const fallback=()=>reason==="research_evidence"&&result.research?limitedResearchSummary(result.research,responseLanguage):undefined;
+      try{
+        await claim(userId,model);
+        const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
+          method:"POST",headers:{Authorization:"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
+          body:JSON.stringify({model,stream:false,max_tokens:3000,temperature:0.15,messages:[
+            {role:"system",content:answerReviewInstruction(reason,responseLanguage)},
+            {role:"user",content:JSON.stringify({request:actualRequest,previousDraft:result.content.slice(0,20000),...(result.research?{retrievedEvidence:researchContext(result.research)}:{})})}
+          ]}),signal:AbortSignal.any([signal,AbortSignal.timeout(45000)])
+        });
+        if(!reviewed.ok)return fallback();
+        const data=await reviewed.json(),candidate=clean(data?.choices?.[0]?.message?.content??"");
+        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewReason(actualRequest,candidate,result.research))return fallback();
+        return candidate;
+      }catch{signal.throwIfAborted();return fallback();}
     }:undefined,
     request: (signal) => fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
@@ -607,11 +629,11 @@ async function handleChat(
     body.enable_thinking = true;
 
   if (payload.stream === true && payload.enable_thinking !== true)
-    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar");
+    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",latestText);
   const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
   if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});
-  if(research)messages.splice(Math.max(0,messages.length-1),0,{role:"system",content:researchContext(research)});
+  if(research){messages.splice(Math.max(0,messages.length-1),0,{role:"user",content:researchContext(research)});messages[0].content+="\nSources were retrieved for THIS request. Use their excerpts; do not deny source access. Do not claim snippets verify unstated facts.";}
   let data: any;
   if (model === "Fanar-C-1-8.7B" && payload.enable_thinking === true) {
     data = await c1Thinking(messages);
