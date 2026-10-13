@@ -1,3 +1,4 @@
+import {researchPlanningInput,plannedResearchQuery,refersToConversation,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
@@ -573,6 +574,22 @@ async function handleChat(
     brave:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY"))&&Deno.env.get("NOATA_SEARCH_ENABLED")==="true",
     memorySchema:true
   });
+  let lookupPlan=searchPlan(latestText);
+  if(lookupPlan.needed){
+    const context=researchPlanningInput(latestText,safeMessages);
+    let planned:ReturnType<typeof searchPlan>|null=null;
+    if(context)try{
+      await claim(userId,"Noata-Planner");
+      const {data}=await fanarJson("/chat/completions",{model:"Fanar",messages:[
+        {role:"system",content:RESEARCH_PLANNING_PROMPT},{role:"user",content:JSON.stringify(context)}
+      ],temperature:0,max_tokens:160,stream:false},12000);
+      planned=plannedResearchQuery(data?.choices?.[0]?.message?.content,lookupPlan);
+    }catch{ /* A failed plan never sends an ambiguous or private query outward. */ }
+    if(planned)lookupPlan=planned;
+    else if(refersToConversation(latestText))return json({kind:"chat",model:"Noata",
+      content:latestLanguage==="English"?"Which public topic or claim should I verify? I couldn't reliably resolve the subject from this conversation.":"أي موضوع عام أو معلومة تحب أتحقق منها؟ لم أتمكن من تحديد المقصود بدقة من سياق المحادثة.",
+      finishReason:"clarification",incomplete:false,quota});
+  }
   const delivery=fileDeliveryInstruction(payload.artifactFormat,latestLanguage==="English"?"en":"ar");
   const presentation=delivery?"":answerPresentation(latestText);
   const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
@@ -590,8 +607,8 @@ async function handleChat(
     body.enable_thinking = true;
 
   if (payload.stream === true && payload.enable_thinking !== true)
-    return streamFanar(body, model, receipt,searchPlan(latestText),userId,routeNote,latestLanguage==="English"?"en":"ar");
-  const plan=searchPlan(latestText);
+    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar");
+  const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
   if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});
   if(research)messages.splice(Math.max(0,messages.length-1),0,{role:"user",content:researchContext(research)});

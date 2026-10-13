@@ -79,3 +79,5 @@ test("The observed plural PDF follow-up references the actual previous answer",(
  }
  assert.deepEqual(detectArtifactIntent("Make a PDF about sea level"),{kind:"pdf",usePrevious:false});
 });
+
+test("Bare format follow-ups use the preceding answer instead of asking a model for file capability",()=>{assert.deepEqual(detectArtifactIntent("now make pdf"),{kind:"pdf",usePrevious:true});assert.deepEqual(detectArtifactIntent("alright create the pptx file"),{kind:"pptx",usePrevious:true});assert.equal(detectArtifactIntent("Create a PDF about photosynthesis")?.usePrevious,false);});

@@ -875,12 +875,13 @@ export function useAIWorkspace() {
           else setNotice("");
         }
       }
-      const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant");
+      const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant"&&row.status==="complete"&&!isArtifactRefusal(responseText(row.content)));
       const priorFileText=responseText(priorForFile?.content??"");
       const priorResearch=validatedResearch(priorForFile?.metadata?.research);
       const convertPrevious=Boolean(requestedFile?.usePrevious&&priorForFile?.status==="complete"
         &&canCreateArtifactFromAnswer("",priorFileText,true)&&!isNonDeliverableDraft(priorFileText)
         &&(!priorResearch||priorResearch.status==="complete"));
+      if(requestedFile?.usePrevious&&!priorFileText.trim())planQuestion=t("ما المحتوى الذي تريد وضعه في الملف؟ اكتب الموضوع أو أرفق المصدر.","What should the file contain? Give me the topic or attach its source.");
       let result: ChatPart;
       let metadata: Record<string, unknown> = metadataPlan?{operationPlan:metadataPlan}:{};
       const direct=mode==="send"&&!tool?directArtifactAbilityAnswer(text,locale):null;
@@ -1001,7 +1002,7 @@ export function useAIWorkspace() {
       savedResponse = true;
       // Explicit file requests now produce a genuine owned artifact as part of
       // the answer lifecycle. No file, link or success state is invented on failure.
-      const previousAnswer=history.slice(0,-1).findLast(row=>row.role==="assistant")?.content??"";
+      const previousAnswer=priorForFile?.content??"";
       const fileIntent=!tool&&!result.incomplete&&!temporary&&!researchBlocked?requestedFile:null;
       // Refusals are not document source material. Follow-up exports may use a
       // prior actual answer, even if Fanar misunderstood the new instruction.

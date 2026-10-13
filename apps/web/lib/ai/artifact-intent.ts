@@ -25,7 +25,8 @@ export function detectArtifactIntents(prompt:string):ArtifactIntent[]{
  if(!formats.length)return [];
  const order:Record<ArtifactKind,RegExp>={pdf:/\bpdf\b|بي دي اف|بي دي إف/i,docx:/\bdocx\b|\bword (?:document|file)\b|ملف ورد|ملف وورد/i,xlsx:/\bxlsx\b|\bexcel\b|\bspreadsheet\b|إكسل|اكسل/i,pptx:/\bpptx\b|\bpowerpoint\b|\bpresentation\b|بوربوينت|باوربوينت|عرض تقديمي/i};
  formats.sort((a,b)=>q.search(order[a])-q.search(order[b]));
- const usePrevious=/\b(?:that|this|them|those|these|it|above|previous|earlier|last answer)\b|(?:ده|دا|دي|دول|هذه|هذا|ذلك|تلك|اللي فوق|الرد السابق|الإجابة السابقة)/i.test(q);
+ const bareFollowup=/^(?:(?:now|alright|okay|ok|please)\s*[,!]?\s*)*(?:make|create|generate|export|prepare|produce)\s+(?:(?:me|the|a|an)\s+)*(?:pdf|docx|xlsx|pptx|word(?:\s+(?:document|file))?|excel(?:\s+(?:file|sheet))?|powerpoint(?:\s+(?:file|presentation))?)(?:\s+(?:file|document))?[.!?]*$/i.test(q)||/^(?:دلوقتي\s+)?(?:اعمل|جهز|أنشئ|انشئ)\s+(?:ملف\s+)?(?:PDF|بي دي اف|وورد|ورد|اكسل|بوربوينت)[.!؟]*$/i.test(q);
+ const usePrevious=bareFollowup||/\b(?:that|this|them|those|these|it|above|previous|earlier|last answer)\b|(?:ده|دا|دي|دول|هذه|هذا|ذلك|تلك|اللي فوق|الرد السابق|الإجابة السابقة)/i.test(q);
  // Studio requests contain their own quoted file contents. Never substitute a prior chat answer.
  return formats.map(kind=>({kind,usePrevious:raw===q&&usePrevious}));
 }
