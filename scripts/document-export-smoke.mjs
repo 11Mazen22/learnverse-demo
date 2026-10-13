@@ -9,7 +9,7 @@ import {extractDocxDocument} from "../apps/web/lib/ai/docx-ingest.ts";
 import {createRequire} from "node:module";
 import {spawnSync} from "node:child_process";
 const require=createRequire(new URL("../apps/web/package.json",import.meta.url));
-const {getDocument}=await import(require.resolve("pdfjs-dist/legacy/build/pdf.mjs"));
+const {getDocument,OPS}=await import(require.resolve("pdfjs-dist/legacy/build/pdf.mjs"));
 const testedRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim();
 const initiallyDirty=!!spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim();
 const dir="artifacts/noata-documents";
@@ -103,3 +103,29 @@ await writeFile(`${dir}/report-with-chart.pdf`,reportBytes);
 await writeFile(`${dir}/report-chart-readback.json`,JSON.stringify({revision:testedRevision,dirty:initiallyDirty,passed:true,bytes:reportBytes.length,text:chartReadback},null,2));
 await chartDocument.destroy();
 console.log("PASS: real report prose and numeric chart survive the same PDF");
+
+
+// Observed PDF regressions: one main title, real math and embedded font choices.
+const scientificSource="# Photosynthesis Guide\n\n## Introduction to Photosynthesis\nPlants transform light energy into chemical energy. Chlorophyll absorbs light in chloroplasts.\n\n\\[\n6\\text{CO}_2+6\\text{H}_2\\text{O}\\xrightarrow{\\text{light}}\\text{C}_6\\text{H}_{12}\\text{O}_6+6\\text{O}_2\n\\]\n\n## Energy and products\nCarbon dioxide and water produce glucose and oxygen. The light reactions and Calvin cycle perform different roles.\n";
+const fontChecks=[];
+for(const [font,expectedFont] of [["editorial","Lora"],["mono","RobotoMono"]]){
+ const bytes=await renderNoataPdf(scientificSource,"Photosynthesis Guide",dir+"/photosynthesis-"+font+".png",undefined,"forest",font);
+ await writeFile(dir+"/photosynthesis-"+font+".pdf",bytes);
+ const parsed=await getDocument({data:Uint8Array.from(bytes),isEvalSupported:false,fontExtraProperties:true}).promise;
+ let visible="",fonts=[];
+ const page=await parsed.getPage(1),content=await page.getTextContent();
+ visible=content.items.filter(x=>"str" in x).map(x=>x.str).join(" ");
+ const operators=await page.getOperatorList();
+ for(const dependency of operators.fnArray.map((fn,i)=>fn===OPS.dependency?operators.argsArray[i]:null).filter(Boolean).flat()){
+  try{const face=page.commonObjs.get(dependency);if(face?.name)fonts.push(face.name);}catch{}
+ }
+ assert.ok(visible.includes("Plants transform light energy"));
+ assert.ok(!visible.includes("\\text")&&!visible.includes("\\xrightarrow"),"LaTeX is visibly typeset");
+ assert.ok(!visible.includes("\u0000"),"Chemical expressions have no missing glyph NUL");
+ assert.equal(content.items.filter(x=>"str" in x&&x.str==="Photosynthesis Guide"&&Math.abs(x.transform[0])>20).length,1,"Exactly one large document title");
+ assert.ok(fonts.some(name=>name.toLowerCase().replace(/[^a-z]/g,"").includes(expectedFont.toLowerCase())),"The selected font is embedded in the actual PDF: "+expectedFont);
+ fontChecks.push({font,bytes:bytes.length,pages:parsed.numPages,embeddedFonts:fonts,titleCount:1,mathTypeset:true});
+ await parsed.destroy();
+}
+await writeFile(dir+"/typography-readback.json",JSON.stringify({revision:testedRevision,dirty:initiallyDirty,passed:true,scope:"Actual Chromium-rendered font/PDF bytes and PDF.js readback; not an authenticated browser or provider test.",checks:fontChecks},null,2));
+console.log("PASS: embedded Lora and Roboto Mono PDFs, chemical typesetting and one large title");

@@ -3,14 +3,14 @@ import {createRequire} from "node:module";
 const require=createRequire(new URL("../apps/web/package.json",import.meta.url));
 const {createClient}=require("@supabase/supabase-js");
 const ref=process.env.AURA_STAGING_DB_REF,url=process.env.AURA_STAGING_SUPABASE_URL,key=process.env.AURA_STAGING_SERVICE_ROLE_KEY;
-if(process.env.AURA_ALLOW_QA_RUN!=="YES" || !ref || ref==="jdkfqdzgphzqbbzmerzr" || !/^[a-z0-9]{20}$/.test(ref) || url!==`https://${ref}.supabase.co` || !key){
+if(process.env.AURA_ALLOW_QA_RUN!=="YES" || ref!=="vpfpjvhafkmygetjkfcp" || !/^[a-z0-9]{20}$/.test(ref) || url!==`https://${ref}.supabase.co` || !key){
  console.error("Not executed: explicit opt-in and isolated staging maintenance credentials are required.");process.exit(2);
 }
 const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 let deleted=0;
 // Bounded batches. Storage API deletes bytes; direct SQL deletion of objects does not.
 for(let batch=0;batch<20;batch++){
- const result=await db.from("ai_document_files").select("id,storage_path").or(`expires_at.lte.${new Date().toISOString()},conversation_id.is.null`).limit(50);
+ const result=await db.from("ai_document_files").select("id,storage_path").eq("library_saved",false).or(`expires_at.lte.${new Date().toISOString()},conversation_id.is.null`).limit(50);
  if(result.error)throw Error("Staging cleanup could not read expiration records");
  if(!result.data.length)break;
  const removal=await db.storage.from("noata-documents").remove(result.data.map(x=>x.storage_path));
@@ -33,7 +33,7 @@ async function sweep(prefix='',depth=0){
    visited++;
    const path=prefix?prefix+'/'+object.name:object.name;
    if(!object.id&&depth<2&&uuid.test(object.name))await sweep(path,depth+1);
-   else if(object.id&&depth===2&&/^[0-9a-f-]{36}\.(pdf|docx|txt|md|csv|json)$/i.test(object.name))paths.push(path);
+   else if(object.id&&depth===2&&/^[0-9a-f-]{36}\.(pdf|docx|xlsx|pptx|txt|md|csv|json)$/i.test(object.name))paths.push(path);
   }
   if(paths.length){
    const rows=await db.from('ai_document_files').select('storage_path').in('storage_path',paths);
