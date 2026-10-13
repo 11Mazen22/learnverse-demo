@@ -39,3 +39,28 @@ export function explicitResearchQuery(request:string,base:SearchPlan):SearchPlan
  if(query.length<3||query.length>180||query.split(/\s+/).length>24||refersToConversation(query)||privateText(query)||/https?:|[<>{}]|\b(?:pdf|pptx|xlsx|docx|create|generate|make|please)\b/i.test(query))return null;
  return {...base,query};
 }
+
+/** Resolve an explicit public subject from the recent human request if a planner fails.
+ * No assistant-only headings or private file excerpts become fallback search topics.
+ */
+export function contextualResearchQuery(input:ReturnType<typeof researchPlanningInput>,base:SearchPlan):SearchPlan|null{
+ if(!input||!refersToConversation(input.request)||!base.needed)return null;
+ for(const request of [...input.previousRequests].reverse()){
+  if(privateText(request)||/\b(?:my|our|patient|private|personal|records?|uploaded|attached)\b|ملفي|ملفاتي|الملف|بياناتي|الشخصية/i.test(request))return null;
+  const explicit=explicitResearchQuery(request,base);
+  if(explicit)return explicit;
+  const named=request.match(/^(?:(?:please|now|give me|provide|write)\s+)?(?:(?:a|an|the|detailed|long|comprehensive|english|arabic|clear|complete)\s+)*(?:explanation|guide|report|overview|essay)\s+(?:of|about|on)\s+(.+)$/i)
+   ??request.match(/^(?:(?:please|now)\s+)?(?:explain|tell me about|talk(?:\s+along)?\s+about|teach me about)\s+(.+)$/i)
+   ??request.match(/^(?:اشرح(?:\s+لي)?|كلمني|حدثني|اكتب)\s+(?:بالتفصيل\s+)?(?:عن\s+)?(.+)$/);
+  if(named){
+   const query=named[1].split(/[,.;]|\s+(?:with|using|in (?:english|arabic)|about \d+ words|بالتفصيل|مع |باستخدام )/i)[0].trim();
+   if(/\b(?:my|our|patient|private|personal|records?|uploaded|attached)\b|ملفي|ملفاتي|الملف|بياناتي|الشخصية/i.test(query))return null;
+   return plannedResearchQuery(JSON.stringify({query,needsClarification:false}),base);
+  }
+  const verification=/^(?:(?:now|please|can you|could you)\s+)*(?:search|verify|check|research)\s+(?:for\s+)?(?:all\s+(?:of\s+)?)?(?:this|that|these|it)(?:\s+(?:to be sure|to check|to verify|these are|are|the|correct|corrected|data|facts|information|claims))*[.!?]*$/i.test(request)\n   ||/^(?:ابحث|تحقق|راجع)\s+(?:عن\s+)?(?:كل ده|كل هذا|المعلومات دي|الكلام ده)[.!؟]*$/.test(request);
+  if(verification)continue;
+  // Known topic-preserving continuations can refer to the preceding explicit topic.
+  if(!/^(?:continue|tell me more|go on|keep going|(?:now|alright|okay)?\s*(?:make|create|export)(?:\s+(?:it|that|this|a|the|in|as|file))*\s+(?:pdf|docx|pptx|xlsx))[.!?\s]*$|^(?:كمل|كمّل|تابع)[.!؟\s]*$/i.test(request))return null;
+ }
+ return null;
+}

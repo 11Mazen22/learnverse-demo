@@ -1,4 +1,4 @@
-import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
+import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerReviewReason,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
@@ -602,12 +602,13 @@ async function handleChat(
     let planned:ReturnType<typeof searchPlan>|null=null;
     if(context)try{
       await claim(userId,"Noata-Planner");
-      const {data}=await fanarJson("/chat/completions",{model:"Fanar",messages:[
+      const {data}=await fanarJson("/chat/completions",{model:"Fanar-C-1-8.7B",messages:[
         {role:"system",content:RESEARCH_PLANNING_PROMPT},{role:"user",content:JSON.stringify(context)}
-      ],temperature:0,max_tokens:160,stream:false},12000);
+      ],temperature:0,max_tokens:384,stream:false},20000);
       planned=plannedResearchQuery(data?.choices?.[0]?.message?.content,lookupPlan);
     }catch{ /* A failed plan never sends an ambiguous or private query outward. */ }
     planned??=explicitResearchQuery(latestText,lookupPlan);
+    planned??=contextualResearchQuery(context,lookupPlan);
     if(planned)lookupPlan=planned;
     else return json({kind:"chat",model:"Noata",
       content:latestLanguage==="English"?"Which public topic or claim should I verify? I couldn't reliably resolve the subject from this conversation.":"أي موضوع عام أو معلومة تحب أتحقق منها؟ لم أتمكن من تحديد المقصود بدقة من سياق المحادثة.",
