@@ -1489,7 +1489,7 @@ export function useAIWorkspace() {
     }
     setDocumentFiles(next);
     if (others.length) {
-      if (others[0].type.startsWith("audio/")) void transcribe(others[0]);
+      if (others[0].type.startsWith("audio/")) void transcribe(others[0],!temporary);
       else setAttachment(others[0]);
     }
     setError("");
@@ -1545,7 +1545,7 @@ export function useAIWorkspace() {
       capture?.getTracks().forEach((t) => t.stop());
     }
   }
-  async function transcribe(file: File) {
+  async function transcribe(file: File,retainUpload=false) {
     if (lock.current) return;
     const token = sessionScope.current.capture();
     lock.current = true;
@@ -1554,7 +1554,8 @@ export function useAIWorkspace() {
     abort.current = new AbortController();
     let uploadedAudioPath: string | undefined;
     try {
-      const path = await upload(file, activeId ?? "temporary", token);
+      const conversation=retainUpload&&!temporary?await ensureConversation(file.name,token):"temporary";
+      const path = await upload(file,conversation,token);
       uploadedAudioPath = path;
       assertSession(token);
       const data = await invoke({
@@ -1567,14 +1568,14 @@ export function useAIWorkspace() {
       const text = String(data.result?.text ?? data.result?.transcript ?? "");
       if (!text) throw Error("Empty transcript");
       setInput((x) => (x ? x + " " + text : text));
-      setNotice(t("راجع النص قبل إرساله.","Review the transcript before sending."));
+      setNotice(retainUpload?t("الصوت الأصلي محفوظ في مكتبتك. راجع التفريغ قبل إرساله.","The original audio is saved in your library. Review the transcript before sending."):t("راجع النص قبل إرساله.","Review the transcript before sending."));
       composer.current?.focus();
     } catch (e) {
       if (!sessionScope.current.isCurrent(token)) return;
       setError(friendlyError(e,locale));
     } finally {
       if (!sessionScope.current.isCurrent(token)) return;
-      if (uploadedAudioPath) {
+      if (uploadedAudioPath&&!retainUpload) {
         const [storage, index] = await Promise.all([
           supabase.storage.from("noata-uploads").remove([uploadedAudioPath]),
           supabase

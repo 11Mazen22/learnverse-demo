@@ -15,7 +15,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
  try {
   const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort();
   const before=files.filter(f=>f<'20261008150000'), delta=files.filter(f=>f>='20261008150000');
-  assert.equal(before.length,18);assert.equal(delta.length,13);
+  assert.equal(before.length,18);assert.equal(delta.length,14);
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
