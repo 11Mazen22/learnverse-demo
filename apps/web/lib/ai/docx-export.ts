@@ -1,3 +1,4 @@
+import {documentStyle,type DocumentStyle} from "./document-style.ts";
 /**
  * Small dependency-free OOXML/DOCX writer for Noata AI.
  * Exports Arabic-first paragraphs and Markdown # headings as editable Word text.
@@ -74,7 +75,8 @@ function wordDocument(text:string) {
     '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1247" w:right="1134" w:bottom="1247" w:left="1134"/></w:sectPr>'+
     '</w:body></w:document>';
 }
-export function createNoataDocx(text:string):Uint8Array {
+export function createNoataDocx(text:string,style:DocumentStyle="classic"):Uint8Array {
+  const colors=documentStyle(style);
   const types='<?xml version="1.0" encoding="UTF-8"?>'+
     '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
@@ -90,13 +92,14 @@ export function createNoataDocx(text:string):Uint8Array {
     '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
     '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
     '</Relationships>';
-  const styles='<?xml version="1.0" encoding="UTF-8"?>'+
+  let styles='<?xml version="1.0" encoding="UTF-8"?>'+
     '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
     '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:rPrDefault>'+
     '<w:pPrDefault><w:pPr><w:bidi w:val="0"/><w:jc w:val="left"/></w:pPr></w:pPrDefault></w:docDefaults>'+
     '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:rPr><w:b/><w:sz w:val="38"/></w:rPr></w:style>'+
     '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:rPr><w:b/><w:sz w:val="30"/></w:rPr></w:style>'+
     '</w:styles>';
+  styles=styles.replaceAll("<w:rPr><w:b/>",'<w:rPr><w:color w:val="'+colors.accent+'"/><w:b/>');
   return packageZip({
     "[Content_Types].xml":types,
     "_rels/.rels":rels,

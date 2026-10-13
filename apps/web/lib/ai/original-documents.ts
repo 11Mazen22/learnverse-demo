@@ -23,7 +23,7 @@ export async function retainOriginalDocuments(sources:DocumentSource[],files:Fil
     const form=new FormData();form.set("file",files[i]);form.set("conversationId",conversationId);
     const r=await boundedDocumentFetch("/api/documents",{method:"POST",body:form,signal},85000);const body=await r.json();
     if(!r.ok)throw Error(body.error || documentCopy("تعذّر حفظ المستند الأصلي.","Could not save the original document."));
-    sources[i].documentId=body.id;sources[i].expiresAt=body.expiresAt;uploaded.push(body.id);
+    sources[i].documentId=body.id;if(body.expiresAt)sources[i].expiresAt=body.expiresAt;sources[i].librarySaved=body.librarySaved===true;uploaded.push(body.id);
    }
   }
   prune();return uploaded;

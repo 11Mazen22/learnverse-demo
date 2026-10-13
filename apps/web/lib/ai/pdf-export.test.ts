@@ -26,3 +26,18 @@ test("PDF bounds reject empty, oversized and invalid documents",()=>{
   for(const v of [null,{}, {text:" "}, {text:"a".repeat(MAX_PDF_EXPORT_CHARS+1)}, {text:"a",title:123}]) assert.equal(validatePdfInput(v),false);
   assert.equal(validatePdfInput({text:"نص"}),true);
 });
+
+test("Observed photosynthesis LaTeX prints as math and matching titles appear once",async()=>{
+ const source="# Photosynthesis Guide\n\n## Introduction to Photosynthesis\nPlants convert light into chemical energy.\n\n\\[\n6\\text{CO}_2+6\\text{H}_2\\text{O}\\xrightarrow{\\text{light}}\\text{C}_6\\text{H}_{12}\\text{O}_6+6\\text{O}_2\n\\]";
+ const html=await documentHtml(source,"Photosynthesis Guide",{arabic:"",latin:""});
+ assert.equal((html.match(/<h1/g)??[]).length,1);
+ assert.ok(html.includes("<math"));
+ assert.ok(html.includes("<msub>"));
+ assert.ok(!html.includes("\\xrightarrow"));
+ assert.ok(html.includes("Introduction to Photosynthesis"));
+});
+test("PDF styles are finite presets and cannot inject CSS or remote resources",async()=>{
+ assert.equal(validatePdfInput({text:"content",style:"https://attacker.invalid"}),false);
+ const html=await documentHtml("# Scientific report\nActual facts.","Scientific report",{arabic:"",latin:""},"forest");
+ assert.ok(html.includes("#22654C"));
+});

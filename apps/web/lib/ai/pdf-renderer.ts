@@ -1,3 +1,4 @@
+import type {DocumentStyle} from "./document-style.ts";
 import {readFile, access} from "node:fs/promises";
 import {join} from "node:path";
 import {tmpdir} from "node:os";
@@ -10,7 +11,7 @@ import {chartPdfMarkup,type LineChartData} from "./line-chart.ts";
 export {PdfBusyError} from "./pdf-pressure.ts";
 
 // Per-instance pressure control. The deployment must also enforce request quotas.
-export async function renderNoataPdf(text: string, title: string, screenshotPath?: string, chart?: LineChartData): Promise<Uint8Array> {
+export async function renderNoataPdf(text: string, title: string, screenshotPath?: string, chart?: LineChartData,style:DocumentStyle="classic"): Promise<Uint8Array> {
   const release = acquirePdfSlot();
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
   let deadline: ReturnType<typeof setTimeout> | undefined;
@@ -36,7 +37,7 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
       if (request.url().startsWith("data:") || request.url() === "about:blank") void request.continue();
       else void request.abort();
     });
-    let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64"),symbols:symbols.toString("base64")});
+    let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64"),symbols:symbols.toString("base64")},style);
     if(chart)html=html.replace("</main>",chartPdfMarkup(chart)+"</main>");
     await page.setContent(html,{waitUntil:"networkidle0",timeout:15_000});
     // Explicitly load both subsets: English-only documents never trigger the

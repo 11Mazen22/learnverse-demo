@@ -337,4 +337,35 @@ delete from public.ai_document_files where id='97000000-0000-4000-8000-000000000
 select qa.check((select count(*)=0 from public.ai_document_files where id='97000000-0000-4000-8000-000000000001'),'cleanup deletes metadata only after original object removal');
 reset role;
 
+
+-- Private retained originals and immutable, owner-bound revision identity.
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+insert into public.ai_document_files(id,user_id,conversation_id,name,storage_path,mime_type,size_bytes,library_saved)
+values('98000000-0000-4000-8000-000000000001',auth.uid(),'30000000-0000-0000-0000-000000000001','Retained original.pdf',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/98000000-0000-4000-8000-000000000001.pdf','application/pdf',3,true);
+insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/98000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","size":3}');
+insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,source_document_id,version,source_content)
+values('98000000-0000-4000-8000-000000000002',auth.uid(),'Revision.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000002/revision.pdf',10,'98000000-0000-4000-8000-000000000001',99,'Full original facts preserved');
+select qa.check((select version=2 from public.ai_artifacts where id='98000000-0000-4000-8000-000000000002'),'database assigns version 2 for a retained document revision');
+insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,parent_artifact_id,version)
+values('98000000-0000-4000-8000-000000000003',auth.uid(),'Revision three.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000003/revision.pdf',10,'98000000-0000-4000-8000-000000000002',99);
+select qa.check((select version=3 from public.ai_artifacts where id='98000000-0000-4000-8000-000000000003'),'database assigns the next parent revision version');
+select qa.denied($s$update public.ai_artifacts set source_content='Overwrite' where id='98000000-0000-4000-8000-000000000002'$s$,'original revision source is immutable for authenticated clients');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.denied($s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,parent_artifact_id)
+values('98000000-0000-4000-8000-000000000004',auth.uid(),'Wrong owner.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000004/revision.pdf',10,'98000000-0000-4000-8000-000000000002')$s$,'cross-account parent artifacts are refused','Source artifact is unavailable for this owner');
+select qa.denied($s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,source_document_id)
+values('98000000-0000-4000-8000-000000000005',auth.uid(),'Wrong document.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000005/revision.pdf',10,'98000000-0000-4000-8000-000000000001')$s$,'cross-account original documents are refused','Source document is unavailable for this owner');
+select qa.check((select count(*)=0 from storage.objects where bucket_id='noata-documents'),'retained originals are still private to their owner');
+reset role;
+update public.ai_document_files set conversation_id=null where id='98000000-0000-4000-8000-000000000001';
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select qa.check((select count(*)=1 from storage.objects where bucket_id='noata-documents'),'retained original survives removal of its conversation association');
+select qa.check((select count(*)=1 from public.ai_document_files where id='98000000-0000-4000-8000-000000000001'),'retained original cleanup metadata survives');
+reset role;
+
 rollback;

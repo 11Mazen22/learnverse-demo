@@ -15,8 +15,8 @@ export type Database = {
   public: {
     Tables: {
       ai_document_files: {
-        Row: {id:string;user_id:string;conversation_id:string|null;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at:string;expires_at:string}
-        Insert: {id:string;user_id:string;conversation_id:string;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at?:string;expires_at?:string}
+        Row: {id:string;user_id:string;conversation_id:string|null;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at:string;expires_at:string;library_saved:boolean}
+        Insert: {id:string;user_id:string;conversation_id:string;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at?:string;expires_at?:string;library_saved?:boolean}
         Update: {id?:string;user_id?:string;conversation_id?:string|null;name?:string;storage_path?:string;mime_type?:string;size_bytes?:number;created_at?:string;expires_at?:string}
         Relationships: [{foreignKeyName:"ai_document_files_conversation_id_fkey";columns:["conversation_id"];isOneToOne:false;referencedRelation:"ai_conversations";referencedColumns:["id"]}]
       }
@@ -27,12 +27,16 @@ export type Database = {
           created_at: string
           id: string
           message_id: string | null
+          library_saved: boolean
+          filename: string | null
           mime_type: string
           size_bytes: number
           storage_path: string
           user_id: string
         }
         Insert: {
+          filename?: string | null
+          library_saved?: boolean
           conversation_id?: string | null
           created_at?: string
           id?: string
@@ -47,6 +51,8 @@ export type Database = {
           created_at?: string
           id?: string
           message_id?: string | null
+          library_saved?: boolean
+          filename?: string | null
           mime_type?: string
           size_bytes?: number
           storage_path?: string
@@ -1360,8 +1366,8 @@ export type Database = {
         Relationships: []
       }
       ai_artifacts: {
-        Row: {id:string;user_id:string;project_id:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version:number;created_at:string}
-        Insert: {id:string;user_id:string;project_id?:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version?:number;created_at?:string}
+        Row: {id:string;user_id:string;project_id:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version:number;created_at:string;parent_artifact_id:string|null;source_document_id:string|null;source_content:string|null}
+        Insert: {id:string;user_id:string;project_id?:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version?:number;created_at?:string;parent_artifact_id?:string|null;source_document_id?:string|null;source_content?:string|null}
         Update: {id?:string;user_id?:string;project_id?:string|null;filename?:string;mime_type?:string;storage_path?:string;byte_size?:number;version?:number;created_at?:string}
         Relationships: [{foreignKeyName:"artifact_own_project";columns:["project_id","user_id"];isOneToOne:false;referencedRelation:"ai_projects";referencedColumns:["id","user_id"]}]
       }

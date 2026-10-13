@@ -173,7 +173,7 @@ export function NoataAIClient() {
   const [pendingPreview, setPendingPreview] = useState<{
     name: string;
     localId: string;
-    format: "pdf" | "docx" | "xlsx" | "text";
+    format: "pdf" | "docx" | "xlsx" | "pptx" | "text";
   } | null>(null);
 
   const suggestions=useAISuggestions({userId:seenAccount.user?.id??null,locale,
@@ -565,7 +565,7 @@ export function NoataAIClient() {
                       (Array.isArray(m.metadata?.generatedArtifacts)?m.metadata.generatedArtifacts.slice(0,4):[m.metadata?.generatedArtifact]).map((artifact,index)=>
                       <NoataGeneratedArtifact key={m.id+"-file-"+index} value={artifact}
                         owner={seenAccount.user?.id??null}
-                        onPrepareEdit={prompt=>{setInput(prompt);setNotice(t("طلب التعديل في مربع الرسالة. راجعه ثم أرسله.","The revision request is in your composer. Review it, then send."));composer.current?.focus();}}
+                        onPrepareEdit={(prompt,source)=>{workspace.prepareRevision(prompt,source);setNotice(t("طلب التعديل في مربع الرسالة. راجعه ثم أرسله.","The revision request is in your composer. Review it, then send."));composer.current?.focus();}}
                         onAskAI={prompt=>{if(!busy)void send(undefined,"send",undefined,prompt);}}/>)}
 
 
@@ -734,6 +734,7 @@ export function NoataAIClient() {
 
         <footer className="owui-composer-wrap">
           <form onSubmit={(e) => void send(e)} className="owui-composer">
+            {workspace.revisionName&&<div className="noata-revision-context" role="status"><Icon name="file" size={16}/><span>{t("تعديل نسخة من: ","Revising: ")}{workspace.revisionName}</span><button type="button" aria-label={t("إزالة مصدر التعديل","Clear revision source")} onClick={workspace.clearRevision}><Icon name="close" size={15}/></button></div>}
             {documentFiles.length > 0 && (
               <div
                 className="aura-document-tray"
@@ -860,7 +861,7 @@ export function NoataAIClient() {
               type="file"
               hidden
               multiple
-              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,.docx,.pdf,.xlsx,text/plain,text/markdown,text/csv,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf"
+              accept="image/jpeg,image/png,image/webp,audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,.txt,.md,.markdown,.csv,.json,.docx,.pdf,.xlsx,.pptx,text/plain,text/markdown,text/csv,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf"
               onChange={(e) => {
                 selectFiles(e.target.files);
                 e.currentTarget.value = "";
@@ -1206,7 +1207,7 @@ export function NoataAIClient() {
             )}
 
             {settingsTab === "projects" && (
-              <NoataProjectLibrary owner={seenAccount.user?.id??null} open={settingsOpen&&settingsTab==="projects"}/>
+              <NoataProjectLibrary owner={seenAccount.user?.id??null} open={settingsOpen&&settingsTab==="projects"} onPrepareEdit={(prompt,source)=>{workspace.prepareRevision(prompt,source);setSettingsOpen(false);setNotice(t("طلب التعديل جاهز للمراجعة والإرسال.","Your revision request is ready to review and send."));requestAnimationFrame(()=>composer.current?.focus());}} onUseUpload={file=>{selectFiles([file]);setSettingsOpen(false);}}/>
             )}
 
             {settingsTab === "capabilities" && (
@@ -1312,7 +1313,7 @@ export function NoataAIClient() {
         localSource={pendingPreview}
         owner={seenAccount.user?.id??null}
         onClose={()=>setPendingPreview(null)}
-        onAskAI={prompt=>{if(!busy)void send(undefined,"send",undefined,prompt);}}
+        onPrepareEdit={(prompt,source)=>{workspace.prepareRevision(prompt,source);setPendingPreview(null);requestAnimationFrame(()=>composer.current?.focus());}}
       />
       <Dialog
         open={educationOpen}

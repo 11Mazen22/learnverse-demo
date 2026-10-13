@@ -1,4 +1,5 @@
 "use client";
+import {revisionMayLoseContent} from "@/lib/ai/revision-quality";
 import {
   useCallback,
   useEffect,
@@ -27,6 +28,7 @@ import { createAiMessageContext } from "@/lib/ai/context-budget";
 import { continueChat, type ChatPart } from "@/lib/ai/continuation";
 import { requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
 import {validatedResearch,type Research} from "../../../../supabase/functions/noata-ai/research.ts";
+import type {LibrarySource} from "@/lib/ai/library-source";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import {needsSemanticPlan,validateSemanticPlan} from "../../../../supabase/functions/noata-ai/semantic-plan.ts";
 import type {ArtifactIntent} from "@/lib/ai/artifact-intent";
@@ -84,6 +86,10 @@ export function useAIWorkspace() {
   const [conversations, setConversations] = useState<Conversation[]>([]),
     [activeId, setActiveId] = useState<string | null>(null),
     [messages, setMessages] = useState<Message[]>([]);
+  const revisionSource=useRef<LibrarySource|null>(null);
+  const [revisionName,setRevisionName]=useState("");
+  function clearRevision(){revisionSource.current=null;setRevisionName("");}
+  function prepareRevision(prompt:string,source?:LibrarySource){if(lock.current)return;revisionSource.current=source??null;setRevisionName(source?.name??"");setInput(prompt);}
   const [model, setModel] = useState("auto"),
     [input, setInput] = useState(""),
     [busy, setBusy] = useState(false),
@@ -132,6 +138,7 @@ export function useAIWorkspace() {
   const failedTool = useRef<string | undefined>(undefined);
   const sessionScope = useRef(createSessionGuard());
   const [sessionVersion, setSessionVersion] = useState(0);
+  useEffect(()=>{clearRevision();},[sessionVersion]);
   const [newChatEpoch,setNewChatEpoch] = useState(0);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
   const [ttsModel, setTtsModel] = useState("Fanar-Aura-TTS-2");
@@ -334,7 +341,7 @@ export function useAIWorkspace() {
       );
       return;
     }
-    stopVoice();
+    stopVoice();clearRevision();
     const seq = ++openSequence.current;
     setLoading(true);
     setError("");
@@ -411,7 +418,7 @@ export function useAIWorkspace() {
       return;
     }
     stopVoice();
-    setNewChatEpoch(x=>x+1);
+    clearRevision();setNewChatEpoch(x=>x+1);
     setDocumentFiles([]);
     setAttachment(null);
     ++openSequence.current;
@@ -482,6 +489,8 @@ export function useAIWorkspace() {
       storage_path: path,
       mime_type: file.type,
       size_bytes: file.size,
+      filename:file.name.replace(/[\\/]/g,"-").slice(0,180),
+      library_saved:conversationId!=="temporary",
     });
     assertSession(token);
     if (record.error) {
@@ -694,6 +703,7 @@ export function useAIWorkspace() {
               : attachment?.type.startsWith("image/")
                 ? t("حلّل الصورة المرفقة.","Analyze the attached image.")
                 : "");
+    const editingSource=mode==="send"?revisionSource.current:null;
     // A genuine natural-language image request can use Fanar's existing
     // authenticated image capability without opening a separate Tools panel.
     // Editing, SVG, multi-image and Temporary requests are intentionally excluded.
@@ -1033,6 +1043,11 @@ export function useAIWorkspace() {
           const chartData = currentIntent.kind === "pdf"
             ? findActualLineChart(currentIntent.usePrevious && prior.trim()?prior:currentContent)
             : null;
+          if(editingSource){
+            const split=text.split(/Verified extracted original document content:|المحتوى الأصلي للملف:/);
+            const before=split.slice(1).join("\n");
+            if(before&&revisionMayLoseContent(before,source,split[0]))throw Error("revision_content_loss");
+          }
           const id = crypto.randomUUID();
           const driver:ArtifactDriver = {
             renderPdf: async(text,title,signal) => {
@@ -1052,7 +1067,8 @@ export function useAIWorkspace() {
             insert:async(artifact,user_id)=>{
               const result=await supabase.from("ai_artifacts").insert({
                 id:artifact.id,user_id,filename:artifact.filename,mime_type:artifact.mimeType,
-                storage_path:artifact.storagePath,byte_size:artifact.byteSize
+                storage_path:artifact.storagePath,byte_size:artifact.byteSize,source_content:source.slice(0,160000),
+                ...(editingSource?.artifactId?{parent_artifact_id:editingSource.artifactId}:editingSource?.documentId?{source_document_id:editingSource.documentId}:{})
               });
               if(result.error)throw result.error;
             },
@@ -1085,7 +1101,7 @@ export function useAIWorkspace() {
             controller.signal.throwIfAborted();assertSession(token);
             failedFormats.push(currentIntent.kind.toUpperCase());
             const message=fileError instanceof Error?fileError.message:"";
-            const reason=["table_required","slides_required","unfinished_content","too_large","generated_file_invalid","auth_expired"].includes(message)
+            const reason=["revision_content_loss","table_required","slides_required","unfinished_content","too_large","generated_file_invalid","auth_expired"].includes(message)
               ?message:/Text too long for readable slides|up to 30 slides/.test(message)?"slide_layout_limit"
               :/^pdf_service_/.test(message)?"pdf_service_error":"file_generation_or_storage";
             fileFailures.push({format:currentIntent.kind,reason});
@@ -1098,7 +1114,7 @@ export function useAIWorkspace() {
             if(rejected.error)throw rejected.error;
             assistant={...assistant!,metadata};
           }
-          if(!completedFiles.length)throw Error("no_completed_files");
+          if(!completedFiles.length)throw Error(fileFailures.some(f=>f.reason==="revision_content_loss")?"revision_content_loss":"no_completed_files");
           // A real artifact was persisted. Remove a conflicting provider refusal
           // from the visible and stored response only after confirmed success.
           let finalContent=assistant.content;
@@ -1118,7 +1134,9 @@ export function useAIWorkspace() {
         } catch (artifactError) {
           if (sessionScope.current.isCurrent(token)) {
             const reason=artifactError instanceof Error?artifactError.message:"";
-            const detail=reason==="table_required"
+            const detail=reason==="revision_content_loss"
+              ?t("التعديل حذف جزءًا كبيرًا من المحتوى. لم نحفظ ملفًا مختصرًا بدل الأصل؛ راجع الرد أو أعد الطلب مع الحفاظ على كل الأقسام.","The revision removed a substantial amount of content. No shortened file replaced the original. Review the response or request a revision that preserves every section.")
+              :reason==="table_required"
               ?t("إنشاء Excel يحتاج جدول بيانات حقيقي في الرد.","Excel generation requires an actual data table in the response.")
               :reason==="slides_required"
               ?t("إنشاء PowerPoint يحتاج عناوين شرائح منظّمة.","PowerPoint generation requires structured slide headings.")
@@ -1127,6 +1145,7 @@ export function useAIWorkspace() {
           }
         }
       }
+      clearRevision();
       setAttachment(null);
       setDocumentFiles([]);
       if (picker.current) picker.current.value = "";
@@ -1717,6 +1736,7 @@ export function useAIWorkspace() {
     onTemporary: () => newChat(!temporary),
   };
   return {
+    prepareRevision,clearRevision,revisionName,
     historyProps,
     sessionVersion,
     newChatEpoch,

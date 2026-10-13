@@ -7,15 +7,15 @@ const enabled=()=>process.env.NOATA_DOCUMENT_STORAGE_ENABLED==="true";
 const response=(request:Request,body:unknown,status=200)=>Response.json(documentApiBody(body,request.headers),{status,headers:{"Cache-Control":"private, no-store"}});
 export async function GET(request:Request){
   const url=new URL(request.url);
-  if(url.searchParams.has("capabilities"))return response(request,{retention:enabled(),days:30});
+  if(url.searchParams.has("capabilities"))return response(request,{retention:enabled(),library:true});
   if(!enabled())return response(request,{error:"حفظ المستندات غير مفعّل في هذه البيئة."},503);
   const id=url.searchParams.get("id");if(!id || !UUID.test(id))return response(request,{error:"مستند غير صالح."},400);
   const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)return response(request,{error:"سجّل الدخول."},401);
   const {data:file,error}=await db.from("ai_document_files").select("*").eq("id",id).eq("user_id",user.id).maybeSingle();
   if(error)return response(request,{error:"تعذّر قراءة المستند."},503);
-  if(!file || !file.conversation_id || !isOwnerDocumentPath(file.storage_path,user.id))return response(request,{error:"المستند غير متاح."},404);
-  if(new Date(file.expires_at)<=new Date())return response(request,{error:"انتهت مدة حفظ المستند."},410);
-  const seconds=Math.min(60,Math.floor((new Date(file.expires_at).getTime()-Date.now())/1000));
+  if(!file || (!file.library_saved&&!file.conversation_id) || !isOwnerDocumentPath(file.storage_path,user.id))return response(request,{error:"المستند غير متاح."},404);
+  if(!file.library_saved&&new Date(file.expires_at)<=new Date())return response(request,{error:"انتهت مدة حفظ المستند."},410);
+  const seconds=file.library_saved?60:Math.min(60,Math.floor((new Date(file.expires_at).getTime()-Date.now())/1000));
   if(seconds<1)return response(request,{error:"انتهت مدة حفظ المستند."},410);
   const signed=await db.storage.from(DOCUMENT_BUCKET).createSignedUrl(file.storage_path,seconds,{download:file.name});
   if(signed.error)return response(request,{error:"تعذّر فتح المستند."},503);
@@ -43,11 +43,11 @@ export async function POST(request:Request){
     if(count.error)return response(request,{error:"تعذّر التحقق من حدود الرفع."},503);
     if((count.count??0)>=40)return response(request,{error:"الحد الأقصى ٤٠ مستندًا لكل محادثة."},429);
     const id=crypto.randomUUID(),path=documentPath(user.id,conversationId,id,file.name);
-    const record=await db.from("ai_document_files").insert({id,user_id:user.id,conversation_id:conversationId,name:file.name.slice(0,120),storage_path:path,mime_type:format.mime,size_bytes:file.size}).select("expires_at").single();
+    const record=await db.from("ai_document_files").insert({id,user_id:user.id,conversation_id:conversationId,name:file.name.slice(0,120),storage_path:path,mime_type:format.mime,size_bytes:file.size,library_saved:true}).select("expires_at").single();
     if(record.error)return response(request,{error:"تعذّر تسجيل المستند أو تجاوزت مساحة حسابك."},503);
     const upload=await db.storage.from(DOCUMENT_BUCKET).upload(path,bytes,{contentType:format.mime,upsert:false});
     if(upload.error){await db.from("ai_document_files").delete().eq("id",id).eq("user_id",user.id);return response(request,{error:"تعذّر حفظ المستند الأصلي."},503);}
-    return response(request,{id,expiresAt:record.data.expires_at},201);
+    return response(request,{id,librarySaved:true},201);
   }catch{return response(request,{error:"تعذّر قراءة المرفق."},400);}
 }
 export async function DELETE(request:Request){
@@ -57,7 +57,7 @@ export async function DELETE(request:Request){
   if((!id&&!conversationId)||(id&&!UUID.test(id))||(conversationId&&!UUID.test(conversationId)))return response(request,{error:"طلب غير صالح."},400);
   const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)return response(request,{error:"سجّل الدخول."},401);
   let query=db.from("ai_document_files").select("id,storage_path").eq("user_id",user.id);
-  query=id?query.eq("id",id):query.eq("conversation_id",conversationId!);
+  query=id?query.eq("id",id):query.eq("conversation_id",conversationId!).eq("library_saved",false);
   const rows=await query;if(rows.error)return response(request,{error:"تعذّر قراءة المستندات."},503);
   const files=rows.data??[];if(files.some(f=>!isOwnerDocumentPath(f.storage_path,user.id)))return response(request,{error:"طلب غير مسموح."},403);
   if(files.length){

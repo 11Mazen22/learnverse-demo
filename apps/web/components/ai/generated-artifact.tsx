@@ -1,4 +1,5 @@
 "use client";
+import type {LibrarySource} from "@/lib/ai/library-source";
 import {useEffect,useMemo,useRef,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {useTranslation} from "@/lib/i18n/locale";
@@ -20,7 +21,7 @@ function valid(value:unknown,owner:string|null):CreatedArtifact|null{
     typeof x.mimeType!=="string")return null;
  return x as unknown as CreatedArtifact;
 }
-export function NoataGeneratedArtifact({value,owner,onAskAI,onPrepareEdit}:{value:unknown;owner:string|null;onAskAI?:(prompt:string)=>void;onPrepareEdit?:(prompt:string)=>void}){
+export function NoataGeneratedArtifact({value,owner,onAskAI,onPrepareEdit}:{value:unknown;owner:string|null;onAskAI?:(prompt:string,source?:LibrarySource)=>void;onPrepareEdit?:(prompt:string,source?:LibrarySource)=>void}){
  const t=useTranslation(),supabase=useMemo(()=>createClient(),[]);
  const file=valid(value,owner),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const [studioOpen,setStudioOpen]=useState(false);

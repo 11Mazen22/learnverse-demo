@@ -1,3 +1,4 @@
+import {documentStyle,type DocumentStyle} from "./document-style.ts";
 /** Dependency-free, genuinely editable PPTX (Office Open XML) export for Noata. */
 import {packageZip} from "./docx-export.ts";
 import {documentDirection} from "./document-direction.ts";
@@ -115,7 +116,7 @@ function layout():string{
  return header+'<p:sldLayout xmlns:p="'+p+'" xmlns:a="'+a+'" xmlns:r="'+rel+'" type="blank" preserve="1"><p:cSld name="Blank">'+
  '<p:spTree>'+grp+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>';
 }
-export function createNoataPptx(source:string):Uint8Array{
+export function createNoataPptx(source:string,style:DocumentStyle="classic"):Uint8Array{
  const slides=parseNoataSlides(source);
  const types=header+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'+
   '<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>'+
@@ -141,6 +142,7 @@ export function createNoataPptx(source:string):Uint8Array{
  };
  slides.forEach((s,i)=>{const name="slide"+(i+1)+".xml";file["ppt/slides/"+name]=slideXml(s,i,slides.length);
   file["ppt/slides/_rels/"+name+".rels"]=relationships([{id:1,type:"slideLayout",target:"../slideLayouts/slideLayout1.xml"}]);});
+ if(style!=="classic"){const colors=documentStyle(style);for(const key of Object.keys(file))file[key]=file[key].replaceAll('val="19335C"','val="'+colors.accent+'"').replaceAll('val="172642"','val="'+colors.ink+'"').replaceAll('val="F4F7FC"','val="'+colors.soft+'"').replaceAll('val="5666D9"','val="'+colors.accent+'"');}
  return packageZip(file);
 }
 export function downloadNoataPptx(source:string,name="noata-presentation.pptx"){

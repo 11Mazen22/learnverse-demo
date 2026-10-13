@@ -50,9 +50,9 @@ export function OriginalDocumentPreview({source}:{source:{name:string;format:str
      const job=selected.render({canvas:canvas.current,viewport});render=job;await job.promise;
     }else if(source.format==="docx"){
      const parsed=await extractDocxDocument(file,200_000);if(alive)setText(parsed.excerpt+(parsed.truncated?t("\n\n[المستند طويل؛ نزّل الأصل لرؤية المحتوى المتبقي]"," [Long document: download the original to see the remaining content]"):""));
-    }else if(source.format==="xlsx"){
-     const workbook=await inspectOfficeArtifact(new Uint8Array(await file.arrayBuffer()),"xlsx");
-     if(alive){setSheets(workbook.pages);setPage(1);setPages(workbook.pages.length);}
+    }else if((source.format==="xlsx"||source.format==="pptx")){
+     const workbook=await inspectOfficeArtifact(new Uint8Array(await file.arrayBuffer()),source.format==="pptx"?"pptx":"xlsx");
+     if(alive){setSheets(workbook.pages);setPages(workbook.pages.length);}
     }else{const body=await file.text();if(alive)setText(body);}
    }catch(error){if(alive)setError(error instanceof Error?error.message:t("تعذّر عرض المحتوى.","Could not display the content."));}
   })();return()=>{alive=false;render?.cancel();void task?.destroy();};
@@ -61,11 +61,12 @@ export function OriginalDocumentPreview({source}:{source:{name:string;format:str
   {loading&&<p role="status">{t("بنفتح النسخة الأصلية…","Opening the original…")}</p>}{error&&<p role="status">{error}</p>}
   {file&&<>
    <div className="aura-document-toolbar"><strong>{source.format==="docx"?t("نص ملف Word الأصلي","Original Word document text"):t("الملف الأصلي","Original file")}</strong><a href={url} download={file.name}><Icon name="download" size={16}/>{t("تنزيل الأصل","Download original")}</a></div>
-    {source.format==="pdf"?<><div className="aura-pdf-pagination"><button type="button" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>{t("السابق","Previous")}</button><span>{t("صفحة","Page")} {page} {t("من","of")} {pages || "…"}</span><button type="button" disabled={!pages||page>=pages} onClick={()=>setPage(p=>p+1)}>{t("التالي","Next")}</button></div><canvas ref={canvas} aria-label={t("صفحة PDF ","PDF page ")+page} role="img"/></>:source.format==="xlsx"?<div className="aura-original-sheet">
+    {source.format==="pdf"?<><div className="aura-pdf-pagination"><button type="button" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>{t("السابق","Previous")}</button><span>{t("صفحة","Page")} {page} {t("من","of")} {pages || "…"}</span><button type="button" disabled={!pages||page>=pages} onClick={()=>setPage(p=>p+1)}>{t("التالي","Next")}</button></div><canvas ref={canvas} aria-label={t("صفحة PDF ","PDF page ")+page} role="img"/></>:(source.format==="xlsx"||source.format==="pptx")?<div className="aura-original-sheet">
    <div className="aura-pdf-pagination"><button type="button" disabled={page<=1} onClick={()=>setPage(n=>n-1)}>{t("السابق","Previous")}</button>
    <span>{sheets[page-1]?.title||t("فتح ورقة العمل","Opening sheet")} · {page}/{pages||"…"}</span>
    <button type="button" disabled={!pages||page>=pages} onClick={()=>setPage(n=>n+1)}>{t("التالي","Next")}</button></div>
    {sheets[page-1]?.table&&<div className="aura-original-sheet-table"><table><tbody>{sheets[page-1].table!.map((row,i)=><tr key={i}>{row.map((cell,j)=>i===0?<th key={j} scope="col">{cell}</th>:<td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>}
+   {source.format==="pptx"&&sheets[page-1]?.lines.map((line,i)=><p key={i} dir="auto">{line}</p>)}
    <small>{t("البيانات من الملف الأصلي؛ الصيغ لم يُعَد حسابها.","Cells are extracted from the original file; formulas have not been recalculated.")}</small>
   </div>:<pre dir="auto">{text}</pre>}
   </>}
