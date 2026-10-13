@@ -2,30 +2,35 @@
 import {hasTableData,hasSlideStructure} from "./answer-export.ts";
 export type ArtifactKind="pdf"|"docx"|"xlsx"|"pptx";
 export type ArtifactIntent={kind:ArtifactKind;usePrevious:boolean};
-export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
+export function detectArtifactIntents(prompt:string):ArtifactIntent[]{
  const raw=prompt.trim();
- if(!raw||raw.length>25000)return null;
+ if(!raw||raw.length>25000)return [];
  // Creative Studio includes quoted source text after a known delimiter.
  // Only the user's top-level instruction may select the requested file type.
  const q=raw.split(/\n\n(?:Verified extracted original document content:|المحتوى الأصلي للملف:)\s*\n/i)[0];
- if(q.length>4000)return null;
+ if(q.length>4000)return [];
  // Ability questions need an answer or clarification, not a downloadable
  // document containing the model's answer to "can you make PDF?".
  if(/^(?:can|could|do|does|will|are|is)\s+(?:you|noata)\s+/i.test(q)
-  &&!/(?:\b(?:that|this|them|those|these|it|previous|above)\b|(?:عن|about|from|containing)\s+\S{4,})/i.test(q))return null;
+  &&!/(?:\b(?:that|this|them|those|these|it|previous|above)\b|(?:عن|about|from|containing)\s+\S{4,})/i.test(q))return [];
  if(/^(?:هل|ممكن|تقدر|تستطيع)\s+/i.test(q)
-  &&!/(?:دا|ده|السابق|عن\s+\S{4,})/i.test(q))return null;
- if(/^(?:(?:how|why|what|explain|teach|tutorial)\b|(?:ازاي|إزاي|كيف|اشرح)(?:\s|$))/i.test(q))return null;
- if(!/\b(?:make|create|recreate|rewrite|improve|revise|polish|generate|export|convert|prepare|download|save|produce|give me|turn)\b|(?:اعمل|اصنع|أنشئ|جهز|حوّل|حول|صمم|نزّل|صدّر|اعمللي|حسّن|حسن|عدّل|عدل)/i.test(q))return null;
+  &&!/(?:دا|ده|السابق|عن\s+\S{4,})/i.test(q))return [];
+ if(/^(?:(?:how|why|what|explain|teach|tutorial)\b|(?:ازاي|إزاي|كيف|اشرح)(?:\s|$))/i.test(q))return [];
+ if(!/\b(?:make|create|recreate|rewrite|improve|revise|polish|generate|export|convert|prepare|download|save|produce|give me|turn)\b|(?:اعمل|اصنع|أنشئ|جهز|حوّل|حول|صمم|نزّل|صدّر|اعمللي|حسّن|حسن|عدّل|عدل)/i.test(q))return [];
  const formats:ArtifactKind[]=[];
  if(/\bpdf\b|بي دي اف|بي دي إف/i.test(q))formats.push("pdf");
  if(/\bdocx\b|\bword (?:document|file)\b|ملف ورد|ملف وورد/i.test(q))formats.push("docx");
  if(/\bxlsx\b|\bexcel\b|\bspreadsheet\b|إكسل|اكسل/i.test(q))formats.push("xlsx");
  if(/\bpptx\b|\bpowerpoint\b|\bpresentation\b|بوربوينت|باوربوينت|عرض تقديمي/i.test(q))formats.push("pptx");
- if(formats.length!==1)return null;
+ if(!formats.length)return [];
+ const order:Record<ArtifactKind,RegExp>={pdf:/\bpdf\b|بي دي اف|بي دي إف/i,docx:/\bdocx\b|\bword (?:document|file)\b|ملف ورد|ملف وورد/i,xlsx:/\bxlsx\b|\bexcel\b|\bspreadsheet\b|إكسل|اكسل/i,pptx:/\bpptx\b|\bpowerpoint\b|\bpresentation\b|بوربوينت|باوربوينت|عرض تقديمي/i};
+ formats.sort((a,b)=>q.search(order[a])-q.search(order[b]));
  const usePrevious=/\b(?:that|this|them|those|these|it|above|previous|earlier|last answer)\b|(?:ده|دا|دي|دول|هذه|هذا|ذلك|تلك|اللي فوق|الرد السابق|الإجابة السابقة)/i.test(q);
  // Studio requests contain their own quoted file contents. Never substitute a prior chat answer.
- return {kind:formats[0],usePrevious:raw===q&&usePrevious};
+ return formats.map(kind=>({kind,usePrevious:raw===q&&usePrevious}));
+}
+export function detectArtifactIntent(prompt:string):ArtifactIntent|null{
+ const intents=detectArtifactIntents(prompt);return intents.length===1?intents[0]:null;
 }
 export function artifactContent(intent:ArtifactIntent,answer:string,previous:string):string{
  return (intent.usePrevious&&previous.trim()?previous:answer).trim();

@@ -20,3 +20,10 @@ test("Every file contract bounds resources, persistence, cancellation and permis
  assert.equal(FILE_CONTRACTS.length,4);
  assert.ok(FILE_CONTRACTS.every(x=>x.requiresAuth&&x.maxBytes<=12582912&&x.retries===0&&x.persistence==="private_owner_scoped"));
 });
+
+import {detectArtifactIntents} from "./artifact-intent.ts";
+test("Planner failure does not silently omit explicit supported deliverables",()=>{
+ assert.deepEqual(detectArtifactIntents("Create a PDF guide, an English PowerPoint presentation and an Excel practice tracker").map(x=>x.kind),["pdf","pptx","xlsx"]);
+ assert.deepEqual(detectArtifactIntents("Can you make PDF?"),[]);
+ assert.deepEqual(detectArtifactIntents("Explain PDF and Excel formats"),[]);
+});

@@ -1,5 +1,5 @@
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
-import {parseSemanticPlan,semanticPlanningPrompt} from "./semantic-plan.ts";
+import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./semantic-plan.ts";
 import { createFanarStream } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
@@ -625,10 +625,15 @@ async function handlePlan(userId:string,payload:Record<string,unknown>){
  const {data}=await fanarJson("/chat/completions",{
   model:"Fanar",messages:[{role:"system",content:semanticPlanningPrompt(language)},
    {role:"user",content:JSON.stringify({request,context})}],
-  temperature:0,max_tokens:220,stream:false
+  temperature:0,max_tokens:600,stream:false
  },12000);
- const plan=parseSemanticPlan(data?.choices?.[0]?.message?.content);
- if(!plan)return json({error:"Invalid planner output",code:"PLAN_INVALID"},502);
+ const rawPlan=data?.choices?.[0]?.message?.content;
+ const plan=parseSemanticPlan(clean(rawPlan??""));
+ if(!plan){
+  const reason=semanticPlanFailure(rawPlan);
+  console.info(JSON.stringify({event:"noata_plan_rejected",reason,finishReason:data?.choices?.[0]?.finish_reason??"unknown",outputCharacters:typeof rawPlan==="string"?rawPlan.length:0}));
+  return json({error:"Invalid planner output",code:"PLAN_INVALID",reason},502);
+ }
  return json({kind:"plan",plan,model:"Fanar"});
 }
 

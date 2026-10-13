@@ -31,7 +31,7 @@ import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import {needsSemanticPlan,validateSemanticPlan} from "../../../../supabase/functions/noata-ai/semantic-plan.ts";
 import type {ArtifactIntent} from "@/lib/ai/artifact-intent";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
-import { artifactContent } from "@/lib/ai/artifact-intent";
+import { artifactContent,detectArtifactIntents } from "@/lib/ai/artifact-intent";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
 import {confirmedFileIntent,finishedDocumentInstruction} from "@/lib/ai/artifact-followup";
@@ -831,7 +831,9 @@ export function useAIWorkspace() {
       const contextualFile=mode==="send"&&!tool&&!temporary
         ?confirmedFileIntent(text,priorUserRequests):null;
       let requestedFile=plannedCapability.kind==="artifact"?plannedCapability.intent:contextualFile;
-      let requestedFiles:ArtifactIntent[]=requestedFile?[requestedFile]:[];
+      let requestedFiles:ArtifactIntent[]=mode==="send"&&!tool&&!temporary&&!attachment&&!documentFiles.length
+        ?detectArtifactIntents(text):requestedFile?[requestedFile]:[];
+      requestedFile=requestedFiles[0]??requestedFile;
       let planQuestion="";
       // Semantic proposals select only allowlisted, authenticated file engines.
       // Temporary, explicit tools and retries keep their existing no-side-effect boundaries.
