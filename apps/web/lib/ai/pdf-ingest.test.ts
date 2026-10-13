@@ -74,7 +74,7 @@ test("An observed missing PDF glyph is disclosed and cannot break PostgreSQL JSO
  const {safePdfText}=await import("./pdf-ingest.ts");
  const result=safePdfText("O "+String.fromCharCode(0)+" C");
  assert.equal(result.damaged,true);
- assert.equal(result.text,"O � C");
+ assert.equal(result.text,"O □ C");
  assert.equal(result.text.includes(String.fromCharCode(0)),false);
  assert.equal(JSON.stringify({excerpt:result.text}).includes("\\u0000"),false);
  assert.deepEqual(safePdfText("→ ≤ CO₂"),{text:"→ ≤ CO₂",damaged:false});

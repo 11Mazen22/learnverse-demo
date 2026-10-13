@@ -16,7 +16,7 @@ export function parseNoataSlides(source:string):NoataSlide[]{
   (_,title:string)=>"# "+title.replace(/^(?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：]\s*/i,""));
  normalized=normalized.replace(/^\s*\*\*((?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：])\*\*\s*(.+)$/gim,(_,label:string,title:string)=>"# "+title);
  normalized=normalized.replace(/^#{1,3}\s+/gm,"# ");
- if(/^\s*Here is (?:the )?content for (?:the )?PowerPoint/i.test(normalized)){
+ if(/^\s*Here is (?:the )?(?:complete )?content for (?:the )?PowerPoint/i.test(normalized)){
   const at=normalized.search(/^#\s+/m);if(at>=0)normalized=normalized.slice(at);
  }
  const sections=normalized.split(/^\s*---\s*$/m);

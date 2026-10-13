@@ -8,7 +8,7 @@ export type ExtractedPdf={pages:PdfPage[];excerpt:string;totalPages:number;scann
 /** A missing glyph must be disclosed, not guessed or sent as JSON's forbidden NUL. */
 export function safePdfText(text:string):{text:string;damaged:boolean}{
  const damaged=text.includes("\u0000");
- return{text:text.replace(/\u0000/g,"�"),damaged};
+ return{text:text.replace(/\u0000/g,"□"),damaged};
 }
 export function isPdfDocument(file:{name:string;type:string}):boolean {
  return /\.pdf$/i.test(file.name)&&(file.type==="application/pdf"||file.type==="");

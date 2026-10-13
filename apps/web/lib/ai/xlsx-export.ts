@@ -1,3 +1,4 @@
+import {spreadsheetCell} from "./spreadsheet-cell.ts";
 import {packageZip} from "./docx-export.ts";
 import {parseNoataSheets,createNoataMultiSheetXlsx} from "./xlsx-multisheet.ts";
 const esc=(s:string)=>s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -31,7 +32,7 @@ export function createNoataXlsx(source:string):Uint8Array{
  const matrix=parseNoataData(source);
  if(matrix.length===0||matrix.length>1000||matrix.some(row=>row.length>26))throw Error("Spreadsheet dimensions exceed limits");
  const rows=matrix.map((values,r)=>'<row r="'+(r+1)+'">'+values.map((v,c)=>{
-  const value=v.slice(0,32767),reference=col(c)+(r+1);
+  const value=spreadsheetCell(v).slice(0,32767),reference=col(c)+(r+1);
   const formula=/^=(SUM|AVERAGE|MIN|MAX|COUNT)\(([A-Z]{1,2}[1-9]\d{0,3}):([A-Z]{1,2}[1-9]\d{0,3})\)$/i.test(value);
   if(formula)return '<c r="'+reference+'"><f>'+esc(value.slice(1))+'</f></c>';
   const numeric=r>0&&/^[-+]?\d{1,12}(?:\.\d{1,8})?$/.test(value)&&Number.isFinite(Number(value));

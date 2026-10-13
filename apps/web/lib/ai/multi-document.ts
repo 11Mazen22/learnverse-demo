@@ -46,7 +46,7 @@ export function appendDocumentSources(prompt:string,raw:unknown):string {
     const excerpt=item.excerpt.slice(0,Math.min(remaining,MAX_SINGLE_DOCUMENT_CONTEXT));
     if(!excerpt)break;
     remaining-=excerpt.length;
-    sections.push("[FILE "+(index+1)+" | "+name+"]\n"+(Array.isArray(item.damagedPages)&&item.damagedPages.length?"Extraction warning: some PDF glyphs are unreadable and replaced with �. Do not guess their meaning or claim complete extraction.\n":"")+excerpt+"\n[/FILE "+(index+1)+"]");
+    sections.push("[FILE "+(index+1)+" | "+name+"]\n"+(Array.isArray(item.damagedPages)&&item.damagedPages.length?"Extraction warning: some PDF glyphs are unreadable and replaced with □. Do not guess their meaning or claim complete extraction.\n":"")+excerpt+"\n[/FILE "+(index+1)+"]");
     if(remaining<=0)break;
   }
   if(!sections.length)return prompt;

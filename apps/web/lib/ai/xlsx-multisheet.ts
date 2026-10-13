@@ -1,3 +1,4 @@
+import {spreadsheetCell,workbookFormula} from "./spreadsheet-cell.ts";
 /** Noata structured Excel workbooks: bounded multi-sheet OOXML with editable formulas. */
 import {packageZip} from "./docx-export.ts";
 const NS="http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -37,15 +38,15 @@ function styles(){
  const head='<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment vertical="center" wrapText="1"/></xf>';
  return xml+'<styleSheet xmlns="'+NS+'">'+fonts+fills+borders+'<cellStyleXfs count="1">'+base+'</cellStyleXfs><cellXfs count="2">'+base+head+'</cellXfs></styleSheet>';
 }
-function sheetXml(rows:string[][]):string{
+function sheetXml(rows:string[][],sheets:NoataSheet[],current:number):string{
  const count=Math.max(...rows.map(r=>r.length)),rtl=rows.slice(0,5).some(r=>r.some(v=>/[\u0600-\u06ff]/.test(v)));
  const widths=Array.from({length:count},(_,i)=>Math.min(40,Math.max(12,...rows.slice(0,70).map(r=>(r[i]??"").length+3))));
  const cols='<cols>'+widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join("")+'</cols>';
  const xmlRows=rows.map((values,r)=>{
   const cells=values.map((value,c)=>{
-   const text=value.slice(0,32767),pos=col(c)+(r+1),style=r===0?' s="1"':"";
-   const formula=r>0&&/^=(SUM|AVERAGE|MIN|MAX|COUNT)\(([A-Z][1-9]\d{0,2}):([A-Z][1-9]\d{0,2})\)$/i.test(text);
-   if(formula)return '<c r="'+pos+'"'+style+'><f>'+esc(text.slice(1))+'</f></c>';
+   const text=spreadsheetCell(value).slice(0,32767),pos=col(c)+(r+1),style=r===0?' s="1"':"";
+   const formula=r>0?workbookFormula(text,sheets,current,r,c):null;
+   if(formula)return '<c r="'+pos+'"'+style+'><f>'+esc(formula.formula)+'</f>'+(formula.cached===null?"":'<v>'+formula.cached+'</v>')+'</c>';
    const numeric=r>0&&/^[-+]?\d{1,12}(?:\.\d{1,8})?$/.test(text)&&Number.isFinite(Number(text));
    if(numeric)return '<c r="'+pos+'"'+style+'><v>'+Number(text)+'</v></c>';
    return '<c r="'+pos+'"'+style+' t="inlineStr"><is><t xml:space="preserve">'+esc(text)+'</t></is></c>';
@@ -70,7 +71,7 @@ export function createNoataMultiSheetXlsx(sheets:NoataSheet[]):Uint8Array{
   sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="'+DOCREL+'/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join("")+
   '<Relationship Id="rId'+(sheets.length+1)+'" Type="'+DOCREL+'/styles" Target="styles.xml"/></Relationships>';
  file["_rels/.rels"]=xml+'<Relationships xmlns="'+REL+'"><Relationship Id="rId1" Type="'+DOCREL+'/officeDocument" Target="xl/workbook.xml"/></Relationships>';
- for(let i=0;i<sheets.length;i++)file["xl/worksheets/sheet"+(i+1)+".xml"]=sheetXml(sheets[i].rows);
+ for(let i=0;i<sheets.length;i++)file["xl/worksheets/sheet"+(i+1)+".xml"]=sheetXml(sheets[i].rows,sheets,i);
  file["[Content_Types].xml"]=xml+'<Types xmlns="'+CT+'"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
   '<Default Extension="xml" ContentType="application/xml"/>'+
   '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
