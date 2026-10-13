@@ -1,4 +1,5 @@
 /** Genesis: deterministic creation requests, not a fake "AI tool" switch. */
+import {searchPlan} from "../../../../supabase/functions/noata-ai/research.ts";
 import {hasTableData,hasSlideStructure} from "./answer-export.ts";
 export type ArtifactKind="pdf"|"docx"|"xlsx"|"pptx";
 export type ArtifactIntent={kind:ArtifactKind;usePrevious:boolean};
@@ -26,7 +27,13 @@ export function detectArtifactIntents(prompt:string):ArtifactIntent[]{
  const order:Record<ArtifactKind,RegExp>={pdf:/\bpdf\b|بي دي اف|بي دي إف/i,docx:/\bdocx\b|\bword (?:document|file)\b|ملف ورد|ملف وورد/i,xlsx:/\bxlsx\b|\bexcel\b|\bspreadsheet\b|إكسل|اكسل/i,pptx:/\bpptx\b|\bpowerpoint\b|\bpresentation\b|بوربوينت|باوربوينت|عرض تقديمي/i};
  formats.sort((a,b)=>q.search(order[a])-q.search(order[b]));
  const bareFollowup=/^(?:(?:now|alright|okay|ok|please)\s*[,!]?\s*)*(?:make|create|generate|export|prepare|produce)\s+(?:(?:me|the|a|an)\s+)*(?:pdf|docx|xlsx|pptx|word(?:\s+(?:document|file))?|excel(?:\s+(?:file|sheet))?|powerpoint(?:\s+(?:file|presentation))?)(?:\s+(?:file|document))?[.!?]*$/i.test(q)||/^(?:دلوقتي\s+)?(?:اعمل|جهز|أنشئ|انشئ)\s+(?:ملف\s+)?(?:PDF|بي دي اف|وورد|ورد|اكسل|بوربوينت)[.!؟]*$/i.test(q);
- const usePrevious=bareFollowup||/\b(?:that|this|them|those|these|it|above|previous|earlier|last answer)\b|(?:ده|دا|دي|دول|هذه|هذا|ذلك|تلك|اللي فوق|الرد السابق|الإجابة السابقة)/i.test(q);
+ const research=searchPlan(q);
+ const newResearch=research.needed&&(research.reason==="explicit"||research.reason==="freshness");
+ const historyReference=/\b(?:above|previous|earlier|last answer)\b|اللي فوق|الرد السابق|الإجابة السابقة/i.test(q);
+ const conversionReference=/\b(?:make|create|export|convert|turn|put|save|prepare|produce)\s+(?:it|this|that|them|those|these)\b|\b(?:from|of|using|for)\s+(?:it|this|that|them|those|these)\b|(?:اعمل|جهز|أنشئ|انشئ|حول|حوّل|احفظ)\s+(?:ده|دا|دي|دول|هذه|هذا|ذلك|تلك)(?:\s|$)/i.test(q);
+ // "details that still need verification" is not a reference to a previous
+ // reply. A requested research phase must run before document creation.
+ const usePrevious=!newResearch&&(bareFollowup||historyReference||conversionReference);
  // Studio requests contain their own quoted file contents. Never substitute a prior chat answer.
  return formats.map(kind=>({kind,usePrevious:raw===q&&usePrevious}));
 }

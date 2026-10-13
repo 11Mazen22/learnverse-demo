@@ -81,3 +81,14 @@ test("The observed plural PDF follow-up references the actual previous answer",(
 });
 
 test("Bare format follow-ups use the preceding answer instead of asking a model for file capability",()=>{assert.deepEqual(detectArtifactIntent("now make pdf"),{kind:"pdf",usePrevious:true});assert.deepEqual(detectArtifactIntent("alright create the pptx file"),{kind:"pptx",usePrevious:true});assert.equal(detectArtifactIntent("Create a PDF about photosynthesis")?.usePrevious,false);});
+
+test("Research then export is an ordered fresh workflow, not a previous-reply conversion",()=>{
+ for(const prompt of [
+  "Search for Wikipedia background sources on photosynthesis, then create a cited PDF guide. Clearly separate claims supported by the retrieved excerpts from details that still need verification.",
+  "Research this paragraph, verify the claims, then make a PDF.",
+  "ابحث عن البناء الضوئي ثم اعمل هذا في PDF",
+  "Create a PDF report about the latest NASA sea level data"
+ ])assert.equal(detectArtifactIntent(prompt)?.usePrevious,false,prompt);
+ assert.equal(detectArtifactIntent("Create a PDF guide with details that matter about photosynthesis")?.usePrevious,false);
+ assert.equal(detectArtifactIntent("Turn the previous answer into a PDF")?.usePrevious,true);
+});
