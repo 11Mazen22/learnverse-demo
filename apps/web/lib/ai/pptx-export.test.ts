@@ -69,3 +69,9 @@ test("Actual Fanar presentation preserves six real slides without literal format
  assert.ok(!raw.includes("formatted bullet points beyond plain markdown"));
  assert.equal(parseNoataSlides("# Notes\n- An educational note about the carbon cycle.")[0].lines[0],"An educational note about the carbon cycle.");
 });
+
+test("Final app-delivery note variants do not create a generic extra slide",()=>{
+ const content="# Photosynthesis\n- Plants use light energy.\n---\n# Light reactions\n- Water splitting releases oxygen.\n---\n";
+ assert.equal(parseNoataSlides(content+"Note: This content generates a PowerPoint presentation. Actual file creation occurs within the application upon delivery completion.").length,2);
+ assert.equal(parseNoataSlides(content+"Note: Temperature changes enzyme activity.").length,3);
+});

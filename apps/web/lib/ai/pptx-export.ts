@@ -13,8 +13,8 @@ export function parseNoataSlides(source:string):NoataSlide[]{
  if(source.length>30000)throw Error("Presentation content exceeds 30,000 characters");
  let normalized=source.replace(/\r\n?/g,"\n");
  // Observed provider delivery commentary is not a slide or a claim of visual assets.
- // Remove only this exact trailing meta-note; preserve educational notes and source facts.
- normalized=normalized.replace(/\n\s*(?:---\s*\n)?\s*\(Note: Actual PPTX file generation would include visual aids like diagrams, graphs, and formatted bullet points beyond plain markdown here\.\)\s*$/i,"");
+ // Remove bounded trailing app-delivery notes; preserve educational notes and source facts.
+ normalized=normalized.replace(/\n\s*(?:---\s*\n)?\s*\(?Note:\s*(?:Actual (?:PPTX |PowerPoint )?file generation would include[^\n]{0,350}|This content generates a PowerPoint presentation\.[^\n]{0,200}Actual file creation occurs within the application[^\n]{0,150})\)?\s*$/i,"");
  // Fanar's actual slide response uses bold labels; preserve their real sections.
  normalized=normalized.replace(/^\s*\*\*((?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：].+?)\*\*\s*$/gim,
   (_,title:string)=>"# "+title.replace(/^(?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：]\s*/i,""));
