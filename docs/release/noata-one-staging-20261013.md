@@ -71,3 +71,17 @@ Backend version 26 files match the new candidate's function sources; JWT verific
 The prior version 24 was confirmed to match the initial 1b82e3ff function source. Rollback is redeployment of that preserved pinned source, not an unverified credential change.
 Cancellation and timeout handling now ends progress notices and bounds original-file network waits.
 Actual final CI and browser outcomes are recorded in PR #3 after execution.
+
+## Final engineering follow-up
+Private original Storage upload/read/delete returned HTTP 200 after the policy fixes. A subsequent message insert still failed because the actual older QA PDF contained a missing glyph decoded as NUL ("O [missing] C").
+PDF extraction now replaces only that unreadable control character with a visible replacement marker, records damaged page numbers and warns both the user and model not to guess its meaning. Original bytes are preserved.
+The three-output live plan was genuinely produced by Fanar and validated as PDF/PPTX/XLSX. The first follow-up run saved PDF and a defective workbook but did not create PPTX; that sample remains FAILED, not retroactively passed.
+The workbook defect was comma-bearing refusal prose treated as CSV. The parser now requires a rectangular real CSV/TSV header/data shape, and capability refusal detection covers "unable to directly create".
+The presentation parser now accepts the provider's actual bold slide labels, including a bold label followed by an unbold title, while retaining real editable slide sections.
+Each secondary format uses a dedicated content request, one bounded repair for an unfinished/refusal response, and the original user's selected response language.
+Progress/errors are cleared correctly after cancellation and failures.
+
+Preview environment hardening: branch-specific blank overrides disable inherited unrelated administrator, JWT and PostgreSQL credentials/configuration. The branch server URL is explicitly authorized Staging; its existing matching public key remains active.
+These overrides target Preview and the authorized branch only. Shared Production settings were not changed.
+They do not manufacture working administrator credentials: matching Staging Auth Admin access is still a genuine owner action for three-role QA.
+Final results must be read from PR #3's exact-head report; neither queued tests nor partial outputs prove the full ONE mission.
