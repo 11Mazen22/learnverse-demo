@@ -4,7 +4,7 @@ export type StreamResult = { kind: "chat"; content: string; model: string; finis
 type Options = {
   model: string;
   clean: (text: string) => string;
-  request: (signal: AbortSignal) => Promise<Response>;
+  request: (signal: AbortSignal,emit:(data:unknown)=>void) => Promise<Response>;
   persist: (result: StreamResult | null, status?: string) => Promise<void>;
   windowMs?: number;
   heartbeatMs?: number;
@@ -36,7 +36,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
           output=options.unavailableContent(research);usedModel="Noata";delivery="buffered";finished=true;finishReason="research_unavailable";firstContentMs=Date.now()-started;
           emit({content:output,model:usedModel,delivery});
         } else {
-        const response = await options.request(abort.signal);
+        const response = await options.request(abort.signal,emit);
         if (!response.ok || !response.body) {
           // Interpret provider failures without logging response bodies, prompts or keys.
           const rejected=await response.clone().json().catch(()=>null);

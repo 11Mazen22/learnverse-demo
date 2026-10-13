@@ -1,3 +1,4 @@
+import {requestWithContextRecovery} from "./context-recovery.ts";
 import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerReviewReason,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
 import {answerPresentation} from "./answer-presentation.ts";
@@ -111,6 +112,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
   const specialized=model==="Fanar-Sadiq"||model==="Fanar-Sadiq-2";
   // Sadiq is a grounded service with its own prompting and no token stream.
   // Keep a live heartbeat while waiting for its actual JSON response.
+  const protectedMessages:{role:string;content:unknown}[]=[];
   const providerBody=specialized?{model,messages:(body.messages as {role:string}[]).filter(m=>m.role!=="system"),stream:false}:{...body,stream:true};
   return new Response(createFanarStream({
     model, clean,routeNote,
@@ -118,7 +120,8 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);
       const messages=providerBody.messages as {role:string;content:unknown}[];
-      messages.splice(Math.max(0,messages.length-1),0,{role:"user",content:researchContext(research)});
+      const evidence={role:"user",content:researchContext(research)};protectedMessages.push(evidence);
+      messages.splice(Math.max(0,messages.length-1),0,evidence);
       if(!specialized&&messages[0]?.role==="system")messages[0].content=String(messages[0].content??"")+ "\nApplication evidence status for THIS request: sources were retrieved. Use the excerpts that follow. Do not say Noata cannot access sources. Limited background cannot verify current claims.";
       return research;
     }:undefined,
@@ -142,11 +145,11 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
         return candidate;
       }catch{signal.throwIfAborted();return fallback();}
     }:undefined,
-    request: (signal) => fetch(FANAR_BASE + "/chat/completions", {
+    request: (signal,emit) => requestWithContextRecovery(providerBody,requestBody=>fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + FANAR_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify(providerBody), signal,
-    }),
+      body: JSON.stringify(requestBody), signal,
+    }),protectedMessages,()=>emit({status:"context_recovery"})),
     persist: (result, status) => completeReceipt(receipt, result, status),
   }), { headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-store", "X-Accel-Buffering": "no" } });
 }
@@ -324,16 +327,17 @@ async function claim(userId: string, capability: string) {
   return row;
 }
 
-async function fanarJson(path: string, body: unknown, timeoutMs=180000) {
-  const response = await fetch(FANAR_BASE + path, {
+async function fanarJson(path: string, body: unknown, timeoutMs=180000,protectedMessages:{role:string;content:unknown}[]=[]) {
+  const send=(requestBody:unknown)=>fetch(FANAR_BASE + path, {
     method: "POST",
     headers: {
       Authorization: "Bearer " + FANAR_KEY,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(requestBody),
     signal: AbortSignal.timeout(timeoutMs),
   });
+  const response=path==="/chat/completions"?await requestWithContextRecovery(body as Record<string,unknown>,send,protectedMessages):await send(body);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const err = new Error(
@@ -385,7 +389,7 @@ async function discoverSpecialPath(kind: "validate" | "research") {
 }
 
 
-async function c1Thinking(messages: any[]) {
+async function c1Thinking(messages: any[],protectedMessages:{role:string;content:unknown}[]=[]) {
   const firstMessages = messages.map((m: any) => ({ ...m }));
   for (let i = firstMessages.length - 1; i >= 0; i--) {
     if (firstMessages[i].role === "user") {
@@ -401,7 +405,7 @@ async function c1Thinking(messages: any[]) {
     model: "Fanar-C-1-8.7B",
     messages: firstMessages,
     max_tokens: 2000,
-  });
+  },180000,protectedMessages);
 
   let choice = first?.choices?.[0] ?? {};
   let output = String(choice?.message?.content ?? "");
@@ -424,7 +428,7 @@ async function c1Thinking(messages: any[]) {
     model: "Fanar-C-1-8.7B",
     messages: firstMessages,
     max_tokens: 1000,
-  });
+  },180000,protectedMessages);
   return second;
 }
 
@@ -635,12 +639,13 @@ async function handleChat(
   const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
   if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});
-  if(research){messages.splice(Math.max(0,messages.length-1),0,{role:"user",content:researchContext(research)});messages[0].content+="\nSources were retrieved for THIS request. Use their excerpts; do not deny source access. Do not claim snippets verify unstated facts.";}
+  const protectedChatMessages:{role:string;content:unknown}[]=[];
+  if(research){const evidence={role:"user",content:researchContext(research)};protectedChatMessages.push(evidence);messages.splice(Math.max(0,messages.length-1),0,evidence);messages[0].content+="\nSources were retrieved for THIS request. Use their excerpts; do not deny source access. Do not claim snippets verify unstated facts.";}
   let data: any;
   if (model === "Fanar-C-1-8.7B" && payload.enable_thinking === true) {
-    data = await c1Thinking(messages);
+    data = await c1Thinking(messages,protectedChatMessages);
   } else {
-    const result = await fanarJson("/chat/completions", body);
+    const result = await fanarJson("/chat/completions", body,180000,protectedChatMessages);
     data = result.data;
   }
   return json({

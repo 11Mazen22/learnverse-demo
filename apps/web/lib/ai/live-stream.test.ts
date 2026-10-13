@@ -92,3 +92,15 @@ test("A truncated provider draft is preserved for continuation without a quality
  const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
  assert.equal(calls,0);assert.equal(frames.at(-1).incomplete,true);assert.equal(frames.at(-1).content,"Partial draft");
 });
+
+import {requestWithContextRecovery} from "../../../../supabase/functions/noata-ai/context-recovery.ts";
+test("Context recovery produces one real completed streamed reply after a provider 413",async()=>{
+ let calls=0,persists=0,saved:any;
+ const body={messages:[{role:"user",content:"Current topic"}],max_tokens:4096};
+ const stream=createFanarStream({model:"Fanar-C-1-8.7B",clean,
+  request:async(signal,emit)=>requestWithContextRecovery(body,async()=>++calls===1?new Response(null,{status:413}):Response.json({choices:[{message:{content:"Actual answer from the recovered provider request."},finish_reason:"stop"}]}),[],()=>emit({status:"context_recovery"})),
+  persist:async(value)=>{persists++;saved=value;}});
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
+ assert.equal(calls,2);assert.equal(persists,1);assert.equal(saved.incomplete,false);
+ assert.match(saved.content,/Actual answer/);assert.equal(frames.filter(x=>x.done).length,1);assert.ok(frames.some(x=>x.status==="context_recovery"));
+});
