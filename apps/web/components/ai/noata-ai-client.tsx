@@ -562,10 +562,11 @@ export function NoataAIClient() {
                     )}
                     <RichMessage content={m.content} research={m.metadata?.research}/>
                     {m.role==="assistant"&&m.status==="complete"&&
-                      <NoataGeneratedArtifact value={m.metadata?.generatedArtifact}
+                      (Array.isArray(m.metadata?.generatedArtifacts)?m.metadata.generatedArtifacts.slice(0,4):[m.metadata?.generatedArtifact]).map((artifact,index)=>
+                      <NoataGeneratedArtifact key={m.id+"-file-"+index} value={artifact}
                         owner={seenAccount.user?.id??null}
                         onPrepareEdit={prompt=>{setInput(prompt);setNotice(t("طلب التعديل في مربع الرسالة. راجعه ثم أرسله.","The revision request is in your composer. Review it, then send."));composer.current?.focus();}}
-                        onAskAI={prompt=>{if(!busy)void send(undefined,"send",undefined,prompt);}}/>}
+                        onAskAI={prompt=>{if(!busy)void send(undefined,"send",undefined,prompt);}}/>)}
 
 
                     {m.role==="assistant"&&<ResearchSources research={m.metadata?.research}/>}

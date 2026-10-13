@@ -20,7 +20,7 @@ export async function POST(request:Request){
  try{
   while(true){
    const {done,value}=await reader.read();if(done)break;
-   bytes+=value.byteLength;if(bytes>16000){await reader.cancel();return fail(413,"Chart payload too large");}
+   bytes+=value.byteLength;if(bytes>200000){await reader.cancel();return fail(413,"Chart payload too large");}
    raw+=decoder.decode(value,{stream:true});
   }
   raw+=decoder.decode();
@@ -31,8 +31,11 @@ export async function POST(request:Request){
  const value=validateResponseUi((payload as {chart?:unknown}).chart);
  if(!value||value.type!=="line_chart")return fail(422,"Valid numeric line chart required");
  try{
-  const title=value.title.slice(0,120);
-  const report=await renderNoataPdf("The chart and its underlying observations are included below.",title,undefined,value);
+  const requested=payload as {text?:unknown;title?:unknown};
+  if(requested.text!==undefined&&(typeof requested.text!=="string"||requested.text.length>100000))return fail(413,"Report text exceeds limits");
+  const title=(typeof requested.title==="string"?requested.title:value.title).slice(0,120);
+  const source=typeof requested.text==="string"&&requested.text.trim()?requested.text:"The chart and its underlying observations are included below.";
+  const report=await renderNoataPdf(source,title,undefined,value);
   if(report.length<100||String.fromCharCode(...report.slice(0,4))!=="%PDF")throw Error("Invalid PDF output");
   return new Response(Uint8Array.from(report),{headers:{
    "Content-Type":"application/pdf","Content-Disposition":'attachment; filename="noata-line-chart.pdf"',

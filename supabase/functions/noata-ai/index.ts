@@ -1,4 +1,5 @@
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
+import {parseSemanticPlan,semanticPlanningPrompt} from "./semantic-plan.ts";
 import { createFanarStream } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
@@ -44,6 +45,7 @@ const CHAT_MODELS = new Set([
 ]);
 
 const QUOTAS: Record<string, { limit: number; window: number }> = {
+  "Noata-Planner": { limit: 20, window: 60 },
   web_search: { limit: 5, window: 60 },
   Fanar: { limit: 50, window: 60 },
   "Noata-Suggestions": { limit: 6, window: 60 },
@@ -611,6 +613,25 @@ async function handleChat(
   });
 }
 
+/** Authenticated planning is bounded and cannot execute any proposed action. */
+async function handlePlan(userId:string,payload:Record<string,unknown>){
+ const request=typeof payload.request==="string"?payload.request.trim():"";
+ if(request.length<1||request.length>20000)return json({error:"Invalid planning request"},400);
+ const language=payload.locale==="ar"?"ar":"en";
+ const context=Array.isArray(payload.context)?payload.context.slice(-4).filter(x=>x&&typeof x==="object").map(x=>{
+  const row=x as Record<string,unknown>;return{role:row.role==="assistant"?"assistant":"user",content:String(row.content??"").slice(0,2400)};
+ }):[];
+ await claim(userId,"Noata-Planner");
+ const {data}=await fanarJson("/chat/completions",{
+  model:"Fanar",messages:[{role:"system",content:semanticPlanningPrompt(language)},
+   {role:"user",content:JSON.stringify({request,context})}],
+  temperature:0,max_tokens:220,stream:false
+ },12000);
+ const plan=parseSemanticPlan(data?.choices?.[0]?.message?.content);
+ if(!plan)return json({error:"Invalid planner output",code:"PLAN_INVALID"},502);
+ return json({kind:"plan",plan,model:"Fanar"});
+}
+
 /** Provider-generated, validated suggestions. Never blocks the primary chat request. */
 async function handleSuggestions(userId:string,payload:Record<string,unknown>){
  const kind:SuggestionKind=payload.kind==="followup"?"followup":"welcome";
@@ -650,6 +671,7 @@ async function handleJsonAction(
 ) {
   const action = String(payload.action ?? "chat");
   if (action === "chat") return handleChat(userId, payload, receipt);
+  if (action === "plan") return handlePlan(userId,payload);
   if (action === "suggestions") return handleSuggestions(userId, payload);
   if (action === "capability_execute") {
     const parsed=validateCapabilityExecution(payload.capability);
@@ -858,7 +880,7 @@ Deno.serve(async (req) => {
     // Authenticated, side-effect-free diagnostic. Configured does not claim
     // that an upstream Fanar inference has already succeeded.
     if (payload.action === "readiness")
-      return json({ provider: "Fanar", configured: Boolean(FANAR_KEY) });
+      return json({ provider: "Fanar", configured: Boolean(FANAR_KEY), researchConfiguration:{enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",credentialPresent:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY"))},sadiq2Enabled:Deno.env.get("NOATA_SADIQ_2_ENABLED")==="true" });
     if (payload.action === "capabilities")
       return json({kind:"capabilities",capabilities:getCapabilityAvailability({
         fanar:Boolean(FANAR_KEY),

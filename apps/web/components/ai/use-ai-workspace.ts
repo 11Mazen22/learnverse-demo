@@ -28,6 +28,9 @@ import { continueChat, type ChatPart } from "@/lib/ai/continuation";
 import { requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
 import {validatedResearch,type Research} from "../../../../supabase/functions/noata-ai/research.ts";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
+import {needsSemanticPlan,validateSemanticPlan} from "../../../../supabase/functions/noata-ai/semantic-plan.ts";
+import type {ArtifactIntent} from "@/lib/ai/artifact-intent";
+import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import { artifactContent } from "@/lib/ai/artifact-intent";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
@@ -716,6 +719,7 @@ export function useAIWorkspace() {
     let uploadedPath: string | undefined;
     let retainedDocumentIds: string[] = [];
     let sourcesSaved = false;
+    let metadataPlan:unknown;
     try {
       await assertFanarConfigured(token, controller.signal);
       assertSession(token);
@@ -826,7 +830,38 @@ export function useAIWorkspace() {
       const priorUserRequests=history.slice(0,-1).filter(row=>row.role==="user").map(row=>row.content);
       const contextualFile=mode==="send"&&!tool&&!temporary
         ?confirmedFileIntent(text,priorUserRequests):null;
-      const requestedFile=plannedCapability.kind==="artifact"?plannedCapability.intent:contextualFile;
+      let requestedFile=plannedCapability.kind==="artifact"?plannedCapability.intent:contextualFile;
+      let requestedFiles:ArtifactIntent[]=requestedFile?[requestedFile]:[];
+      let planQuestion="";
+      // Semantic proposals select only allowlisted, authenticated file engines.
+      // Temporary, explicit tools and retries keep their existing no-side-effect boundaries.
+      if(mode==="send"&&!tool&&!temporary&&!contextualFile&&needsSemanticPlan(text)){
+        setNotice(t("بنحدد المطلوب من رسالتك…","Understanding your request…"));
+        try{
+          const proposed=await invoke({action:"plan",request:text,locale:requestLanguage(text,locale),
+            context:history.slice(0,-1).slice(-4).map(row=>({role:row.role,content:responseText(row.content).slice(0,2400)}))});
+          assertSession(token);controller.signal.throwIfAborted();
+          const plan=validateSemanticPlan(proposed.plan);
+          if(!plan)throw Error("invalid_plan");
+          if(plan.kind==="files"){
+            requestedFiles=plan.formats.map(kind=>({kind,usePrevious:plan.usePrevious}));
+            requestedFile=requestedFiles[0];
+            metadataPlan=plan;
+          }else if(plan.kind==="clarify"){
+            planQuestion=plan.question;requestedFile=null;requestedFiles=[];
+          }
+        }catch(planningError){
+          controller.signal.throwIfAborted();assertSession(token);
+          // The conservative existing single-format path remains available.
+          // A failed plan is never represented as a completed multi-file operation.
+          if(!requestedFile)setNotice(t("تعذّر التأكد من اختيار الملفات. هنحتفظ بالرد؛ مش هنعلن إنشاء ملفات من غير نتيجة فعلية.","File selection could not be verified. The answer will be kept; no file will be claimed without an actual result."));
+        }
+      }
+      const fileStepInstruction=(kind:string)=>finishedDocumentInstruction(kind,requestLanguage(text,locale))+
+        "\n"+(kind==="xlsx"
+          ?"For this step produce ONLY workbook source: begin with # Sheet: Name, then a real Markdown data table. Add a second # Sheet: Summary with supported =SUM(B2:B4), =AVERAGE(B2:B4), MIN, MAX or COUNT range formulas when requested. Use real supplied data or explicitly labeled practice examples. Never invent researched measurements."
+          :kind==="pptx"?"For this step produce ONLY presentation content: a meaningful title and 4-8 actual slide headings, short useful bullets, divided by ---; no promise or instructions to make slides later."
+          :"For this step produce ONLY the complete document content with a concise descriptive # title. Other requested formats are generated separately.");
       const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant");
       const priorFileText=responseText(priorForFile?.content??"");
       const priorResearch=validatedResearch(priorForFile?.metadata?.research);
@@ -834,9 +869,11 @@ export function useAIWorkspace() {
         &&canCreateArtifactFromAnswer("",priorFileText,true)&&!isNonDeliverableDraft(priorFileText)
         &&(!priorResearch||priorResearch.status==="complete"));
       let result: ChatPart;
-      let metadata: Record<string, unknown> = {};
+      let metadata: Record<string, unknown> = metadataPlan?{operationPlan:metadataPlan}:{};
       const direct=mode==="send"&&!tool?directArtifactAbilityAnswer(text,locale):null;
-      if(convertPrevious){
+      if(planQuestion){
+        metadata.capabilityProbe=true;result={content:planQuestion,model:"Noata"};
+      } else if(convertPrevious){
         result={content:requestLanguage(text,locale)==="ar"
           ?"أستخدم الرد السابق كمصدر للملف المطلوب. نتيجة الإنشاء هتظهر هنا بعد الفحص والحفظ."
           :"I’m using your previous answer as the source. The file will appear here after validation and saving.",model:"Noata"};
@@ -881,7 +918,7 @@ export function useAIWorkspace() {
         // Keep the actual question as the latest user request so current-source
         // detection and response language are not replaced by delivery instructions.
         const generationHistory=requestedFile?history.map((row,index)=>index===history.length-1&&row.role==="user"
-          ?{...row,content:row.content+"\n\n"+finishedDocumentInstruction(requestedFile.kind,requestLanguage(text,locale))}:row):history;
+          ?{...row,content:row.content+"\n\n"+fileStepInstruction(requestedFile.kind)}:row):history;
         result = await chat(
           generationHistory,
           token,
@@ -896,7 +933,7 @@ export function useAIWorkspace() {
       if(requestedFile&&!convertPrevious&&!researchBlocked&&!result.incomplete&&(isNonDeliverableDraft(responseText(result.content))||isArtifactRefusal(responseText(result.content)))){
         setNotice(t("الرد مجرد مخطط؛ بنطلب المستند المكتمل قبل إنشاء الملف…","That was only a proposal. Asking for the finished document before creating a file…"));
         const repairHistory=history.map((row,index)=>index===history.length-1&&row.role==="user"
-          ?{...row,content:row.content+"\n\n"+finishedDocumentInstruction(requestedFile.kind,requestLanguage(text,locale))}:row);
+          ?{...row,content:row.content+"\n\n"+fileStepInstruction(requestedFile.kind)}:row);
         try{
           const repaired=await chat(repairHistory,token,controller.signal);
           assertSession(token);
@@ -972,9 +1009,25 @@ export function useAIWorkspace() {
           if (who.error || !who.data.user?.id) throw Error("auth_expired");
           const owner = who.data.user.id;
           const prior = previousAnswer;
-          const source = artifactContent(artifactRequest,responseText(result.content),responseText(prior));
-          const chartData = artifactRequest.kind === "pdf"
-            ? findActualLineChart(artifactRequest.usePrevious && prior.trim()?prior:result.content)
+          const completedFiles:CreatedArtifact[]=[];
+          const failedFormats:string[]=[];
+          for(let fileIndex=0;fileIndex<requestedFiles.length;fileIndex++){
+          const currentIntent=requestedFiles[fileIndex];
+          controller.signal.throwIfAborted();assertSession(token);
+          setNotice(t("بنجهّز ملف","Preparing file")+" "+(fileIndex+1)+" / "+requestedFiles.length+" · "+currentIntent.kind.toUpperCase());
+          try{
+          let currentContent=result.content;
+          if(fileIndex>0&&!currentIntent.usePrevious){
+            const generationHistory=history.map((row,index)=>index===history.length-1&&row.role==="user"
+              ?{...row,content:row.content+"\n\n"+fileStepInstruction(currentIntent.kind)}:row);
+            const next=await chat(generationHistory,token,controller.signal);
+            assertSession(token);setPendingText("");
+            if(next.incomplete||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
+            currentContent=next.content;
+          }
+          const source = artifactContent(currentIntent,responseText(currentContent),responseText(prior));
+          const chartData = currentIntent.kind === "pdf"
+            ? findActualLineChart(currentIntent.usePrevious && prior.trim()?prior:currentContent)
             : null;
           const id = crypto.randomUUID();
           const driver:ArtifactDriver = {
@@ -982,7 +1035,7 @@ export function useAIWorkspace() {
               const response = await fetch(chartData?"/api/ai/chart-pdf":"/api/documents/pdf",{
                 method:"POST",credentials:"same-origin",
                 headers:{"Content-Type":"application/json","Accept-Language":locale},
-                body:JSON.stringify(chartData?{chart:chartData}:{text,title:title.slice(0,120)}),signal
+                body:JSON.stringify(chartData?{chart:chartData,text,title:title.slice(0,120)}:{text,title:title.slice(0,120)}),signal
               });
               if(!response.ok)throw Error("pdf_service_"+response.status);
               return new Uint8Array(await response.arrayBuffer());
@@ -1000,7 +1053,8 @@ export function useAIWorkspace() {
               if(result.error)throw result.error;
             },
             attach:async artifact=>{
-              const metadata={...(assistant!.metadata ?? {}),generatedArtifact:artifact};
+              assertSession(token);controller.signal.throwIfAborted();
+              const metadata={...(assistant!.metadata ?? {}),generatedArtifacts:[...completedFiles,artifact],generatedArtifact:completedFiles[0]??artifact};
               const result=await supabase.from("ai_messages").update({
                 metadata:metadata as import("@/lib/supabase/database.types").Json
               }).eq("id",assistant!.id).eq("conversation_id",conversationId).select("id").single();
@@ -1016,10 +1070,19 @@ export function useAIWorkspace() {
             }
           };
           const artifact = await createConversationalArtifact({
-            intent:artifactRequest,content:source,owner,id,signal:controller.signal,
+            intent:currentIntent,content:source,owner,id,signal:controller.signal,
             title:titleFrom(text,locale),driver
           });
           assertSession(token);
+          completedFiles.push(artifact);
+          assistant={...assistant,metadata:{...assistant.metadata,generatedArtifacts:[...completedFiles],generatedArtifact:completedFiles[0]}};
+          setMessages([...history,assistant]);
+          }catch(fileError){
+            controller.signal.throwIfAborted();assertSession(token);
+            failedFormats.push(currentIntent.kind.toUpperCase());
+          }finally{if(sessionScope.current.isCurrent(token))setPendingText("");}
+          }
+          if(!completedFiles.length)throw Error("no_completed_files");
           // A real artifact was persisted. Remove a conflicting provider refusal
           // from the visible and stored response only after confirmed success.
           let finalContent=assistant.content;
@@ -1031,9 +1094,11 @@ export function useAIWorkspace() {
               .eq("id",assistant.id).eq("conversation_id",conversationId).select("id").single();
             if(changed.error)throw changed.error;
           }
-          assistant={...assistant,content:finalContent,metadata:{...assistant.metadata,generatedArtifact:artifact}};
+          assistant={...assistant,content:finalContent,metadata:{...assistant.metadata,generatedArtifacts:completedFiles,generatedArtifact:completedFiles[0]}};
           setMessages([...history,assistant]);
-          setNotice(t("الملف جاهز وموجود داخل الرد وفي مكتبتك.","Your generated file is ready inside this reply and in your private library."));
+          setNotice(failedFormats.length
+            ?t("اتحفظ","Saved")+" "+completedFiles.length+" / "+requestedFiles.length+". "+t("تعذّر إنشاء: ","Could not create: ")+failedFormats.join(", ")
+            :t("ملفاتك جاهزة في الرد وفي مكتبتك الخاصة.","Your files are ready in this reply and your private library."));
         } catch (artifactError) {
           if (sessionScope.current.isCurrent(token)) {
             const reason=artifactError instanceof Error?artifactError.message:"";
