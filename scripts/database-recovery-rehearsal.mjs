@@ -13,14 +13,14 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
  const pass=name=>{outcome.checks.push(name);console.log('FIXTURE PASS: '+name);};
  const created=[];
  try {
-  const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')&&!f.endsWith('_private_ai_documents.sql')).sort();
-  const before=files.filter(f=>f<'20261008170000'), delta=files.filter(f=>f>='20261008170000');
-  assert.equal(before.length,18);assert.equal(delta.length,10);
+  const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort();
+  const before=files.filter(f=>f<'20261008150000'), delta=files.filter(f=>f>='20261008150000');
+  assert.equal(before.length,18);assert.equal(delta.length,13);
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
   query(baseline,infrastructure);
-  query(baseline,'BEGIN;\n'+(await Promise.all(before.map(f=>readFile('supabase/migrations/'+f,'utf8')))).join('\n')+'\nCOMMIT;');
+  query(baseline,'BEGIN;\n'+(await Promise.all(before.map(f=>readFile('supabase/migrations/'+f,'utf8').then(source=>source.replace(/^\s*(?:begin|commit);\s*$/gim,''))))).join('\n')+'\nCOMMIT;');
   query(baseline,`
    INSERT INTO auth.users(id) VALUES
     ('00000000-0000-0000-0000-000000000020'),('00000000-0000-0000-0000-000000000021'),
@@ -64,14 +64,14 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   const originalSchema=schemaFingerprint(restored);
   assert.equal(originalSchema,schemaFingerprint(baseline));pass('Restore preserves fixture functions, RLS policies, grants and constraints');
   const deltaSql=[];
-  for(const file of delta){const sql=await readFile('supabase/migrations/'+file,'utf8');deltaSql.push(sql);outcome.deltaMigrations.push({file,sha256:createHash('sha256').update(sql).digest('hex')});}
+  for(const file of delta){const sql=await readFile('supabase/migrations/'+file,'utf8');deltaSql.push(sql.replace(/^\s*(?:begin|commit);\s*$/gim,''));outcome.deltaMigrations.push({file,sha256:createHash('sha256').update(sql).digest('hex')});}
   // Rehearse a transaction failure after real migration DDL. A closed psql
   // connection rolls back the failed transaction rather than committing it.
   assert.throws(()=>query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nSELECT 1/0; COMMIT;'));
   assert.equal(schemaFingerprint(restored),originalSchema);assert.deepEqual(fingerprint(restored),original);
-  pass('Injected migration failure rolls back all seven deltas and preserves original rows/privileges');
+  pass('Injected migration failure rolls back all fixture deltas and preserves original rows/privileges');
   query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nCOMMIT;');
-  assert.deepEqual(fingerprint(restored),original);pass('Seven deltas preserve every preexisting fixture row and original column');
+  assert.deepEqual(fingerprint(restored),original);pass('Current fixture deltas preserve every preexisting fixture row and original column');
   assert.equal(query(restored,`SELECT xp||':'||coins||':'||gems FROM public.profiles WHERE id='00000000-0000-0000-0000-000000000020';`),'500:750:0');
   assert.equal(query(restored,`SELECT count(*) FROM public.ledger WHERE currency='GEM';`),'0');
   pass('XP=500 and Coins=750 unchanged; zero Gems and no retroactive rewards');

@@ -13,7 +13,7 @@ const directory='artifacts/noata-database';
 await mkdir(directory,{recursive:true});
 const outcome={revision:spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim(),passed:false,
  dirty:!!spawnSync('git',['status','--porcelain'],{encoding:'utf8'}).stdout.trim(),
- scope:'Local PostgreSQL; simulated auth claims and storage schemas. Not live Supabase Auth, Storage or provider verification.',image,migrations:[],retentionApplied:false};
+ scope:'Local PostgreSQL; simulated auth claims and storage schemas. Not live Supabase Auth, Storage or provider verification.',image,migrations:[],retentionApplied:true};
 let log='',started=false,engine='docker',localStarted=false;
 function docker(args,input){
  const r=spawnSync('docker',args,{encoding:'utf8',input,maxBuffer:8*1024*1024,timeout:120000});
@@ -74,12 +74,12 @@ try{
  if(!ready)throw Error('Local PostgreSQL did not become ready');
  const bootstrap=await readFile('scripts/sql/local-supabase-fixture.sql','utf8');
  postgres(['-v','ON_ERROR_STOP=1'],bootstrap);
- const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')&&!f.endsWith('_private_ai_documents.sql')).sort();
+ const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort();
  let sql='BEGIN;\n';
  for(const file of files){
   const source=await readFile('supabase/migrations/'+file,'utf8');
   outcome.migrations.push({file,sha256:createHash('sha256').update(source).digest('hex')});
-  sql+=`\n\\echo Applying ${file}\n`+source+'\n';
+  sql+=`\n\\echo Applying ${file}\n`+source.replace(/^\s*(?:begin|commit);\s*$/gim,'')+'\n';
  }
  sql+='COMMIT;\n';
  postgres(['-v','ON_ERROR_STOP=1'],sql);

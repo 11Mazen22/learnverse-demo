@@ -64,7 +64,7 @@ select qa.check((select count(*)=5 from public.user_settings),'signup creates se
 select qa.check((select count(*)=5 from public.notifications where type='welcome'),'signup creates welcome notification');
 select qa.check((select count(*)=2 from public.notifications where type='assignment'),'assignment publishing notifies only class members');
 select qa.check((select count(*)=1 from storage.buckets where id='noata-documents' and public=false and file_size_limit=8388608),'private-document bucket fixture is private and bounded');
-select qa.check(to_regclass('public.ai_document_files') is null,'private-document metadata table absent');
+select qa.check(to_regclass('public.ai_document_files') is not null,'private-document metadata migration applied');
 select qa.check((select bool_and(not public) from storage.buckets),'base storage buckets private');
 set local role anon;
 select qa.check((select count(*)=0 from public.profiles),'anonymous profiles denied');
@@ -304,4 +304,37 @@ select qa.check((select public=false and file_size_limit=8388608 and
  'Original XLSX uploads remain private and retain the 8MiB bucket cap');
 reset role;
 select qa.check((select bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'),'RLS enabled on every application table');
+
+-- Real SQL for Storage's preliminary and finalized metadata, in this isolated fixture only.
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+insert into public.ai_document_files(id,user_id,conversation_id,name,storage_path,mime_type,size_bytes)
+values('97000000-0000-4000-8000-000000000001',auth.uid(),'30000000-0000-0000-0000-000000000001','QA original.pdf',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf','application/pdf',3);
+insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","contentLength":3}');
+select qa.check((select count(*)=1 from storage.objects where bucket_id='noata-documents'),'owner Storage permission probe succeeds when storage path differs from display name');
+select qa.denied($s$insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","contentLength":4}')$s$,'declared size mismatch is denied');
+select qa.denied($s$insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"text/plain","size":3}')$s$,'MIME mismatch is denied');
+with attempted as (delete from public.ai_document_files where id='97000000-0000-4000-8000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),'metadata stays while original bytes exist');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from storage.objects where bucket_id='noata-documents'),'another account cannot read original Storage bytes');
+select qa.check((select count(*)=0 from public.ai_document_files where id='97000000-0000-4000-8000-000000000001'),'another account cannot read original metadata');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+delete from storage.objects where bucket_id='noata-documents';
+insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","size":3}');
+select qa.check((select count(*)=1 from storage.objects where bucket_id='noata-documents'),'owner finalized byte metadata also passes');
+delete from storage.objects where bucket_id='noata-documents';
+delete from public.ai_document_files where id='97000000-0000-4000-8000-000000000001';
+select qa.check((select count(*)=0 from public.ai_document_files where id='97000000-0000-4000-8000-000000000001'),'cleanup deletes metadata only after original object removal');
+reset role;
+
 rollback;
