@@ -22,3 +22,8 @@ test("Provider bold headings name revisions without copying the user request",()
  assert.equal(artifactFilename({format:"pdf",title:"أنشئ ملف PDF عن العلم",content:"درس مكتمل بلا عنوان"}),"دليل تعليمي.pdf");
  assert.equal(artifactFilename({format:"pdf",title:"Conversation",content:"\\# Escaped document heading\nBody"}),"Escaped document heading.pdf");
 });
+
+test("Research status headings cannot become document titles",()=>{
+ assert.equal(artifactFilename({format:"pdf",title:"Photosynthesis Guide",content:"## Supported by these sources\nFacts [1].\n## Still needs verification\nLimits."}),"Photosynthesis Guide.pdf");
+ assert.equal(artifactFilename({format:"pdf",title:"now make pdf",content:"## Retrieved evidence\nBackground."}),"Learning guide.pdf");
+});

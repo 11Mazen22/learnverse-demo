@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useMemo,useRef,useState} from "react";
+import {LIBRARY_COLUMNS,LIBRARY_PAGE_SIZE,libraryPage,librarySearchPattern,mergeLibraryPage} from "@/lib/ai/library-query";
 import {NoataCreativeStudio} from "./creative-studio";
 import {downloadBytes} from "./creative-studio";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
@@ -16,36 +17,61 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
  const [editing,setEditing]=useState<CreatedArtifact|null>(null),[original,setOriginal]=useState<{name:string;documentId:string;format:"pdf"|"docx"|"xlsx"|"pptx"|"text"}|null>(null);
  const [media,setMedia]=useState<{url:string;item:Upload}|null>(null);
  useEffect(()=>()=>{if(media)URL.revokeObjectURL(media.url);},[media]);
- const [query,setQuery]=useState("");
+ const [query,setQuery]=useState(""),[serverQuery,setServerQuery]=useState(""),[page,setPage]=useState(0),[hasMore,setHasMore]=useState(false);
+ const loadedView=useRef("");
+ useEffect(()=>{const timer=setTimeout(()=>{setServerQuery(query);setPage(0);},250);return()=>clearTimeout(timer);},[query]);
  const previewHeading=useRef<HTMLHeadingElement>(null),searchInput=useRef<HTMLInputElement>(null),wasPreviewing=useRef(false);
  const [selected,setSelected]=useState("all"),[name,setName]=useState(""),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const current=useRef(owner);current.current=owner;
+ const viewOwner=useRef(owner);const ownerReady=viewOwner.current===owner;
  useEffect(()=>{
-  let active=true;setProjects([]);setArtifacts([]);setUploads([]);setEditing(null);setOriginal(null);setMedia(null);setSelected("all");setQuery("");setName("");setError("");setNotice("");setLoading(Boolean(owner&&open));
+  viewOwner.current=owner;
+  setProjects([]);setArtifacts([]);setUploads([]);setEditing(null);setOriginal(null);setMedia(null);
+  setSelected("all");setQuery("");setServerQuery("");setPage(0);setName("");setError("");setNotice("");loadedView.current="";
+ },[owner,open,locale]);
+ useEffect(()=>{
+  let active=true;setLoading(Boolean(owner&&open));setError("");
   if(!owner||!open)return;
   const controller=new AbortController();let deadline:ReturnType<typeof setTimeout>|undefined;
-  void (async()=>{
+  const view=owner+":"+serverQuery+":"+selected+":"+revision;
+  const replace=loadedView.current!==view||page===0;
+  if(replace){setArtifacts([]);setUploads([]);setHasMore(false);}
+  void(async()=>{
    try{
-    const [projects,artifacts,documents,attachments]=await Promise.race([Promise.all([
-     supabase.from("ai_projects").select("*").eq("user_id",owner).order("updated_at",{ascending:false}).limit(50).abortSignal(controller.signal),
-     supabase.from("ai_artifacts").select("*").eq("user_id",owner).order("created_at",{ascending:false}).limit(100).abortSignal(controller.signal),
-     supabase.from("ai_document_files").select("*").eq("user_id",owner).order("created_at",{ascending:false}).limit(100).abortSignal(controller.signal),
-     supabase.from("ai_attachments").select("*").eq("user_id",owner).or("library_saved.eq.true,conversation_id.not.is.null").order("created_at",{ascending:false}).limit(100).abortSignal(controller.signal)
+    const {from,to}=libraryPage(page),pattern=librarySearchPattern(serverQuery);
+    let files=supabase.from("ai_artifacts").select(LIBRARY_COLUMNS.artifacts).eq("user_id",owner);
+    if(serverQuery.trim())files=files.ilike("filename",pattern);
+    if(selected==="none")files=files.is("project_id",null);else if(selected!=="all")files=files.eq("project_id",selected);
+    let documents=supabase.from("ai_document_files").select(LIBRARY_COLUMNS.documents).eq("user_id",owner)
+      .or("library_saved.eq.true,expires_at.gt."+new Date().toISOString());
+    let attachments=supabase.from("ai_attachments").select(LIBRARY_COLUMNS.media).eq("user_id",owner).or("library_saved.eq.true,conversation_id.not.is.null");
+    if(serverQuery.trim()){documents=documents.ilike("name",pattern);attachments=attachments.ilike("filename",pattern);}
+    const [projectResult,artifactResult,documentResult,attachmentResult]=await Promise.race([Promise.all([
+     supabase.from("ai_projects").select(LIBRARY_COLUMNS.projects).eq("user_id",owner).order("updated_at",{ascending:false}).limit(50).abortSignal(controller.signal),
+     files.order("created_at",{ascending:false}).order("id",{ascending:false}).range(from,to).abortSignal(controller.signal),
+     documents.order("created_at",{ascending:false}).order("id",{ascending:false}).range(from,to).abortSignal(controller.signal),
+     attachments.order("created_at",{ascending:false}).order("id",{ascending:false}).range(from,to).abortSignal(controller.signal)
     ]),new Promise<never>((_,reject)=>{deadline=setTimeout(()=>{controller.abort();reject(Error("workspace_timeout"));},20000);})]);
     if(!active||current.current!==owner)return;
-    if(projects.error)throw projects.error;if(artifacts.error)throw artifacts.error;if(documents.error)throw documents.error;if(attachments.error)throw attachments.error;
-    setProjects(projects.data??[]);setArtifacts(artifacts.data??[]);
-    setUploads([...(documents.data??[]).filter(d=>d.library_saved||Date.parse(d.expires_at)>Date.now()).map(d=>({...d,kind:"document" as const})),...(attachments.data??[]).map(a=>({...a,name:a.filename??a.storage_path.split("/").at(-1)??"Upload",kind:"media" as const}))].sort((a,b)=>b.created_at.localeCompare(a.created_at)));
+    for(const result of [projectResult,artifactResult,documentResult,attachmentResult])if(result.error)throw result.error;
+    const artifactRows=(artifactResult.data??[]) as unknown as Artifact[];
+    const documentRows=(documentResult.data??[]) as unknown as Omit<Upload,"kind">[];
+    const mediaRows=(attachmentResult.data??[]) as unknown as (Omit<Upload,"kind"|"name">&{filename?:string|null})[];
+    setProjects((projectResult.data??[]) as unknown as Project[]);
+    setArtifacts(rows=>mergeLibraryPage(rows,artifactRows,replace));
+    const uploadRows:Upload[]=[...documentRows.map(d=>({...d,kind:"document" as const})),...mediaRows.map(a=>({...a,name:a.filename??a.storage_path.split("/").at(-1)??"Upload",kind:"media" as const}))];
+    setUploads(rows=>mergeLibraryPage(rows,uploadRows,replace).sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id)));
+    setHasMore(artifactRows.length===LIBRARY_PAGE_SIZE||((selected==="all"||selected==="none")&&(documentRows.length===LIBRARY_PAGE_SIZE||mediaRows.length===LIBRARY_PAGE_SIZE)));
+    loadedView.current=view;
    }catch{if(active&&current.current===owner)setError(t("تعذّر تحميل مساحة العمل.","Could not load the workspace."));}
    finally{clearTimeout(deadline);if(active&&current.current===owner)setLoading(false);}
   })();
-  return ()=>{active=false;clearTimeout(deadline);controller.abort();};
- },[owner,open,supabase,locale,revision]);
- const search=query.trim().normalize("NFKC").toLocaleLowerCase();
- const matches=(filename:string)=>filename.normalize("NFKC").toLocaleLowerCase().includes(search);
- const filtered=artifacts.filter(x=>(selected==="all"||(selected==="none"?x.project_id===null:x.project_id===selected))&&matches(x.filename));
- const visibleUploads=uploads.filter(x=>matches(x.name));
+  return()=>{active=false;clearTimeout(deadline);controller.abort();};
+ },[owner,open,supabase,locale,revision,serverQuery,selected,page]);
+ const filtered=artifacts;
+ const visibleUploads=uploads;
+ const search=serverQuery.trim();
  const previewing=Boolean(editing||original||media);
  useEffect(()=>{
   if(previewing)previewHeading.current?.focus();
@@ -69,7 +95,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
   try{
    const {error}=await supabase.from("ai_projects").delete().eq("id",project.id).eq("user_id",owner);
    if(error)throw error;
-   if(current.current===owner){setProjects(p=>p.filter(x=>x.id!==project.id));setArtifacts(a=>a.map(x=>x.project_id===project.id?{...x,project_id:null}:x));setSelected("all");}
+   if(current.current===owner){setProjects(p=>p.filter(x=>x.id!==project.id));setArtifacts(a=>a.map(x=>x.project_id===project.id?{...x,project_id:null}:x));setSelected("all");setPage(0);}
   }catch{if(current.current===owner)setError(t("تعذّر حذف المشروع.","Could not delete project."));}
   finally{if(current.current===owner)setBusy(false);}
  }
@@ -133,11 +159,11 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
  return <section className="noata-library" aria-label={t("مشروعات ومكتبة Noata","Noata projects and library")}>
   <h3>{t("المشروعات والملفات","Projects and files")}</h3>
   <p>{t("الملفات المرفوعة والأصول والنسخ الجديدة في مكتبتك الخاصة. المحادثات المؤقتة لا تُحفظ هنا.","Uploads, original documents and generated versions in your private library. Temporary chats are excluded.")}</p>
-  {!owner?<p role="status">{t("سجّل الدخول للوصول إلى الملفات.","Sign in to access files.")}</p>:loading?<p role="status">{t("جارٍ التحميل…","Loading…")}</p>:<>
+  {!owner?<p role="status">{t("سجّل الدخول للوصول إلى الملفات.","Sign in to access files.")}</p>:!ownerReady?<p role="status">{t("جارٍ التحميل…","Loading…")}</p>:<>
    {previewing?<>
     <div className="noata-library-preview-heading"><button type="button" onClick={closePreview}>{t("العودة إلى المكتبة","Back to library")}</button><h4 ref={previewHeading} tabIndex={-1} dir="auto">{editing?.filename??original?.name??media?.item.name}</h4></div>
    {media&&<section className="noata-library-media" aria-label={t("معاينة المرفق","Upload preview")}><strong dir="auto">{media.item.name}</strong>{media.item.mime_type.startsWith("image/")?<img src={media.url} alt={media.item.name}/>:<audio src={media.url} controls/>}<button type="button" onClick={()=>setMedia(null)}>{t("إغلاق المعاينة","Close preview")}</button></section>}
-   {(editing||original)&&<NoataCreativeStudio inline file={editing} localSource={original} owner={owner} onClose={closePreview} onPrepareEdit={onPrepareEdit} onRevisionSaved={()=>setRevision(n=>n+1)}/>}
+   {(editing||original)&&<NoataCreativeStudio inline file={editing} localSource={original} owner={owner} onClose={closePreview} onPrepareEdit={onPrepareEdit} onRevisionSaved={()=>{setPage(0);setRevision(n=>n+1);}}/>}
    </>:<>
    <form className="noata-library-create" onSubmit={e=>{e.preventDefault();void createProject();}}>
     <label htmlFor="noata-project-name">{t("مشروع جديد","New project")}</label>
@@ -149,12 +175,13 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
    </div>)}</div>}
    <label className="noata-library-filter">{t("ابحث في ملفاتك","Search files")}<input ref={searchInput} type="search" dir="auto" value={query} onChange={e=>setQuery(e.target.value)} placeholder={t("ابحث باسم الملف…","Search by filename…")} maxLength={120}/></label>
    <label className="noata-library-filter">{t("تصفية المكتبة","Filter library")}
-    <select value={selected} onChange={e=>setSelected(e.target.value)}>
+    <select value={selected} onChange={e=>{setSelected(e.target.value);setPage(0);}}>
      <option value="all">{t("جميع الملفات","All files")}</option><option value="none">{t("بدون مشروع","Unfiled")}</option>
      {projects.map(p=><option value={p.id} key={p.id}>{p.name}</option>)}
     </select>
    </label>
-   {!filtered.length?<p className="noata-library-empty">{t("لا توجد ملفات محفوظة في هذا القسم.","No saved files match this view.")}</p>:
+   {loading&&<p role="status">{t("جارٍ البحث في مكتبتك…","Searching your library…")}</p>}
+   {!filtered.length&&!loading?<p className="noata-library-empty">{t("لا توجد ملفات محفوظة في هذا القسم.","No saved files match this view.")}</p>:
    <ul className="noata-library-files">{filtered.map(a=><li key={a.id}>
     <div><strong dir="auto">{a.filename}</strong><small>{t("نسخة ","Version ")}{a.version??1}{a.parent_artifact_id||a.source_document_id?t(" · تعديل محفوظ"," · Saved revision"):""} · {Math.ceil(a.byte_size/1024)} KB · {new Date(a.created_at).toLocaleDateString(locale==="ar"?"ar-EG":"en-US")}</small></div>
     <label className="noata-file-project"><span>{t("المشروع","Project")}</span><select aria-label={t("مشروع الملف ","Project for ")+a.filename} disabled={busy} value={a.project_id??""} onChange={e=>void organize(a,e.target.value)}><option value="">{t("بدون مشروع","Unfiled")}</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
@@ -165,10 +192,11 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
    {(selected==="all"||selected==="none")&&<><h4>{t("ملفاتك المرفوعة","Your uploads")}</h4>
     {!visibleUploads.length?<p>{search?t("لا توجد ملفات مرفوعة بهذا الاسم.","No uploads match this filename."):t("أرسل ملفًا في محادثة عادية ليظهر هنا.","Send a file in a regular conversation to keep it here.")}</p>:<ul className="noata-library-files">{visibleUploads.map(item=><li key={item.kind+item.id}><div><strong dir="auto">{item.name}</strong><small>{t("الملف الأصلي","Original upload")} · {Math.ceil(Number(item.size_bytes)/1024)} KB{item.kind==="document"&&!item.library_saved?" · "+t("متاح حتى ","Available until ")+new Date(item.expires_at!).toLocaleDateString(locale==="ar"?"ar-EG":"en-US"):""}</small></div><button disabled={busy} type="button" onClick={()=>openUpload(item)}>{item.kind==="document"?t("فتح وتحرير","Open & edit"):t("معاينة","Preview")}</button><button disabled={busy} type="button" onClick={()=>void retrieve(item,"reuse")}>{t("استخدام في المحادثة","Use in conversation")}</button><button disabled={busy} type="button" onClick={()=>void retrieve(item,"download")}>{t("تنزيل الأصل","Download original")}</button></li>)}</ul>}
    </>}
-   {(artifacts.length===100||uploads.length>=100)&&<p>{t("تظهر أحدث الملفات. استخدم تنزيل الأصل للاحتفاظ بنسخة.","Showing the latest files. Download an original to keep a copy.")}</p>}
+   {hasMore&&<button type="button" className="noata-library-more" disabled={loading||busy} onClick={()=>setPage(n=>n+1)}>{loading?t("جارٍ التحميل…","Loading…"):t("عرض المزيد من الملفات","Load more files")}</button>}
+   {!loading&&(filtered.length>0||visibleUploads.length>0)&&<p role="status">{t("الملفات المعروضة: ","Files shown: ")}{filtered.length+((selected==="all"||selected==="none")?visibleUploads.length:0)}</p>
    </>}
   </>}
-  {error&&<div><p role="alert" className="noata-library-error">{error}</p><button type="button" disabled={busy||loading} onClick={()=>setRevision(n=>n+1)}>{t("إعادة تحميل المكتبة","Reload library")}</button></div>}
+  {error&&<div><p role="alert" className="noata-library-error">{error}</p><button type="button" disabled={busy||loading} onClick={()=>{setPage(0);setRevision(n=>n+1);}}>{t("إعادة تحميل المكتبة","Reload library")}</button></div>}
   {notice&&<p role="status">{notice}</p>}
  </section>;
 }

@@ -1,6 +1,6 @@
 import {requestWithContextRecovery} from "./context-recovery.ts";
 import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
-import {answerReviewReason,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
+import {answerReviewReason,answerReviewIssue,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
@@ -108,6 +108,29 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   return background.status==="complete"?background:broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
 }
+async function reviewCompletedAnswer(input:{
+ request:string;content:string;research?:Research;format?:unknown;language:"ar"|"en";model:string;userId:string;signal:AbortSignal;emit?:(data:unknown)=>void;
+}):Promise<string|undefined>{
+      const reason=answerReviewReason(input.request,input.content,input.research,input.format);
+      if(!reason)return undefined;
+      input.emit?.({status:"organizing"});
+      const fallback=()=>reason==="research_evidence"&&input.research?limitedResearchSummary(input.research,input.language):undefined;
+      try{
+        await claim(input.userId,input.model);
+        const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
+          method:"POST",headers:{Authorization:"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
+          body:JSON.stringify({model:input.model,stream:false,max_tokens:6000,temperature:0.1,messages:[
+            {role:"system",content:answerReviewInstruction(reason,input.language,input.request)+"\n"+fileDeliveryInstruction(input.format,input.language)},
+            {role:"user",content:JSON.stringify({request:input.request,previousDraft:input.content.slice(0,16000),...(input.research?{retrievedEvidence:researchContext(input.research)}:{})})}
+          ]}),signal:AbortSignal.any([input.signal,AbortSignal.timeout(45000)])
+        });
+        if(!reviewed.ok)return fallback();
+        const data=await reviewed.json(),candidate=clean(data?.choices?.[0]?.message?.content??"");
+        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewIssue(input.request,candidate,input.research,input.format))return fallback();
+        return candidate;
+      }catch{input.signal.throwIfAborted();return fallback();}
+
+}
 function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="",artifactFormat?:unknown) {
   const specialized=model==="Fanar-Sadiq"||model==="Fanar-Sadiq-2";
   // Sadiq is a grounded service with its own prompting and no token stream.
@@ -125,26 +148,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
       if(!specialized&&messages[0]?.role==="system")messages[0].content=String(messages[0].content??"")+ "\nApplication evidence status for THIS request: sources were retrieved. Use the excerpts that follow. Do not say Noata cannot access sources. Limited background cannot verify current claims.";
       return research;
     }:undefined,
-    review: !specialized&&userId?async(result,signal,emit)=>{
-      const reason=answerReviewReason(actualRequest,result.content,result.research,artifactFormat);
-      if(!reason)return;
-      emit({status:"organizing"});
-      const fallback=()=>reason==="research_evidence"&&result.research?limitedResearchSummary(result.research,responseLanguage):undefined;
-      try{
-        await claim(userId,model);
-        const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
-          method:"POST",headers:{Authorization:"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
-          body:JSON.stringify({model,stream:false,max_tokens:3000,temperature:0.15,messages:[
-            {role:"system",content:answerReviewInstruction(reason,responseLanguage)+"\n"+fileDeliveryInstruction(artifactFormat,responseLanguage)},
-            {role:"user",content:JSON.stringify({request:actualRequest,previousDraft:result.content.slice(0,20000),...(result.research?{retrievedEvidence:researchContext(result.research)}:{})})}
-          ]}),signal:AbortSignal.any([signal,AbortSignal.timeout(45000)])
-        });
-        if(!reviewed.ok)return fallback();
-        const data=await reviewed.json(),candidate=clean(data?.choices?.[0]?.message?.content??"");
-        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewReason(actualRequest,candidate,result.research,artifactFormat))return fallback();
-        return candidate;
-      }catch{signal.throwIfAborted();return fallback();}
-    }:undefined,
+    review: !specialized&&userId?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,emit}):undefined,
     request: (signal,emit) => requestWithContextRecovery(providerBody,requestBody=>fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + FANAR_KEY, "Content-Type": "application/json" },
@@ -648,10 +652,16 @@ async function handleChat(
     const result = await fanarJson("/chat/completions", body,180000,protectedChatMessages);
     data = result.data;
   }
+  let completedContent=clean(data?.choices?.[0]?.message?.content??"");
+  if(data?.choices?.[0]?.finish_reason!=="length"&&!["Fanar-Sadiq","Fanar-Sadiq-2"].includes(model)){
+    const reviewed=await reviewCompletedAnswer({request:latestText,content:completedContent,research,format:payload.artifactFormat,
+      language:latestLanguage==="English"?"en":"ar",model,userId,signal:AbortSignal.timeout(50000)});
+    if(reviewed)completedContent=reviewed;
+  }
   return json({
     kind: "chat",
     model,
-    content: clean(data?.choices?.[0]?.message?.content ?? ""),
+    content: completedContent,
     ...(research?{research}:{}),
     references: data?.choices?.[0]?.message?.references ?? [],
     usage: data?.usage ?? null,

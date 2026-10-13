@@ -5,11 +5,11 @@
 import type {SearchPlan,Research,ResearchSource,ResearchActivity} from "./research.ts";
 const API="https://en.wikipedia.org/w/rest.php/v1/search/page";
 const AR_API="https://ar.wikipedia.org/w/rest.php/v1/search/page";
-function excerptText(raw:unknown){
+function excerptText(raw:unknown,max=650){
  if(typeof raw!=="string")return "";
  return raw.replace(/<[^>]*>/g,"").replace(/&amp;/g,"&").replace(/&quot;/g,'"')
   .replace(/&#0?39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">")
-  .replace(/[\x00-\x1f\x7f]/g," ").replace(/\s+/g," ").trim().slice(0,650);
+  .replace(/[\x00-\x1f\x7f]/g," ").replace(/\s+/g," ").trim().slice(0,max);
 }
 export function backgroundQuery(plan:SearchPlan):string{
  return plan.query.replace(/^(?:(?:ok(?:ay)?|please)\s+)?(?:search|browse|research|find sources|look up|verify sources)\s+(?:the\s+web\s+)?(?:for\s+)?/i,"")
@@ -26,6 +26,7 @@ export function encyclopediaSources(data:unknown,lang:"ar"|"en",now=new Date().t
   if(typeof row.key!=="string"||!row.key||row.key.length>160||/[/\\?#\x00-\x1f]/.test(row.key))continue;
   const url="https://"+domain+"/wiki/"+encodeURIComponent(row.key.replace(/ /g,"_"));
   if(keys.has(url))continue;
+  if(/\(disambiguation\)|صفحة توضيح|disambiguation page|Wikimedia disambiguation/i.test(String(row.title)+" "+String(row.description)))continue;
   const title=excerptText(row.title).slice(0,140),snippet=excerptText(row.excerpt);
   const description=excerptText(row.description);
   const excerpt=(description?description+(snippet?". ":""):"")+snippet;
@@ -51,7 +52,7 @@ export async function searchEncyclopedia(plan:SearchPlan,opts:{
  if(q.length<3||q.length>180)return result("unavailable","invalid_background_query");
  const lang=/[\u0600-\u06ff]/.test(q)?"ar":"en";
  const url=new URL(lang==="ar"?AR_API:API);
- url.searchParams.set("q",q);url.searchParams.set("limit","4");
+ url.searchParams.set("q",q);url.searchParams.set("limit","8");
  try{
   activity.push({stage:"searching",at:stamp()});opts.onStatus?.("searching");
   const response=await(opts.fetcher??fetch)(url.toString(),{
@@ -71,6 +72,28 @@ export async function searchEncyclopedia(plan:SearchPlan,opts:{
   }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
   activity.push({stage:"reviewing",at:stamp()});opts.onStatus?.("reviewing");
   const sources=encyclopediaSources(JSON.parse(buffer),lang);
+  // Read actual lead summaries, not only search snippets. Fixed host and API
+  // path, encoded canonical page key, redirects disabled, bounded responses.
+  await Promise.all(sources.map(async(source)=>{
+   try{
+    const key=new URL(source.url).pathname.slice("/wiki/".length);
+    const response=await(opts.fetcher??fetch)("https://"+source.domain+"/api/rest_v1/page/summary/"+key,{
+     method:"GET",redirect:"error",headers:{Accept:"application/json","Api-User-Agent":"NoataAI/1.0 (educational reference lookup)"},
+     signal:AbortSignal.any([opts.signal,AbortSignal.timeout(4500)])
+    });
+    if(!response.ok||!response.body||!response.headers.get("content-type")?.includes("application/json"))return;
+    const reader=response.body.getReader(),decoder=new TextDecoder();let body="",size=0;
+    try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>64000)throw Error("SUMMARY_LIMIT");body+=decoder.decode(part.value,{stream:true});}body+=decoder.decode();}
+    finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+    const summary=JSON.parse(body);
+    if(summary.type!=="standard"||summary.lang!==lang)return;
+    const canonical=summary.content_urls?.desktop?.page;
+    if(typeof canonical!=="string"||new URL(canonical).hostname!==source.domain||decodeURIComponent(new URL(canonical).pathname)!==decodeURIComponent(new URL(source.url).pathname))return;
+    const lead=excerptText(summary.extract,2000);
+    if(lead.length>source.excerpt.length){source.excerpt=lead;source.retrievedAt=stamp();}
+   }catch{opts.signal.throwIfAborted();/* Preserve the actual search excerpt if a lead cannot be read. */}
+  }));
+
   return sources.length?result("complete","encyclopedia_background",sources):result("failed","no_encyclopedia_sources");
  }catch{opts.signal.throwIfAborted();return result("failed","encyclopedia_provider_unavailable");}
 }

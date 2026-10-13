@@ -13,12 +13,13 @@ function safeTitle(value:string):string{
   .replace(/\.(?:pdf|docx|xlsx|pptx|md|txt|csv|tsv|json|svg|png|jpe?g|zip|exe)$/i,"")
   .replace(/\s+/g," ").trim();
  if(!clean||/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(clean)||
-  /^(?:noata[- ]|document\d*$|untitled|output$|generated[- ]file)/i.test(clean))return "";
+  /^(?:noata[- ]|document\d*$|untitled|output$|generated[- ]file)/i.test(clean)||
+  /^(?:supported by (?:these|the) sources|still needs verification|retrieved evidence|references|sources|introduction|conclusion|الأدلة المسترجعة|ما تدعمه المصادر|ما يحتاج إلى تحقق|المراجع|مقدمة|خاتمة)$/i.test(clean))return "";
  return Array.from(clean).slice(0,78).join("").replace(/[.\s]+$/g,"");
 }
 export function artifactFilename(input:{format:DownloadFormat;title?:string;content?:string;locale?:"en"|"ar";revision?:boolean}):string{
- const heading=input.content?.match(/^(?:\*\*)?\\?#{1,3}\s+(.+?)(?:\*\*)?\s*$/m)?.[1]??"";
- const requestTitle=/^(?:create|make|generate|export|download|write|rewrite|improve|please|can you|أنشئ|انشئ|اصنع|اعمل|جهز|عدّل|اكتب)(?:\s|$)/i.test((input.title??"").trim());
+ const heading=[...((input.content??"").matchAll(/^(?:\*\*)?\\?#{1,3}\s+(.+?)(?:\*\*)?\s*$/gm))].map(x=>safeTitle(x[1])).find(Boolean)??"";
+ const requestTitle=/^(?:(?:now|alright|okay|please)\s+)*(?:search|create|make|generate|export|download|write|rewrite|improve|please|can you|أنشئ|انشئ|اصنع|اعمل|جهز|عدّل|اكتب)(?:\s|$)/i.test((input.title??"").trim());
  const candidate=safeTitle(heading)||(!requestTitle?safeTitle(input.title??""):"");
  const ar=input.locale==="ar"||(!input.locale&&/[\u0621-\u064a]/.test(candidate||input.content||input.title||""));
  const fallback=(labels[input.format]??["Learning resource","مورد تعليمي"])[ar?1:0];
