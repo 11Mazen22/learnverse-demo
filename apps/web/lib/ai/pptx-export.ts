@@ -8,9 +8,13 @@ const a='http://schemas.openxmlformats.org/drawingml/2006/main';
 const header='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 const escapeXml=(s:string)=>s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 export type NoataSlide={title:string;lines:string[]};
+const plainSlideText=(value:string)=>value.replace(/\*\*([^*]+)\*\*/g,"$1").replace(/__([^_]+)__/g,"$1").replace(/`([^`]+)`/g,"$1");
 export function parseNoataSlides(source:string):NoataSlide[]{
  if(source.length>30000)throw Error("Presentation content exceeds 30,000 characters");
  let normalized=source.replace(/\r\n?/g,"\n");
+ // Observed provider delivery commentary is not a slide or a claim of visual assets.
+ // Remove only this exact trailing meta-note; preserve educational notes and source facts.
+ normalized=normalized.replace(/\n\s*(?:---\s*\n)?\s*\(Note: Actual PPTX file generation would include visual aids like diagrams, graphs, and formatted bullet points beyond plain markdown here\.\)\s*$/i,"");
  // Fanar's actual slide response uses bold labels; preserve their real sections.
  normalized=normalized.replace(/^\s*\*\*((?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：].+?)\*\*\s*$/gim,
   (_,title:string)=>"# "+title.replace(/^(?:Title Slide|Slide\s+\d+|الشريحة\s*\d*|شريحة\s*\d*)\s*[:：]\s*/i,""));
@@ -36,8 +40,8 @@ export function parseNoataSlides(source:string):NoataSlide[]{
   const lines=segment.split("\n").map(x=>x.trim()).filter(Boolean);
   if(!lines.length)continue;
   const heading=/^#{1,3}\s+(.+)$/.exec(lines[0]);
-  const title=(heading?heading[1]:"Noata AI").trim();
-  const body=(heading?lines.slice(1):lines).map(x=>x.replace(/^(?:[-*+]\s+|\d+[.)]\s+)/,"").replace(/^#{2,4}\s+/,""));
+  const title=plainSlideText((heading?heading[1]:"Noata AI").trim());
+  const body=(heading?lines.slice(1):lines).map(x=>x.replace(/^(?:[-*+]\s+|\d+[.)]\s+)/,"").replace(/^#{2,4}\s+/,"")).map(plainSlideText);
   if(title.length>100||body.some(x=>x.length>210))throw Error("Text too long for readable slides");
   if(body.length===0)slides.push({title,lines:[]});
   else for(let offset=0;offset<body.length;offset+=6)

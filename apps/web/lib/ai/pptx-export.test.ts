@@ -56,3 +56,16 @@ test("Actual provider bold slide labels preserve separate editable sections",()=
  assert.deepEqual(slides.map(s=>s.title),["Photosynthesis","Introduction","Reactions"]);
  assert.ok(new TextDecoder().decode(createNoataPptx(source)).includes("Plants convert light energy"));
 });
+
+test("Actual Fanar presentation preserves six real slides without literal formatting or invented visuals",()=>{
+ const source="## Photosynthesis Guide Presentation\n\n---\n\n# **Introduction**\n* Photosynthesis is the process plants use to convert light energy into chemical energy.\n* This presentation outlines the basics of photosynthesis and its importance.\n\n---\n\n# **Key Players & Process**\n* **Chloroplasts**: Organelles within plant cells where photosynthesis occurs.\n* **Pigments**: Chlorophyll absorbs sunlight, while carotenoids protect against excess light.\n* **Steps**: Light-dependent reactions capture energy, Calvin cycle converts CO₂ into glucose.\n\n---\n\n# **Light-Dependent Reactions**\n* Occurs in thylakoid membranes.\n* Water molecules split, releasing oxygen and electrons.\n* Electrons energize electron transport chain, producing ATP and NADPH.\n\n---\n\n# **Calvin Cycle**\n* Occurs in stroma.\n* Uses ATP and NADPH to fix carbon dioxide into glucose.\n* Requires six turns to produce one molecule of glucose.\n\n---\n\n# **Importance of Photosynthesis**\n* Oxygen production sustains life on Earth.\n* Glucose provides energy for growth and reproduction.\n* Basis of food chains supporting diverse ecosystems.\n\n---\n\n(Note: Actual PPTX file generation would include visual aids like diagrams, graphs, and formatted bullet points beyond plain markdown here.)";
+ const slides=parseNoataSlides(source);
+ assert.equal(slides.length,6);
+ assert.equal(slides[1].title,"Introduction");
+ assert.equal(slides[2].lines[0],"Chloroplasts: Organelles within plant cells where photosynthesis occurs.");
+ assert.ok(slides.every(s=>!s.title.includes("**")&&s.lines.every(l=>!l.includes("**")&&!l.includes("Actual PPTX file generation"))));
+ const raw=new TextDecoder().decode(createNoataPptx(source));
+ assert.ok(raw.includes("Calvin Cycle"));
+ assert.ok(!raw.includes("formatted bullet points beyond plain markdown"));
+ assert.equal(parseNoataSlides("# Notes\n- An educational note about the carbon cycle.")[0].lines[0],"An educational note about the carbon cycle.");
+});

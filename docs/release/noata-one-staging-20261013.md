@@ -85,3 +85,18 @@ Preview environment hardening: branch-specific blank overrides disable inherited
 These overrides target Preview and the authorized branch only. Shared Production settings were not changed.
 They do not manufacture working administrator credentials: matching Staging Auth Admin access is still a genuine owner action for three-role QA.
 Final results must be read from PR #3's exact-head report; neither queued tests nor partial outputs prove the full ONE mission.
+
+
+## Verified follow-up and final presentation acceptance
+
+Exact source fb4d9ab75a9aa67af744f635286c495e0d485510 passed source CI (38390030386) and PR compatibility CI (38390036199), with a READY Preview at noata-5dms20nk8-noata.vercel.app. The next commit contains only the final presentation cleanup described below plus its real-output regression.
+
+Authenticated conversation 65921e6b-dd05-4227-afd3-5b0110a7522c produced and downloaded three actual files: PDF 124370 bytes, PPTX 40193 bytes, XLSX 6359 bytes. Every artifact row size matched Storage metadata exactly. XLSX XML contained working SUM(B2:B4)=60 over supplied 10/20/30 and named Summary references with cached AVERAGE=20, MIN=10, MAX=30 and SUM=60. Office GUI recalculation remains NOT TESTED.
+
+The PPTX byte/storage gate passed but inspection found literal bold Markdown and an extra capability note claiming future visual aids. This sample is therefore PARTIAL for presentation quality. The final cleanup removes the exact trailing provider meta-note and renders actual bold/code source as readable editable text; its regression uses the actual provider source, keeps six real sections and preserves educational notes. The final browser/download verdict and exact revision are recorded in PR #3 after retesting.
+
+Actual image request for a watercolor blue bird reading a book produced a complete 1024×1024 image visibly matching the subject. This is a bounded PASS for existing image generation, not image editing/transparency or general ChatGPT parity.
+
+Pinned-source Sudais live provider test at fb4d9ab75a9aa67af744f635286c495e0d485510 validated all seven Al-Fatiha verses and fetched valid MP3 samples for verses 1/7 (HTTP206, 1024 bytes each). No Quran redesign was made.
+
+Production retains 18 migrations; Staging now has 31. Recovery on genuine Production data, actual disposable three-role/OAuth QA and cross-account artifact tests remain NOT TESTED. Source-fixture recovery and synthetic browser checks do not satisfy those gates. Search is still unavailable without an authorized Staging search configuration. The existing Sadiq key entitlement issue remains a provider access constraint. Production environment routing still fails the authorized-project gate and was not changed.
