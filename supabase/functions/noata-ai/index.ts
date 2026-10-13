@@ -1,3 +1,4 @@
+import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
 import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./semantic-plan.ts";
 import { createFanarStream } from "./streaming.ts";
@@ -513,6 +514,8 @@ async function handleChat(
     .slice(-24)
     .map((m: any) => ({ role: m.role, content: m.content }));
 
+  // Determine routing from the actual user request before adding file or vision context.
+  const latestText = safeMessages.findLast((m:any)=>m.role==="user")?.content??"";
   if (payload.attachmentPath) {
     model = "Fanar-Oryx-IVU-2";
     const blob = await readPrivateUpload(
@@ -537,11 +540,6 @@ async function handleChat(
     }
   }
 
-  const latestUser = [...safeMessages]
-    .reverse()
-    .find((m: any) => m.role === "user");
-  const latestText =
-    typeof latestUser?.content === "string" ? latestUser.content : "";
   const directMemory=await executeUserMemoryRequest(userId,latestText,payload.temporary===true,
     payload.responseLanguage==="ar"?"ar":payload.responseLanguage==="en"?"en":requestLanguage(latestText),
     typeof payload.conversationId==="string"?payload.conversationId:undefined);
@@ -574,7 +572,8 @@ async function handleChat(
     brave:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY"))&&Deno.env.get("NOATA_SEARCH_ENABLED")==="true",
     memorySchema:true
   });
-  const messages = [{ role: "system", content: `${system}\n${capabilities}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
+  const delivery=fileDeliveryInstruction(payload.artifactFormat,latestLanguage==="English"?"en":"ar");
+  const messages = [{ role: "system", content: `${system}\n${capabilities}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
   const body: any = {
     model,
     messages,

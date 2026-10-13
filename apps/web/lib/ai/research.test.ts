@@ -60,3 +60,13 @@ test("Never send workbook excerpts or other attached source text to external sea
   assert.equal(p.query,"");
  }
 });
+
+import {fileDeliveryInstruction,finishedDocumentInstruction} from "../../../../supabase/functions/noata-ai/file-delivery.ts";
+test("File instructions do not become the human research query",()=>{
+ const actual="alright create the pptx file";
+ assert.equal(searchPlan(actual).needed,false);
+ assert.equal(searchPlan(actual+"\n\n"+finishedDocumentInstruction("pptx","en")).needed,true);
+ assert.match(fileDeliveryInstruction("pptx","en"),/complete slide content/);
+ assert.equal(fileDeliveryInstruction("untrusted-format","en"),"");
+ assert.equal(searchPlan("Create a PDF with the latest NASA sea level data and citations").needed,true);
+});

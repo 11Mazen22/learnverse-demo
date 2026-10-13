@@ -10,8 +10,4 @@ export function confirmedFileIntent(message:string,recentUserMessages:readonly s
  }
  return null;
 }
-export function finishedDocumentInstruction(kind:string,language:"ar"|"en"):string{
- return language==="ar"
- ?"تعليمات نهائية: المستخدم طلب إنشاء ملف "+kind+" ووافق على التنفيذ. اكتب المحتوى النهائي الكامل هنا، وليس خطة أو مقترحًا. استخدم عناوين وأمثلة وتفاصيل فعلية، ولا تطلب موافقة أخرى أو تقل أنك ستنشئ الملف لاحقًا. التطبيق ينشئ الملف فعليًا؛ لا تقل إن إنشاء PDF غير ممكن. لا تخترع معلومات حالية أو مراجع أو بيانات للرسم؛ إذا تعذّر البحث فوضّح ذلك."
- :"FINAL DELIVERY: The user explicitly requested a "+kind.toUpperCase()+" file and authorized creation. Write the COMPLETE document content now—not a plan, promise, outline for approval, or follow-up question. Supply substantive titled sections, correct examples, useful details and meaningful conclusions. Never say you will create the file later. The app produces and stores actual bytes after the content is ready. Do not claim PDF creation is impossible. Never invent current facts, citations or chart measurements; if required research is unavailable, state that limitation.";
-}
+export {finishedDocumentInstruction} from "../../../../supabase/functions/noata-ai/file-delivery.ts";

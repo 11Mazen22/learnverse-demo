@@ -45,8 +45,9 @@
 .root :global(.owui-thread){width:100%;max-width:var(--owui-content);margin:auto;gap:30px}
 .root :global(.owui-message){animation:message-in var(--one-message) var(--one-ease);min-width:0}
 .root :global(.owui-message-body){min-width:0}
-.root :global(.owui-message.assistant){grid-template-columns:28px minmax(0,1fr);gap:12px}
-.root :global(.owui-message-avatar){height:26px;width:26px;border-radius:0;background:transparent;box-shadow:none}
+.root :global(.owui-message.assistant){grid-template-columns:40px minmax(0,1fr);gap:12px}
+.root :global(.owui-message.assistant > .owui-message-avatar){display:grid;place-items:center;height:40px;width:40px;flex:none;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);color:var(--ink);box-shadow:none}
+.root :global(.owui-message-avatar .noata-logo){width:36px!important;height:36px!important;flex:none}
 .root :global(.owui-message-meta){font-size:12px;margin-bottom:9px}
 .root :global(.owui-message-meta strong){font-size:12px}
 .root :global(.owui-provider-info){display:none}
@@ -112,8 +113,9 @@
  .root :global(.owui-model-trigger strong){max-width:22ch;font-size:12px}
  .root :global(.owui-navbar-actions > button){display:none}
  .root :global(.owui-messages){padding:20px 12px}
- .root :global(.owui-message.assistant){grid-template-columns:minmax(0,1fr);gap:0}
- .root :global(.owui-message.assistant > .owui-message-avatar){display:none}
+ .root :global(.owui-message.assistant){grid-template-columns:34px minmax(0,1fr);gap:9px}
+ .root :global(.owui-message.assistant > .owui-message-avatar){display:grid;width:34px;height:34px;border-radius:10px}
+ .root :global(.owui-message-avatar .noata-logo){width:30px!important;height:30px!important}
  .root :global(.owui-message .ai-rich-message){font-size:15px}
  .root :global(.owui-composer-wrap){padding-inline:10px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
  .root :global(.owui-composer){border-radius:20px;padding:10px}

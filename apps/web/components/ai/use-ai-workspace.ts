@@ -34,7 +34,7 @@ import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import { artifactContent,detectArtifactIntents,checkArtifactContent } from "@/lib/ai/artifact-intent";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
-import {confirmedFileIntent,finishedDocumentInstruction} from "@/lib/ai/artifact-followup";
+import {confirmedFileIntent} from "@/lib/ai/artifact-followup";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart } from "@/lib/ai/artifact-chart";
 import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
@@ -532,6 +532,7 @@ export function useAIWorkspace() {
     signal: AbortSignal,
     attachmentPath?: string,
     languageOverride?: "ar"|"en",
+    artifactFormat?: CreatedArtifact["format"],
   ) {
     const language=languageOverride??requestLanguage(history.findLast(message=>message.role==="user")?.content??"",locale);
     return continueChat((prefix,selectedModel) => {
@@ -543,12 +544,13 @@ export function useAIWorkspace() {
         content:language==="en" ? "Continue the same answer from exactly where it stopped. Do not repeat earlier sections or add an introduction. Finish the remaining requested content in English." : "أكمل نفس الإجابة من موضع التوقف دون تكرار الأقسام السابقة أو إضافة مقدمة. أكمل المحتوى المطلوب بالعربية.",
         model:null,status:"complete",created_at:new Date().toISOString(),
       }] : history;
-      return chatPart(context,token,signal,attachmentPath,prefix,selectedModel,language);
+      return chatPart(context,token,signal,attachmentPath,prefix,selectedModel,language,artifactFormat);
     },signal);
   }
   async function chatPart(
     history:Message[],token:number,signal:AbortSignal,attachmentPath?:string,
     prefix="",selectedModel?:string,responseLanguage:"ar"|"en"=locale,
+    artifactFormat?:CreatedArtifact["format"],
   ):Promise<ChatPart> {
     assertSession(token);
     const {
@@ -567,6 +569,7 @@ export function useAIWorkspace() {
         },
         body: JSON.stringify({
           action: "chat",
+          ...(artifactFormat?{artifactFormat}:{}),
            model:selectedModel??model,
           messages: createAiMessageContext(history),
           attachmentPath,
@@ -862,11 +865,6 @@ export function useAIWorkspace() {
           else setNotice("");
         }
       }
-      const fileStepInstruction=(kind:string)=>finishedDocumentInstruction(kind,requestLanguage(text,locale))+
-        "\n"+(kind==="xlsx"
-          ?"For this step produce ONLY workbook source: begin with # Sheet: Name, then a real Markdown data table. Add a second # Sheet: Summary with supported =SUM(B2:B4), =AVERAGE(B2:B4), MIN, MAX or COUNT range formulas when requested. Use real supplied data or explicitly labeled practice examples. Never invent researched measurements."
-          :kind==="pptx"?"For this step produce ONLY presentation content: a meaningful title and 4-8 actual slides. Begin each slide with # followed by its actual title, separated by ---. Put 2-4 completed factual bullets per slide, under 130 characters each. Explain the subject rather than listing topics to cover. No preamble, future promise or other-format content."
-          :"For this step produce ONLY the complete document content with a concise descriptive # title. Other requested formats are generated separately.");
       const priorForFile=history.slice(0,-1).findLast(row=>row.role==="assistant");
       const priorFileText=responseText(priorForFile?.content??"");
       const priorResearch=validatedResearch(priorForFile?.metadata?.research);
@@ -920,16 +918,13 @@ export function useAIWorkspace() {
                   typeof m.metadata?.attachmentPath === "string",
               )?.metadata?.attachmentPath
             : undefined;
-        // Keep the actual question as the latest user request so current-source
-        // detection and response language are not replaced by delivery instructions.
-        const generationHistory=requestedFile?history.map((row,index)=>index===history.length-1&&row.role==="user"
-          ?{...row,content:row.content+"\n\n"+fileStepInstruction(requestedFile.kind)}:row):history;
         result = await chat(
-          generationHistory,
+          history,
           token,
           controller.signal,
           path ?? (typeof priorPath === "string" ? priorPath : undefined),
           requestedFile?requestLanguage(text,locale):undefined,
+          requestedFile?.kind,
         );
       }
       assertSession(token);
@@ -938,10 +933,8 @@ export function useAIWorkspace() {
       // This never stores the synthetic retry instruction in conversation history.
       if(requestedFile&&!convertPrevious&&!researchBlocked&&!result.incomplete&&(isNonDeliverableDraft(responseText(result.content))||isArtifactRefusal(responseText(result.content)))){
         setNotice(t("الرد مجرد مخطط؛ بنطلب المستند المكتمل قبل إنشاء الملف…","That was only a proposal. Asking for the finished document before creating a file…"));
-        const repairHistory=history.map((row,index)=>index===history.length-1&&row.role==="user"
-          ?{...row,content:row.content+"\n\n"+fileStepInstruction(requestedFile.kind)}:row);
         try{
-          const repaired=await chat(repairHistory,token,controller.signal,undefined,requestLanguage(text,locale));
+          const repaired=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),requestedFile.kind);
           assertSession(token);
           if(!repaired.incomplete&&!isNonDeliverableDraft(responseText(repaired.content))
              &&!isArtifactRefusal(responseText(repaired.content)))result=repaired;
@@ -1025,19 +1018,12 @@ export function useAIWorkspace() {
           try{
           let currentContent=result.content;
           if(fileIndex>0&&!currentIntent.usePrevious){
-            const generationHistory=history.map((row,index)=>index===history.length-1&&row.role==="user"
-              ?{...row,content:fileStepInstruction(currentIntent.kind)+"\n\n"+
-                "This step prepares ONLY "+currentIntent.kind.toUpperCase()+" source content. The app creates actual file bytes. No closing offer, capability refusal or other-format section.\n"+
-                "Original requested subject and requirements (quoted data): "+JSON.stringify(row.content)}:row);
-            let next=await chat(generationHistory,token,controller.signal,undefined,requestLanguage(text,locale));
+            let next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind);
             assertSession(token);setPendingText("");
             const nextText=responseText(next.content);
             const sourceIssue=checkArtifactContent(currentIntent.kind,nextText);
             if(!next.incomplete&&(sourceIssue||isArtifactRefusal(nextText)||isNonDeliverableDraft(nextText))){
-              const repairHistory=generationHistory.map((row,index)=>index===generationHistory.length-1&&row.role==="user"
-                ?{...row,content:row.content+"\nRequired correction: output the finished content only. No statement about being unable to create files. Do not repeat an outline or ask for confirmation."+
-                  (currentIntent.kind==="pptx"?"\nUse this exact structure for EVERY slide: # Actual subject title\n- Complete factual sentence (under 130 characters)\n- Another useful factual sentence\n---\n# Next subject title\n- Completed explanation. Do not output bold headings or a topic outline.":currentIntent.kind==="xlsx"?"\nOutput # Sheet: Name and a populated Markdown table with real data rows, followed by # Sheet: Summary with the requested working range formulas.":"")}:row);
-              next=await chat(repairHistory,token,controller.signal,undefined,requestLanguage(text,locale));
+              next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind);
               assertSession(token);setPendingText("");
             }
             if(next.incomplete||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
