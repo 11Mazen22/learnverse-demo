@@ -86,3 +86,20 @@ if(spawnSync("which",["pdftoppm"],{stdio:"ignore"}).status===0) {
 }
 await nativeDocument.destroy();
 console.log(`PASS: native ${native.pageCount}-page Arabic PDF roundtrip and page bounds`);
+
+// A generated research report must retain its prose alongside the chart.
+const reportSource="# Practice report\n\nREPORT_PROSE_PRESERVATION_CHECK: These are explicitly synthetic observations for an export regression, not live climate measurements.";
+const chart={version:1,id:"report-check",type:"line_chart",title:"Practice observations",fallback:"Two practice observations",xLabel:"Sample",yLabel:"Value",points:[{label:"First",value:2},{label:"Second",value:4}]};
+const reportBytes=await renderNoataPdf(reportSource,"Practice report",undefined,chart);
+const chartDocument=await getDocument({data:Uint8Array.from(reportBytes),isEvalSupported:false}).promise;
+let chartReadback="";
+for(let page=1;page<=chartDocument.numPages;page++){
+ const value=await chartDocument.getPage(page);
+ chartReadback+=pdfTextLines((await value.getTextContent()).items).join(" ");
+}
+assert.ok(chartReadback.includes("REPORT_PROSE_PRESERVATION_CHECK"),"Chart export must preserve the requested report prose");
+assert.ok(chartReadback.includes("Practice observations"),"Actual chart title appears alongside prose");
+await writeFile(`${dir}/report-with-chart.pdf`,reportBytes);
+await writeFile(`${dir}/report-chart-readback.json`,JSON.stringify({revision:testedRevision,dirty:initiallyDirty,passed:true,bytes:reportBytes.length,text:chartReadback},null,2));
+await chartDocument.destroy();
+console.log("PASS: real report prose and numeric chart survive the same PDF");
