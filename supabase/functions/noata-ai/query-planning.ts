@@ -57,7 +57,8 @@ export function contextualResearchQuery(input:ReturnType<typeof researchPlanning
    if(/\b(?:my|our|patient|private|personal|records?|uploaded|attached)\b|ملفي|ملفاتي|الملف|بياناتي|الشخصية/i.test(query))return null;
    return plannedResearchQuery(JSON.stringify({query,needsClarification:false}),base);
   }
-  const verification=/^(?:(?:now|please|can you|could you)\s+)*(?:search|verify|check|research)\s+(?:for\s+)?(?:all\s+(?:of\s+)?)?(?:this|that|these|it)(?:\s+(?:to be sure|to check|to verify|these are|are|the|correct|corrected|data|facts|information|claims))*[.!?]*$/i.test(request)\n   ||/^(?:ابحث|تحقق|راجع)\s+(?:عن\s+)?(?:كل ده|كل هذا|المعلومات دي|الكلام ده)[.!؟]*$/.test(request);
+  const verification=/^(?:(?:now|please|can you|could you)\s+)*(?:search|verify|check|research)\s+(?:for\s+)?(?:all\s+(?:of\s+)?)?(?:this|that|these|it)(?:\s+(?:to be sure|to check|to verify|these are|are|the|correct|corrected|data|facts|information|claims))*[.!?]*$/i.test(request)
+   ||/^(?:ابحث|تحقق|راجع)\s+(?:عن\s+)?(?:كل ده|كل هذا|المعلومات دي|الكلام ده)[.!؟]*$/.test(request);
   if(verification)continue;
   // Known topic-preserving continuations can refer to the preceding explicit topic.
   if(!/^(?:continue|tell me more|go on|keep going|(?:now|alright|okay)?\s*(?:make|create|export)(?:\s+(?:it|that|this|a|the|in|as|file))*\s+(?:pdf|docx|pptx|xlsx))[.!?\s]*$|^(?:كمل|كمّل|تابع)[.!؟\s]*$/i.test(request))return null;
