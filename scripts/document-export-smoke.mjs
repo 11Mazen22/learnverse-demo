@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {renderNoataPdf} from "../apps/web/lib/ai/pdf-renderer.ts";
 import {generateArabicPdf} from "../apps/web/lib/pdf/arabic-pdf.ts";
 import {createNoataDocx} from "../apps/web/lib/ai/docx-export.ts";
+import {documentWithResearch} from "../apps/web/lib/ai/research-document.ts";
 import {pdfTextLines} from "../apps/web/lib/ai/pdf-text.ts";
 import {extractDocxDocument} from "../apps/web/lib/ai/docx-ingest.ts";
 import {createRequire} from "node:module";
@@ -107,9 +108,11 @@ console.log("PASS: real report prose and numeric chart survive the same PDF");
 
 // Observed PDF regressions: one main title, real math and embedded font choices.
 const scientificSource="# Photosynthesis Guide\n\n## Introduction to Photosynthesis\nPlants transform light energy into chemical energy. Chlorophyll absorbs light in chloroplasts.\n\n\\[\n6\\text{CO}_2+6\\text{H}_2\\text{O}\\xrightarrow{\\text{light}}\\text{C}_6\\text{H}_{12}\\text{O}_6+6\\text{O}_2\n\\]\n\n## Energy and products\nCarbon dioxide and water produce glucose and oxygen. The light reactions and Calvin cycle perform different roles.\n";
+const referenceUrl="https://en.wikipedia.org/wiki/Photosynthesis";
+const citedScientificSource=documentWithResearch(scientificSource+"\n\nBackground reading [1].",{version:1,status:"complete",reason:"encyclopedia_background",elapsedMs:1,sources:[{id:1,title:"Photosynthesis",url:referenceUrl,domain:"en.wikipedia.org",excerpt:"PDF reference preservation fixture.",retrievedAt:"2026-10-14T00:00:00Z"}]},"en","pdf");
 const fontChecks=[];
 for(const [font,expectedFont] of [["editorial","Lora"],["mono","RobotoMono"]]){
- const bytes=await renderNoataPdf(scientificSource,"Photosynthesis Guide",dir+"/photosynthesis-"+font+".png",undefined,"forest",font);
+ const bytes=await renderNoataPdf(citedScientificSource,"Photosynthesis Guide",dir+"/photosynthesis-"+font+".png",undefined,"forest",font);
  await writeFile(dir+"/photosynthesis-"+font+".pdf",bytes);
  const parsed=await getDocument({data:Uint8Array.from(bytes),isEvalSupported:false,fontExtraProperties:true}).promise;
  let visible="",fonts=[];
@@ -120,6 +123,8 @@ for(const [font,expectedFont] of [["editorial","Lora"],["mono","RobotoMono"]]){
   try{const face=page.commonObjs.get(dependency);if(face?.name)fonts.push(face.name);}catch{}
  }
  assert.ok(visible.includes("Plants transform light energy"));
+ assert.ok(visible.replace(/\s+/g,"").includes(referenceUrl),"The complete source URL survives actual PDF rendering and readback");
+ assert.ok(visible.includes("do not verify news or current claims"),"Research limitations survive actual export");
  assert.ok(!visible.includes("\\text")&&!visible.includes("\\xrightarrow"),"LaTeX is visibly typeset");
  assert.ok(!visible.includes("\u0000"),"Chemical expressions have no missing glyph NUL");
  assert.equal(pdfTextLines(content.items.filter(x=>"str" in x&&Math.abs(x.transform[0])>20)).filter(line=>line==="Photosynthesis Guide").length,1,"Exactly one large document title");
