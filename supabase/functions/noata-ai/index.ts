@@ -158,7 +158,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
       body: JSON.stringify(requestBody), signal,
     }),protectedMessages,()=>emit({status:"context_recovery"})),
     persist: (result, status) => completeReceipt(receipt, result, status),
-  }), { headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-store", "X-Accel-Buffering": "no" } });
+  }), { headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" } });
 }
 
 const system = [
