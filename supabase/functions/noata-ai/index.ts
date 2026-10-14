@@ -127,7 +127,8 @@ async function reviewCompletedAnswer(input:{
         });
         if(!reviewed.ok)return fallback();
         const data=await reviewed.json(),candidate=clean(data?.choices?.[0]?.message?.content??"");
-        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewIssue(input.request,candidate,input.research,input.sectionLevel?"pptx":input.format))return fallback();
+        const issue=answerReviewIssue(input.request,candidate,input.research,input.sectionLevel?"pptx":input.format);
+        if(data?.choices?.[0]?.finish_reason==="length"||issue){console.info("noata_answer_review_rejected",JSON.stringify({issue,finishReason:data?.choices?.[0]?.finish_reason??null,words:candidate.match(/[\p{L}\p{N}]+/gu)?.length??0,sections:candidate.match(/^#{1,3}\s+\S/gm)?.length??0}));return fallback();}
         return candidate;
       }catch{input.signal.throwIfAborted();return fallback();}
 

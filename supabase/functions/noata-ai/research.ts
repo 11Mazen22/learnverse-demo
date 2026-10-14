@@ -95,7 +95,7 @@ export function researchContext(research:Research):string {
 export function validatedResearch(value:unknown):Research|undefined {
   const data=value as Research;
   if(data?.version!==1||!["complete","failed","unavailable"].includes(data.status)||!Array.isArray(data.sources))return undefined;
-  const sources=data.sources.slice(0,5).filter(s=>Number.isInteger(s?.id)&&s.id>0&&s.id<=5&&publicSourceUrl(s.url)&&typeof s.title==="string"&&typeof s.domain==="string"&&typeof s.excerpt==="string"&&typeof s.retrievedAt==="string").map(s=>({...s,title:plain(s.title,180),excerpt:plain(s.excerpt,2000)}));
+  const sources=data.sources.slice(0,5).filter(s=>Number.isInteger(s?.id)&&s.id>0&&s.id<=5&&publicSourceUrl(s.url)&&typeof s.title==="string"&&typeof s.domain==="string"&&typeof s.excerpt==="string"&&typeof s.retrievedAt==="string").map(s=>({...s,title:plain(s.title,180),excerpt:plain(s.excerpt,data.reason==="encyclopedia_background"?10000:2000)}));
   const query=typeof data.query==="string"?data.query.slice(0,600):undefined;
   const allowed=new Set<ResearchStage>(["searching","reviewing","complete","unavailable","failed"]);
   const activity=Array.isArray(data.activity)?data.activity.slice(0,7).filter(x=>x&&allowed.has(x.stage)&&typeof x.at==="string"&&Number.isFinite(Date.parse(x.at))).map(x=>({stage:x.stage,at:x.at,...(Number.isInteger(x.resultCount)&&Number(x.resultCount)>=0&&Number(x.resultCount)<=5?{resultCount:x.resultCount}:{})})):undefined;

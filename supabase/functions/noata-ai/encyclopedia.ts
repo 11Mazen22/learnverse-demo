@@ -107,6 +107,26 @@ export async function searchEncyclopedia(plan:SearchPlan,opts:{
    }catch{opts.signal.throwIfAborted();/* Preserve the actual search excerpt if a lead cannot be read. */}
   }));
 
+  // Read a bounded article extract for the leading relevant topic. A lead alone
+  // cannot support a detailed mechanism, balanced equation or worked explanation.
+  const leading=sources.find(source=>relevantBackgroundSource(q,source));
+  if(leading)try{
+   const title=decodeURIComponent(new URL(leading.url).pathname.slice("/wiki/".length)).replaceAll("_"," ");
+   const articleUrl=new URL("https://"+leading.domain+"/w/api.php");
+   for(const [key,value] of Object.entries({action:"query",prop:"extracts",titles:title,format:"json",formatversion:"2",explaintext:"1",exchars:"10000"}))articleUrl.searchParams.set(key,value);
+   const response=await(opts.fetcher??fetch)(articleUrl.toString(),{method:"GET",redirect:"error",headers:{Accept:"application/json","Api-User-Agent":"NoataAI/1.0 (educational reference lookup)"},signal:AbortSignal.any([opts.signal,AbortSignal.timeout(6000)])});
+   if(response.ok&&response.body&&response.headers.get("content-type")?.includes("application/json")){
+    const reader=response.body.getReader(),decoder=new TextDecoder();let body="",size=0;
+    try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;if(size>96000)throw Error("ARTICLE_LIMIT");body+=decoder.decode(part.value,{stream:true});}body+=decoder.decode();}
+    finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+    const pages=JSON.parse(body)?.query?.pages;
+    const page=Array.isArray(pages)&&pages.length===1?pages[0]:null;
+    if(page&&page.missing!==true&&typeof page.title==="string"&&page.title.replaceAll("_"," ")===title){
+     const extract=excerptText(page.extract,10000);
+     if(extract.length>leading.excerpt.length){leading.excerpt=extract;leading.retrievedAt=stamp();}
+    }
+   }
+  }catch{opts.signal.throwIfAborted();/* Keep actual lead evidence; never invent missing article text. */}
   const relevant=sources.filter(source=>relevantBackgroundSource(q,source)).map((source,index)=>({...source,id:index+1}));
   return relevant.length?result("complete","encyclopedia_background",relevant):result("failed","no_relevant_encyclopedia_sources");
  }catch{opts.signal.throwIfAborted();return result("failed","encyclopedia_provider_unavailable");}

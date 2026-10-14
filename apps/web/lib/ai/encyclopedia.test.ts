@@ -51,3 +51,15 @@ test("The observed report wording cannot turn photosynthesis into unrelated chem
  }});
  assert.equal(result.status,"failed");assert.equal(result.sources.length,0);assert.equal(result.reason,"no_relevant_encyclopedia_sources");
 });
+
+test("Detailed background retrieves an actual bounded article without redirecting to arbitrary source URLs",async()=>{
+ const body="Photosynthesis converts light energy. Chloroplasts contain chlorophyll. ".repeat(90);
+ let articleReads=0;
+ const result=await searchEncyclopedia(searchPlan("search photosynthesis"),{signal:new AbortController().signal,fetcher:async(url,options)=>{
+  const address=new URL(String(url));assert.equal(address.hostname,"en.wikipedia.org");assert.equal(options?.redirect,"error");
+  if(address.pathname==="/w/api.php"){articleReads++;assert.equal(address.searchParams.get("titles"),"Photosynthesis");return Response.json({query:{pages:[{title:"Photosynthesis",extract:body}]}});}
+  if(address.pathname.includes("/summary/"))return Response.json({});
+  return Response.json({pages:[{key:"Photosynthesis",title:"Photosynthesis",excerpt:"Photosynthesis converts light energy."}]});
+ }});
+ assert.equal(articleReads,1);assert.equal(result.status,"complete");assert.ok(result.sources[0].excerpt.length>2000);assert.ok(result.sources[0].excerpt.length<=10000);assert.match(result.sources[0].excerpt,/Chloroplasts/);
+});
