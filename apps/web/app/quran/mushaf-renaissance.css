@@ -200,6 +200,8 @@
 }
 .mushaf .mushaf-flow .mushaf-flow-words{display:inline;white-space:normal}
 .mushaf .mushaf-flow .mushaf-flow-marker{
+  font-size:inherit;
+  font-family:inherit;
   display:inline-grid;
   vertical-align:-.35em;
   place-items:center;
