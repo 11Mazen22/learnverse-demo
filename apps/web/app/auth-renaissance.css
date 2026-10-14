@@ -1,0 +1,231 @@
+/* Noata Authentication Renaissance — one visual system across sign-in,
+   sign-up, recovery and verification. Auth behavior remains unchanged. */
+.auth-renaissance-shell.auth-shell:not(.is-centered) {
+  min-height:100dvh;
+  grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);
+  align-items:stretch;
+  background:
+    radial-gradient(ellipse at 92% 9%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 43%),
+    var(--surface-soft);
+  isolation:isolate;
+}
+.auth-renaissance-shell .auth-aside {
+  background:
+    radial-gradient(circle at 14% 12%,rgba(154,216,255,.15),transparent 35%),
+    radial-gradient(circle at 88% 89%,rgba(109,209,223,.16),transparent 37%),
+    linear-gradient(145deg,#0c2543,#102e56 58%,#15395f);
+  padding:clamp(30px,4vw,70px);
+  color:#f4f8ff;
+  gap:clamp(20px,3vh,35px);
+  justify-content:center;
+}
+html[data-theme="light"] .auth-renaissance-shell .auth-aside {
+  background:linear-gradient(155deg,#e6f0fc 0%,#d5e5f6 53%,#eff6fd 100%);
+  color:#152942;
+}
+.auth-renaissance-shell .auth-aside-copy {max-width:580px}
+.auth-renaissance-shell .auth-aside-kicker {
+  font-size:11px;letter-spacing:.16em;font-weight:750;margin:0 0 20px;
+  text-transform:uppercase;color:inherit;opacity:.7;
+}
+.auth-renaissance-shell .auth-aside-copy h2 {
+  font-size:clamp(35px,3.8vw,58px);
+  line-height:1.26;
+  letter-spacing:-.025em;
+  margin:0 0 19px;
+  font-weight:780;
+  text-wrap:balance;
+}
+.auth-renaissance-shell[dir="rtl"] .auth-aside-copy h2,
+html[dir="rtl"] .auth-renaissance-shell .auth-aside-copy h2 {letter-spacing:0;line-height:1.47}
+.auth-renaissance-shell .auth-aside-copy h2 span {margin-block-start:2px;color:#7ccce9}
+html[data-theme="light"] .auth-renaissance-shell .auth-aside-copy h2 span{color:#12639c}
+.auth-renaissance-shell .auth-aside-copy p{max-width:44ch;line-height:1.95;opacity:.84;font-size:14px}
+.auth-renaissance-shell .auth-aside-stage {
+  min-height:155px;
+  width:min(100%,550px);
+  padding:clamp(20px,3.1vw,32px);
+  border:1px solid rgba(255,255,255,.20);
+  border-radius:26px;
+  background:rgba(255,255,255,.08);
+  box-shadow:0 17px 45px rgba(2,14,29,.10);
+  backdrop-filter:blur(14px);
+}
+.auth-renaissance-shell .noata-auth-journey-visual{flex-wrap:nowrap;justify-content:flex-start;gap:22px}
+.auth-renaissance-shell .noata-auth-journey-visual .noata-brand{flex-shrink:0}
+.auth-renaissance-shell .noata-auth-journey-copy {min-width:0;max-width:260px;gap:6px}
+.auth-renaissance-shell .noata-auth-journey-copy strong{font-size:clamp(16px,1.65vw,22px);font-weight:730;line-height:1.5}
+.auth-renaissance-shell .noata-auth-milestones{gap:7px;justify-content:flex-start}
+.auth-renaissance-shell .noata-auth-milestones span{font-size:10px;line-height:1.5;padding:6px 10px}
+.auth-renaissance-shell .auth-aside-points{display:grid;gap:9px;max-width:550px}
+.auth-renaissance-shell .auth-aside-points li{
+  min-height:44px;padding:10px 13px;gap:12px;
+  border-radius:13px;font-size:12px;line-height:1.7;
+  border:1px solid rgba(255,255,255,.11);
+  background:rgba(255,255,255,.055);
+  color:inherit;
+}
+html[data-theme="light"] .auth-renaissance-shell .auth-aside-points li{
+  color:#23405c;background:rgba(255,255,255,.56);
+  border-color:rgba(26,71,120,.11);
+}
+.auth-renaissance-shell .auth-aside-points svg{flex:none}
+
+.auth-renaissance-shell .auth-card {
+  width:min(540px,calc(100% - 50px))!important;
+  max-width:100%;
+  margin:auto;
+  padding:clamp(29px,3.3vw,48px)!important;
+  gap:7px;
+  border-radius:27px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  box-shadow:0 20px 80px color-mix(in srgb,var(--ink) 7%,transparent);
+  color:var(--ink);
+}
+.auth-renaissance-shell .auth-card-brand{display:flex!important;align-items:center;justify-content:space-between;gap:12px;margin:0 0 20px}
+.auth-renaissance-shell .auth-card-brand .noata-brand{min-width:0}
+.auth-renaissance-shell .auth-card-brand .noata-brand-copy strong{font-size:17px}
+.auth-renaissance-shell .auth-tabs{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  padding:5px;gap:4px;margin:0 0 25px;
+  border-radius:15px;background:var(--surface-soft);border:1px solid var(--line);
+}
+.auth-renaissance-shell .auth-tabs button{
+  min-width:0;min-height:45px;
+  padding:9px 13px;border:0;border-radius:11px;
+  font:inherit;font-size:13px;font-weight:740;
+  color:var(--muted);background:transparent;
+  transition:background 170ms,color 170ms,box-shadow 170ms;
+}
+.auth-renaissance-shell .auth-tabs button[aria-selected="true"]{
+  background:var(--surface);color:var(--ink);
+  box-shadow:0 2px 11px color-mix(in srgb,var(--ink) 8%,transparent);
+}
+.auth-renaissance-shell .auth-eyebrow{
+  font-size:11px;font-weight:790;letter-spacing:.07em;margin:0 0 7px;color:var(--accent);
+}
+html[dir="rtl"] .auth-renaissance-shell .auth-eyebrow{letter-spacing:0}
+.auth-renaissance-shell .auth-card h1{
+  font-size:clamp(26px,2.7vw,36px);
+  line-height:1.4;font-weight:800;letter-spacing:-.025em;margin:0 0 7px;
+}
+html[dir="rtl"] .auth-renaissance-shell .auth-card h1{letter-spacing:0}
+.auth-renaissance-shell .auth-lead{
+  font-size:13px;line-height:1.9;
+  margin:0 0 17px;color:var(--muted);max-width:48ch;
+}
+.auth-renaissance-shell .auth-google{
+  min-height:49px;margin-top:1px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  font-size:13px;font-weight:700;
+  background:var(--surface);box-shadow:none;
+  gap:10px;
+}
+.auth-renaissance-shell .auth-google:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.auth-renaissance-shell .auth-divider{gap:12px;margin:18px 0 16px;font-size:11px;line-height:1.5;color:var(--muted)}
+.auth-renaissance-shell .auth-form{display:grid;gap:18px;margin:0}
+.auth-renaissance-shell .auth-field{
+  display:grid;min-width:0;gap:9px;
+  color:var(--ink);font-size:12.5px;font-weight:740;
+}
+.auth-renaissance-shell .auth-field-row{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;min-width:0;
+}
+.auth-renaissance-shell .auth-field input{
+  display:block;width:100%;min-width:0;box-sizing:border-box;
+  height:54px;min-height:54px;
+  padding:12px 16px;border-radius:13px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);
+  font:inherit;font-size:15px;font-weight:500;
+  transition:border-color 160ms,box-shadow 160ms,background 160ms;
+}
+.auth-renaissance-shell .auth-field input::placeholder{color:var(--muted);opacity:.83}
+.auth-renaissance-shell .auth-field input:focus-visible{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 13%,transparent);
+}
+.auth-renaissance-shell .auth-password{
+  direction:ltr;position:relative;display:block;width:100%;min-width:0;
+}
+.auth-renaissance-shell .auth-password input[dir="ltr"]{
+  box-sizing:border-box;direction:ltr;text-align:left;
+  width:100%;padding-left:16px!important;padding-right:105px!important;
+}
+.auth-renaissance-shell .auth-password>button{
+  direction:ltr;position:absolute;inset-inline:auto!important;
+  top:7px!important;bottom:7px!important;right:7px!important;left:auto!important;
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  min-width:75px;height:auto;
+  padding:0 10px;
+  color:var(--muted);background:var(--surface-soft);
+  border:1px solid transparent;border-radius:9px;
+  font:inherit;font-size:11px;font-weight:700;
+  cursor:pointer;z-index:1;
+}
+.auth-renaissance-shell .auth-password>button:hover,
+.auth-renaissance-shell .auth-password>button:focus-visible{
+  color:var(--accent);border-color:var(--line);background:var(--accent-soft);
+}
+.auth-renaissance-shell .auth-inline-link{font-size:11px;font-weight:740;color:var(--accent)}
+.auth-renaissance-shell .auth-primary{
+  min-height:53px;border:1px solid transparent;
+  border-radius:13px;margin-top:7px;
+  background:var(--accent);color:var(--on-accent,#fff)!important;
+  font-size:15px;font-weight:800;
+  box-shadow:0 11px 30px color-mix(in srgb,var(--accent) 16%,transparent);
+  transition:transform 160ms,filter 160ms,box-shadow 160ms;
+}
+.auth-renaissance-shell .auth-primary:hover:not(:disabled){
+  filter:brightness(1.05);transform:translateY(-1px);
+  box-shadow:0 15px 32px color-mix(in srgb,var(--accent) 20%,transparent);
+}
+.auth-renaissance-shell .auth-explore{
+  display:block;padding:16px 0 0;margin:20px 0 0;
+  border-top:1px solid var(--line);text-align:center;
+  font-size:12px;font-weight:620;line-height:1.6;
+  color:var(--muted);text-decoration:none;
+}
+.auth-renaissance-shell .auth-explore:hover{color:var(--accent)}
+.auth-renaissance-shell .auth-verify{gap:12px}
+.auth-renaissance-shell .auth-verify .auth-primary{width:100%}
+
+.auth-shell.is-centered .auth-card{
+  width:min(530px,100%);
+  padding:clamp(24px,3vw,40px);
+  border:1px solid var(--line);border-radius:23px;
+  box-shadow:0 16px 58px color-mix(in srgb,var(--ink) 7%,transparent);
+  background:var(--surface);
+}
+.auth-shell.is-centered .auth-field input{min-height:53px}
+.auth-shell.is-centered .auth-primary{min-height:52px;border-radius:13px}
+
+@media(max-width:1000px){
+  .auth-renaissance-shell.auth-shell:not(.is-centered){grid-template-columns:1fr;padding:30px 16px;display:grid;place-items:center}
+  .auth-renaissance-shell .auth-aside{display:none}
+  .auth-renaissance-shell .auth-card{width:min(560px,100%)!important}
+}
+@media(max-width:600px){
+  .auth-renaissance-shell.auth-shell:not(.is-centered){padding:16px 12px max(22px,env(safe-area-inset-bottom));display:block;min-height:100dvh}
+  .auth-renaissance-shell .auth-card{
+    width:100%!important;margin:0 auto;
+    padding:25px 20px 24px!important;border-radius:22px;box-shadow:0 12px 45px color-mix(in srgb,var(--ink) 5%,transparent);
+  }
+  .auth-renaissance-shell .auth-card-brand{margin-bottom:14px}
+  .auth-renaissance-shell .auth-tabs{margin-bottom:20px}
+  .auth-renaissance-shell .auth-lead{font-size:12px;line-height:1.85;margin-bottom:15px}
+  .auth-renaissance-shell .auth-card h1{font-size:27px}
+  .auth-renaissance-shell .auth-form{gap:15px}
+}
+@media(max-width:370px){
+  .auth-renaissance-shell .auth-card{padding:19px 14px!important}
+  .auth-renaissance-shell .auth-password .auth-visibility-copy{display:none}
+  .auth-renaissance-shell .auth-password>button{min-width:40px}
+  .auth-renaissance-shell .auth-password input[dir="ltr"]{padding-right:55px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .auth-renaissance-shell :is(button,input,a){transition:none!important}
+  .auth-renaissance-shell .auth-primary:hover{transform:none!important}
+}
