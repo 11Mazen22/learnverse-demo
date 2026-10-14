@@ -597,6 +597,21 @@ async function main() {
   }
   await evaluate('document.querySelector("dialog[open].noata-dialog--workshop .dialog-heading button").click()');
   await waitFor(async()=>await evaluate('!document.querySelector("dialog[open].noata-dialog--workshop")'),"Workshop dialog closes");
+  // Specifically guard the sidebar regressions reported on the visual preview.
+  await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+  await navigate("/ai");
+  await waitFor(async()=>await evaluate('!!document.querySelector(".owui-layout>.noata-organized-sidebar")'),"expanded Noata sidebar");
+  const sidebarLayout=await evaluate('(()=>{const sidebar=document.querySelector(".owui-layout>.noata-organized-sidebar"),quick=sidebar?.querySelector(".noata-quick-grid"),search=sidebar?.querySelector(".noata-sidebar-search");if(!sidebar||!quick||!search)return null;const r=sidebar.getBoundingClientRect(),q=quick.getBoundingClientRect();return {width:r.width,quickRight:q.right,sidebarRight:r.right,searchRight:search.getBoundingClientRect().right,links:quick.querySelectorAll(".noata-quick-link").length}})()');
+  invariant(sidebarLayout&&sidebarLayout.width>=305&&sidebarLayout.quickRight<=sidebarLayout.sidebarRight+2&&sidebarLayout.searchRight<=sidebarLayout.sidebarRight+2&&sidebarLayout.links>=1,"AI sidebar is spacious and not clipped");
+  await evaluate('document.querySelector(".owui-layout>.noata-organized-sidebar .owui-sidebar-top>button").click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector(".owui-layout>.noata-compact-rail")'),"compact Noata rail");
+  const compact=await evaluate('(()=>{const icons=Array.from(document.querySelectorAll(".owui-layout .noata-compact-rail .owui-rail svg[data-icon]")).map(i=>i.dataset.icon);return {icons,count:icons.length,unique:new Set(icons).size,rail:document.querySelector(".noata-compact-rail").getBoundingClientRect().width}})()');
+  invariant(compact.count>=5&&compact.count===compact.unique&&compact.rail>=64&&compact.rail<=80,"Collapsed rail must use distinct, intentional actions: "+JSON.stringify(compact));
+  await screenshot("artifacts/noata-browser/ai-navigation-compact-desktop.png");
+  await evaluate('document.querySelector(".noata-compact-rail .owui-rail-toggle").click()');
+  await waitFor(async()=>await evaluate('!!document.querySelector(".owui-layout>.noata-organized-sidebar")'),"expanded sidebar restore");
+  await screenshot("artifacts/noata-browser/ai-navigation-expanded-desktop.png");
+
   for(const authWidth of [1440,390,320]){
     location.width=authWidth;
     await command("Emulation.setDeviceMetricsOverride",{width:authWidth,height:900,deviceScaleFactor:1,mobile:authWidth<=768});
@@ -604,6 +619,8 @@ async function main() {
     const ar=await evaluate('(()=>{const card=document.querySelector(".auth-card"),google=document.querySelector(".auth-google");if(!card||!google)return null;const r=card.getBoundingClientRect();return {left:r.left,right:r.right,viewport:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,googleLabel:google.textContent}})()');
     invariant(ar!==null&&ar.googleLabel.includes("Google"),"Auth "+authWidth+" missing Google entry");
     invariant(ar.overflow<=3&&ar.left>=-3&&ar.right<=ar.viewport+3,"Auth "+authWidth+" overflow");
+    const pass=await evaluate('(()=>{const input=document.querySelector(".auth-password input"),button=document.querySelector(".auth-password button");if(!input||!button)return null;const r=input.getBoundingClientRect(),b=button.getBoundingClientRect();return {reserved:parseFloat(getComputedStyle(input).paddingRight),buttonSpace:r.right-b.left,within:b.left>=r.left&&b.right<=r.right+2,label:button.getAttribute("aria-label")}})()');
+    invariant(pass&&pass.within&&pass.reserved>=pass.buttonSpace+5&&pass.label,"Auth "+authWidth+" password show/hide overlaps the input: "+JSON.stringify(pass));
     await screenshot("artifacts/noata-browser/auth-"+authWidth+".png");
   }
   // Real public browser audit for every stage of the Arabic recovery journey.
