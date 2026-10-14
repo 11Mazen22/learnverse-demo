@@ -1,3 +1,4 @@
+import {isPoetryRequest} from "@/lib/ai/presentation-blocks";
 "use client";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 /*
@@ -555,7 +556,7 @@ export function NoataAIClient() {
                           : t("رد غير مكتمل · محفوظ جزئيًا","Incomplete · partial response saved")}
                       </p>
                     )}
-                    <RichMessage content={m.content} research={m.metadata?.research}/>
+                    <RichMessage content={m.content} research={m.metadata?.research} poetryHint={m.role==="assistant" && isPoetryRequest(messages.slice(0,index).findLast(item=>item.role==="user")?.content??"")}/>
                     {m.role==="assistant"&&m.status==="complete"&&
                       (Array.isArray(m.metadata?.generatedArtifacts)?m.metadata.generatedArtifacts.slice(0,4):[m.metadata?.generatedArtifact]).map((artifact,index)=>
                       <NoataGeneratedArtifact key={m.id+"-file-"+index} value={artifact}
@@ -674,7 +675,7 @@ export function NoataAIClient() {
                       {busy ? t("يكتب…","Writing…") : t("رد غير مكتمل","Incomplete response")}
                     </span>
                   </div>
-                  <RichMessage content={pendingText} streaming/>
+                  <RichMessage content={pendingText} streaming poetryHint={isPoetryRequest(messages.findLast(item=>item.role==="user")?.content??"")}/>
                   <span className="noata-stream-progress sr-only" role="status">{t("يظهر الرد مباشرة مع وصول أجزاء النص من النموذج.","The response appears as chunks arrive from the model.")}</span>
                   {!busy && (
                     <div className="owui-message-actions">
