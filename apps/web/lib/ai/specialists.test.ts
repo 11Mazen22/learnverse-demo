@@ -12,6 +12,8 @@ test("Guard reports only actual finite scores and never invents a safety thresho
 });
 test("Diwan preserves verse breaks and identifies generated poetry honestly",()=>{
  const poem=specialistReply("Fanar-Diwan",{poem:"A light upon the sea,\nA dream that carries me."},"en");
- assert.match(poem,/sea,  \nA dream/);assert.match(poem,/not a quotation/);
+ assert.match(poem,/sea,  \nA dream/);assert.match(poem,/Review wording and attribution/);assert.doesNotMatch(poem,/Original poem|not a quotation/);
  assert.throws(()=>specialistReply("Fanar-Diwan",{poem:""},"ar"));
 });
+
+test("Observed Guard scores render readably without adding an invented range",()=>{const value=specialistReply("Fanar-Guard-2",{safety:4.506101608276367,cultural_awareness:3.8109819889068604},"en");assert.ok(value.includes("| Safety | 4.51 |"));assert.ok(value.includes("| Cultural awareness | 3.81 |"));});

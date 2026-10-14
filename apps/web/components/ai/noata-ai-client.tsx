@@ -747,10 +747,11 @@ export function NoataAIClient() {
               <textarea id="noata-guard-context" rows={2} maxLength={2000} dir="auto" value={workspace.guardPrompt} onChange={e=>workspace.setGuardPrompt(e.target.value)}/>
               {messages.some(m=>m.role==="assistant"&&m.status==="complete")&&<button type="button" disabled={(messages.findLast(m=>m.role==="assistant"&&m.status==="complete")?.content.length??0)>14000} onClick={()=>{
                 const answer=messages.findLast(m=>m.role==="assistant"&&m.status==="complete");
-                if(answer){setInput(answer.content);workspace.setGuardPrompt(messages.slice(0,messages.indexOf(answer)).findLast(m=>m.role==="user")?.content.slice(0,2000)??"");}
+                if(answer){setInput(answer.content);const prior=messages.slice(0,messages.indexOf(answer)).findLast(m=>m.role==="user")?.content??"";workspace.setGuardPrompt(prior.length<=2000?prior:"");}
               }}>{t("استخدم آخر رد للفحص","Use last answer for screening")}</button>}
+            <p>{t("الحد: ١٤٠٠٠ حرف للنص و٢٠٠٠ للسياق. لو السؤال السابق أطول، اكتب ملخّصه هنا قبل الفحص.","Limit: 14,000 characters for text and 2,000 for context. If the prior question is longer, summarize it here before screening.")}</p>
             </section>}
-            {model==="Fanar-Diwan"&&<p className="noata-specialist-note">{t("ديوان يكتب قصيدة أصلية من فكرتك. صف الموضوع، النبرة والأسلوب الذي تريده.","Diwan creates an original poem from your idea. Describe the subject, tone and style you want.")}</p>}
+            {model==="Fanar-Diwan"&&<p className="noata-specialist-note">{t("ديوان يصوغ الشعر من فكرتك. صف الموضوع، النبرة والأسلوب الذي تريده.","Diwan drafts poetry from your idea. Describe the subject, tone and style you want.")}</p>}
 
             {documentFiles.length > 0 && (
               <div

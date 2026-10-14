@@ -33,7 +33,10 @@ export function parseSemanticPlan(raw:unknown):SemanticPlan|null{
  if(typeof raw!=="string"||raw.length>4000)return null;
  try{return validateSemanticPlan(JSON.parse(raw.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,"")));}catch{return null;}
 }
-export function needsSemanticPlan(text:string):boolean{
+export function needsSemanticPlan(text:string,selectedModel?:string):boolean{
+ // An explicit safety or poetry selection already identifies its documented service.
+ // File exports still use the existing explicit-format and prior-answer paths.
+ if(selectedModel==="Fanar-Guard-2"||selectedModel==="Fanar-Diwan")return false;
  const q=text.trim();
  // Greetings and plain acknowledgments do not pay the planning latency.
  return q.length>=8&&q.length<=20000&&!/^(?:hi|hello|hey|thanks|thank you|okay|ok|أهلا|أهلاً|اهلا|مرحبا|شكرا|شكرًا|تمام)[!?.،\s]*$/i.test(q);

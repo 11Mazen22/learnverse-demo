@@ -27,3 +27,5 @@ test("Planner failure does not silently omit explicit supported deliverables",()
  assert.deepEqual(detectArtifactIntents("Can you make PDF?"),[]);
  assert.deepEqual(detectArtifactIntents("Explain PDF and Excel formats"),[]);
 });
+
+test("A selected safety or poetry service avoids the unrelated file planner, while explicit exports remain available",()=>{assert.equal(needsSemanticPlan("اكتب قصيدة عن الصباح","Fanar-Diwan"),false);assert.equal(needsSemanticPlan("Review the safety of this explanation","Fanar-Guard-2"),false);assert.deepEqual(detectArtifactIntents("now make pdf").map(x=>x.kind),["pdf"]);assert.equal(needsSemanticPlan("Organize these notes into slides","auto"),true);});
