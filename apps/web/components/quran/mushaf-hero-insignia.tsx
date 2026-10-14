@@ -10,7 +10,6 @@ export function MushafHeroInsignia({english=false}:{english?:boolean}){
       <path className="mushaf-insignia-inner" d="M120 23C144 41 177 46 193 73C202 88 202 100 202 118V169C202 193 168 212 120 227C72 212 38 193 38 169V118C38 100 38 88 47 73C63 46 96 41 120 23Z"/>
       <path className="mushaf-insignia-crown" d="M120 23L126 35L120 47L114 35L120 23Z"/>
       <path className="mushaf-insignia-crown-soft" d="M104 38L108 42L104 46L100 42L104 38ZM136 38L140 42L136 46L132 42L136 38Z"/>
-      <path className="mushaf-insignia-lower-ornament" d="M98 211H111L120 218L129 211H142"/>
       <circle className="mushaf-insignia-pin" cx="43" cy="125" r="2"/>
       <circle className="mushaf-insignia-pin" cx="197" cy="125" r="2"/>
       <path className="mushaf-insignia-side" d="M49 117V152M191 117V152"/>
@@ -23,9 +22,11 @@ export function MushafHeroInsignia({english=false}:{english?:boolean}){
           <path d="M35 5L37 9L41 11L37 13L35 17L33 13L29 11L33 9L35 5Z" fill="currentColor" opacity=".75"/>
         </svg>
       </span>
-      <strong className="mushaf-insignia-arabic" lang="ar" dir="rtl">القرآن الكريم</strong>
-      <span className="mushaf-insignia-divider"><i/><b/><i/></span>
-      <small className="mushaf-insignia-caption">{english?"READ · RECITE · REFLECT":"قِرَاءَةٌ · تِلَاوَةٌ · تَدَبُّرٌ"}</small>
+      <div className="mushaf-insignia-wordmark">
+        <strong className="mushaf-insignia-arabic" lang="ar" dir="rtl">القرآن الكريم</strong>
+        <span className="mushaf-insignia-divider"><i/><b/><i/></span>
+        <small className="mushaf-insignia-caption" lang={english?"en":"ar"} dir={english?"ltr":"rtl"}>{english?"READ · RECITE · REFLECT":"قِرَاءَةٌ · تِلَاوَةٌ · تَدَبُّرٌ"}</small>
+      </div>
     </div>
   </div>;
 }
