@@ -442,7 +442,7 @@ export function NoataAIClient() {
                         <span className="aura-model-card-symbol">
                           <Icon
                             name={
-                              c.bestFor === "vision"
+                              c.bestFor==="safety"?"shield":c.bestFor==="creative"?"edit":c.bestFor === "vision"
                                 ? "image"
                                 : c.bestFor === "islamic"
                                   ? "book"
@@ -740,6 +740,18 @@ export function NoataAIClient() {
         <footer className="owui-composer-wrap">
           <form onSubmit={(e) => void send(e)} className="owui-composer">
             {workspace.revisionName&&<div className="noata-revision-context" role="status"><Icon name="file" size={16}/><span>{t("تعديل نسخة من: ","Revising: ")}{workspace.revisionName}</span><button type="button" aria-label={t("إزالة مصدر التعديل","Clear revision source")} onClick={workspace.clearRevision}><Icon name="close" size={15}/></button></div>}
+            {model==="Fanar-Guard-2"&&<section className="noata-specialist-context" aria-label={t("نص مراجعة السلامة","Safety review context")}>
+              <strong>{t("حارس 2 · فحص السلامة والوعي الثقافي","Guard 2 · Safety and cultural-awareness screening")}</strong>
+              <p>{t("الصق النص المطلوب فحصه في مربع الرسالة. هذا الفحص لا يتحقق من صحة الحقائق.","Paste the text to screen in the message box. This review does not verify factual accuracy.")}</p>
+              <label htmlFor="noata-guard-context">{t("سياق السؤال (اختياري)","Prompt context (optional)")}</label>
+              <textarea id="noata-guard-context" rows={2} maxLength={2000} dir="auto" value={workspace.guardPrompt} onChange={e=>workspace.setGuardPrompt(e.target.value)}/>
+              {messages.some(m=>m.role==="assistant"&&m.status==="complete")&&<button type="button" disabled={(messages.findLast(m=>m.role==="assistant"&&m.status==="complete")?.content.length??0)>14000} onClick={()=>{
+                const answer=messages.findLast(m=>m.role==="assistant"&&m.status==="complete");
+                if(answer){setInput(answer.content);workspace.setGuardPrompt(messages.slice(0,messages.indexOf(answer)).findLast(m=>m.role==="user")?.content.slice(0,2000)??"");}
+              }}>{t("استخدم آخر رد للفحص","Use last answer for screening")}</button>}
+            </section>}
+            {model==="Fanar-Diwan"&&<p className="noata-specialist-note">{t("ديوان يكتب قصيدة أصلية من فكرتك. صف الموضوع، النبرة والأسلوب الذي تريده.","Diwan creates an original poem from your idea. Describe the subject, tone and style you want.")}</p>}
+
             {documentFiles.length > 0 && (
               <div
                 className="aura-document-tray"
@@ -857,7 +869,7 @@ export function NoataAIClient() {
                   void send();
                 }
               }}
-              placeholder={t("ابعت رسالة لـ Noata AI","Message Noata AI")}
+              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("ابعت رسالة لـ Noata AI","Message Noata AI")}
               rows={1}
             />
 

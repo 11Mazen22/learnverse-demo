@@ -35,7 +35,8 @@ const MODEL_SUBTITLE_EN: Record<string, string> = {
   "Fanar-C-1-8.7B": "Reasoning and explanations",
   "Fanar-C-2-27B": "Complex questions",
   "Fanar-Sadiq": "Islamic questions",
-  "Fanar-Sadiq-2": "Islamic explanations",
+  "Fanar-Guard-2": "Safety and cultural-awareness screening",
+  "Fanar-Diwan": "Original creative poetry",
   "Fanar-Oryx-IVU-2": "Image understanding",
 };
 type Notice = { kind: "success" | "error"; message: string };

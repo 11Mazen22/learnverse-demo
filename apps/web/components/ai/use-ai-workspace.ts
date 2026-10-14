@@ -1,4 +1,5 @@
 "use client";
+import {normalizeModelChoice} from "@/lib/ai/model-routing";
 import {revisionMayLoseContent} from "@/lib/ai/revision-quality";
 import {
   useCallback,
@@ -92,6 +93,7 @@ export function useAIWorkspace() {
   const [revisionName,setRevisionName]=useState("");
   function clearRevision(){revisionSource.current=null;setRevisionName("");}
   function prepareRevision(prompt:string,source?:LibrarySource){if(lock.current)return;revisionSource.current=source??null;setRevisionName(source?.name??"");setInput(prompt);}
+  const [guardPrompt,setGuardPrompt]=useState("");
   const [model, setModel] = useState("auto"),
     [input, setInput] = useState(""),
     [busy, setBusy] = useState(false),
@@ -140,7 +142,7 @@ export function useAIWorkspace() {
   const failedTool = useRef<string | undefined>(undefined);
   const sessionScope = useRef(createSessionGuard());
   const [sessionVersion, setSessionVersion] = useState(0);
-  useEffect(()=>{clearRevision();},[sessionVersion]);
+  useEffect(()=>{clearRevision();setGuardPrompt("");},[sessionVersion,activeId]);
   const [newChatEpoch,setNewChatEpoch] = useState(0);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
   const [ttsModel, setTtsModel] = useState("Fanar-Aura-TTS-2");
@@ -246,7 +248,7 @@ export function useAIWorkspace() {
           );
           if (!alive || !scope.isCurrent(token)) return;
           if (data) {
-            setModel(data.default_ai_model || "auto");
+            setModel(normalizeModelChoice(data.default_ai_model));
           }
           await sessionStep(loadHistory());
         }
@@ -392,7 +394,7 @@ export function useAIWorkspace() {
       if (seq !== openSequence.current) return;
       setMessages(restored as Message[]);
       setPendingText("");
-      setModel(row?.selected_model || "auto");
+      setModel(normalizeModelChoice(row?.selected_model));
       setTemporary(false);
       setMobileHistory(false);
       restoreComposer(id);
@@ -581,7 +583,8 @@ export function useAIWorkspace() {
         body: JSON.stringify({
           action: "chat",
           ...(artifactFormat?{artifactFormat}:{}),
-           model:selectedModel??model,
+           model:normalizeModelChoice(selectedModel??model),
+          ...((selectedModel??model)==="Fanar-Guard-2"?{guardPrompt}:{}),
           messages: createAiMessageContext(history),
           attachmentPath,
           conversationId:history.findLast(item=>item.conversation_id&&item.conversation_id!=="temporary")?.conversation_id,
@@ -1775,7 +1778,7 @@ export function useAIWorkspace() {
     conversations,
     busy,
     model,
-    setModel,
+    setModel,guardPrompt,setGuardPrompt,
     scroller,
     follow,
     loading,

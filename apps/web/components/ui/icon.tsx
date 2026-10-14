@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 const paths: Record<string, string> = {
+  shield:"m12 3 8 3v6c0 5-5 8-8 10-3-2-8-5-8-10V6Zm-4 9 3 3 5-6",
   file:"M6 3h8l4 4v14H6Zm8 0v5h4M9 12h6M9 16h6",
   play:"m8 4 12 8-12 8z",
   pause:"M8 5v14M16 5v14",

@@ -24,7 +24,7 @@ test("smart router prioritizes vision and Islamic routing", () => {
     chooseFanarModel({ hasImage: true, islamic: true, complexity: "high" }),
     "Fanar-Oryx-IVU-2",
   );
-  assert.equal(chooseFanarModel({ islamic: true }), "Fanar-Sadiq-2");
+  assert.equal(chooseFanarModel({ islamic: true }), "Fanar-Sadiq");
 });
 
 test("smart router selects the intended reasoning tiers", () => {

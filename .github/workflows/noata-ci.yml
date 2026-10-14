@@ -64,6 +64,8 @@ jobs:
         run: node scripts/install-qa-chrome.mjs
       - name: Real Chrome startup and CDP isolation
         run: node scripts/browser-launch-smoke.mjs
+      - name: Actual image editing and PNG readback
+        run: node scripts/image-edit-browser-smoke.mjs
       - name: Real browser RTL and responsive smoke
         run: node scripts/browser-aura-smoke.mjs
       - name: Production HTTP smoke

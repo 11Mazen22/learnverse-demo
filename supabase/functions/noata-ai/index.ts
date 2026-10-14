@@ -1,3 +1,4 @@
+import {specialistRequest,specialistReply} from "./specialists.ts";
 import {requestWithContextRecovery} from "./context-recovery.ts";
 import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerReviewReason,answerReviewIssue,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
@@ -548,6 +549,16 @@ async function handleChat(
 
   // Determine routing from the actual user request before adding file or vision context.
   const latestText = safeMessages.findLast((m:any)=>m.role==="user")?.content??"";
+  if(model==="Fanar-Sadiq-2")model="auto";
+  if(model==="Fanar-Guard-2"||model==="Fanar-Diwan"){
+    if(payload.attachmentPath)return json({error:"This specialist accepts text only",code:"SPECIALIST_TEXT_ONLY"},400);
+    const language=payload.responseLanguage==="ar"?"ar":payload.responseLanguage==="en"?"en":requestLanguage(latestText);
+    let selected;try{selected=specialistRequest(model,latestText,payload.guardPrompt);}catch{return json({error:"Provide bounded text for the selected specialist",code:"SPECIALIST_TEXT_LIMIT"},400);}
+    const quota=await claim(userId,model);
+    const {data}=await fanarJson(selected.path,selected.body,120000);
+    let content;try{content=clean(specialistReply(model,data,language));}catch{return json({error:"The specialist returned an invalid result",code:"SPECIALIST_INVALID_RESPONSE"},502);}
+    return json({kind:"chat",model,content,finishReason:"stop",incomplete:false,quota});
+  }
   if (payload.attachmentPath) {
     model = "Fanar-Oryx-IVU-2";
     const blob = await readPrivateUpload(

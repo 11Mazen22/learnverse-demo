@@ -14,7 +14,8 @@ export function answerReviewIssue(request:string,text:string,research?:Research,
   const ids=[...text.matchAll(/\[(\d{1,2})\]/g)].map(x=>Number(x[1]));
   const known=new Set(research.sources.map(s=>s.id));
   const refusal=/capabilities.{0,60}(?:don't|do not|cannot|not include)|cannot.{0,35}(?:search|browse)|can't.{0,35}(?:search|browse)|لا (?:أستطيع|استطيع).{0,35}(?:البحث|التصفح)/i.test(text);
-  const blanket=/\b(?:all|every|entire|everything).{0,50}(?:verified|confirmed|accurate|correct)|(?:كل|جميع).{0,45}(?:صحيح|موثق|مؤكد)/i.test(text);
+  const certaintyText=text.replace(/\b(?:not|never)\s+(?:all|every|everything|the entire)|لا يمكن (?:تأكيد|التحقق من) (?:كل|جميع)/gi,"bounded uncertainty");
+  const blanket=/\b(?:all|every|entire|everything).{0,50}(?:verified|confirmed|accurate|correct)|(?:كل|جميع).{0,45}(?:صحيح|موثق|مؤكد)/i.test(certaintyText);
   if(refusal||blanket||!ids.length||ids.some(id=>!known.has(id)))return "research_evidence";
  }
  const depth=requestedDepth(request,format);
