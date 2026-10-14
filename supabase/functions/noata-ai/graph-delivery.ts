@@ -2,7 +2,7 @@ import {interactiveResponseSegments,validateResponseUi,type ResponseUi} from "./
 export function graphRequested(request:string):boolean{
  const q=request.split(/Verified extracted original document content:|المحتوى الأصلي للملف:/)[0];
  if(/\b(?:do not|don't|without)\b.{0,35}\b(?:graph|chart|plot)\b|بدون رسم|من غير رسم/i.test(q))return false;
- return /\b(?:draw|plot|render|show|make|create|build|generate|display)\b[\s\S]{0,100}\b(?:graph|chart|plot)\b|\bplot\s+(?:y\s*=|points|the|these)|ارسم|رسم بياني|رسم الدالة/i.test(q);
+ return /\b(?:draw|plot|render|show|make|create|build|generate|display)\b[\s\S]{0,100}\b(?:graph|chart|plot)\b|\bplot\s+(?:y\s*=|points|the|these)|(?:ارسم|ارسملي|اعرض|اعمل|أنشئ|انشئ|صمّم|صمم)[\s\S]{0,100}(?:رسم(?:ا|ًا)?\s*بياني|مخطط|محور|محاور|دالة|منحنى|نقاط)|^(?:رسم بياني|رسم الدالة)/i.test(q);
 }
 export function hasActualGraph(content:string):boolean{
  return interactiveResponseSegments(content,false).some(s=>s.type==="interactive"&&["quadratic","line_chart","xy_chart"].includes(s.data.type));

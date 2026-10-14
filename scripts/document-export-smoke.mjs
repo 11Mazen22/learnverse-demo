@@ -134,3 +134,39 @@ for(const [font,expectedFont] of [["editorial","Lora"],["mono","RobotoMono"]]){
 }
 await writeFile(dir+"/typography-readback.json",JSON.stringify({revision:testedRevision,dirty:initiallyDirty,passed:true,scope:"Actual Chromium-rendered font/PDF bytes and PDF.js readback; not an authenticated browser or provider test.",checks:fontChecks},null,2));
 console.log("PASS: embedded Lora and Roboto Mono PDFs, chemical typesetting and one large title");
+
+// A native styled XY chart must survive export and later canonical-text revisions.
+const xy={version:1,id:"xy_export_qa",type:"xy_chart",title:"Styled XY QA",fallback:"Three actual supplied test coordinates per series.",xLabel:"Time (s)",yLabel:"Distance (m)",dataOrigin:"provided",series:[
+ {name:"Sample A",color:"red",dash:"dashed",kind:"line",points:[{x:0,y:0},{x:1,y:2},{x:10,y:5}]},
+ {name:"Sample B",color:"green",dash:"dotted",kind:"line",points:[{x:0,y:1},{x:1,y:3},{x:10,y:7}]}
+]};
+const nativeFence=String.fromCharCode(96).repeat(3);
+const xySource="# XY revision fixture\n\nQA_CHART_PREFIX remains unchanged.\n\n"+nativeFence+"noata-ui\n"+JSON.stringify(xy)+"\n"+nativeFence+"\n\nQA_CHART_SUFFIX remains unchanged.";
+const xyChecks=[];
+for(const [name,source] of [["original",xySource],["revised",xySource.replace("XY revision fixture","Revised XY fixture")]]){
+ const output=await renderNoataPdf(source,"Styled XY QA",dir+"/xy-"+name+".png",undefined,"forest","editorial");
+ await writeFile(dir+"/xy-"+name+".pdf",output);
+ const parsed=await getDocument({data:Uint8Array.from(output),isEvalSupported:false,fontExtraProperties:true}).promise;
+ let readback="",dashPatterns=[],pathCount=0,fonts=[];
+ for(let number=1;number<=parsed.numPages;number++){
+  const page=await parsed.getPage(number),content=await page.getTextContent(),ops=await page.getOperatorList();
+  readback+=pdfTextLines(content.items).join(" ");
+  for(let i=0;i<ops.fnArray.length;i++){
+   if(ops.fnArray[i]===OPS.setDash)dashPatterns.push(ops.argsArray[i][0]);
+   if(ops.fnArray[i]===OPS.constructPath)pathCount++;
+   if(ops.fnArray[i]===OPS.dependency)for(const key of ops.argsArray[i]){
+    try{const face=page.commonObjs.get(key);if(face?.name)fonts.push(face.name);}catch{}
+   }
+  }
+  assert.equal(content.items.filter(x=>"str" in x&&x.str.trim()&&(x.transform[4]<0||x.transform[5]<0||x.transform[4]+x.width>page.view[2]+1||x.transform[5]>page.view[3])).length,0,"XY PDF text remains inside each page");
+ }
+ for(const text of ["QA_CHART_PREFIX","QA_CHART_SUFFIX","Sample A","Sample B","Time (s)","Distance (m)"])assert.ok(readback.includes(text),"XY revision preserves "+text);
+ assert.ok(!readback.includes("noata-ui")&&!readback.includes('"series"'),"Chart protocol is not exposed as raw code");
+ assert.ok(pathCount>6,"Actual vector graph marks survive PDF rendering");
+ assert.ok(dashPatterns.some(x=>x.length&&x[0]>=8)&&dashPatterns.some(x=>x.length&&x[0]<=3),"Dashed and dotted line patterns survive the actual PDF");
+ assert.ok(fonts.some(x=>x.toLowerCase().includes("lora")),"Selected editorial font survives chart export");
+ xyChecks.push({name,bytes:output.length,pages:parsed.numPages,pathCount,dashPatterns,checks:"Canonical graph, supplied values, vector marks, line styles, page bounds and fonts"});
+ await parsed.destroy();
+}
+await writeFile(dir+"/xy-chart-readback.json",JSON.stringify({revision:testedRevision,dirty:initiallyDirty,passed:true,scope:"Actual generated PDF roundtrip and controlled canonical-source revision; not a real provider or signed-in app test.",checks:xyChecks},null,2));
+console.log("PASS: real styled XY charts survive original and revised PDF rendering");
