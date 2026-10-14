@@ -34,7 +34,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:text
       - run: pnpm typecheck
-      - run: node --test apps/web/lib/ai/quran-directives.test.ts apps/web/lib/ai/live-stream.test.ts apps/web/lib/ai/display-markdown.test.ts
+      - run: node --test apps/web/lib/ai/quran-directives.test.ts apps/web/lib/ai/live-stream.test.ts apps/web/lib/ai/display-markdown.test.ts apps/web/lib/ai/presentation-blocks.test.ts
       - run: pnpm build
       - name: Install full Chrome for Testing
         run: node scripts/install-qa-chrome.mjs
