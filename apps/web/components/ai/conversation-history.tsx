@@ -7,7 +7,7 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
  */
 import {NoataLogo} from "@/components/ui/noata-logo";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Icon } from "@/components/ui/icon";
 import type { Conversation } from "@/lib/ai/workspace";
 
@@ -21,6 +21,7 @@ type Props = {
   onNew: () => void;
   onAction: (c: Conversation, action: Action) => void;
   busy: boolean;
+  loading?:boolean;hasMore?:boolean;failed?:boolean;onLoadMore?:()=>void;onRetry?:()=>void;
   archived: boolean;
   onArchiveView: () => void;
   temporary: boolean;
@@ -63,7 +64,7 @@ function ConversationItem({
         title={c.title}
       >
         <Icon name="chat" size={16} />
-        <span>{c.title}</span>
+        <span dir="auto">{c.title}</span>
       </button>
       <details className="aura-history-menu">
         <summary aria-label={t("خيارات محادثة: ","Conversation options: ") + c.title} title={t("خيارات المحادثة","Conversation options")} aria-haspopup="menu">
@@ -100,7 +101,7 @@ function ConversationItem({
 }
 
 export function ConversationHistory(p: Props) {
- const t=useTranslation(),locale=useLocale();
+ const t=useTranslation(),locale=useLocale(),searchField=useRef<HTMLInputElement>(null);
   const grouped = useMemo(() => {
     const pinned = p.rows.filter((c) => c.pinned);
     const regular = p.rows.filter((c) => !c.pinned);
@@ -160,7 +161,7 @@ export function ConversationHistory(p: Props) {
   }
 
   return (
-    <aside className="owui-sidebar" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
+    <aside className="owui-sidebar noata-organized-sidebar" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
       <div className="owui-sidebar-top">
         <div className="owui-brand">
           <NoataLogo size={44}/>
@@ -191,23 +192,23 @@ export function ConversationHistory(p: Props) {
         <kbd>Ctrl ⇧ O</kbd>
       </button>
 
-      <label className="owui-search">
+      <label className="owui-search noata-sidebar-search">
         <Icon name="search" size={16} />
-        <input
+        <input ref={searchField} type="search"
           value={p.query}
           onChange={(e) => p.onQuery(e.target.value)}
-          placeholder={t("ابحث في محادثاتك","Search conversations")}
+          placeholder={t("ابحث باسم المحادثة","Find a chat by name")}
           aria-label={t("ابحث في محادثاتك","Search conversations")}
         />
       </label>
 
-      <div className="owui-section-label">{t("مساحة العمل","Workspace")}</div>
+      <div className="owui-section-label">{t("مساحتك","Your workspace")}</div>
       <div className="owui-sidebar-links">
         <Link href="/" className="aura-home-return">
           <Icon name="home" size={16} />
           <span><strong>{t("مساحة التعلّم","Learning space")}</strong><small>{t("العودة إلى الرئيسية","Back to home")}</small></span>
         </Link>
-        {p.onOpenLibrary&&<button type="button" onClick={p.onOpenLibrary}><Icon name="archive" size={16}/><span>{t("المشروعات والملفات","Projects and files")}</span></button>}
+        {p.onOpenLibrary&&<button type="button" onClick={p.onOpenLibrary}><Icon name="folder" size={16}/><span>{t("المشروعات والملفات","Projects and files")}</span></button>}
         <button
           type="button"
           onClick={p.onTemporary}
@@ -217,21 +218,12 @@ export function ConversationHistory(p: Props) {
         >
           <Icon name="clock" size={16} />
           <span>{t("محادثة مؤقتة","Temporary conversation")}</span>
-          {p.temporary && <i>ON</i>}
-        </button>
-        <button
-          type="button"
-          onClick={p.onArchiveView}
-          aria-pressed={p.archived}
-          className={p.archived ? "active" : ""}
-        >
-          <Icon name="archive" size={16} />
-          <span>{p.archived ? t("الرجوع للمحادثات","Back to conversations") : t("الأرشيف","Archive")}</span>
+          {p.temporary && <i>{t("مفعّل","On")}</i>}
         </button>
       </div>
 
-      <div className="owui-section-label owui-history-label">{p.archived ? t("الأرشيف","Archive") : t("المحادثات","Conversations")}</div>
-      <div className="owui-history" role="region" aria-label={p.archived ? t("المحادثات المؤرشفة","Archived conversations") : t("المحادثات","Conversations")}>
+      <div className="noata-history-heading"><h2>{p.query.trim()?t("نتائج البحث","Search results"):p.archived?t("الأرشيف","Archived chats"):t("محادثاتك","Your chats")}</h2><button type="button" className="owui-icon" onClick={p.onArchiveView} aria-pressed={p.archived} aria-label={p.archived?t("الرجوع للمحادثات","Back to conversations"):t("الأرشيف","Archive")} title={p.archived?t("الرجوع للمحادثات","Back to conversations"):t("الأرشيف","Archive")}><Icon name={p.archived?"chat":"archive"} size={16}/></button></div>
+      <div className={"owui-history noata-chat-index "+(!p.rows.length?"noata-chat-index-empty":"")} role="region" aria-label={p.archived ? t("المحادثات المؤرشفة","Archived conversations") : t("المحادثات","Conversations")}>
         {grouped.pinned.length > 0 && (
           <section className="owui-chat-group">
             <h3>{t("مثبّتة","Pinned")}</h3>
@@ -248,12 +240,17 @@ export function ConversationHistory(p: Props) {
             ))}
           </section>
         ))}
-        {!p.rows.length && (
+        {!p.rows.length && !p.loading && !p.failed && (
           <div className="owui-history-empty">
             <Icon name={p.archived ? "archive" : "chat"} size={22} />
-            <p>{p.query ? t("مفيش محادثات مطابقة.","No matching conversations.") : p.archived ? t("الأرشيف فاضي.","Your archive is empty.") : t("ابدأ محادثة جديدة وخلي أفكارك هنا.","Start a conversation and keep your ideas here.")}</p>
+            <strong>{p.query?t("لم نجد محادثة بهذا الاسم","No chats found"):p.archived?t("أرشيفك فاضي","Nothing archived yet"):t("أفكارك تبدأ هنا","A place for your ideas")}</strong>
+            <p>{p.query?t("جرّب اسمًا أقصر أو امسح البحث.","Try a shorter name or clear your search."):p.archived?t("المحادثات التي تؤرشفها ستظهر هنا.","Chats you archive will appear here."):t("ابدأ محادثة؛ سنحتفظ بها هنا لتكملها في أي وقت.","Start a chat and return to it whenever you want.")}</p>
+            <button type="button" disabled={p.busy} onClick={()=>{if(p.query){p.onQuery("");searchField.current?.focus();}else if(p.archived)p.onArchiveView();else p.onNew();}}>{p.query?t("مسح البحث","Clear search"):p.archived?t("الرجوع للمحادثات","Back to conversations"):t("ابدأ محادثة","Start a chat")}</button>
           </div>
         )}
+        {p.loading&&<p className="noata-history-status" role="status">{t("جارٍ ترتيب محادثاتك…","Loading your chats…")}</p>}
+        {p.failed&&<div className="noata-history-retry" role="status"><p>{t("تعذّر فتح المحادثات. جرّب مرة أخرى.","Could not load chats. Try again.")}</p><button type="button" onClick={p.onRetry}>{t("إعادة المحاولة","Retry")}</button></div>}
+        {p.hasMore&&!p.failed&&<button className="noata-history-more" type="button" disabled={p.loading||p.busy} onClick={p.onLoadMore}>{t("محادثات أقدم","Load older chats")}<Icon name="chevron" size={14}/></button>}
       </div>
 
       <div className="owui-sidebar-footer">

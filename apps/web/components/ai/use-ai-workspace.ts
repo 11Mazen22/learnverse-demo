@@ -30,6 +30,8 @@ import { createAiMessageContext } from "@/lib/ai/context-budget";
 import { continueChat, type ChatPart } from "@/lib/ai/continuation";
 import { requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
 import {validatedResearch,type Research} from "../../../../supabase/functions/noata-ai/research.ts";
+import {CONVERSATION_PAGE_SIZE,mergeConversationPage} from "@/lib/ai/conversation-index";
+import {librarySearchPattern} from "@/lib/ai/library-query";
 import type {LibrarySource} from "@/lib/ai/library-source";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import {needsSemanticPlan,validateSemanticPlan} from "../../../../supabase/functions/noata-ai/semantic-plan.ts";
@@ -147,23 +149,31 @@ export function useAIWorkspace() {
   const [newChatEpoch,setNewChatEpoch] = useState(0);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
   const [ttsModel, setTtsModel] = useState("Fanar-Aura-TTS-2");
-  const loadHistory = useCallback(async () => {
-    const scope = sessionScope.current,
-      token = scope.capture(),
-      owner = scope.owner();
-    if (!owner) return;
-    const { data, error } = await supabase
-      .from("ai_conversations")
-      .select("id,title,pinned,archived,selected_model,updated_at,temporary")
-      .eq("user_id", owner)
-      .eq("temporary", false)
-      .order("pinned", { ascending: false })
-      .order("updated_at", { ascending: false })
-      .limit(200);
-    if (!scope.isCurrent(token)) return;
-    if (error) throw error;
-    setConversations((data ?? []) as Conversation[]);
+  const historyView=useRef({query:historyQuery,archived:archiveView});historyView.current={query:historyQuery,archived:archiveView};
+  const historyRows=useRef<Conversation[]>([]),historyRequest=useRef(0),historyOffset=useRef(0),historyLoadedView=useRef<string|null>(null);
+  const [historyLoading,setHistoryLoading]=useState(false),[historyHasMore,setHistoryHasMore]=useState(false),[historyFailed,setHistoryFailed]=useState(false);
+  const loadHistory = useCallback(async (append=false) => {
+    const scope=sessionScope.current,token=scope.capture(),owner=scope.owner();
+    if(!owner)return;
+    const request=++historyRequest.current,view={...historyView.current},from=append?historyOffset.current:0;
+    setHistoryLoading(true);setHistoryFailed(false);
+    try{
+      let query=supabase.from("ai_conversations").select("id,title,pinned,archived,selected_model,updated_at,temporary",{count:"exact"})
+       .eq("user_id",owner).eq("temporary",false).eq("archived",view.archived);
+      const pattern=librarySearchPattern(view.query);if(pattern)query=query.ilike("title",pattern);
+      const {data,error,count}=await query.order("pinned",{ascending:false}).order("updated_at",{ascending:false}).order("id",{ascending:false})
+       .range(from,from+CONVERSATION_PAGE_SIZE-1).abortSignal(AbortSignal.timeout(15000));
+      if(!scope.isCurrent(token)||request!==historyRequest.current||view.query!==historyView.current.query||view.archived!==historyView.current.archived)return;
+      if(error)throw error;
+      const next=mergeConversationPage(historyRows.current,(data??[]) as Conversation[],append);
+      historyRows.current=next;historyOffset.current=from+(data?.length??0);historyLoadedView.current=JSON.stringify(view);setConversations(next);setHistoryHasMore((count??0)>from+(data?.length??0));
+    }catch(e){if(scope.isCurrent(token)&&request===historyRequest.current){setHistoryFailed(true);throw e;}}
+    finally{if(scope.isCurrent(token)&&request===historyRequest.current)setHistoryLoading(false);}
   }, [supabase]);
+  useEffect(()=>{
+    const timer=setTimeout(()=>{void loadHistory().catch(()=>{});},250);
+    return()=>clearTimeout(timer);
+  },[historyQuery,archiveView,sessionVersion,loadHistory]);
   useEffect(() => {
     let alive = true;
     const scope = sessionScope.current;
@@ -182,7 +192,7 @@ export function useAIWorkspace() {
       if (synchronizeSessionWork(owner)) clearOriginalDocuments();
       setRecording(false);
       setBusy(false);
-      setConversations([]);
+      setConversations([]);historyRows.current=[];historyOffset.current=0;historyLoadedView.current=null;++historyRequest.current;setHistoryHasMore(false);setHistoryFailed(false);setHistoryLoading(false);
       setMessages([]);
       streamed.current = { content: "", model: "auto" };
       setActiveId(null);
@@ -1748,13 +1758,12 @@ export function useAIWorkspace() {
       setNotice(t("تعذّر النسخ التلقائي. حدّد النص وانسخه يدويًا.","Could not copy automatically. Select and copy the text manually."));
     }
   }
-  const filtered = conversations.filter(
-    (c) =>
-      c.archived === archiveView &&
-      c.title.toLowerCase().includes(historyQuery.toLowerCase()),
-  );
+  const historyViewPending=Boolean(sessionScope.current.owner())&&historyLoadedView.current!==JSON.stringify(historyView.current);
+  const filtered = historyViewPending?[]:conversations.filter(c=>c.archived===archiveView);
   const historyProps = {
     rows: filtered,
+    loading:historyLoading||loading||historyViewPending,hasMore:historyHasMore,failed:historyFailed,
+    onLoadMore:()=>{void loadHistory(true).catch(()=>{});},onRetry:()=>{void loadHistory().catch(()=>{});},
     activeId,
     query: historyQuery,
     onQuery: setHistoryQuery,
