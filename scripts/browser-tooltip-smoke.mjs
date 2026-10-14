@@ -103,7 +103,7 @@ async function run(){
  await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Tab",bubbles:true}));document.querySelector(".auth-password button").focus()');
  await sleep(550);
  const mobile=await evaluate('(()=>{const b=document.querySelector(".auth-password button"),r=b.getBoundingClientRect();return {visibleLabel:b.innerText.trim(),aria:b.getAttribute("aria-label"),tip:!!document.getElementById("noata-global-tooltip"),overflow:document.documentElement.scrollWidth-innerWidth,left:r.left,right:r.right,width:innerWidth}})()');
- assert(mobile.visibleLabel.length>0&&!mobile.tip&&mobile.overflow<=3&&mobile.left>=0&&mobile.right<=mobile.width,"Already-labelled mobile password control must not show a redundant caption or clip "+JSON.stringify(mobile));
+ assert(mobile.aria?.length>0&&!mobile.tip&&mobile.overflow<=3&&mobile.left>=0&&mobile.right<=mobile.width,"Mobile password control must have an accessible name and no touch tooltip or clipping "+JSON.stringify(mobile));
  await capture("mobile-password-clean");
  console.log("Tooltip Chrome QA PASS: RTL hover, keyboard focus, English, dismissal and 320px viewport");
 }
