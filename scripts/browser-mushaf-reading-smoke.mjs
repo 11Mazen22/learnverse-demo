@@ -63,6 +63,16 @@ async function run(){
    assert(m.chapter>0&&m.toolbar>0&&m.jump>0,"Chapter, reading mode and jump controls visible");
    assert(m.marks.length>0&&m.extras===0,"Continuous reading must not repeat audio icons for each verse");
    for(const marker of m.marks)assert(marker.w>=25&&marker.x>=-2&&marker.right<=width+2,"Verse marker clipping "+JSON.stringify(marker));
+   if(source==="live"&&width===1440&&theme==="light"){
+     await evaluate('document.querySelector(".mushaf-flow-marker").click()');
+     await waitFor(()=>evaluate('!!document.querySelector(".mushaf-selection-toolbar .mushaf-verse-action")'),"contextual verse actions");
+     assert(await evaluate('document.querySelectorAll(".mushaf-selection-toolbar .mushaf-verse-action").length===2'),"single, focused Bookmark/Listen toolbar");
+     await evaluate('document.querySelector(".mushaf-reader-controls .mushaf-segmented button:first-child").click()');
+     await waitFor(()=>evaluate('!!document.querySelector(".mushaf-study-card")'),"study card mode");
+     assert(await evaluate('document.querySelectorAll(".mushaf-study-card").length>=5'),"compact verse study is populated");
+     await evaluate('document.querySelector(".mushaf-reader-controls .mushaf-segmented button:last-child").click()');
+     await waitFor(()=>evaluate('!!document.querySelector(".mushaf-flow-script")'),"continuous reader restored");
+   }
    const shot=await browser.command("Page.captureScreenshot",{format:"png"});
    await writeFile("artifacts/noata-mushaf/mushaf-"+width+"-"+theme+"-"+source+".png",Buffer.from(shot.data,"base64"));
   }
