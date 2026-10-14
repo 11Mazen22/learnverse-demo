@@ -17,6 +17,7 @@ import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import type {RenderTask,PDFDocumentLoadingTask} from "pdfjs-dist/legacy/build/pdf.mjs";
 import type {DocumentStyle} from "@/lib/ai/document-style";
 import {readDocumentSource,storedDocumentSource} from "@/lib/ai/document-presentation";
+import {OfficeTextEditor} from "./office-text-editor";
 type Format=CreatedArtifact["format"];
 export function downloadBytes(bytes:Uint8Array,name:string,mime:string){
  const link=document.createElement("a"),url=URL.createObjectURL(new Blob([Uint8Array.from(bytes)],{type:mime}));
@@ -56,7 +57,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
 }){
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);
  const [loaded,setLoaded]=useState<Blob|null>(null),[inspection,setInspection]=useState<StudioInspection|null>(null);
- const [draft,setDraft]=useState(""),[mode,setMode]=useState<"preview"|"edit"|"compare">("preview");
+ const [draft,setDraft]=useState(""),[mode,setMode]=useState<"preview"|"edit"|"compare"|"targeted"|"pages">("preview");
+ const [pageOrder,setPageOrder]=useState(""),[rotatePage,setRotatePage]=useState(1),[rotation,setRotation]=useState(0);
  const [originalText,setOriginalText]=useState("");
  const [sectionStart,setSectionStart]=useState("whole");
  const sections=useMemo(()=>documentSections(draft),[draft]);
@@ -70,7 +72,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const activeFormat=file?.format??(localSource?.format==="text"?"docx":localSource?.format);
  const activeName=file?.filename??localSource?.name??"Noata document";
  useEffect(()=>{
-  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setMode("preview");setOriginalText("");setInstruction("");setSectionStart("whole");
+  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setMode("preview");setOriginalText("");setInstruction("");setSectionStart("whole");
   setOutputFormat(activeFormat??"pdf");setStyle("classic");setFont("noata");
   if(!file&&!localSource)return;
   void(async()=>{
@@ -106,6 +108,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     if(activeFormat==="pdf"){
      const {extractPdfDocument}=await import("@/lib/ai/pdf-ingest");
      const parsed=await extractPdfDocument(new File([loadedFile],activeName,{type:"application/pdf"}));
+     if(live)setPageOrder(Array.from({length:parsed.totalPages},(_,i)=>i+1).join(", "));
      view={pages:parsed.pages.map(p=>({title:"Page "+p.page,lines:p.text.split("\n").filter(Boolean)})),
        editableText:parsed.pages.map(p=>"# Page "+p.page+"\n"+p.text).join("\n\n"),
        partial:parsed.truncated||parsed.scannedPages.length>0};
@@ -122,7 +125,11 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
   xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation"};
  async function buildRevision(kind:Format):Promise<Uint8Array>{
   let bytes:Uint8Array;
-  if(kind==="pdf"){
+  if(kind==="pdf"&&mode==="pages"&&loaded){
+   const {pdfPageOrder,revisePdfPages}=await import("@/lib/ai/pdf-page-edit");
+   const count=pageOrder.trim().split(/[,،\s]+/).filter(Boolean).length;
+   bytes=await revisePdfPages(new Uint8Array(await loaded.arrayBuffer()),{order:pdfPageOrder(pageOrder,count),rotatePage,rotation:rotation as 0|90|180|270});
+  }else if(kind==="pdf"){
    const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text:draft,title:activeName.replace(/\.(pdf|docx|xlsx|pptx)$/i,"").slice(0,120),style,font})});
    if(!response.ok)throw Error("PDF generation unavailable ("+response.status+")");
    bytes=new Uint8Array(await response.arrayBuffer());
@@ -178,9 +185,16 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
      .upload(path,new Blob([Uint8Array.from(bytes)],{type:mime[outputFormat]}),{contentType:mime[outputFormat],upsert:false});
    if(upload.error)throw upload.error;uploaded=true;
    if(operation.current!==ticket)throw Error("Operation cancelled");
+   let revisionText=draft;
+   if(mode==="pages"){
+    const {extractPdfDocument}=await import("@/lib/ai/pdf-ingest");
+    const parsed=await extractPdfDocument(new File([Uint8Array.from(bytes)],filename,{type:"application/pdf"}));
+    revisionText=parsed.pages.map(p=>"# Page "+p.page+"\n"+p.text).join("\n\n");
+    if(operation.current!==ticket)throw Error("Operation cancelled");
+   }
    const row=await supabase.from("ai_artifacts").insert({
     id,user_id:owner,filename,mime_type:mime[outputFormat],
-    storage_path:path,byte_size:bytes.byteLength,source_content:storedDocumentSource(draft,{style,font}),
+    storage_path:path,byte_size:bytes.byteLength,source_content:storedDocumentSource(revisionText,{style,font}),
     ...(file?{parent_artifact_id:file.id}:localSource?.documentId?{source_document_id:localSource.documentId}:{})
    }).select("id,version").single();
    if(row.error||row.data?.id!==id)throw row.error??Error("File metadata could not be saved");
@@ -219,7 +233,18 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     <button type="button" aria-pressed={mode==="preview"} onClick={()=>setMode("preview")}>{t("معاينة حقيقية","Real preview")}</button>
     <button type="button" aria-pressed={mode==="edit"} onClick={()=>setMode("edit")}>{t("تعديل نسخة","Edit a revision")}</button>
     <button type="button" aria-pressed={mode==="compare"} onClick={()=>setMode("compare")}>{t("مقارنة النسختين","Compare versions")}</button>
+    {(activeFormat==="docx"||activeFormat==="pptx"||activeFormat==="xlsx")&&<button type="button" aria-pressed={mode==="targeted"} onClick={()=>setMode("targeted")}>{t("تعديل محدد مع حفظ التنسيق","Targeted edit preserving format")}</button>}
+    {activeFormat==="pdf"&&<button type="button" aria-pressed={mode==="pages"} onClick={()=>{setMode("pages");setOutputFormat("pdf");}}>{t("ترتيب الصفحات وتدويرها","Reorder & rotate pages")}</button>}
    </div>}
+   {loaded&&mode==="targeted"&&(activeFormat==="docx"||activeFormat==="pptx"||activeFormat==="xlsx")&&<OfficeTextEditor source={loaded} format={activeFormat} name={activeName} owner={owner} parentId={file?.id} documentId={localSource?.documentId} onSaved={onRevisionSaved}/>}
+   {loaded&&mode==="pages"&&<section className="noata-creative-editor noata-office-editor" aria-label={t("تعديل صفحات PDF","Edit PDF pages")}>
+    <p>{t("غيّر ترتيب الصفحات أو دوّر صفحة مع الحفاظ على محتواها الأصلي. اكتب رقم كل صفحة مرة واحدة. هذه العملية لا تحذف معلومات ولا تخفيها.","Reorder pages or rotate a page while retaining its original content. Enter each page number exactly once. This operation does not delete or redact information.")}</p>
+    <label>{t("ترتيب الصفحات","Page order")}<input dir="ltr" maxLength={1200} value={pageOrder} onChange={e=>setPageOrder(e.target.value)} disabled={busy} placeholder="3, 1, 2"/></label>
+    <label>{t("رقم الصفحة الأصلية المراد تدويرها","Original page number to rotate")}<input type="number" min={1} value={rotatePage} onChange={e=>setRotatePage(Number(e.target.value))} disabled={busy}/></label>
+    <label>{t("تدوير إضافي","Additional rotation")}<select value={rotation} disabled={busy} onChange={e=>setRotation(Number(e.target.value))}>{[0,90,180,270].map(n=><option key={n} value={n}>{n}°</option>)}</select></label>
+    <p>{t("الملفات الموقّعة أو المشفّرة أو ذات النماذج والإجراءات التفاعلية لا تدعم هذه العملية.","Signed, encrypted, form-bearing or active-action PDFs are excluded from this operation.")}</p>
+    <div className="noata-creative-buttons"><button type="button" disabled={busy||!pageOrder.trim()} onClick={()=>void exportVersion("pdf")}>{t("تنزيل PDF المعدّل","Download edited PDF")}</button><button type="button" disabled={busy||!owner||!pageOrder.trim()} onClick={()=>void saveRevision()}>{t("حفظ نسخة PDF","Save PDF revision")}</button></div>
+   </section>}
    {loaded&&inspection&&mode==="preview"&&<section className="noata-creative-preview" aria-label={t("محتويات الملف الأصلي","Original file contents")}>
     <div className="noata-creative-pages"><button type="button" disabled={page<=1} onClick={()=>setPage(x=>x-1)}>{t("السابق","Previous")}</button>
      <span>{page} / {isPdf?pageCount:inspection.pages.length}</span>
@@ -236,7 +261,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     <textarea aria-label={t("محتوى النسخة القابلة للتعديل","Editable revision content")} dir="auto" value={draft} onChange={e=>setDraft(e.target.value)}/>
    </div>}
    {loaded&&inspection&&mode==="compare"&&<div className="noata-revision-compare"><section><h4>{t("المحتوى الأصلي","Original content")}</h4><pre dir="auto">{originalText}</pre></section><section><h4>{t("التعديل المقترح","Proposed revision")}</h4><pre dir="auto">{draft}</pre></section></div>}
-   {loaded&&inspection&&<div className="noata-creative-actions">
+   {loaded&&inspection&&mode!=="targeted"&&mode!=="pages"&&<div className="noata-creative-actions">
     {sections.length>0&&<label className="noata-creative-instruction">{t("نطاق التعديل بالذكاء الاصطناعي","AI revision scope")}<select value={sectionStart} onChange={e=>setSectionStart(e.target.value)}><option value="whole">{t("المستند كاملًا","Entire document")}</option>{sections.map(s=><option key={s.start} value={s.start} disabled={s.end-s.start>14000}>{s.label}{s.end-s.start>14000?" · "+t("اختر قسمًا فرعيًا","Choose a subsection"):""}</option>)}</select></label>}
     {sectionStart!=="whole"&&<p>{t("سنعدّل القسم المحدد ونجمعه مع بقية المصدر في نسخة كاملة جديدة.","The selected section will be revised and reassembled with the surrounding source into a complete new version.")}</p>}
     {<label className="noata-creative-instruction">{t("اطلب تحسينًا من Noata AI","Ask Noata AI to improve this file")}

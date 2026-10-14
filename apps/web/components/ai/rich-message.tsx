@@ -15,6 +15,7 @@ import {splitPresentationBlocks} from "@/lib/ai/presentation-blocks";
 import {QuranPassage} from "./quran-passage";
 import {interactiveResponseSegments} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
+import {citationDestination} from "../../../../supabase/functions/noata-ai/citations.ts";
 import {ResponseComponent} from "./response-components";
 export const RichMessage=memo(function RichMessage({ content, research, streaming=false, poetryHint=false }: { content: string;research?:unknown;streaming?:boolean;poetryHint?:boolean }) {
  const t=useTranslation(),locale=useLocale();
@@ -33,8 +34,8 @@ export const RichMessage=memo(function RichMessage({ content, research, streamin
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: false }]]}
         components={{
-          a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer">
+          a: ({ href, children }) => evidence&&!citationDestination(href,evidence)?<span>{children}</span>:(
+            <a href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
               {children}
             </a>
           ),

@@ -11,3 +11,14 @@
 | FANAR_BASE_URL | Edge runtime, if configured | Provider endpoint; inspect server constant for fallback |
 
 Never commit .env.local, access/refresh tokens, Vercel protection tokens, service-role or Fanar keys. Public Supabase keys are not privileged server keys. No existing production secret was printed or changed during the rebuild. Auth callback URLs must explicitly include the accepted preview origin before signup/recovery QA.
+
+## Genesis research configuration (Edge Function secrets, not browser variables)
+
+| Variable | Purpose |
+| --- | --- |
+| BRAVE_SEARCH_API_KEY | Existing authorized Brave LLM Context credential; never expose to web clients |
+| NOATA_SEARCH_ENABLED | Must equal `true` to enable live research; false/missing performs no Brave request |
+| NOATA_SEARCH_PROVIDER | Optional, default `brave`; unsupported values fail closed |
+| NOATA_RESEARCH_MAX_QUERIES | Optional, default `1`, bounded to `1..3`; multiple queries require a deep-research request and each claims the existing quota |
+
+Configuration presence is not provider-health, entitlement, freshness or citation-quality acceptance. Do not activate a billed plan implicitly. Official/current requests cannot silently fall back to encyclopedia background.

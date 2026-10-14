@@ -43,6 +43,7 @@ export function ResearchSources({research}:{research:unknown}){
    no_sources:t("لم تُرجع الخدمة مقتطفات مصادر يمكن التحقق منها.","No verifiable source excerpts were returned."),
    provider_unavailable:t("تعذّر الوصول إلى خدمة البحث أو رفضت الطلب.","The search provider could not be reached or rejected the request."),
    quota_or_service:t("تعذّر البحث بسبب الحصة أو إتاحة الخدمة.","Search could not run because of quota or service availability.")
+   ,official_sources_not_found:t("لم تُرجع الخدمة أدلة من نطاق المصدر المطلوب.","The provider returned no evidence from the requested source domain.")
   };
   return <details className={`noata-research-trace ${researchStyles.panel}`}>
    <summary className="noata-research-summary"><span className="noata-research-indicator" aria-hidden="true"><Icon name="search" size={20}/></span><span>{t("البحث غير متاح","Research unavailable")}</span><span className="noata-research-chevron"><Icon name="chevron" size={16}/></span></summary>
@@ -68,6 +69,8 @@ export function ResearchSources({research}:{research:unknown}){
   </summary>
   <div className="noata-research-detail">
    {data.query&&<div className="noata-research-query"><strong>{t("عبارة البحث","Search query")}</strong><p dir="auto">{data.query}</p></div>}
+   {data.queries&&data.queries.length>1&&<div className="noata-research-query"><strong>{t("عمليات البحث المنفّذة","Executed searches")}</strong><ol>{data.queries.map((q,i)=><li key={i}><bdi>{q.query}</bdi> · {q.status==="complete"?t("تم الاسترجاع","Retrieved"):t("تعذّر الاسترجاع","Failed")}</li>)}</ol></div>}
+   {data.partial&&<p role="status">{t("تعذّر استكمال بعض عمليات البحث. هذه أدلة جزئية.","Some follow-up searches failed. This evidence is partial.")}</p>}
    {data.activity&&data.activity.length>0&&<ol className="noata-research-activity" aria-label={t("مراحل البحث المسجلة","Recorded research stages")}>
     {data.activity.map((item,i)=><li key={item.stage+":"+i} style={{animationDelay:`${Math.min(i,4)*35}ms`}}>
      <span className="noata-research-stage-icon" aria-hidden="true"><Icon name={item.stage==="searching"?"search":item.stage==="reviewing"?"book":item.stage==="complete"?"check":"help"} size={15}/></span><span>{labels[item.stage]??item.stage}</span>

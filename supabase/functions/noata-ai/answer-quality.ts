@@ -1,6 +1,7 @@
 import {graphRequested,hasActualGraph} from "./graph-delivery.ts";
 import {RESPONSE_UI_POLICY} from "./response-ui.ts";
 import type {Research} from "./research.ts";
+import {hasUnretrievedCitation} from "./citations.ts";
 export type AnswerReviewReason="research_evidence"|"requested_depth"|"requested_chart";
 export function requestedDepth(request:string,format?:unknown):{minimum:number;target:number;sections:number}|null{
  const human=request.split(/Verified extracted original document content:|المحتوى الأصلي للملف:|مصادر الملفات المرفقة/)[0].normalize("NFKC").replace(/[٠-٩۰-۹]/g,c=>String(c.charCodeAt(0)-(c>="۰"?"۰":"٠").charCodeAt(0)));
@@ -19,7 +20,7 @@ export function answerReviewIssue(request:string,text:string,research?:Research,
   const refusal=/capabilities.{0,60}(?:don't|do not|cannot|not include)|cannot.{0,35}(?:search|browse)|can't.{0,35}(?:search|browse)|لا (?:أستطيع|استطيع).{0,35}(?:البحث|التصفح)/i.test(text);
   const certaintyText=text.replace(/\b(?:not|never)\s+(?:all|every|everything|the entire)|لا يمكن (?:تأكيد|التحقق من) (?:كل|جميع)/gi,"bounded uncertainty");
   const blanket=/\b(?:all|every|entire|everything).{0,50}(?:verified|confirmed|accurate|correct)|(?:كل|جميع).{0,45}(?:صحيح|موثق|مؤكد)/i.test(certaintyText);
-  if(refusal||blanket||!ids.length||ids.some(id=>!known.has(id)))return "research_evidence";
+  if(refusal||blanket||!ids.length||ids.some(id=>!known.has(id))||hasUnretrievedCitation(text,research))return "research_evidence";
  }
  const depth=requestedDepth(request,format);
  if(depth){

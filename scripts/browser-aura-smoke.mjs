@@ -377,6 +377,31 @@ async function verifyDocuments(){
     }
     invariant(await evaluate('!!document.querySelector(".noata-download-original")'),"Unmodified original file has an explicit download action: "+name);
     await screenshot("artifacts/noata-browser/document-"+name.replaceAll(".","-")+".png");
+    if(name==="arabic-longform.docx"){
+      await evaluate('Array.from(document.querySelectorAll(".noata-creative-tabs button")).find(b=>b.textContent.includes("تعديل محدد")).click()');
+      await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-office-editor select option").length>2'),"original-package paragraphs loaded");
+      invariant(await evaluate('document.querySelector(".noata-office-editor textarea[readonly]")?.value.includes("تجربة تعلّم")'),"Targeted editor reads the real DOCX paragraph");
+      await evaluate(`(()=>{const el=document.querySelector('.noata-office-editor textarea:not([readonly])');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'عنوان مُعدّل · Revised heading');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+      await waitFor(async()=>await evaluate('!document.querySelector(".noata-office-editor button").disabled'),"targeted revision download enabled");
+      // Capture the actual Blob handed to the download, rather than accepting a success label.
+      await evaluate(`(()=>{const create=URL.createObjectURL;window.__officeDownload=null;URL.createObjectURL=function(blob){window.__officeDownload=blob;return create.call(this,blob);};})()`);
+      await evaluate('document.querySelector(".noata-office-editor button").click()');
+      await waitFor(async()=>await evaluate('window.__officeDownload instanceof Blob'),"real targeted DOCX download bytes");
+      const downloaded=await evaluate('(async()=>({size:window.__officeDownload.size,bytes:Array.from(new Uint8Array(await window.__officeDownload.arrayBuffer()))}))()');
+      invariant(downloaded.size>500,"Targeted revision is a real nonempty Office package");
+      await writeFile("artifacts/noata-browser/targeted-docx.docx",new Uint8Array(downloaded.bytes));
+      const {officeTextTargets}=await import("../apps/web/lib/ai/office-preservation.ts");
+      const reopened=await officeTextTargets(new Uint8Array(downloaded.bytes),"docx");
+      invariant(reopened.some(p=>p.text==="عنوان مُعدّل · Revised heading"),"Downloaded DOCX reopens with the exact replacement");
+      invariant(reopened.some(p=>p.text.includes("English reference 38")),"Untouched final DOCX section is retained");
+      invariant(await evaluate('document.querySelector(".noata-office-editor button:last-child").disabled'),"Guest cannot save an owner-scoped revision");
+      for(const width of [1440,390,320]){
+       await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
+       invariant(await evaluate('document.documentElement.scrollWidth-innerWidth<=3&&document.querySelector(".noata-office-editor select").getBoundingClientRect().width<=innerWidth'),"Targeted editor fits viewport "+width);
+       await screenshot("artifacts/noata-browser/targeted-office-"+width+".png");
+      }
+      await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+    }
     await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});
     await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"document modal Escape");
     invariant(true,"Document preview keyboard close");
