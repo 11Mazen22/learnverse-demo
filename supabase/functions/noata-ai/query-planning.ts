@@ -13,6 +13,12 @@ export function researchPlanningInput(request:string,messages:readonly QueryMess
  if(refersToConversation(request)&&!users.length&&!summary)return null;
  return {request:request.slice(0,700),previousRequests:users,previousAnswer:summary};
 }
+/** Remove delivery/retrieval instructions from an already identified public subject. */
+export function conciseResearchSubject(text:string):string{
+ return text.replace(/\s+(?:using|with|based on)\s+(?:(?:retrieved|background|web|official|reliable|authoritative|credible|scientific|trusted|live)\s+)*(?:sources?|references?|evidence|citations)\b.*$/i,"")
+  .replace(/\s+(?:باستخدام|مع|من)\s+(?:(?:مصادر|مراجع|أدلة)\s+)(?:مسترجعة|موثوقة|رسمية|علمية|عامة).*$/u,"").trim();
+}
+
 export function plannedResearchQuery(raw:unknown,base:SearchPlan):SearchPlan|null{
  if(typeof raw!=="string")return null;
  const source=raw.trim().replace(/^```(?:json)?\s*|\s*```$/g,"");
@@ -20,7 +26,7 @@ export function plannedResearchQuery(raw:unknown,base:SearchPlan):SearchPlan|nul
  if(!value||typeof value!=="object"||Array.isArray(value))return null;
  const x=value as Record<string,unknown>;
  if(Object.keys(x).some(k=>!["query","needsClarification"].includes(k))||x.needsClarification!==false||typeof x.query!=="string")return null;
- const query=x.query.normalize("NFKC").trim().replace(/\s+/g," ");
+ const query=conciseResearchSubject(x.query.normalize("NFKC").trim().replace(/\s+/g," "));
  if(query.length<3||query.length>180||query.split(" ").length>24||privateText(query)||/https?:|[<>{}]/.test(query))return null;
  if(refersToConversation(query)||/\b(can you|could you|please|be sure|corrected data)\b/i.test(query))return null;
  return {...base,query};
@@ -35,7 +41,7 @@ export function explicitResearchQuery(request:string,base:SearchPlan):SearchPlan
   .replace(/^(?:ابحث|دور|بحث)\s+(?:عن|على|في)?\s*/,"")
   .replace(/^(?:wikipedia\s+)?(?:background\s+)?sources\s+(?:on|about|for)\s+/i,"");
  if(query===first&&base.reason!=="freshness")return null;
- query=query.replace(/\s+(?:with|include)\s+(?:sources|citations|references).*$/i,"").trim().replace(/[,;:.!?؟]+$/u,"").trim();
+ query=conciseResearchSubject(query).replace(/\s+(?:with|include)\s+(?:sources|citations|references).*$/i,"").trim().replace(/[,;:.!?؟]+$/u,"").trim();
  if(query.length<3||query.length>180||query.split(/\s+/).length>24||refersToConversation(query)||privateText(query)||/https?:|[<>{}]|\b(?:pdf|pptx|xlsx|docx|create|generate|make|please)\b/i.test(query))return null;
  return {...base,query};
 }

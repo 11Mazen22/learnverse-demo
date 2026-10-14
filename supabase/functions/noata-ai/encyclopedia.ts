@@ -2,6 +2,7 @@
  * Uses one fixed Wikimedia REST endpoint, no user-supplied URLs, no credentials.
  * All snippets are untrusted context and must be cited with their source URLs.
  */
+import {conciseResearchSubject} from "./query-planning.ts";
 import type {SearchPlan,Research,ResearchSource,ResearchActivity} from "./research.ts";
 const API="https://en.wikipedia.org/w/rest.php/v1/search/page";
 const AR_API="https://ar.wikipedia.org/w/rest.php/v1/search/page";
@@ -12,7 +13,7 @@ function excerptText(raw:unknown,max=650){
   .replace(/[\x00-\x1f\x7f]/g," ").replace(/\s+/g," ").trim().slice(0,max);
 }
 export function backgroundQuery(plan:SearchPlan):string{
- return plan.query.replace(/^(?:(?:ok(?:ay)?|please)\s+)?(?:search|browse|research|find sources|look up|verify sources)\s+(?:the\s+web\s+)?(?:for\s+)?/i,"")
+ return conciseResearchSubject(plan.query).replace(/^(?:(?:ok(?:ay)?|please)\s+)?(?:search|browse|research|find sources|look up|verify sources)\s+(?:the\s+web\s+)?(?:for\s+)?/i,"")
    .replace(/^(?:ابحث|دور|بحث)\s+(?:عن|على|في)?\s*/,"").trim().slice(0,180);
 }
 export function encyclopediaSources(data:unknown,lang:"ar"|"en",now=new Date().toISOString()):ResearchSource[]{
@@ -37,6 +38,18 @@ export function encyclopediaSources(data:unknown,lang:"ar"|"en",now=new Date().t
  }
  return result;
 }
+/** A returned page must discuss the actual search subject, not just retrieval wording. */
+export function relevantBackgroundSource(query:string,source:Pick<ResearchSource,"title"|"excerpt">):boolean{
+ const normalize=(text:string)=>text.normalize("NFKC").toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,"").replace(/[أإآ]/g,"ا");
+ const ignored=new Set(["the","and","for","with","using","from","about","into","that","this","sources","source","research","background","retrieved","evidence","references","على","من","في","عن","مع","مصادر","مراجع","ابحث","بحث"]);
+ const tokens=(text:string)=>(normalize(text).match(/[\p{L}\p{N}]+/gu)??[]).filter(w=>w.length>=3&&!ignored.has(w)).map(w=>w.startsWith("ال")?w.slice(2):w);
+ const terms=[...new Set(tokens(conciseResearchSubject(query)))];
+ if(!terms.length)return false;
+ const actual=new Set(tokens(source.title+" "+source.excerpt));
+ const matched=terms.filter(term=>actual.has(term)).length;
+ return matched>=Math.min(3,Math.max(1,Math.ceil(terms.length*0.35)));
+}
+
 export async function searchEncyclopedia(plan:SearchPlan,opts:{
  signal:AbortSignal;fetcher?:typeof fetch;onStatus?:(status:"searching"|"reviewing")=>void
 }):Promise<Research>{
@@ -94,6 +107,7 @@ export async function searchEncyclopedia(plan:SearchPlan,opts:{
    }catch{opts.signal.throwIfAborted();/* Preserve the actual search excerpt if a lead cannot be read. */}
   }));
 
-  return sources.length?result("complete","encyclopedia_background",sources):result("failed","no_encyclopedia_sources");
+  const relevant=sources.filter(source=>relevantBackgroundSource(q,source)).map((source,index)=>({...source,id:index+1}));
+  return relevant.length?result("complete","encyclopedia_background",relevant):result("failed","no_relevant_encyclopedia_sources");
  }catch{opts.signal.throwIfAborted();return result("failed","encyclopedia_provider_unavailable");}
 }

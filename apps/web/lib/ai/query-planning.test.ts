@@ -53,3 +53,9 @@ test("Repeating a failed contextual verification keeps the named subject without
  const privatePrevious=researchPlanningInput("Search all this",[{role:"user",content:"Search for my patient records"},{role:"user",content:"Search all this"}]);
  assert.equal(contextualResearchQuery(privatePrevious,searchPlan("Search all this")),null);
 });
+
+test("Research instructions are removed while the actual public topic is retained",()=>{
+ const request="Research photosynthesis using retrieved background sources, then create both a PDF and an editable Word document.";
+ const result=explicitResearchQuery(request,searchPlan(request));assert.equal(result?.query,"photosynthesis");
+ const planned=plannedResearchQuery('{"query":"photosynthesis using reliable sources","needsClarification":false}',searchPlan(request));assert.equal(planned?.query,"photosynthesis");
+});

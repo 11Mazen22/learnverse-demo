@@ -2,6 +2,8 @@
 export function isNonDeliverableDraft(content:string):boolean{
  const t=content.trim();
  if(!t)return true;
+ // Retrieved excerpt summaries are incomplete evidence, not the requested report.
+ if(/^## (?:Retrieved evidence|الأدلة المسترجعة)\s/.test(t)&&/(?:This summarizes the retrieved excerpts|هذه خلاصة المقاطع المسترجعة)/.test(t))return true;
  const start=t.slice(0,2500),last=t.slice(-1100);
  // A live failure created a PDF from "I need more specific details ... could you
  // please tell me". Conversation clarification is not finished source content.

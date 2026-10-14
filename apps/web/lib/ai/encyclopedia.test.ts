@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {searchEncyclopedia,backgroundQuery,encyclopediaSources} from "../../../../supabase/functions/noata-ai/encyclopedia.ts";
+import {searchEncyclopedia,backgroundQuery,encyclopediaSources,relevantBackgroundSource} from "../../../../supabase/functions/noata-ai/encyclopedia.ts";
 import {searchPlan} from "../../../../supabase/functions/noata-ai/research.ts";
 test("Background search uses the official fixed Wikipedia REST API and real citations",async()=>{
  const stages:string[]=[];
@@ -38,4 +38,16 @@ test("Unrelated disambiguation results and changed canonical pages do not contam
   return Response.json(pages);
  }});
  assert.equal(r.sources[0].excerpt,"Verified search snippet");
+});
+
+test("The observed report wording cannot turn photosynthesis into unrelated chemical-element evidence",async()=>{
+ assert.equal(backgroundQuery({...searchPlan("research photosynthesis"),query:"photosynthesis using retrieved background sources"}),"photosynthesis");
+ assert.equal(relevantBackgroundSource("photosynthesis",{title:"Sulfur",excerpt:"A chemical element with atomic number 16."}),false);
+ assert.equal(relevantBackgroundSource("photosynthesis",{title:"Chlorophyll",excerpt:"A pigment used in photosynthesis."}),true);
+ assert.equal(relevantBackgroundSource("البناء الضوئي",{title:"الكلوروفيل",excerpt:"صبغة ضرورية للبناء الضوئي."}),true);
+ const result=await searchEncyclopedia(searchPlan("research photosynthesis"),{signal:new AbortController().signal,fetcher:async(url)=>{
+  if(String(url).includes("/summary/"))return Response.json({});
+  return Response.json({pages:[{key:"Sulfur",title:"Sulfur",excerpt:"A chemical element"},{key:"Lead",title:"Lead",excerpt:"A dense metal"}]});
+ }});
+ assert.equal(result.status,"failed");assert.equal(result.sources.length,0);assert.equal(result.reason,"no_relevant_encyclopedia_sources");
 });
