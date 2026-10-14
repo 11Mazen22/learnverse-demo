@@ -62,3 +62,32 @@
 }
 html[data-reduced-motion="true"] .noata-global-tooltip,
 html[data-noata-motion="off"] .noata-global-tooltip{animation:none!important}
+
+/* Tooltip refinement: a restrained neutral caption, not a full-size action card. */
+.noata-global-tooltip{
+ max-width:min(210px,calc(100vw - 24px));
+ padding:6px 10px;
+ border-radius:9px;
+ background:var(--surface);
+ color:var(--ink);
+ border:1px solid var(--line);
+ box-shadow:0 7px 22px color-mix(in srgb,var(--ink) 11%,transparent),0 2px 5px color-mix(in srgb,var(--ink) 3%,transparent);
+ font-family:inherit;
+ font-size:11px;
+ font-weight:650;
+ line-height:1.5;
+ letter-spacing:0;
+ text-align:center;
+ z-index:2147483000;
+}
+.noata-global-tooltip[data-ready="false"]{visibility:hidden;opacity:0;animation:none}
+.noata-global-tooltip::after{background:var(--surface);border:1px solid var(--line)}
+.noata-global-tooltip[data-side="left"]::after{border-left:0;border-bottom:0}
+.noata-global-tooltip[data-side="right"]::after{border-right:0;border-top:0}
+.noata-global-tooltip[data-side="top"]::after{border-top:0;border-left:0}
+.noata-global-tooltip[data-side="bottom"]::after{border-bottom:0;border-right:0}
+@keyframes noata-caption-enter{
+ from{opacity:0;transform:translateY(2px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@media(hover:none) and (pointer:coarse){.noata-global-tooltip{display:none}}
