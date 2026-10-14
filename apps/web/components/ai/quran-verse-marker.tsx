@@ -4,10 +4,10 @@ import { toArabicIndicVerseNumber } from "@/lib/quran/verse-number";
  * Small, scalable geometric verse seal. Ornament is decorative; the number
  * has a single accessible name and never alters the authenticated ayah text.
  */
-export function QuranVerseMarker({ number, label }: { number: number; label: string }) {
+export function QuranVerseMarker({ number, label, decorative = false }: { number: number; label: string; decorative?: boolean }) {
   const easternDigits = toArabicIndicVerseNumber(number);
   return (
-    <span className="noata-quran-verse-number" role="img" aria-label={label + " " + easternDigits} dir="rtl">
+    <span className="noata-quran-verse-number" role={decorative ? undefined : "img"} aria-hidden={decorative ? true : undefined} aria-label={decorative ? undefined : label + " " + easternDigits} dir="rtl">
       <svg
         className="noata-quran-verse-seal"
         viewBox="0 0 56 56"
