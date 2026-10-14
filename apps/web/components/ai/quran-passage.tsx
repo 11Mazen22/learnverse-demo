@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { Icon } from "@/components/ui/icon";
+import { QuranVerseMarker } from "./quran-verse-marker";
 
 type Verse = { number: number; text: string };
 type State = { status: "loading" } | { status: "error" } | { status: "ready"; name: string; verses: Verse[] };
@@ -36,7 +37,7 @@ export function QuranPassage({ surah, start, end }: { surah: number; start: numb
     </figcaption>
     {state.status === "loading" ? <div className="noata-quran-loading" role="status">{t("بنحمّل النص المعتمد من المصحف…","Loading the verified Uthmani text…")}</div> :
       state.status === "error" ? <p className="noata-quran-error" role="alert">{t("تعذّر التحقق من النص الآن، لذلك لن نعرض آيات غير موثّقة. افتح المصحف وحاول مرة أخرى.","The source could not be verified. Unverified verses will not be displayed. Open the Mushaf and try again.")}</p> :
-      <div className="noata-quran-text">{state.verses.map(verse => <span key={verse.number} className="noata-quran-verse">{verse.text}<span className="noata-quran-verse-number" aria-label={t("الآية","Verse") + " " + digits(verse.number)}> ۞{digits(verse.number)} </span></span>)}</div>}
+      <div className="noata-quran-text" data-testid="noata-verified-quran-text">{state.verses.map(verse => <span key={verse.number} className="noata-quran-verse">{verse.text}{"\u2060"}<QuranVerseMarker number={verse.number} label={t("الآية","Verse")}/>{" "}</span>)}</div>}
     <div className="noata-quran-source">{t("النص: المصحف العثماني · المصدر: AlQuran Cloud","Uthmani text · Source: AlQuran Cloud")}</div>
   </figure>;
 }
