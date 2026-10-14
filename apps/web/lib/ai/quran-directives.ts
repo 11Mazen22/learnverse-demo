@@ -32,3 +32,20 @@ export function splitQuranDirectives(content: string): QuranSegment[] {
   if (last < content.length) parts.push({ kind: "text", text: content.slice(last) });
   return parts.length ? parts : [{ kind: "text", text: content }];
 }
+
+/** Only explicit quote/display commands qualify for deterministic Quran retrieval;
+ * explanations and broader religious questions stay in the conversation model. */
+export function directQuranQuoteRequest(text: string): { surahName: string; start: number; end: number } | null {
+  if (text.length > 180) return null;
+  const message = text.trim().replace(/[\u064b-\u065f]/g,"").replace(/[؟?!.]+$/,"").trim();
+  const ar = message.match(/^(?:من فضلك\s+)?(?:اكتب|اعرض|هات|وريني|اظهر)\s+(?:لي\s+)?(?:ال)?(?:أول|اول)\s+([0-9\u0660-\u0669\u06f0-\u06f9]+|خمس|خمسة|ثلاث|ثلاثة|عشر|عشرة)\s+(?:[اآ]يات|[اآ]ية)\s+(?:من\s+)?سورة\s+(.+)$/u);
+  const en = message.match(/^(?:show|write|display|give me)\s+(?:the\s+)?first\s+(\d+)\s+(?:verses|ayahs)\s+(?:of|from)\s+(?:surah|surat)\s+(.+)$/i);
+  const m = ar ?? en;
+  if (!m) return null;
+  const words:Record<string,number>={خمس:5,خمسة:5,ثلاث:3,ثلاثة:3,عشر:10,عشرة:10};
+  const raw = m[1].replace(/[\u0660-\u0669]/g,ch=>String(ch.charCodeAt(0)-0x0660))
+    .replace(/[\u06f0-\u06f9]/g,ch=>String(ch.charCodeAt(0)-0x06f0));
+  const end=words[raw]??Number(raw),surahName=m[2].trim();
+  if (!Number.isInteger(end)||end<1||end>20||!surahName||surahName.length>65) return null;
+  return {surahName,start:1,end};
+}
