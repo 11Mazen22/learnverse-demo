@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - noata-tooltip-polish-20261014
+      - fix-noata-tooltip-intent-20261014
       - noata-aura-platform-overhaul-20261008
 
 permissions:
