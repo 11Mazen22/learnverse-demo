@@ -6,6 +6,7 @@ on:
       - noata-mushaf-reading-renaissance-20261014
       - noata-mushaf-emblem-typography-20261014
       - noata-mushaf-emblem-20261014
+      - noata-mushaf-emblem-grid-20261014
       - noata-aura-platform-overhaul-20261008
   pull_request:
     branches:
