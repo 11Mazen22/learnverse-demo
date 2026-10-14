@@ -120,7 +120,9 @@ export function TooltipHost(){
       if(!element||element===blocked.current||current.current?.element===element)return;
       // Movement, not synthetic pointerover, is the evidence of hover.
       const label=getCaption(element,titleBackup.current?.element===element?titleBackup.current.value:null);
-      if(!label)return;
+      // A descriptive, already-labelled button needs no extra caption and
+      // no duplicate native title balloon either.
+      if(!label){if(element.hasAttribute("title"))stripTitle(element);return;}
       stripTitle(element);
       if(timer.current===null)timer.current=setTimeout(()=>{
         timer.current=null;
