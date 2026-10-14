@@ -654,6 +654,7 @@ export function useAIWorkspace() {
           if(event.status==="reviewing")setNotice(t("بنراجع المقاطع المسترجعة…","Reviewing retrieved excerpts…"));
           if(event.status==="preparing")setNotice(research?.status==="complete"?t("بنجهّز الرد من المصادر…","Preparing an answer from the sources…"):t("البحث المباشر غير متاح؛ المعلومات الحالية لم يتم التحقق منها.","Live research is unavailable; current information has not been verified."));
           if (typeof event.content === "string") {
+            if (!content && event.content) setNotice("");
             if (event.content.length > 500000)
               throw Error("Response too large");
             content = event.content;
