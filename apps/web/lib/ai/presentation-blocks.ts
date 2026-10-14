@@ -10,7 +10,7 @@ export function isPoetryRequest(text:string):boolean {
   if(text.length>5000)return false;
   const ar=/(?:اكتب|الف|ألّف|انشئ|أنشئ|نظم|صغ|اعمل|أريد|عاوز|اريد|عَايز)[\s\S]{0,100}(?:قصيده|قصيدة|شعر|أبيات|ابيات)/u;
   const en=/(?:write|compose|create|make|give me)[\s\S]{0,100}(?:poem|poetry|verses)\b/i;
-  return ar.test(text)||en.test(text);
+  return ar.test(text)||en.test(text)||/^\s*(?:قصيدة|شعر|أبيات|ابيات)(?:\s|$)/u.test(text)||/^\s*(?:a\s+)?poem\b/i.test(text);
 }
 export function splitPresentationBlocks(text:string, preferPoem=false):PresentationSegment[] {
   const items:PresentationSegment[]=[];
@@ -41,7 +41,7 @@ export function splitPresentationBlocks(text:string, preferPoem=false):Presentat
     const lines=text.split("\n").filter(line=>line.trim());
     const isVerse=lines.length>=3&&lines.length<=90
       &&lines.every(line=>line.length<=110&&!/^\s*(?:#{1,6}\s|[-*]\s|\d+[.)]\s|[|>]|\x60{3}|~{3}|:::)/.test(line))
-      &&lines.filter(line=>/[.!؟،,؛]$/.test(line.trim())).length<lines.length;
+      ;
     if(isVerse)return [{type:"poem",text:text.trim()}];
   }
   return items.length?items:[{type:"markdown",text}];
