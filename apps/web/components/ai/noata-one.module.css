@@ -19,9 +19,7 @@
 .root :global(.owui-rail .owui-icon){color:var(--muted);transition:background-color var(--one-fast),color var(--one-fast),transform var(--one-fast)}
 .root :global(.owui-rail .owui-icon:hover){color:var(--ink);background:var(--surface);transform:translateY(-2px)}
 .root :global(.owui-rail .owui-icon:active){transform:translateY(0)}
-.root :global(.owui-rail [data-tooltip]){position:relative}
-.root :global(.owui-rail [data-tooltip]::after){content:attr(data-tooltip);position:absolute;z-index:40;inset-inline-start:calc(100% + 12px);top:50%;transform:translateY(-50%) translateX(-4px);opacity:0;pointer-events:none;white-space:nowrap;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);box-shadow:0 8px 24px color-mix(in srgb,var(--ink) 10%,transparent);font-size:11px;font-weight:600;transition:opacity var(--one-menu),transform var(--one-menu)}
-.root :global(.owui-rail [data-tooltip]:is(:hover,:focus-visible)::after){opacity:1;transform:translateY(-50%) translateX(0)}
+/* Shared TooltipHost replaces clipped rail-only pseudo-element captions. */
 .root :global(.owui-rail .owui-rail-toggle){color:var(--ink);background:var(--surface);border:1px solid var(--line)}
 .root :global(.owui-rail .owui-rail-primary){color:var(--accent);background:var(--accent-soft)}
 .root :global(.owui-rail-divider){display:block;width:22px;height:1px;background:var(--line);margin:4px 0 2px}
