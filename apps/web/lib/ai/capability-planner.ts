@@ -12,11 +12,11 @@ export type NoataPlan=
  |{kind:"research";provider:"brave";query:string};
 export function planNoataRequest(text:string,opts:{mode:"send"|"retry"|"regenerate"|"continue";temporary:boolean;hasUploads:boolean;explicitTool?:string}):NoataPlan {
  if(opts.mode!=="send"||opts.explicitTool||!text.trim())return{kind:"chat"};
- if(!opts.hasUploads&&!opts.temporary){
+ if(!opts.temporary){
   const intent=detectArtifactIntent(text);
   if(intent)return{kind:"artifact",intent};
   // Never reinterpret the quoted content of a file as an image tool command.
-  if(imageGenerationIntent(text)==="image")
+  if(!opts.hasUploads&&imageGenerationIntent(text)==="image")
     return{kind:"image",provider:"fanar"};
  }
  // Research remains on the authenticated Edge route. A configured provider

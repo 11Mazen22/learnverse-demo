@@ -857,7 +857,7 @@ export function useAIWorkspace() {
       const contextualFile=mode==="send"&&!tool&&!temporary
         ?confirmedFileIntent(text,priorUserRequests):null;
       let requestedFile=plannedCapability.kind==="artifact"?plannedCapability.intent:contextualFile;
-      let requestedFiles:ArtifactIntent[]=mode==="send"&&!tool&&!temporary&&!attachment&&!documentFiles.length
+      let requestedFiles:ArtifactIntent[]=mode==="send"&&!tool&&!temporary
         ?detectArtifactIntents(text):requestedFile?[requestedFile]:[];
       requestedFile=requestedFiles[0]??requestedFile;
       let planQuestion="";
