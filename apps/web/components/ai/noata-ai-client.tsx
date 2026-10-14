@@ -331,16 +331,6 @@ export function NoataAIClient() {
             >
               <Icon name="menu" />
             </button>
-            {sidebarCollapsed && (
-              <button
-                type="button"
-                className="owui-icon desktop-sidebar-trigger"
-                onClick={() => setSidebarCollapsed(false)}
-                aria-label={t("فتح القائمة الجانبية","Open sidebar")}
-              >
-                <Icon name="sidebar" />
-              </button>
-            )}
 
             <div className="owui-model-picker" ref={modelPickerRef}>
               <button
