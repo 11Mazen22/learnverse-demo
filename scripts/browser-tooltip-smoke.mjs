@@ -64,8 +64,11 @@ async function run(){
  await navigate("/ai");
  await waitFor(()=>evaluate('document.documentElement.dir==="ltr"'),"English direction");
  await waitFor(()=>evaluate('!!document.querySelector(".noata-organized-sidebar")'),"English sidebar");
+ await waitFor(()=>evaluate('(()=>{const e=document.querySelector(".noata-organized-sidebar .owui-sidebar-top>button");return !!e&&Object.keys(e).some(k=>k.startsWith("__reactFiber$"))})()'),"English sidebar hydration");
+ await sleep(350);
  await evaluate('document.querySelector(".noata-organized-sidebar .owui-sidebar-top>button").click()');
- await waitFor(()=>evaluate('document.querySelector(".noata-compact-rail")?.getBoundingClientRect().width<=80'),"LTR rail");
+ await waitFor(()=>evaluate('!!document.querySelector(".noata-compact-rail")'),"LTR sidebar toggled",16000);
+ await waitFor(()=>evaluate('document.querySelector(".noata-compact-rail")?.getBoundingClientRect().width<=80'),"LTR rail transition",16000);
  await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Tab",bubbles:true}));document.querySelector(".noata-compact-rail .owui-rail-primary").focus()');
  await waitFor(()=>evaluate('document.querySelector("#noata-global-tooltip")?.textContent==="New chat"'),"English keyboard focus");
  assert(await evaluate('document.getElementById("noata-global-tooltip").dataset.side==="right"'),"LTR tooltip on content side");
