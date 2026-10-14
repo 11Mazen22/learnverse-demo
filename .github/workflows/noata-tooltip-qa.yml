@@ -1,0 +1,44 @@
+name: Noata Accessible Tooltip QA
+
+on:
+  push:
+    branches:
+      - noata-tooltip-polish-20261014
+      - noata-aura-platform-overhaul-20261008
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noata-tooltip-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tooltip:
+    name: Global tooltip interaction and browser QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://vpfpjvhafkmygetjkfcp.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_network_isolation_fixture_only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: node --test apps/web/lib/ui/tooltip-position.test.ts
+      - run: pnpm build
+      - run: node scripts/install-qa-chrome.mjs
+      - run: node scripts/browser-tooltip-smoke.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: noata-tooltip-browser-evidence
+          path: artifacts/noata-tooltip/
+          if-no-files-found: ignore
+          retention-days: 5
