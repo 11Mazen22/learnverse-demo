@@ -1,5 +1,7 @@
 "use client";
 import {normalizeModelChoice} from "@/lib/ai/model-routing";
+import {directQuranQuoteRequest} from "@/lib/ai/quran-directives";
+import {canonicalIndex,normalizedQuranLookup} from "@/lib/quran/source";
 import {mergeScopedRevision} from "@/lib/ai/scoped-revision";
 import {revisionMayLoseContent} from "@/lib/ai/revision-quality";
 import {
@@ -738,6 +740,8 @@ export function useAIWorkspace() {
     if (mode === "retry") tool = failedTool.current;
     else failedTool.current = tool;
     if (mode === "send" && !text) return;
+    const quranQuote = mode === "send" && !tool && !attachment && !documentFiles.length
+      ? directQuranQuoteRequest(text) : null;
     const token = sessionScope.current.capture();
     lock.current = true;
     setBusy(true);
@@ -758,7 +762,7 @@ export function useAIWorkspace() {
     let sourcesSaved = false;
     let metadataPlan:unknown;
     try {
-      await assertFanarConfigured(token, controller.signal);
+      if (!quranQuote) await assertFanarConfigured(token, controller.signal);
       assertSession(token);
       conversationId = await ensureConversation(
         text || messages[0]?.content || t("محادثة","Conversation"),
@@ -932,6 +936,28 @@ export function useAIWorkspace() {
       } else if(direct){
         metadata.capabilityProbe=true;
         result={content:direct,model:"Noata"};
+      } else if (quranQuote) {
+        // Serve explicit Quran quotations from the validated Mushaf index,
+        // never a model completion. The verse component independently fetches
+        // and verifies every displayed ayah in its canonical Uthmani sequence.
+        try {
+          const response = await fetch("/api/quran?list=1", {signal:controller.signal,headers:{Accept:"application/json"}});
+          if (!response.ok) throw Error("Quran index unavailable");
+          const data = await response.json();
+          const chapters=canonicalIndex(data.surahs);
+          const wanted=normalizedQuranLookup(quranQuote.surahName);
+          const chapter=chapters.find(c=>normalizedQuranLookup(c.name)===wanted||normalizedQuranLookup(c.englishName)===wanted);
+          if (!chapter) {
+            result={content:t("مش قادر أحدد اسم السورة بدقة. افتح المصحف وحدد السورة الصحيحة، وأنا أعرض الآيات بدون تخمين.","I couldn't identify that Surah precisely. Open the Mushaf and choose the right chapter so I don't guess."),model:"Noata Mushaf"};
+          } else if(quranQuote.end>chapter.numberOfAyahs) {
+            result={content:t("عدد الآيات المطلوب أكبر من عدد آيات السورة. جرّب رقمًا أقل.","The requested verse count exceeds the length of this Surah. Try a smaller count."),model:"Noata Mushaf"};
+          } else {
+            result={content:"## "+chapter.name+"\n\n[[quran:"+chapter.number+":"+quranQuote.start+"-"+quranQuote.end+"]]",model:"Noata Mushaf"};
+          }
+        } catch (error) {
+          controller.signal.throwIfAborted();
+          result={content:t("مصدر القرآن المعتمد غير متاح حاليًا. حفاظًا على دقة الآيات مش هكتب نصًّا من الذاكرة. افتح صفحة المصحف وحاول مرة تانية.","The verified Quran source is unavailable right now. I won't reconstruct verses from memory. Open the Mushaf and try again."),model:"Noata Mushaf"};
+        }
       } else if (tool) {
         const payload: Record<string, unknown> = { action: tool };
         if (tool === "translate")
