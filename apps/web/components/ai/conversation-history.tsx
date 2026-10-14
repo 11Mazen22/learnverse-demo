@@ -118,24 +118,24 @@ export function ConversationHistory(p: Props) {
       <aside className="owui-sidebar collapsed noata-compact-rail" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
         <div className="owui-rail">
           <button type="button" className="owui-icon owui-rail-toggle" onClick={p.onToggleCollapse}
-            aria-label={t("توسيع القائمة","Expand sidebar")} title={t("توسيع القائمة","Expand sidebar")}>
+            aria-label={t("توسيع القائمة","Expand sidebar")} data-tooltip={t("توسيع القائمة","Expand sidebar")}>
             <Icon name="sidebar" />
           </button>
           <span className="owui-rail-divider" aria-hidden="true"/>
           <button type="button" className="owui-icon owui-rail-primary" onClick={p.onNew} disabled={p.busy}
-            aria-label={t("محادثة جديدة","New chat")} title={t("محادثة جديدة","New chat")}>
+            aria-label={t("محادثة جديدة","New chat")} data-tooltip={t("محادثة جديدة","New chat")}>
             <Icon name="edit"/>
           </button>
           <button type="button" className="owui-icon" onClick={p.onToggleCollapse}
-            aria-label={t("فتح البحث في المحادثات","Open conversation search")} title={t("فتح البحث في المحادثات","Open conversation search")}>
+            aria-label={t("فتح البحث في المحادثات","Open conversation search")} data-tooltip={t("فتح البحث في المحادثات","Open conversation search")}>
             <Icon name="search"/>
           </button>
-          <Link href="/" className="owui-icon" aria-label={t("مساحة التعلّم","Learning space")} title={t("مساحة التعلّم","Learning space")}><Icon name="home"/></Link>
+          <Link href="/" className="owui-icon" aria-label={t("مساحة التعلّم","Learning space")} data-tooltip={t("مساحة التعلّم","Learning space")}><Icon name="home"/></Link>
           {p.onOpenLibrary && <button type="button" className="owui-icon" onClick={p.onOpenLibrary}
-            aria-label={t("المشروعات والملفات","Projects and files")} title={t("المشروعات والملفات","Projects and files")}><Icon name="folder"/></button>}
+            aria-label={t("المشروعات والملفات","Projects and files")} data-tooltip={t("المشروعات والملفات","Projects and files")}><Icon name="folder"/></button>}
           <span className="owui-rail-spacer"/>
           <button type="button" className="owui-icon" onClick={p.onOpenSettings}
-            aria-label={t("الإعدادات","Settings")} title={t("الإعدادات","Settings")}><Icon name="settings"/></button>
+            aria-label={t("الإعدادات","Settings")} data-tooltip={t("الإعدادات","Settings")}><Icon name="settings"/></button>
         </div>
       </aside>
     );
