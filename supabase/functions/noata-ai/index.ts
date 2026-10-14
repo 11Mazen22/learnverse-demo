@@ -110,9 +110,9 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
 }
 async function reviewCompletedAnswer(input:{
- request:string;content:string;research?:Research;format?:unknown;language:"ar"|"en";model:string;userId:string;signal:AbortSignal;emit?:(data:unknown)=>void;
+ request:string;content:string;research?:Research;format?:unknown;language:"ar"|"en";model:string;userId:string;signal:AbortSignal;sectionLevel?:number;emit?:(data:unknown)=>void;
 }):Promise<string|undefined>{
-      const reason=answerReviewReason(input.request,input.content,input.research,input.format);
+      const reason=input.sectionLevel?(input.research?.status==="complete"?"research_evidence":null):answerReviewReason(input.request,input.content,input.research,input.format);
       if(!reason)return undefined;
       input.emit?.({status:"organizing"});
       const fallback=()=>reason==="research_evidence"&&input.research?limitedResearchSummary(input.research,input.language):undefined;
@@ -121,18 +121,18 @@ async function reviewCompletedAnswer(input:{
         const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
           method:"POST",headers:{Authorization:"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
           body:JSON.stringify({model:input.model,stream:false,max_tokens:6000,temperature:0.1,messages:[
-            {role:"system",content:answerReviewInstruction(reason,input.language,input.request)+"\n"+fileDeliveryInstruction(input.format,input.language)},
+            {role:"system",content:answerReviewInstruction(reason,input.language,input.request)+"\n"+fileDeliveryInstruction(input.format,input.language,input.sectionLevel)},
             {role:"user",content:JSON.stringify({request:input.request,previousDraft:input.content.slice(0,16000),...(input.research?{retrievedEvidence:researchContext(input.research)}:{})})}
           ]}),signal:AbortSignal.any([input.signal,AbortSignal.timeout(45000)])
         });
         if(!reviewed.ok)return fallback();
         const data=await reviewed.json(),candidate=clean(data?.choices?.[0]?.message?.content??"");
-        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewIssue(input.request,candidate,input.research,input.format))return fallback();
+        if(data?.choices?.[0]?.finish_reason==="length"||answerReviewIssue(input.request,candidate,input.research,input.sectionLevel?"pptx":input.format))return fallback();
         return candidate;
       }catch{input.signal.throwIfAborted();return fallback();}
 
 }
-function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="",artifactFormat?:unknown) {
+function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="",artifactFormat?:unknown,sectionLevel?:number) {
   const specialized=model==="Fanar-Sadiq"||model==="Fanar-Sadiq-2";
   // Sadiq is a grounded service with its own prompting and no token stream.
   // Keep a live heartbeat while waiting for its actual JSON response.
@@ -149,7 +149,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
       if(!specialized&&messages[0]?.role==="system")messages[0].content=String(messages[0].content??"")+ "\nApplication evidence status for THIS request: sources were retrieved. Use the excerpts that follow. Do not say Noata cannot access sources. Limited background cannot verify current claims.";
       return research;
     }:undefined,
-    review: !specialized&&userId?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,emit}):undefined,
+    review: !specialized&&userId?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,sectionLevel,emit}):undefined,
     request: (signal,emit) => requestWithContextRecovery(providerBody,requestBody=>fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + FANAR_KEY, "Content-Type": "application/json" },
@@ -633,7 +633,8 @@ async function handleChat(
       content:latestLanguage==="English"?"Which public topic or claim should I verify? I couldn't reliably resolve the subject from this conversation.":"أي موضوع عام أو معلومة تحب أتحقق منها؟ لم أتمكن من تحديد المقصود بدقة من سياق المحادثة.",
       finishReason:"clarification",incomplete:false,quota});
   }
-  const delivery=fileDeliveryInstruction(payload.artifactFormat,latestLanguage==="English"?"en":"ar");
+  const sectionLevel=typeof payload.revisionSectionLevel==="number"&&Number.isInteger(payload.revisionSectionLevel)&&payload.revisionSectionLevel>=1&&payload.revisionSectionLevel<=3?payload.revisionSectionLevel:undefined;
+  const delivery=fileDeliveryInstruction(payload.artifactFormat,latestLanguage==="English"?"en":"ar",sectionLevel);
   const presentation=delivery?"":answerPresentation(latestText);
   const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
   const body: any = {
@@ -650,7 +651,7 @@ async function handleChat(
     body.enable_thinking = true;
 
   if (payload.stream === true && payload.enable_thinking !== true)
-    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",latestText,payload.artifactFormat);
+    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",latestText,payload.artifactFormat,sectionLevel);
   const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
   if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});
@@ -666,7 +667,7 @@ async function handleChat(
   let completedContent=clean(data?.choices?.[0]?.message?.content??"");
   if(data?.choices?.[0]?.finish_reason!=="length"&&!["Fanar-Sadiq","Fanar-Sadiq-2"].includes(model)){
     const reviewed=await reviewCompletedAnswer({request:latestText,content:completedContent,research,format:payload.artifactFormat,
-      language:latestLanguage==="English"?"en":"ar",model,userId,signal:AbortSignal.timeout(50000)});
+      language:latestLanguage==="English"?"en":"ar",model,userId,sectionLevel,signal:AbortSignal.timeout(50000)});
     if(reviewed)completedContent=reviewed;
   }
   return json({

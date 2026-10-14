@@ -1,5 +1,6 @@
 "use client";
 import {normalizeModelChoice} from "@/lib/ai/model-routing";
+import {mergeScopedRevision} from "@/lib/ai/scoped-revision";
 import {revisionMayLoseContent} from "@/lib/ai/revision-quality";
 import {
   useCallback,
@@ -92,7 +93,7 @@ export function useAIWorkspace() {
   const revisionSource=useRef<LibrarySource|null>(null);
   const [revisionName,setRevisionName]=useState("");
   function clearRevision(){revisionSource.current=null;setRevisionName("");}
-  function prepareRevision(prompt:string,source?:LibrarySource){if(lock.current)return;revisionSource.current=source??null;setRevisionName(source?.name??"");setInput(prompt);}
+  function prepareRevision(prompt:string,source?:LibrarySource){if(lock.current)return;if(model==="Fanar-Guard-2"||model==="Fanar-Diwan")setModel("auto");revisionSource.current=source??null;setRevisionName(source?.name??"");setInput(prompt);}
   const [guardPrompt,setGuardPrompt]=useState("");
   const [model, setModel] = useState("auto"),
     [input, setInput] = useState(""),
@@ -142,7 +143,7 @@ export function useAIWorkspace() {
   const failedTool = useRef<string | undefined>(undefined);
   const sessionScope = useRef(createSessionGuard());
   const [sessionVersion, setSessionVersion] = useState(0);
-  useEffect(()=>{clearRevision();setGuardPrompt("");},[sessionVersion,activeId]);
+  useEffect(()=>{clearRevision();setGuardPrompt("");},[sessionVersion]);
   const [newChatEpoch,setNewChatEpoch] = useState(0);
   const [sttModel, setSttModel] = useState("Fanar-Aura-STT-1");
   const [ttsModel, setTtsModel] = useState("Fanar-Aura-TTS-2");
@@ -345,7 +346,7 @@ export function useAIWorkspace() {
       );
       return;
     }
-    stopVoice();clearRevision();
+    stopVoice();clearRevision();setGuardPrompt("");
     const seq = ++openSequence.current;
     setLoading(true);
     setError("");
@@ -422,7 +423,7 @@ export function useAIWorkspace() {
       return;
     }
     stopVoice();
-    clearRevision();setNewChatEpoch(x=>x+1);
+    clearRevision();setGuardPrompt("");setNewChatEpoch(x=>x+1);
     setDocumentFiles([]);
     setAttachment(null);
     ++openSequence.current;
@@ -546,6 +547,7 @@ export function useAIWorkspace() {
     attachmentPath?: string,
     languageOverride?: "ar"|"en",
     artifactFormat?: CreatedArtifact["format"],
+    revisionSectionLevel?:number,
   ) {
     const language=languageOverride??requestLanguage(history.findLast(message=>message.role==="user")?.content??"",locale);
     return continueChat((prefix,selectedModel) => {
@@ -557,13 +559,13 @@ export function useAIWorkspace() {
         content:language==="en" ? "Continue the same answer from exactly where it stopped. Do not repeat earlier sections or add an introduction. Finish the remaining requested content in English." : "أكمل نفس الإجابة من موضع التوقف دون تكرار الأقسام السابقة أو إضافة مقدمة. أكمل المحتوى المطلوب بالعربية.",
         model:null,status:"complete",created_at:new Date().toISOString(),
       }] : history;
-      return chatPart(context,token,signal,attachmentPath,prefix,selectedModel,language,artifactFormat);
+      return chatPart(context,token,signal,attachmentPath,prefix,selectedModel,language,artifactFormat,revisionSectionLevel);
     },signal);
   }
   async function chatPart(
     history:Message[],token:number,signal:AbortSignal,attachmentPath?:string,
     prefix="",selectedModel?:string,responseLanguage:"ar"|"en"=locale,
-    artifactFormat?:CreatedArtifact["format"],
+    artifactFormat?:CreatedArtifact["format"],revisionSectionLevel?:number,
   ):Promise<ChatPart> {
     assertSession(token);
     const {
@@ -583,6 +585,7 @@ export function useAIWorkspace() {
         body: JSON.stringify({
           action: "chat",
           ...(artifactFormat?{artifactFormat}:{}),
+          ...(revisionSectionLevel?{revisionSectionLevel}:{}),
            model:normalizeModelChoice(selectedModel??model),
           ...((selectedModel??model)==="Fanar-Guard-2"?{guardPrompt}:{}),
           messages: createAiMessageContext(history),
@@ -956,7 +959,7 @@ export function useAIWorkspace() {
           controller.signal,
           path ?? (typeof priorPath === "string" ? priorPath : undefined),
           requestedFile?requestLanguage(text,locale):undefined,
-          requestedFile?.kind,
+          requestedFile?.kind,editingSource?.scope?.level,
         );
       }
       assertSession(token);
@@ -966,7 +969,7 @@ export function useAIWorkspace() {
       if(requestedFile&&!convertPrevious&&!researchBlocked&&canDeliverArtifactTurn(result)&&(isNonDeliverableDraft(responseText(result.content))||isArtifactRefusal(responseText(result.content)))){
         setNotice(t("الرد مجرد مخطط؛ بنطلب المستند المكتمل قبل إنشاء الملف…","That was only a proposal. Asking for the finished document before creating a file…"));
         try{
-          const repaired=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),requestedFile.kind);
+          const repaired=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),requestedFile.kind,editingSource?.scope?.level);
           assertSession(token);
           if(canDeliverArtifactTurn(repaired)&&!isNonDeliverableDraft(responseText(repaired.content))
              &&!isArtifactRefusal(responseText(repaired.content)))result=repaired;
@@ -1051,18 +1054,18 @@ export function useAIWorkspace() {
           try{
           let currentContent=result.content,currentResearch=result.research;
           if(fileIndex>0&&!currentIntent.usePrevious){
-            let next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind);
+            let next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind,editingSource?.scope?.level);
             assertSession(token);setPendingText("");
             const nextText=responseText(next.content);
             const sourceIssue=checkArtifactContent(currentIntent.kind,nextText);
             if(!next.incomplete&&(sourceIssue||isArtifactRefusal(nextText)||isNonDeliverableDraft(nextText))){
-              next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind);
+              next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind,editingSource?.scope?.level);
               assertSession(token);setPendingText("");
             }
             if(!canDeliverArtifactTurn(next)||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
             currentContent=next.content;currentResearch=next.research??result.research;
           }
-          const source = documentWithResearch(
+          let source = documentWithResearch(
             artifactContent(currentIntent,responseText(currentContent),responseText(prior)),
             currentIntent.usePrevious?priorForFile?.metadata?.research:currentResearch,
             requestLanguage(text,locale),currentIntent.kind,
@@ -1074,6 +1077,7 @@ export function useAIWorkspace() {
             const split=text.split(/Verified extracted original document content:|المحتوى الأصلي للملف:/);
             const before=split.slice(1).join("\n");
             if(before&&revisionMayLoseContent(before,source,split[0]))throw Error("revision_content_loss");
+            if(editingSource.scope)source=mergeScopedRevision(editingSource.scope,source);
           }
           const presentation=requestedDocumentPresentation(text,inheritedPresentation);
           const id = crypto.randomUUID();

@@ -1,4 +1,5 @@
 "use client";
+import {documentSections,scopedRevision} from "@/lib/ai/scoped-revision";
 import type {LibrarySource} from "@/lib/ai/library-source";
 import {safeStorageLink} from "@/lib/ai/workspace";
 import {SUPABASE_URL,supabaseFetch} from "@/lib/supabase/config";
@@ -57,6 +58,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const [loaded,setLoaded]=useState<Blob|null>(null),[inspection,setInspection]=useState<StudioInspection|null>(null);
  const [draft,setDraft]=useState(""),[mode,setMode]=useState<"preview"|"edit"|"compare">("preview");
  const [originalText,setOriginalText]=useState("");
+ const [sectionStart,setSectionStart]=useState("whole");
+ const sections=useMemo(()=>documentSections(draft),[draft]);
  const [font,setFont]=useState<"noata"|"editorial"|"mono">("noata");
  const [style,setStyle]=useState<DocumentStyle>("classic");
  const [outputFormat,setOutputFormat]=useState<Format>("pdf");
@@ -67,7 +70,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const activeFormat=file?.format??(localSource?.format==="text"?"docx":localSource?.format);
  const activeName=file?.filename??localSource?.name??"Noata document";
  useEffect(()=>{
-  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setMode("preview");setOriginalText("");setInstruction("");
+  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setMode("preview");setOriginalText("");setInstruction("");setSectionStart("whole");
   setOutputFormat(activeFormat??"pdf");setStyle("classic");setFont("noata");
   if(!file&&!localSource)return;
   void(async()=>{
@@ -189,10 +192,18 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  }
  function prepareAI(){
   if(!draft.trim())return;
-  if(draft.length>14000){setError(t("هذا المستند يتجاوز حد التعديل بالذكاء الاصطناعي. حرّر النسخة كاملة هنا أو استخدم مقطعًا أقصر؛ لن نختصر الأصل بصمت.","This document exceeds the AI revision limit. Edit the full copy here or use a shorter excerpt; the original will not be silently shortened."));return;}
-  const base=artifactRevisionPrompt(outputFormat,draft,locale);
-  const prompt=(instruction.trim()?instruction.trim()+"\n\n":"")+base;
-  const source:LibrarySource={name:activeName,format:outputFormat,presentation:{style,font},...(file?{artifactId:file.id}:localSource?.documentId?{documentId:localSource.documentId}:{})};
+  const selected=sectionStart==="whole"?null:sections.find(s=>s.start===Number(sectionStart));
+  if(sectionStart!=="whole"&&!selected){setError(t("تغيّر موضع القسم بعد تعديل النص. اختر القسم من جديد.","The section moved after your text edit. Select the section again."));return;}
+  let scope:ReturnType<typeof scopedRevision>|undefined;
+  try{if(selected)scope=scopedRevision(draft,selected);}catch{setError(t("هذا القسم يتجاوز حد التعديل. اختر قسمًا أصغر أو حرّره يدويًا.","This section exceeds the revision limit. Choose a smaller section or edit it manually."));return;}
+  if(!scope&&draft.length>14000){setError(t("اختر قسمًا للتعديل بالذكاء الاصطناعي، أو حرّر المستند كاملًا هنا. لن نختصر المصدر.","Choose a section for the AI revision, or edit the full document here. The source will not be shortened."));return;}
+  const selectedText=scope?.before??draft;
+  const base=artifactRevisionPrompt(outputFormat,selectedText,locale);
+  const selectionInstruction=scope?(locale==="ar"
+   ?"\nأعد نص هذا القسم فقط، مع عنوان Markdown بنفس المستوى ("+scope.level+"). لا تكتب باقي المستند أو ملاحظات التسليم. سيُعاد إدراج التعديل في المستند كاملًا."
+   :"\nReturn ONLY this selected section, beginning with a Markdown heading at level "+scope.level+". Do not write the rest of the document or delivery notes. The app will reinsert the revision into the complete document."):"";
+  const prompt=(instruction.trim()?instruction.trim()+"\n\n":"")+selectionInstruction+"\n"+base;
+  const source:LibrarySource={name:activeName,format:outputFormat,presentation:{style,font},...(scope?{scope}:{}),...(file?{artifactId:file.id}:localSource?.documentId?{documentId:localSource.documentId}:{})};
   if(onPrepareEdit)onPrepareEdit(prompt,source);else if(onAskAI)onAskAI(prompt,source);
  }
  const pageInfo=inspection?.pages[page-1];const isPdf=activeFormat==="pdf";
@@ -226,6 +237,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    </div>}
    {loaded&&inspection&&mode==="compare"&&<div className="noata-revision-compare"><section><h4>{t("المحتوى الأصلي","Original content")}</h4><pre dir="auto">{originalText}</pre></section><section><h4>{t("التعديل المقترح","Proposed revision")}</h4><pre dir="auto">{draft}</pre></section></div>}
    {loaded&&inspection&&<div className="noata-creative-actions">
+    {sections.length>0&&<label className="noata-creative-instruction">{t("نطاق التعديل بالذكاء الاصطناعي","AI revision scope")}<select value={sectionStart} onChange={e=>setSectionStart(e.target.value)}><option value="whole">{t("المستند كاملًا","Entire document")}</option>{sections.map(s=><option key={s.start} value={s.start} disabled={s.end-s.start>14000}>{s.label}{s.end-s.start>14000?" · "+t("اختر قسمًا فرعيًا","Choose a subsection"):""}</option>)}</select></label>}
+    {sectionStart!=="whole"&&<p>{t("سنعدّل القسم المحدد ونجمعه مع بقية المصدر في نسخة كاملة جديدة.","The selected section will be revised and reassembled with the surrounding source into a complete new version.")}</p>}
     {<label className="noata-creative-instruction">{t("اطلب تحسينًا من Noata AI","Ask Noata AI to improve this file")}
      <textarea rows={2} dir="auto" placeholder={t("مثلاً: حسّن التنسيق، أضف أمثلة، وصحح الأخطاء","For example: Improve the structure, add examples, and fix errors")} value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={1200}/>
     </label>}
