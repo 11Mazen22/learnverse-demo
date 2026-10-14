@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import {cookies} from "next/headers";
 import {LocaleProvider} from "@/lib/i18n/locale";
 import { ConfirmHost } from "@/components/ui/confirm-dialog";
+import { TooltipHost } from "@/components/ui/tooltip-host";
 
 export const viewport: Viewport = {
   themeColor: [
@@ -27,6 +28,7 @@ import "./ai-memory.css";
 import "./ai-library.css";
 import "./auth-renaissance.css";
 import "./ai-reading-renaissance.css";
+import "./tooltip-system.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";
@@ -62,6 +64,7 @@ export default async function RootLayout({
         <ExperienceBoot />
         {children}
         <ConfirmHost />
+        <TooltipHost />
         </LocaleProvider>
       </body>
     </html>
