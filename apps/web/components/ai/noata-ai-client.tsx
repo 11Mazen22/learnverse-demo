@@ -711,7 +711,7 @@ export function NoataAIClient() {
                   </div>
                   <div className="noata-stream-progress">
                     <span className="noata-stream-indicator" aria-hidden="true"><i/><i/><i/></span>
-                    <span>{notice || t("في انتظار أول جزء من الإجابة…","Waiting for the first response chunk…")}</span>
+                    <span>{notice || t("في انتظار استجابة النموذج…","Waiting for the model to respond…")}</span>
                   </div>
                 </div>
               </article>
