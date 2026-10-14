@@ -473,3 +473,96 @@
  .root :global(.noata-organized-sidebar .owui-sidebar-top){min-height:51px;padding-bottom:5px}
  .root :global(.noata-organized-sidebar .owui-brand small){display:none}
 }
+
+
+/* Verified Qur'an · Mashaf-inspired eight-point seals.
+   Numbers are discrete ornaments, not characters inside the Uthmani font. */
+.root :global(.noata-quran-text){
+  text-rendering:optimizeLegibility;
+  font-kerning:normal;
+  hanging-punctuation:none;
+}
+.root :global(.noata-quran-verse-number){
+  --quran-seal-outline:color-mix(in srgb,var(--accent) 58%,var(--muted));
+  --quran-seal-wash:color-mix(in srgb,var(--accent) 5%,var(--surface));
+  position:relative;
+  box-sizing:border-box;
+  display:inline-grid;
+  grid-template-areas:"seal";
+  place-items:center;
+  inline-size:1.51em;
+  block-size:1.51em;
+  margin-inline:.25em .24em;
+  padding:0;
+  vertical-align:-.38em;
+  white-space:nowrap;
+  direction:rtl;
+  unicode-bidi:isolate;
+  isolation:isolate;
+  color:var(--accent);
+  line-height:1;
+  font-size:1em;
+  font-style:normal;
+  font-weight:400;
+  letter-spacing:0;
+  user-select:text;
+  font-variant-numeric:normal;
+  font-feature-settings:"kern" 1;
+}
+.root :global(.noata-quran-verse-seal){
+  grid-area:seal;
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  pointer-events:none;
+  filter:drop-shadow(0 1px 1px color-mix(in srgb,var(--ink) 6%,transparent));
+}
+.root :global(.noata-quran-seal-petal){
+  fill:var(--quran-seal-wash);
+  stroke:var(--quran-seal-outline);
+  stroke-width:1.05;
+  stroke-linejoin:round;
+}
+.root :global(.noata-quran-seal-center){
+  fill:var(--surface);
+  stroke:color-mix(in srgb,var(--accent) 32%,var(--line));
+  stroke-width:1.1;
+}
+.root :global(.noata-quran-seal-ring){
+  stroke:color-mix(in srgb,var(--accent) 38%,var(--line));
+  stroke-width:.85;
+}
+.root :global(.noata-quran-verse-digits){
+  grid-area:seal;
+  display:block;
+  position:relative;
+  z-index:1;
+  font-family:NoataArabic,"Noto Naskh Arabic",system-ui,sans-serif;
+  font-weight:750;
+  font-size:.49em;
+  line-height:1;
+  letter-spacing:0;
+  font-variant-numeric:normal;
+  font-feature-settings:"tnum" 0;
+  direction:ltr;
+  unicode-bidi:isolate;
+  transform:translateY(-.03em);
+  color:var(--accent);
+}
+@media(max-width:640px){
+  .root :global(.noata-quran-verse-number){
+    inline-size:1.45em;
+    block-size:1.45em;
+    vertical-align:-.35em;
+    margin-inline:.22em .23em;
+  }
+  .root :global(.noata-quran-verse-digits){font-size:.5em}
+}
+@media(forced-colors:active){
+  .root :global(.noata-quran-verse-seal){filter:none}
+  .root :global(.noata-quran-seal-petal),
+  .root :global(.noata-quran-seal-center){fill:Canvas;stroke:CanvasText}
+  .root :global(.noata-quran-seal-ring){stroke:CanvasText}
+  .root :global(.noata-quran-verse-digits){color:CanvasText}
+}
