@@ -386,3 +386,67 @@
  .mushaf .mushaf-reading,.mushaf .mushaf-navigator{border:1px solid CanvasText}
  .mushaf .mushaf-flow-marker[aria-pressed="true"]{outline:2px solid Highlight}
 }
+
+
+/* Reuse the verified-chat Quran medallion geometry in the full Mushaf;
+   this stylesheet must not rely on chat's locally-scoped CSS module. */
+.mushaf .noata-quran-verse-number{
+  --mushaf-seal-ink:color-mix(in srgb,var(--accent) 58%,var(--muted));
+  --mushaf-seal-wash:color-mix(in srgb,var(--accent) 5%,var(--surface));
+  position:relative;
+  isolation:isolate;
+  box-sizing:border-box;
+  display:inline-grid;
+  grid-template-areas:"seal";
+  place-items:center;
+  inline-size:1.45em;
+  block-size:1.45em;
+  margin-inline:.17em;
+  padding:0;
+  color:var(--accent);
+  background:transparent;
+  font-size:1em;
+  vertical-align:-.34em;
+  line-height:1;
+  direction:rtl;
+  unicode-bidi:isolate;
+}
+.mushaf .noata-quran-verse-seal{
+  display:block;grid-area:seal;
+  width:100%;height:100%;
+  overflow:visible;
+  filter:drop-shadow(0 1px 1px color-mix(in srgb,var(--ink) 6%,transparent));
+  pointer-events:none;
+}
+.mushaf .noata-quran-seal-petal{
+  fill:var(--mushaf-seal-wash);
+  stroke:var(--mushaf-seal-ink);
+  stroke-width:1.05;stroke-linejoin:round;
+}
+.mushaf .noata-quran-seal-center{
+  fill:var(--surface);
+  stroke:color-mix(in srgb,var(--accent) 32%,var(--line));
+  stroke-width:1.1;
+}
+.mushaf .noata-quran-seal-ring{
+  stroke:color-mix(in srgb,var(--accent) 38%,var(--line));
+  stroke-width:.85;
+}
+.mushaf .noata-quran-verse-digits{
+  grid-area:seal;position:relative;z-index:1;
+  display:block;
+  margin:0;padding:0;
+  font-family:NoataArabic,"Noto Naskh Arabic",system-ui,sans-serif;
+  font-weight:760;font-size:.49em;
+  font-variant-numeric:normal;
+  line-height:1;letter-spacing:0;
+  direction:ltr;unicode-bidi:isolate;
+  color:var(--accent);
+  transform:translateY(-.03em);
+}
+@media(forced-colors:active){
+  .mushaf .noata-quran-verse-seal{filter:none}
+  .mushaf .noata-quran-seal-petal,.mushaf .noata-quran-seal-center{fill:Canvas;stroke:CanvasText}
+  .mushaf .noata-quran-seal-ring{stroke:CanvasText}
+  .mushaf .noata-quran-verse-digits{color:CanvasText}
+}
