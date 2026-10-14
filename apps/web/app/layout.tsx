@@ -26,6 +26,7 @@ import "./ai-generated-artifact.css";
 import "./ai-memory.css";
 import "./ai-library.css";
 import "./auth-renaissance.css";
+import "./ai-reading-renaissance.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";
