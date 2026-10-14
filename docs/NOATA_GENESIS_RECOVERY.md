@@ -4,7 +4,7 @@
 
 The attached release brief reports preserved production recovery material in `qa-recovery-private`, 68 table fingerprints, and four private objects without byte-level backups. Those materials and object manifests are not present in this clean Git checkout. No production dump, private Storage bytes, Auth records or encryption keys were retrieved or committed during this work.
 
-Production metadata and the deployed AI v6 bundle hash were rechecked. A production read-only SQL inventory did not execute because automatic approval review hit a usage limit. Its reported migration/table counts are attributed checkpoint evidence only. No database migration is included in this candidate.
+Production metadata and the deployed AI v6 bundle hash were rechecked. The initial SQL approval-review usage failure later cleared. Read-only transactions now confirm 33 migrations and 38 public tables/all RLS in both projects; that structural read does not recover private bytes or establish hosted-service restore equivalence. No database migration is included in this candidate.
 
 `scripts/database-recovery-rehearsal.mjs` and the existing isolated SQL harness remain the synthetic fixture procedure. Local PostgreSQL/Docker are unavailable in this runtime; full CI is responsible for rerunning those source fixtures. They cannot certify hosted Auth, Storage object bytes, ICU/collation behavior or production disaster recovery.
 
@@ -22,3 +22,5 @@ Production metadata and the deployed AI v6 bundle hash were rechecked. A product
 No production rollback is needed for this branch: production was not promoted. Revert the candidate source changes to the verified baseline and retain the current production deployment/domain assignments. Preview configuration and any staging function version are separate from production. A staging Edge Function change must preserve its previous source before deployment and use that pinned source for rollback, with JWT verification retained.
 
 Never reuse an exposed credential as rollback material. The older credential-rotation document is historical; this task does not authorize a production password reset.
+
+Staging runtime rollback checkpoint: preserved v37 source (20 files), bundle `a4a9edb99ce7bbcab1fa0b881dd75164320d088536e4229f07c19351a5d00f1b`, matches the baseline runtime. Genesis v38 is ACTIVE, JWT protected, bundle `72b499fe70de74b026c59651b7a957e6cc41c1fa90080ecaab29939659e32995`; all 23 retrieved files match reviewed source. Staging unauthenticated readiness returns 401. The source-only rollback bundle is kept outside committed artifacts.

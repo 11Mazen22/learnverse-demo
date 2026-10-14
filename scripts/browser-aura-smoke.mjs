@@ -396,10 +396,14 @@ async function verifyDocuments(){
       invariant(reopened.some(p=>p.text.includes("English reference 38")),"Untouched final DOCX section is retained");
       invariant(await evaluate('document.querySelector(".noata-office-editor button:last-child").disabled'),"Guest cannot save an owner-scoped revision");
       for(const width of [1440,390,320]){
+       location.width=width;
        await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
-       invariant(await evaluate('document.documentElement.scrollWidth-innerWidth<=3&&document.querySelector(".noata-office-editor select").getBoundingClientRect().width<=innerWidth'),"Targeted editor fits viewport "+width);
+       await settleUiTransitions("targeted editor resize "+width);
        await screenshot("artifacts/noata-browser/targeted-office-"+width+".png");
+       const geometry=await evaluate('(()=>{const el=document.querySelector(".noata-office-editor select"),r=el.getBoundingClientRect();return{viewport:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,selectWidth:r.width,left:r.left,right:r.right,ancestors:Array.from(document.querySelectorAll("dialog[open],.noata-creative-studio,.noata-office-editor")).map(e=>({className:e.className,width:e.getBoundingClientRect().width,scrollWidth:e.scrollWidth}))}})()');
+       invariant(geometry.overflow<=3&&geometry.selectWidth<=geometry.viewport,"Targeted editor fits viewport "+width+": "+JSON.stringify(geometry));
       }
+      location.width=1440;
       await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
     }
     await command("Input.dispatchKeyEvent",{type:"keyDown",key:"Escape",code:"Escape",windowsVirtualKeyCode:27});

@@ -26,3 +26,7 @@ Baseline `9d5d2a1bd3c3783e1b7b89f85906299651489492`; candidate branch `noata-gen
 | Production acceptance/release | NOT PERFORMED | No production migration, function deploy, secret change or promotion |
 
 Required live scenarios A–J from the brief remain tracked: A/B/C require real current search; D/F are bounded original-package edits only; E requires a supported generative editor; G requires real Arabic provider/PDF execution; H requires disposable roles; I has deterministic failure/partial-recovery coverage; J still requires live cross-owner denial tests.
+
+## First connected CI result and follow-up
+
+Run `38646227194` at source `ebf4eb5` / merge checkout `fe26f1f` passed source, Deno, database/recovery, PDF/DOCX, builds, Chrome startup and raster checks. Browser inspection passed 180 public views and the genuine targeted DOCX download/readback, then failed its 390px fit assertion after 1126 assertions. The fix constrains intrinsic grid tracks and records settled resize geometry before asserting the same fit limits. Full new-head acceptance remains mandatory. Both live databases were subsequently read structurally: 33 migrations/38 public tables/all RLS; document probe has no anonymous execution privilege.

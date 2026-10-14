@@ -8,7 +8,7 @@ Baseline: `9d5d2a1bd3c3783e1b7b89f85906299651489492`. This audit supersedes hist
 - Vercel deployment `dpl_8E4v2T7Em8r12NLEfbkWiNwr7QQh` is READY, production target, revision `c43726d5237fa209740f9f0e9e425c310547142e`.
 - Supabase production metadata reports ACTIVE_HEALTHY, PostgreSQL 17.11. AI function `noata-ai-v2` is ACTIVE v6, JWT verification enabled, bundle SHA-256 matches the brief. Branch inventory is empty.
 - Baseline local modern suite: 383 passed, zero failed/skipped. Baseline TypeScript passed. These are source checks, not live-provider acceptance.
-- Fresh read-only SQL was NOT executed: automatic approval review failed because of a usage limit. No alternative database transport was used to bypass that check. The supplied 33 migrations/38 RLS tables remain attributed release evidence, not independently refreshed SQL evidence.
+- The initial SQL approval-review usage failure later cleared. Fresh read-only transactions through the same Supabase tool independently confirm 33 migrations, 38 public tables and 38 RLS-enabled tables in both production and approved staging. No alternate transport bypassed review. Anonymous document-probe execution is denied in both.
 
 ## Source-grounded inventory
 

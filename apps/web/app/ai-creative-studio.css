@@ -1,5 +1,5 @@
 /* Noata Creative Studio: restrained, modern, document-first editor, not an extra tools dashboard. */
-.noata-creative-studio{display:grid;gap:15px;min-width:0;max-width:100%;color:var(--ink);padding:4px 0 10px}
+.noata-creative-studio{display:grid;grid-template-columns:minmax(0,1fr);gap:15px;width:100%;min-width:0;max-width:100%;color:var(--ink);padding:4px 0 10px}
 .noata-creative-header{display:flex;gap:13px;align-items:center;border:1px solid var(--line);background:linear-gradient(115deg,var(--surface-soft),var(--surface));border-radius:20px;padding:15px}
 .noata-creative-header strong{font-size:15px;overflow-wrap:anywhere}.noata-creative-header p{color:var(--muted);font-size:12px;margin:5px 0 0;line-height:1.6}
 .noata-creative-symbol{display:grid;place-items:center;flex:0 0 43px;height:43px;border-radius:14px;background:var(--accent-soft);color:var(--accent)}
@@ -19,8 +19,8 @@
 .noata-creative-table th{background:var(--accent-soft);color:var(--ink)}
 .noata-creative-editor{display:grid;gap:9px}.noata-creative-editor p{font-size:12px;color:var(--muted);margin:0;line-height:1.6}
 .noata-creative-editor textarea{width:100%;min-height:min(44vh,450px);resize:vertical;padding:16px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;line-height:1.75;font:inherit;font-size:13px}
-.noata-office-editor{min-width:0;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface-soft)}
-.noata-office-editor label{display:grid;gap:7px;min-width:0;font-size:12px;font-weight:650;color:var(--ink)}
+.noata-office-editor{grid-template-columns:minmax(0,1fr);min-width:0;max-width:100%;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface-soft);overflow-wrap:anywhere}
+.noata-office-editor label{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;min-width:0;max-width:100%;font-size:12px;font-weight:650;color:var(--ink)}
 .noata-office-editor select,.noata-office-editor input{width:100%;min-width:0;max-width:100%;padding:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;font:inherit;text-overflow:ellipsis}
 .noata-creative-studio .noata-office-editor textarea{min-height:100px;max-height:280px}
 .noata-office-editor textarea[readonly]{min-height:70px;color:var(--muted)}
