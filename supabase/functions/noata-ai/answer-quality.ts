@@ -1,5 +1,7 @@
+import {graphRequested,hasActualGraph} from "./graph-delivery.ts";
+import {RESPONSE_UI_POLICY} from "./response-ui.ts";
 import type {Research} from "./research.ts";
-export type AnswerReviewReason="research_evidence"|"requested_depth";
+export type AnswerReviewReason="research_evidence"|"requested_depth"|"requested_chart";
 export function requestedDepth(request:string,format?:unknown):{minimum:number;target:number;sections:number}|null{
  const human=request.split(/Verified extracted original document content:|المحتوى الأصلي للملف:|مصادر الملفات المرفقة/)[0].normalize("NFKC").replace(/[٠-٩۰-۹]/g,c=>String(c.charCodeAt(0)-(c>="۰"?"۰":"٠").charCodeAt(0)));
  if(["xlsx","pptx"].includes(String(format))||/\b(?:short|brief|concise|summary|summarize)\b|باختصار|مختصر/i.test(human))return null;
@@ -10,6 +12,7 @@ export function requestedDepth(request:string,format?:unknown):{minimum:number;t
  return {minimum:Math.floor(target*0.85),target,sections:4};
 }
 export function answerReviewIssue(request:string,text:string,research?:Research,format?:unknown):AnswerReviewReason|null{
+ if(graphRequested(request)&&!hasActualGraph(text))return "requested_chart";
  if(research?.status==="complete"&&research.sources.length){
   const ids=[...text.matchAll(/\[(\d{1,2})\]/g)].map(x=>Number(x[1]));
   const known=new Set(research.sources.map(s=>s.id));
@@ -28,11 +31,13 @@ export function answerReviewIssue(request:string,text:string,research?:Research,
 }
 /** Every researched draft is audited, even if a citation is already present. */
 export function answerReviewReason(request:string,text:string,research?:Research,format?:unknown):AnswerReviewReason|null{
+ if(answerReviewIssue(request,text,research,format)==="requested_chart")return "requested_chart";
  if(research?.status==="complete"&&research.sources.length)return "research_evidence";
  return answerReviewIssue(request,text,research,format);
 }
 export function answerReviewInstruction(reason:AnswerReviewReason,language:"ar"|"en",request=""):string{
  const languageName=language==="ar"?"Arabic":"English",depth=requestedDepth(request);
+ if(reason==="requested_chart")return "Reply in "+languageName+". The draft claims or describes a graph but has no actual renderable chart. Produce a brief explanation and one valid native noata-ui graph using the actual supplied numerical values or requested mathematical equation. Keep requested axis names, units, colors and line styles. Never substitute placeholder prose, HTML or executable code for a chart. If the request lacks actual values and does not explicitly ask for an illustrative example, ask for the missing values rather than inventing measurements.\n"+RESPONSE_UI_POLICY;
  const length=depth?" Aim for about "+depth.target+" relevant words in at least four useful sections; evidence limits take priority over padding.":"";
  return "Write in "+languageName+". Read the request and draft critically. Correct factual mistakes; check definitions, units, calculations, dates and causal mechanisms. Remove confident details you cannot substantiate. Separate observation, inference, established background and uncertainty. Do not introduce invented studies, sources, numerical data or named authorities. Preserve useful content, the requested structure and requested language. Do not add a closing offer."+length+
  (reason==="research_evidence"

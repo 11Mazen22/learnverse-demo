@@ -44,7 +44,7 @@ import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
 import {confirmedFileIntent} from "@/lib/ai/artifact-followup";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
-import { findActualLineChart } from "@/lib/ai/artifact-chart";
+import { findActualLineChart,retainChartSource } from "@/lib/ai/artifact-chart";
 import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,canDeliverArtifactTurn,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
@@ -1083,6 +1083,7 @@ export function useAIWorkspace() {
           const chartData = currentIntent.kind === "pdf"
             ? findActualLineChart(currentIntent.usePrevious && prior.trim()?prior:currentContent)
             : null;
+          if(currentIntent.kind==="pdf")source=retainChartSource(source,currentIntent.usePrevious&&prior.trim()?prior:currentContent);
           if(editingSource){
             const split=text.split(/Verified extracted original document content:|المحتوى الأصلي للملف:/);
             const before=split.slice(1).join("\n");
@@ -1096,7 +1097,7 @@ export function useAIWorkspace() {
               const response = await fetch(chartData?"/api/ai/chart-pdf":"/api/documents/pdf",{
                 method:"POST",credentials:"same-origin",
                 headers:{"Content-Type":"application/json","Accept-Language":locale},
-                body:JSON.stringify(chartData?{chart:chartData,text,title:title.slice(0,120)}:{text,title:title.slice(0,120),...presentation}),signal
+                body:JSON.stringify(chartData?{chart:chartData,text,title:title.slice(0,120),...presentation}:{text,title:title.slice(0,120),...presentation}),signal
               });
               if(!response.ok)throw Error("pdf_service_"+response.status);
               return new Uint8Array(await response.arrayBuffer());

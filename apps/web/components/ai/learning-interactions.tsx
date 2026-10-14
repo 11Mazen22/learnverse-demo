@@ -46,12 +46,12 @@ export function StudyDeck({data}:{data:Cards}){
 export function LineChart({data}:{data:Series}){
  const t=useTranslation(),id=useId(),[count,setCount]=useState(data.points.length),[selected,setSelected]=useState(data.points.length-1);
  const [table,setTable]=useState(false),[busy,setBusy]=useState(false),[status,setStatus]=useState("");
- const chart={...data,points:data.points.slice(-count)},geom=lineChartGeometry(chart),active=data.points[selected];
+ const chart={...data,points:data.points.slice(-count)},geom=lineChartGeometry(chart),visibleSelected=Math.max(data.points.length-count,selected),active=data.points[visibleSelected];
  const tick=Math.max(1,Math.ceil(count/7));
  async function download(){
   setBusy(true);setStatus(t("جارٍ إنشاء PDF…","Generating PDF…"));
   try{
-   const response=await fetch("/api/ai/chart-pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({chart:data})});
+   const response=await fetch("/api/ai/chart-pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({chart})});
    if(!response.ok)throw Error("PDF endpoint "+response.status);
    const blob=await response.blob();
    if(blob.type!=="application/pdf"||blob.size<100)throw Error("Invalid PDF");
@@ -76,11 +76,11 @@ export function LineChart({data}:{data:Series}){
    <path d={geom.path} fill="none" stroke="var(--accent)" strokeWidth="3.5" strokeLinejoin="round"/>
    {geom.points.map((p,i)=><g key={i}>
     {(i%tick===0||i===count-1)&&<text x={p.x} y={geom.top+geom.height+23} textAnchor="middle">{p.label}</text>}
-    <circle cx={p.x} cy={p.y} r={selected===data.points.length-count+i?7:4} fill="var(--accent)" stroke="var(--surface)" strokeWidth="2"/>
+    <circle cx={p.x} cy={p.y} r={visibleSelected===data.points.length-count+i?7:4} fill="var(--accent)" stroke="var(--surface)" strokeWidth="2"/>
    </g>)}
   </svg>
   <label className="noata-series-slider">{t("استكشف النقاط","Explore data points")}
-   <input type="range" min={0} max={data.points.length-1} step={1} value={selected} onChange={e=>setSelected(Number(e.target.value))}/>
+   <input type="range" min={data.points.length-count} max={data.points.length-1} step={1} value={visibleSelected} onChange={e=>setSelected(Number(e.target.value))}/>
   </label>
   <div className="noata-series-actions">
    <label>{t("آخر","Last")} <select value={count} onChange={e=>setCount(Number(e.target.value))}>

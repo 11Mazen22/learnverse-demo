@@ -18,3 +18,5 @@ test("PDF chart renders vector path and factual data table without executable HT
  assert.ok(result.includes("<td>25</td>"));
  assert.ok(!result.includes("<humidity>"));
 });
+
+test("Irregular numeric and clock labels use their actual horizontal positions",()=>{for(const labels of [["0","1","10"],["09:00","10:00","19:00"]]){const g=lineChartGeometry({...data,points:labels.map((label,i)=>({label,value:i}))});assert.ok(Math.abs((g.points[1].x-g.points[0].x)/(g.points[2].x-g.points[0].x)-.1)<1e-8);}});

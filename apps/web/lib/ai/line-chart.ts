@@ -1,5 +1,7 @@
+import {xyChartPdfMarkup,type XyChart} from "./xy-chart.ts";
 import type {ResponseUi} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 export type LineChartData=Extract<ResponseUi,{type:"line_chart"}>;
+export type ActualChartData=LineChartData|XyChart;
 export const CHART_WIDTH=720,CHART_HEIGHT=350;
 const xml=(v:string)=>v.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
 export function lineChartGeometry(data:LineChartData){
@@ -8,14 +10,17 @@ export function lineChartGeometry(data:LineChartData){
  const buffer=(rawMax-rawMin||Math.max(1,Math.abs(rawMax)*0.1))*0.18;
  const min=rawMin-buffer,max=rawMax+buffer;
  const left=74,top=40,width=CHART_WIDTH-107,height=CHART_HEIGHT-110;
+ const numeric=data.points.every(p=>/^[-+]?\d+(?:\.\d+)?$/.test(p.label.trim()))?data.points.map(p=>Number(p.label)):data.points.every(p=>/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(p.label))?data.points.map(p=>{const [h,m]=p.label.split(":").map(Number);return h*60+m;}):null;
+ const xmin=numeric?Math.min(...numeric):0,xmax=numeric?Math.max(...numeric):data.points.length-1;
  const points=data.points.map((point,i)=>({
-  ...point,x:left+(i/(data.points.length-1))*width,
+  ...point,x:left+(numeric?(xmax===xmin ? 0.5 :(numeric[i]-xmin)/(xmax-xmin)):i/(data.points.length-1))*width,
   y:top+(max-point.value)/(max-min)*height
  }));
  return {left,top,width,height,min,max,points,path:points.map((point,i)=>(i?"L":"M")+point.x.toFixed(2)+" "+point.y.toFixed(2)).join(" ")};
 }
 /** Static SVG is built solely from validated points and XML-escaped strings. */
-export function chartPdfMarkup(data:LineChartData):string{
+export function chartPdfMarkup(data:ActualChartData):string{
+ if(data.type==="xy_chart")return xyChartPdfMarkup(data);
  const g=lineChartGeometry(data),baseline=g.top+g.height;
  const grid=Array.from({length:5},(_,i)=>{
   const y=g.top+i*g.height/4,value=g.max-i*(g.max-g.min)/4;

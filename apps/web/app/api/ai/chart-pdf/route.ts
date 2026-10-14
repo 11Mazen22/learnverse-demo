@@ -1,3 +1,4 @@
+import {checkedPresentation} from "@/lib/ai/document-presentation";
 import {isSameOriginMutation} from "@/lib/ai/request-origin";
 import {createClient} from "@/lib/supabase/server";
 import {admitPdfRequest} from "@/lib/ai/pdf-request";
@@ -29,13 +30,14 @@ export async function POST(request:Request){
  try{payload=JSON.parse(raw);}catch{return fail(400,"Invalid chart request");}
  if(!payload||typeof payload!=="object")return fail(400,"Invalid chart");
  const value=validateResponseUi((payload as {chart?:unknown}).chart);
- if(!value||value.type!=="line_chart")return fail(422,"Valid numeric line chart required");
+ if(!value||(value.type!=="line_chart"&&value.type!=="xy_chart"))return fail(422,"Valid numeric chart required");
  try{
   const requested=payload as {text?:unknown;title?:unknown};
   if(requested.text!==undefined&&(typeof requested.text!=="string"||requested.text.length>100000))return fail(413,"Report text exceeds limits");
   const title=(typeof requested.title==="string"?requested.title:value.title).slice(0,120);
   const source=typeof requested.text==="string"&&requested.text.trim()?requested.text:"The chart and its underlying observations are included below.";
-  const report=await renderNoataPdf(source,title,undefined,value);
+  const presentation=checkedPresentation(payload);
+  const report=await renderNoataPdf(source,title,undefined,value,presentation.style,presentation.font);
   if(report.length<100||String.fromCharCode(...report.slice(0,4))!=="%PDF")throw Error("Invalid PDF output");
   return new Response(Uint8Array.from(report),{headers:{
    "Content-Type":"application/pdf","Content-Disposition":'attachment; filename="noata-line-chart.pdf"',

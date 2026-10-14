@@ -1,3 +1,4 @@
+import {resolveGraphFollowup,graphRecoveryReply} from "./graph-delivery.ts";
 import {specialistRequest,specialistReply} from "./specialists.ts";
 import {requestWithContextRecovery} from "./context-recovery.ts";
 import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
@@ -115,7 +116,7 @@ async function reviewCompletedAnswer(input:{
       const reason=input.sectionLevel?(input.research?.status==="complete"?"research_evidence":null):answerReviewReason(input.request,input.content,input.research,input.format);
       if(!reason)return undefined;
       input.emit?.({status:"organizing"});
-      const fallback=()=>reason==="research_evidence"&&input.research?limitedResearchSummary(input.research,input.language):undefined;
+      const fallback=()=>reason==="requested_chart"?graphRecoveryReply(input.request,input.language):reason==="research_evidence"&&input.research?limitedResearchSummary(input.research,input.language):undefined;
       try{
         await claim(input.userId,input.model);
         const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
@@ -550,6 +551,7 @@ async function handleChat(
 
   // Determine routing from the actual user request before adding file or vision context.
   const latestText = safeMessages.findLast((m:any)=>m.role==="user")?.content??"";
+  const graphAwareRequest=resolveGraphFollowup(latestText,safeMessages);
   if(model==="Fanar-Sadiq-2")model="auto";
   if(model==="Fanar-Guard-2"||model==="Fanar-Diwan"){
     if(payload.attachmentPath)return json({error:"This specialist accepts text only",code:"SPECIALIST_TEXT_ONLY"},400);
@@ -652,7 +654,7 @@ async function handleChat(
     body.enable_thinking = true;
 
   if (payload.stream === true && payload.enable_thinking !== true)
-    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",latestText,payload.artifactFormat,sectionLevel);
+    return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",graphAwareRequest,payload.artifactFormat,sectionLevel);
   const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
   if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});
@@ -667,7 +669,7 @@ async function handleChat(
   }
   let completedContent=clean(data?.choices?.[0]?.message?.content??"");
   if(data?.choices?.[0]?.finish_reason!=="length"&&!["Fanar-Sadiq","Fanar-Sadiq-2"].includes(model)){
-    const reviewed=await reviewCompletedAnswer({request:latestText,content:completedContent,research,format:payload.artifactFormat,
+    const reviewed=await reviewCompletedAnswer({request:graphAwareRequest,content:completedContent,research,format:payload.artifactFormat,
       language:latestLanguage==="English"?"en":"ar",model,userId,sectionLevel,signal:AbortSignal.timeout(50000)});
     if(reviewed)completedContent=reviewed;
   }
