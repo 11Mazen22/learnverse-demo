@@ -27,7 +27,7 @@ async function run(){
  await browser.command("Page.enable");await browser.command("Runtime.enable");
  const fixture=String.raw`(()=> {
    document.getElementById("noata-quran-marker-fixture")?.remove();
-   const shell=document.querySelector(".owui-layout");
+   const shell=document.querySelector(".owui-layout .owui-main") ?? document.querySelector(".owui-layout");
    const outer=document.createElement("div");outer.id="noata-quran-marker-fixture";
    outer.dir="rtl";outer.style.cssText="width:min(750px,calc(100% - 32px));margin:30px auto;position:relative;";
    const card=document.createElement("figure");card.className="noata-quran-passage";
