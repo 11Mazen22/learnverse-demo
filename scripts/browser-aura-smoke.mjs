@@ -605,11 +605,13 @@ async function main() {
   invariant(sidebarLayout&&sidebarLayout.width>=305&&sidebarLayout.quickRight<=sidebarLayout.sidebarRight+2&&sidebarLayout.searchRight<=sidebarLayout.sidebarRight+2&&sidebarLayout.links>=1,"AI sidebar is spacious and not clipped");
   await evaluate('document.querySelector(".owui-layout>.noata-organized-sidebar .owui-sidebar-top>button").click()');
   await waitFor(async()=>await evaluate('!!document.querySelector(".owui-layout>.noata-compact-rail")'),"compact Noata rail");
+  await waitFor(async()=>await evaluate('document.querySelector(".noata-compact-rail")?.getBoundingClientRect().width<=80'),"compact Noata rail transition settled",6500);
   const compact=await evaluate('(()=>{const icons=Array.from(document.querySelectorAll(".owui-layout .noata-compact-rail .owui-rail svg[data-icon]")).map(i=>i.dataset.icon);return {icons,count:icons.length,unique:new Set(icons).size,rail:document.querySelector(".noata-compact-rail").getBoundingClientRect().width}})()');
   invariant(compact.count>=5&&compact.count===compact.unique&&compact.rail>=64&&compact.rail<=80,"Collapsed rail must use distinct, intentional actions: "+JSON.stringify(compact));
   await screenshot("artifacts/noata-browser/ai-navigation-compact-desktop.png");
   await evaluate('document.querySelector(".noata-compact-rail .owui-rail-toggle").click()');
   await waitFor(async()=>await evaluate('!!document.querySelector(".owui-layout>.noata-organized-sidebar")'),"expanded sidebar restore");
+  await waitFor(async()=>await evaluate('document.querySelector(".noata-organized-sidebar")?.getBoundingClientRect().width>=305'),"expanded sidebar transition settled",6500);
   await screenshot("artifacts/noata-browser/ai-navigation-expanded-desktop.png");
 
   for(const authWidth of [1440,390,320]){
