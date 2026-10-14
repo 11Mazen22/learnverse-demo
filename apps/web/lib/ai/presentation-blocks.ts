@@ -6,7 +6,13 @@ export type PresentationSegment =
   | { type:"markdown"; text:string }
   | { type:"poem"|"insight"|"example"; text:string };
 
-export function splitPresentationBlocks(text:string):PresentationSegment[] {
+export function isPoetryRequest(text:string):boolean {
+  if(text.length>5000)return false;
+  const ar=/(?:اكتب|الف|ألّف|انشئ|أنشئ|نظم|صغ|اعمل|أريد|عاوز|اريد|عَايز)[\s\S]{0,100}(?:قصيده|قصيدة|شعر|أبيات|ابيات)/u;
+  const en=/(?:write|compose|create|make|give me)[\s\S]{0,100}(?:poem|poetry|verses)\b/i;
+  return ar.test(text)||en.test(text);
+}
+export function splitPresentationBlocks(text:string, preferPoem=false):PresentationSegment[] {
   const items:PresentationSegment[]=[];
   const lines=text.split("\n");
   let codeFence:string|null=null, start=-1, blockType:"poem"|"insight"|"example"|null=null;
@@ -31,5 +37,12 @@ export function splitPresentationBlocks(text:string):PresentationSegment[] {
     }
   }
   if(cursor<lines.length)items.push({type:"markdown",text:lines.slice(cursor).join("\n")});
+  if(items.length===1&&items[0].type==="markdown"&&preferPoem){
+    const lines=text.split("\n").filter(line=>line.trim());
+    const isVerse=lines.length>=3&&lines.length<=90
+      &&lines.every(line=>line.length<=110&&!/^\s*(?:#{1,6}\s|[-*]\s|\d+[.)]\s|[|>]|\x60{3}|~{3}|:::)/.test(line))
+      &&lines.filter(line=>/[.!؟،,؛]$/.test(line.trim())).length<lines.length;
+    if(isVerse)return [{type:"poem",text:text.trim()}];
+  }
   return items.length?items:[{type:"markdown",text}];
 }
