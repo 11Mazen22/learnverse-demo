@@ -4,7 +4,7 @@ on:
   push:
     branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008, noata-ai-reading-experience-20261014]
   pull_request:
-    branches: [master]
+    branches: [master, noata-aura-platform-overhaul-20261008]
 
 permissions:
   contents: read
