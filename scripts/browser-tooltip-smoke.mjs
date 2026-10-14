@@ -36,6 +36,8 @@ async function run(){
  await browser.command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
  await navigate("/ai");
  await waitFor(()=>evaluate('!!document.querySelector(".owui-layout>.noata-organized-sidebar")'),"expanded sidebar");
+ // SSR controls can appear before their handlers are attached during a busy CI build.
+ await waitFor(()=>evaluate('(()=>{const e=document.querySelector(".noata-organized-sidebar .owui-sidebar-top>button");return !!e&&Object.keys(e).some(k=>k.startsWith("__reactFiber$"))})()'),"Arabic sidebar hydration");
  await evaluate('document.querySelector(".noata-organized-sidebar .owui-sidebar-top>button").click()');
  await waitFor(()=>evaluate('document.querySelector(".noata-compact-rail")?.getBoundingClientRect().width<=80'),"collapsed rail transition",9000);
  const point=await evaluate('(()=>{const r=document.querySelector(".noata-compact-rail .owui-rail-primary").getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()');

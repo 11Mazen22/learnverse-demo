@@ -196,9 +196,14 @@ async function verifyQuranControls(){
   const install=await command("Page.addScriptToEvaluateOnNewDocument",{source:script});
   try{
     await navigate("/quran");
-    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===2'),"Quran fixture loaded");
-    invariant(await evaluate('document.querySelectorAll(".aura-quran-ayah").length===2'),"Quran verse reader");
-    await evaluate('document.querySelector(".aura-quran-ayah-actions button")?.click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".mushaf-flow-verse").length===2'),"Quran continuous fixture loaded");
+    invariant(await evaluate('document.querySelectorAll(".mushaf-flow-marker").length===2'),"Continuous Quran keeps one verse medallion per supplied verse");
+    await evaluate('document.querySelector(".mushaf-flow-marker").click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".mushaf-selection-toolbar .mushaf-verse-action").length===2'),"Contextual Quran bookmark and recitation controls");
+    await evaluate('document.querySelector(".mushaf-selection-toolbar .mushaf-verse-action").click()');
+    await evaluate('document.querySelector(".mushaf-reader-controls .mushaf-segmented button:first-child").click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===2'),"Quran verse study mode");
+    invariant(await evaluate('document.querySelectorAll(".mushaf-study-card").length===2'),"Quran study mode retains both supplied verses");
     invariant(await evaluate('(localStorage.getItem("noata-quran-bookmarks-v1")??"").includes("1:1")'),"Quran bookmark persistence");
     const original=await evaluate('document.querySelector(".aura-quran-verse")?.style.fontSize');
     await evaluate('document.querySelector("[aria-label=\\\"تكبير خط القرآن\\\"]")?.click()');
@@ -207,6 +212,8 @@ async function verifyQuranControls(){
     const reading=await evaluate('(()=>{const b=document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]");const p=document.querySelector(".aura-quran-verse");return {label:b?.textContent?.trim(),font:p?.style.fontSize,persisted:localStorage.getItem("noata-quran-reading-percent-v2")}})()');
     invariant(reading.label.includes("١١٠")&&reading.persisted==="110"&&Math.abs(parseFloat(reading.font)-35.2)<0.2,"Quran percentage matches rendered font and stored size");
     await navigate("/quran");
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".mushaf-flow-verse").length===2'),"Quran continuous reader restored on reload");
+    await evaluate('document.querySelector(".mushaf-reader-controls .mushaf-segmented button:first-child").click()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===2'),"Quran size persisted on reload");
     invariant(await evaluate('document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.textContent?.includes("١١٠")'),"Quran percentage restores from persistent state");
     await evaluate('document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]")?.click()');
@@ -215,7 +222,10 @@ async function verifyQuranControls(){
     await evaluate('(()=>{const s=document.querySelector("select[aria-label=\\\"اختيار سورة\\\"]");s.value="2";s.dispatchEvent(new Event("change",{bubbles:true}));})()');
     await waitFor(async()=>await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran chapter navigation");
     invariant(await evaluate('document.querySelector(".aura-quran-chapter h2")?.innerText.includes("البقرة")'),"Quran surah chooser");
-    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"Long Surah default shows only five verses");
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===8'),"Full Surah opens with every supplied verse");
+    invariant(await evaluate('document.querySelector(".mushaf-expand button")?.getAttribute("aria-expanded")==="true"'),"Full Surah access is disclosed accessibly");
+    await evaluate('document.querySelector(".mushaf-expand button").click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===5'),"User can collapse the full Surah to its opening");
     invariant(await evaluate('document.querySelector(".mushaf-expand button")?.getAttribute("aria-expanded")==="false"'),"Compact five-Ayah Surah disclosed accessibly");
     await evaluate('document.querySelector(".mushaf-expand button").click()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===8'),"Full Surah expansion reveals all verified verses");
@@ -224,7 +234,7 @@ async function verifyQuranControls(){
     await evaluate('document.querySelectorAll(".mushaf-reciter-card")[7].click()');
     await waitFor(async()=>await evaluate('window.__noataLastQuranReciter==="ar.sudais"'),"Sudais selection triggers own repaired audio API edition");
     invariant(await evaluate('document.querySelectorAll(".mushaf-player audio").length===1 && document.querySelectorAll("audio").length===1'),"Mushaf uses exactly one player");
-    invariant(await evaluate('document.querySelectorAll(".aura-quran-ayah-actions button[aria-label^=\\\"تلاوة الآية\\\"]:not(:disabled)").length===0'),"Unavailable Sudais fixture keeps verse controls disabled");
+    invariant(await evaluate('document.querySelectorAll(".mushaf-study-actions button[aria-label^=\\\"استمع للآية\\\"]:not(:disabled)").length===0'),"Unavailable Sudais fixture keeps verse controls disabled");
     invariant(await evaluate('document.querySelector(".mushaf-player-play").disabled'),"Unavailable chapter catalogue cannot invent playback");
 
     await evaluate('(()=>{const el=document.querySelector("input[aria-label=\\\"البحث في القرآن\\\"]");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,"التجريبية");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
