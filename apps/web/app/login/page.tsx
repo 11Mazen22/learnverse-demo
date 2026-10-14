@@ -302,13 +302,14 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" dir="ltr" placeholder="name@example.com" />
               </label>
               {mode !== "forgot" && (
-                <label className="auth-field">
-                  <span className="auth-field-row">{t("كلمة المرور","Password")}{mode === "signin" && (
+                <div className="auth-field">
+                  <span className="auth-field-row"><label htmlFor="noata-auth-password">{t("كلمة المرور","Password")}</label>{mode === "signin" && (
                       <button type="button" className="auth-inline-link" onClick={() => window.location.assign("/auth/forgot-password")}>{t("نسيت كلمة المرور؟","Forgot your password?")}</button>
                     )}
                   </span>
                   <span className="auth-password">
                     <input
+                      id="noata-auth-password"
                       type={showPassword ? "text" : "password"}
                       required
                       minLength={mode === "signup" ? MIN_NEW_PASSWORD_LENGTH : undefined}
@@ -322,7 +323,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
                       {showPassword ? t("إخفاء","Hide") : t("إظهار","Show")}
                     </button>
                   </span>
-                </label>
+                </div>
               )}
               {error && <p className="auth-alert is-error" role="alert">{error}</p>}
               {message && <p className="auth-alert is-success" role="status">{message}</p>}

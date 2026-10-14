@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {LIBRARY_COLUMNS,LIBRARY_PAGE_SIZE,libraryPage,librarySearchPattern,mergeLibraryPage} from "@/lib/ai/library-query";
 import {NoataCreativeStudio} from "./creative-studio";
+import {NoataImageStudio} from "./image-studio";
 import {downloadBytes} from "./creative-studio";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import type {LibrarySource} from "@/lib/ai/library-source";
@@ -162,7 +163,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
   {!owner?<p role="status">{t("سجّل الدخول للوصول إلى الملفات.","Sign in to access files.")}</p>:!ownerReady?<p role="status">{t("جارٍ التحميل…","Loading…")}</p>:<>
    {previewing?<>
     <div className="noata-library-preview-heading"><button type="button" onClick={closePreview}>{t("العودة إلى المكتبة","Back to library")}</button><h4 ref={previewHeading} tabIndex={-1} dir="auto">{editing?.filename??original?.name??media?.item.name}</h4></div>
-   {media&&<section className="noata-library-media" aria-label={t("معاينة المرفق","Upload preview")}><strong dir="auto">{media.item.name}</strong>{media.item.mime_type.startsWith("image/")?<img src={media.url} alt={media.item.name}/>:<audio src={media.url} controls/>}<button type="button" onClick={()=>setMedia(null)}>{t("إغلاق المعاينة","Close preview")}</button></section>}
+   {media&&<section className="noata-library-media" aria-label={t("معاينة المرفق","Upload preview")}><strong dir="auto">{media.item.name}</strong>{media.item.mime_type.startsWith("image/")?<NoataImageStudio url={media.url} name={media.item.name} sourceId={media.item.id} owner={owner} onSaved={()=>{setPage(0);setRevision(n=>n+1);}} onUse={onUseUpload}/>:<audio src={media.url} controls/>}<button type="button" onClick={()=>setMedia(null)}>{t("إغلاق المعاينة","Close preview")}</button></section>}
    {(editing||original)&&<NoataCreativeStudio inline file={editing} localSource={original} owner={owner} onClose={closePreview} onPrepareEdit={onPrepareEdit} onRevisionSaved={()=>{setPage(0);setRevision(n=>n+1);}}/>}
    </>:<>
    <form className="noata-library-create" onSubmit={e=>{e.preventDefault();void createProject();}}>

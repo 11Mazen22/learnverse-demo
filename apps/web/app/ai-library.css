@@ -36,3 +36,20 @@
 .noata-library-files{max-height:440px}.noata-library-files li{flex-wrap:wrap}.noata-library-files li>div{flex:1 1 200px}.noata-file-project{display:grid;gap:4px;font-size:11px;min-width:120px;flex:1 1 120px}.noata-file-project select{padding:7px}.noata-library-media{display:grid;gap:12px;border:1px solid var(--line);border-radius:16px;padding:14px}.noata-library-media img{max-width:100%;max-height:440px;object-fit:contain}.noata-library-media audio{max-width:100%;width:100%}
 
 .noata-library-preview-heading{display:grid;gap:10px;align-items:start}.noata-library-preview-heading button{justify-self:start}.noata-library-preview-heading h4{margin:0;color:var(--ink);font-size:14px;line-height:1.6;overflow-wrap:anywhere}.noata-library-preview-heading h4:focus{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+
+@font-face{font-family:"Noata Image Lora";src:url("/fonts/lora.ttf") format("truetype");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Noata Image Mono";src:url("/fonts/roboto-mono.ttf") format("truetype");font-weight:100 900;font-display:swap}
+.noata-image-studio{display:grid;gap:14px;min-width:0}.noata-image-studio h4{margin:0;font-size:16px}.noata-image-studio p{font-size:12px;line-height:1.7;color:var(--muted)}
+.noata-image-preview{display:grid;place-items:center;min-height:180px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:repeating-conic-gradient(var(--surface-soft) 0% 25%,var(--surface) 0% 50%) 50%/20px 20px}
+.noata-image-preview canvas,.noata-image-preview img{display:block;max-width:100%;max-height:420px;object-fit:contain}
+.noata-image-toolbar,.noata-image-actions{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.noata-image-toolbar span{font-size:12px;color:var(--muted)}
+.noata-image-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px;border:1px solid var(--line);border-radius:14px;min-width:0}
+.noata-image-controls legend{font-size:12px;font-weight:700;padding-inline:6px}.noata-image-controls label{display:grid;gap:7px;min-width:0;font-size:12px;font-weight:650}.noata-image-controls input[type=range]{padding:0;accent-color:var(--accent)}
+.noata-image-controls output{font-size:11px;color:var(--muted)}.noata-image-caption{grid-column:1/-1}.noata-image-controls .noata-image-check{display:flex;align-items:center}.noata-image-controls input[type=checkbox]{width:auto;accent-color:var(--accent)}
+.noata-image-actions button:nth-child(2){background:var(--accent);color:var(--on-accent,#fff)}.noata-image-studio button{transition:background .2s ease,box-shadow .2s ease}.noata-image-studio button:hover:not(:disabled){box-shadow:0 3px 12px color-mix(in srgb,var(--accent) 12%,transparent)}
+@media(max-width:450px){.noata-image-controls{grid-template-columns:1fr}.noata-image-actions button{flex:1 1 auto}}
+@media(prefers-reduced-motion:reduce){.noata-image-studio button{transition:none}}
+:root[data-reduced-motion=true] .noata-image-studio button{transition:none}
+
+@font-face{font-family:"Noata Image Cairo";src:url("/fonts/cairo-arabic.woff2") format("woff2");font-weight:200 1000;font-display:swap;unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200E,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:"Noata Image Cairo";src:url("/fonts/cairo-latin.woff2") format("woff2");font-weight:200 1000;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
