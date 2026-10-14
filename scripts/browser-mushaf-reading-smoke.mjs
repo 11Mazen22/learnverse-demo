@@ -60,6 +60,13 @@ async function run(){
    const m=await evaluate(measure);
    assert(m.size>200&&m.size<=width+2&&m.left>=-2&&m.right<=width+2,"Mushaf clipping "+JSON.stringify(m));
    assert(m.overflow<=4,"Page horizontal overflow "+JSON.stringify(m));
+
+   const hero=await evaluate('(()=>{const seal=document.querySelector("[data-testid=mushaf-hero-insignia]"),panel=document.querySelector(".mushaf-hero"),copy=document.querySelector(".mushaf-hero-copy"),heading=seal?.querySelector(".mushaf-insignia-arabic"),caption=seal?.querySelector(".mushaf-insignia-caption"),art=seal?.querySelector(".mushaf-insignia-frame");if(!seal||!heading||!caption||!art)return null;const s=seal.getBoundingClientRect(),p=panel.getBoundingClientRect(),c=copy.getBoundingClientRect(),h=heading.getBoundingClientRect(),t=caption.getBoundingClientRect();return {width:s.width,height:s.height,left:s.left,right:s.right,top:s.top,bottom:s.bottom,heroLeft:p.left,heroRight:p.right,copyLeft:c.left,copyRight:c.right,copyBottom:c.bottom,headingLeft:h.left,headingRight:h.right,headingText:heading.textContent,captionBottom:t.bottom,captionText:caption.textContent,paths:art.querySelectorAll("path").length,visibility:getComputedStyle(seal).visibility}})()');
+   assert(hero&&hero.paths>=4&&hero.headingText.includes("القرآن")&&hero.captionText.length>0,"Decorative Quran insignia rendered "+JSON.stringify(hero));
+   assert(hero.width>=145&&hero.width<=245&&hero.height>=150&&hero.height<=260&&hero.visibility==="visible","Insignia responsive dimensions "+JSON.stringify(hero));
+   assert(hero.left>=-2&&hero.right<=width+2&&hero.headingLeft>=hero.left-2&&hero.headingRight<=hero.right+2&&hero.captionBottom<=hero.bottom+2,"Insignia content fits viewport and arch "+JSON.stringify(hero));
+   if(width<=390)assert(hero.top>=hero.copyBottom-4,"Mobile emblem follows rather than overlays hero text "+JSON.stringify(hero));
+
    assert(m.chapter>0&&m.toolbar>0&&m.jump>0,"Chapter, reading mode and jump controls visible");
    assert(m.marks.length>0&&m.extras===0,"Continuous reading must not repeat audio icons for each verse");
    for(const marker of m.marks)assert(marker.w>=25&&marker.x>=-2&&marker.right<=width+2,"Verse marker clipping "+JSON.stringify(marker));
