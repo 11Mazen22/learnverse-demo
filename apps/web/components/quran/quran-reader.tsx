@@ -8,6 +8,7 @@ import { QuranNavigator } from "./quran-navigator";
 import { ReciterPicker } from "./reciter-picker";
 import { RecitationPlayer } from "./recitation-player";
 import { QuranVerses } from "./quran-verses";
+import { MushafHeroInsignia } from "./mushaf-hero-insignia";
 import { QuranSearch } from "./quran-search";
 import { QuranSources } from "./quran-sources";
 import { useQuranAudio } from "./use-quran-audio";
@@ -150,7 +151,7 @@ export function QuranReader() {
   return <div className={`aura-quran mushaf ${focused ? "mushaf-focused" : ""}`} dir={locale==="en"?"ltr":"rtl"} lang={locale}>
     <header className="mushaf-hero">
       <div className="mushaf-hero-copy"><span className="mushaf-eyebrow"><span/>{t("مساحة للقراءة والتلاوة","A space for reading and recitation")}</span><h1>{t("القرآن الكريم","The Holy Quran")}<span>{t("لحظة سكينة، في يومك.","A moment of peace in your day.")}</span></h1><p>{t("اقرأ بتأنٍّ، واستمع بصوت تُحبّه، وعد إلى موضعك بسهولة.","Read thoughtfully, listen to your chosen reciter, and return to your place.")}</p><div className="mushaf-hero-facts"><span><Icon name="book" size={15}/>{t("١١٤ سورة","114 surahs")}</span><span><Icon name="volume" size={15}/>{t("٩ قرّاء","9 reciters")}</span><span><Icon name="check" size={15}/>{t("نص بالرسم العثماني","Uthmani scripture")}</span></div></div>
-      <div className="mushaf-hero-seal" aria-hidden="true"><Icon name="book" size={46}/><span>{t("المصحف","Quran")}</span><small>{t("قراءة · استماع · تدبّر","Read · Listen · Reflect")}</small></div>
+      <MushafHeroInsignia english={locale==="en"}/>
     </header>
     <QuranSearch selected={selected} onOpen={focusVerse}/>
     {notice && <div className="mushaf-notice" role="status"><Icon name="pin" size={16}/><span>{notice}</span><button type="button" aria-label={t("إغلاق التنبيه","Dismiss notice")} onClick={() => setNotice("")}><Icon name="close" size={16}/></button></div>}
