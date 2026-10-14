@@ -27,10 +27,10 @@ async function run(){
  await browser.command("Page.enable");await browser.command("Runtime.enable");
  const fixture=String.raw`(()=> {
    document.getElementById("noata-quran-marker-fixture")?.remove();
-   const shell=document.querySelector(".owui-layout .owui-main") ?? document.querySelector(".owui-layout");
-   const outer=document.createElement("div");outer.id="noata-quran-marker-fixture";
-   outer.dir="rtl";outer.style.cssText="width:min(750px,calc(100% - 32px));margin:30px auto;position:relative;";
-   const card=document.createElement("figure");card.className="noata-quran-passage";
+   const shell=document.querySelector(".owui-layout");
+   const outer=document.createElement("div");outer.id="noata-quran-marker-fixture";outer.className=shell.className;
+   outer.dir="rtl";outer.style.cssText="position:fixed;inset:16px 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:18px 0;background:var(--surface);z-index:10000;";
+   const card=document.createElement("figure");card.className="noata-quran-passage";card.style.cssText="width:min(750px,calc(100% - 32px));flex:none;margin:0";
    const prose=document.createElement("div");prose.className="noata-quran-text";
    for(const [number,arabic] of [[1,"١"],[2,"٢"],[5,"٥"],[10,"١٠"],[100,"١٠٠"],[255,"٢٥٥"],[286,"٢٨٦"]]){
      const span=document.createElement("span");span.className="noata-quran-verse";
@@ -41,7 +41,7 @@ async function run(){
      const digit=document.createElement("span");digit.className="noata-quran-verse-digits";digit.textContent=arabic;digit.setAttribute("aria-hidden","true");
      marker.append(digit);span.append(marker,document.createTextNode(" "));prose.append(span);
    }
-   card.append(prose);outer.append(card);shell.append(outer);outer.scrollIntoView({block:"center"});
+   card.append(prose);outer.append(card);document.body.append(outer);
  })()`;
  for(const width of [1440,768,390,320]){
    await browser.command("Emulation.setDeviceMetricsOverride",{width,height:850,deviceScaleFactor:1,mobile:width<=768});
