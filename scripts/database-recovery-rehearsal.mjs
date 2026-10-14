@@ -15,7 +15,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
  try {
   const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort();
   const before=files.filter(f=>f<'20261008150000'), delta=files.filter(f=>f>='20261008150000');
-  assert.equal(before.length,18);assert.equal(delta.length,14);
+  assert.equal(before.length,18);assert.equal(delta.length,15);
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
@@ -80,6 +80,9 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   assert.equal(query(restored,`SELECT has_function_privilege('authenticated','private.submit_attempt_internal(uuid,jsonb,boolean,text,boolean)','EXECUTE');`),'f');
   assert.equal(query(restored,`SELECT has_column_privilege('authenticated','public.profiles','gems','UPDATE');`),'f');
   pass('Anonymous grading, direct internal grading and client Gem balance writes denied');
+  assert.equal(query(restored,`SELECT has_function_privilege('anon','public.noata_document_object_exists(text)','EXECUTE');`),'f');
+  assert.equal(query(restored,`SELECT has_function_privilege('authenticated','public.noata_document_object_exists(text)','EXECUTE');`),'t');
+  pass('Document metadata probe denies anonymous callers and retains authenticated Storage-policy access');
   const asUser=(id,sql)=>query(restored,`BEGIN;SET LOCAL ROLE authenticated;SET LOCAL request.jwt.claim.sub='${id}';${sql};ROLLBACK;`);
   // Quiet mode leaves only the query's result, making role scope measurable.
   const roleCount=(id)=>asUser(id,`SELECT count(*) FROM public.profiles WHERE id IN ('00000000-0000-0000-0000-000000000020','00000000-0000-0000-0000-000000000021')`).split(/\r?\n/).find(x=>/^\d+$/.test(x));
