@@ -878,7 +878,7 @@ export function useAIWorkspace() {
       let planQuestion="";
       // Semantic proposals select only allowlisted, authenticated file engines.
       // Temporary, explicit tools and retries keep their existing no-side-effect boundaries.
-      if(mode==="send"&&!tool&&!temporary&&!contextualFile&&needsSemanticPlan(text,model)){
+      if(mode==="send"&&!tool&&!quranQuote&&!temporary&&!contextualFile&&needsSemanticPlan(text,model)){
         setNotice(t("بنحدد المطلوب من رسالتك…","Understanding your request…"));
         try{
           const proposed=await invoke({action:"plan",request:text,locale:requestLanguage(text,locale),
