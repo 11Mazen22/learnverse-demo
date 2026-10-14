@@ -67,6 +67,20 @@ async function run(){
    assert(hero.left>=-2&&hero.right<=width+2&&hero.headingLeft>=hero.left-2&&hero.headingRight<=hero.right+2&&hero.captionBottom<=hero.bottom+2,"Insignia content fits viewport and arch "+JSON.stringify(hero));
    if(width<=390)assert(hero.top>=hero.copyBottom-4,"Mobile emblem follows rather than overlays hero text "+JSON.stringify(hero));
 
+   const composition=await evaluate('(()=>{const seal=document.querySelector("[data-testid=mushaf-hero-insignia]");const names=[".mushaf-insignia-halo",".mushaf-insignia-arabic",".mushaf-insignia-divider",".mushaf-insignia-caption",".mushaf-insignia-content"];const rects=names.map(s=>{const e=seal.querySelector(s);const b=e.getBoundingClientRect();return {name:s,top:b.top,bottom:b.bottom,left:b.left,right:b.right,width:b.width,height:b.height,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth}});const box=seal.getBoundingClientRect();return {box:{top:box.top,bottom:box.bottom,left:box.left,right:box.right,height:box.height},rects}})()');
+   const [book,title,divider,caption,content]=composition.rects;
+   assert(book.bottom+1<=title.top && title.bottom<=divider.top+1 && divider.bottom+1<=caption.top,
+     "Mushaf emblem title/divider/tagline must not collide: "+JSON.stringify(composition));
+   assert(title.left>=composition.box.left-1&&title.right<=composition.box.right+1 &&
+     caption.left>=composition.box.left-1&&caption.right<=composition.box.right+1,
+     "Mushaf emblem text must stay inside the arch: "+JSON.stringify(composition));
+   assert(caption.bottom<=composition.box.top+composition.box.height*.83,
+     "Mushaf emblem tagline must clear the lower arch ornament: "+JSON.stringify(composition));
+   assert(content.top>=composition.box.top+composition.box.height*.15 &&
+     content.bottom<=composition.box.bottom-composition.box.height*.12,
+     "Mushaf emblem composition must keep ornamental margins: "+JSON.stringify(composition));
+
+
    assert(m.chapter>0&&m.toolbar>0&&m.jump>0,"Chapter, reading mode and jump controls visible");
    assert(m.marks.length>0&&m.extras===0,"Continuous reading must not repeat audio icons for each verse");
    for(const marker of m.marks)assert(marker.w>=25&&marker.x>=-2&&marker.right<=width+2,"Verse marker clipping "+JSON.stringify(marker));
