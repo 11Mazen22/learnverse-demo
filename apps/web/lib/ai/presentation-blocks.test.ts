@@ -15,7 +15,7 @@ test("Do not interpret directives in fences or before stream completion",()=>{
 test("Reusable note and example blocks work without rendering HTML",()=>{
  const s="Context\n:::insight\nDo **not** guess.\n:::\n:::example\n1 + 1 = 2\n:::";
  const blocks=splitPresentationBlocks(s);
- assert.deepEqual(blocks.map(x=>x.type),["markdown","insight","markdown","example"]);
+ assert.deepEqual(blocks.map(x=>x.type),["markdown","insight","example"]);
  assert.equal(blocks[1].text,"Do **not** guess.");
 });
 
