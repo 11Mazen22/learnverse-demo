@@ -46,6 +46,8 @@ const paths: Record<string, string> = {
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0",
   stop: "M7 7h10v10H7Z",
   keyboard: "M3 6h18v12H3Zm3 4h.01m3 0h.01m3 0h.01m3 0h.01m3 0h.01M7 14h10",
+  eye: "M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7S2 12 2 12Zm10-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z",
+  "eye-off": "M3 3l18 18M10.6 5.1A11 11 0 0 1 12 5c6.3 0 10 7 10 7a15 15 0 0 1-3 4M6.2 6.1A16 16 0 0 0 2 12s3.7 7 10 7a10 10 0 0 0 4.1-.9M10 10a3 3 0 0 0 4 4",
   sliders: "M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M8 14v6",
 };
 export function Icon({
