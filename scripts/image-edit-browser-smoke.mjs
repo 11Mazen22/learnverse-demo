@@ -4,6 +4,8 @@ import {readFile,mkdir,writeFile} from "node:fs/promises";
 import {stripTypeScriptTypes} from "node:module";
 import {spawnSync} from "node:child_process";
 import {launchQaBrowser} from "./lib/qa-browser.mjs";
+const testedRevision=spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim();
+const initiallyDirty=Boolean(spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim());
 const folder="artifacts/noata-image-edit";await mkdir(folder,{recursive:true});
 const source=stripTypeScriptTypes(await readFile("apps/web/lib/ai/image-edit.ts","utf8"),{mode:"strip"});
 const moduleUrl="data:text/javascript;base64,"+Buffer.from(source).toString("base64");
@@ -33,6 +35,7 @@ try{
 }catch(error){failure=error;console.error(error);}
 finally{
  await browser?.close();await writeFile(folder+"/outcome.json",JSON.stringify({revision:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),
-  passed:!failure,result,error:failure?.message??null,scope:"Actual browser raster transforms; account/storage/provider acceptance is separate"},null,2));
+  dirty:initiallyDirty||Boolean(spawnSync("git",["status","--porcelain"],{encoding:"utf8"}).stdout.trim()),endingRevision:spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),
+  passed:!failure&&testedRevision===spawnSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).stdout.trim(),result,error:failure?.message??null,scope:"Actual browser raster transforms; account/storage/provider acceptance is separate"},null,2));
 }
 if(failure)process.exitCode=1;

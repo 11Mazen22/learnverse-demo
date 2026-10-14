@@ -38,3 +38,8 @@ test("Observed 512-word reply to a 700-word request fails its explicit depth req
  assert.equal(answerReviewIssue("Search this","Light becomes energy [4].",research),"research_evidence");
  assert.match(answerReviewInstruction("research_evidence","ar"),/EVERY substantive claim/);
 });
+
+test("Arabic numeric depth and explicitly limited evidence remain readable and honestly scoped",()=>{
+ assert.equal(requestedDepth("شرح شامل في ٧٠٠ كلمة")?.target,700);
+ assert.equal(answerReviewIssue("Search this","Not every detail is verified. Light becomes chemical energy [1].",research),null);
+});
