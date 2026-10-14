@@ -69,8 +69,13 @@ async function run(){
  await evaluate('document.querySelector(".noata-organized-sidebar .owui-sidebar-top>button").click()');
  await waitFor(()=>evaluate('!!document.querySelector(".noata-compact-rail")'),"LTR sidebar toggled",16000);
  await waitFor(()=>evaluate('document.querySelector(".noata-compact-rail")?.getBoundingClientRect().width<=80'),"LTR rail transition",16000);
- await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Tab",bubbles:true}));document.querySelector(".noata-compact-rail .owui-rail-primary").focus()');
- await waitFor(()=>evaluate('document.querySelector("#noata-global-tooltip")?.textContent==="New chat"'),"English keyboard focus");
+ await evaluate('document.body.setAttribute("tabindex","-1");document.body.focus()');
+ await browser.command("Input.dispatchKeyEvent",{type:"keyDown",key:"Tab",code:"Tab",windowsVirtualKeyCode:9,nativeVirtualKeyCode:9});
+ await browser.command("Input.dispatchKeyEvent",{type:"keyUp",key:"Tab",code:"Tab",windowsVirtualKeyCode:9,nativeVirtualKeyCode:9});
+ await evaluate('document.body.focus();document.querySelector(".noata-compact-rail .owui-rail-primary").focus()');
+ await waitFor(()=>evaluate('!!document.querySelector("#noata-global-tooltip")'),"English keyboard focus",9000);
+ const englishTip=await evaluate('(()=>{const e=document.getElementById("noata-global-tooltip");return {label:e.textContent,lang:document.documentElement.lang,direction:document.documentElement.dir}})()');
+ assert(englishTip.label==="New chat","English label must match locale "+JSON.stringify(englishTip));
  assert(await evaluate('document.getElementById("noata-global-tooltip").dataset.side==="right"'),"LTR tooltip on content side");
  await capture("ltr-rail-focus");
  // User-reported regression: appearance choice auto-focus after opening by
