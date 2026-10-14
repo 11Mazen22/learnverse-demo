@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - noata-quran-verse-medallions-20261014
+  pull_request:
+    branches:
+      - noata-aura-platform-overhaul-20261008
 
 permissions:
   contents: read
