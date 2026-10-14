@@ -7,6 +7,7 @@ export function GET(){
     ok:true,
     service:"noata-web",
     version:"1",
+    revision:process.env.VERCEL_GIT_COMMIT_SHA??null,
     timestamp:new Date().toISOString()
   },{
     headers:{"Cache-Control":"no-store"}

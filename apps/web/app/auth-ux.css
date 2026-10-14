@@ -1,0 +1,80 @@
+/* Noata Aura: polished authentication and measured motion without altering provider flows. */
+.auth-shell:not(.is-centered) {
+  background:
+    radial-gradient(ellipse at 18% 15%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 48%),
+    radial-gradient(ellipse at 78% 88%, color-mix(in srgb, #42d9d3 7%, transparent), transparent 47%),
+    var(--surface-soft);
+}
+.auth-shell:not(.is-centered) .auth-aside {
+  background:
+    radial-gradient(circle at 62% 24%, #50ebdf28 0, transparent 37%),
+    radial-gradient(circle at 18% 84%, #3d71e74a 0, transparent 48%),
+    linear-gradient(145deg,#06172e 0%,#103668 52%,#0a6c86 100%);
+}
+.auth-shell .auth-aside-stage {
+  border:1px solid #ffffff30;
+  background:linear-gradient(145deg,#ffffff1b,#ffffff08);
+  box-shadow:0 28px 75px #02132d38,inset 0 1px 0 #ffffff35;
+}
+.auth-shell .auth-aside-stage::after {
+  content:"";
+  position:absolute;
+  width:90px;
+  height:90px;
+  inset-block-start:14%;
+  inset-inline-end:11%;
+  pointer-events:none;
+  border-top:1px solid #ffffff47;
+  border-inline-end:1px solid #ffffff47;
+  border-radius:0 24px 0 0;
+}
+.auth-shell:not(.is-centered) .auth-card {
+  border:1px solid color-mix(in srgb,var(--line) 72%,#fff);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  box-shadow:0 3px 8px #12274507,0 24px 76px color-mix(in srgb,var(--ink) 10%,transparent);
+}
+.auth-shell .auth-card-brand { margin-bottom:8px; }
+.auth-shell .auth-card h1 { font-weight:850; text-wrap:balance; }
+.auth-shell .auth-field > span:first-child { font-weight:750; }
+.auth-shell .auth-field input {
+  background:var(--surface);
+  border:1px solid var(--line);
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.auth-shell .auth-field input:focus {
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent);
+}
+.auth-shell .auth-primary {
+  box-shadow:0 8px 25px color-mix(in srgb,var(--accent) 18%,transparent);
+  letter-spacing:.005em;
+}
+.auth-shell .auth-tabs [aria-selected="true"] { box-shadow:0 2px 13px #0f294419; }
+.auth-shell .auth-google {
+  background:var(--surface);
+  box-shadow:0 2px 4px #12274505;
+}
+.auth-shell .auth-google:hover:not(:disabled) { background:var(--accent-soft); }
+.auth-shell .auth-aside-points li { transition:transform .26s cubic-bezier(.22,1,.36,1),border-color .26s ease; }
+.auth-shell .auth-aside-points li:hover { transform:translateY(-3px); border-color:#ffffff60; }
+.auth-shell .auth-card :is(button,a) { -webkit-tap-highlight-color:transparent; }
+.auth-shell .auth-card :is(button,a):focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.auth-shell .auth-alert { border-radius:13px; line-height:1.8; }
+.noata-shell .nav-link,.noata-shell .mobile-nav a { transition:background-color .22s ease,color .22s ease,transform .22s cubic-bezier(.22,1,.36,1); }
+.noata-shell .nav-link:hover { transform:translateX(-2px); }
+html[dir="ltr"] .noata-shell .nav-link:hover { transform:translateX(2px); }
+.noata-shell .top-icon { transition:transform .2s cubic-bezier(.22,1,.36,1),background-color .2s ease; }
+.noata-shell .top-icon:hover { transform:translateY(-1px); }
+@media (min-width:901px) {
+  .auth-shell:not(.is-centered) .auth-aside-copy { animation:noata-auth-rise .65s both cubic-bezier(.22,1,.36,1); }
+  .auth-shell:not(.is-centered) .auth-card { animation:noata-auth-enter .5s both cubic-bezier(.22,1,.36,1); }
+  .auth-shell .auth-aside-stage-glow { animation:noata-auth-breathe 6s infinite ease-in-out; }
+}
+@keyframes noata-auth-enter { from { opacity:0; transform:translateY(13px) scale(.99); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes noata-auth-rise { from { opacity:0; transform:translateY(17px); } to { opacity:1; transform:translateY(0); } }
+@keyframes noata-auth-breathe { 0%,100% { opacity:.65; transform:scale(1); } 50% { opacity:1; transform:scale(1.045); } }
+@media (prefers-reduced-motion:reduce) {
+  .auth-shell *,.auth-shell *::before,.auth-shell *::after,.noata-shell .nav-link,.noata-shell .top-icon { animation:none !important; transition:none !important; transform:none !important; }
+}
+html[data-reduced-motion="true"] :is(.auth-shell,.noata-shell) *,html[data-reduced-motion="true"] :is(.auth-shell,.noata-shell) *::before { animation:none !important; transition:none !important; transform:none !important; }

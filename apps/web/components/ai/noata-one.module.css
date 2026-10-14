@@ -1,0 +1,568 @@
+/* Noata ONE: one scoped shell. Existing interaction classes remain API hooks.
+   Palette colors come exclusively from the platform's semantic tokens. */
+.root {
+ --one-fast:120ms; --one-menu:180ms; --one-message:220ms; --one-panel:280ms;
+ --one-ease:cubic-bezier(.2,.75,.25,1);
+ --owui-sidebar:256px; --owui-content:780px;
+ background:var(--surface);color:var(--ink);
+ transition:grid-template-columns var(--one-panel) var(--one-ease);
+}
+.root:global(.sidebar-collapsed){--owui-sidebar:64px}
+.root :global(.owui-main){display:flex;flex-direction:column;background:var(--surface)}
+.root :global(.owui-sidebar){background:var(--surface-soft);border-inline-end:1px solid var(--line);padding:14px 12px;gap:10px}
+.root :global(.owui-sidebar:not(.collapsed) > *){animation:sidebar-arrive var(--one-panel) var(--one-ease) both}
+.root :global(.owui-sidebar:not(.collapsed) > :nth-child(2)){animation-delay:35ms}
+.root :global(.owui-sidebar:not(.collapsed) > :nth-child(3)){animation-delay:55ms}
+.root :global(.owui-sidebar:not(.collapsed) > :nth-child(4)){animation-delay:75ms}
+.root :global(.owui-sidebar.collapsed){padding:14px 8px;overflow:visible}
+.root :global(.owui-rail){gap:8px}
+.root :global(.owui-rail .owui-icon){color:var(--muted);transition:background-color var(--one-fast),color var(--one-fast),transform var(--one-fast)}
+.root :global(.owui-rail .owui-icon:hover){color:var(--ink);background:var(--surface);transform:translateY(-2px)}
+.root :global(.owui-rail .owui-icon:active){transform:translateY(0)}
+/* Shared TooltipHost replaces clipped rail-only pseudo-element captions. */
+.root :global(.owui-rail .owui-rail-toggle){color:var(--ink);background:var(--surface);border:1px solid var(--line)}
+.root :global(.owui-rail .owui-rail-primary){color:var(--accent);background:var(--accent-soft)}
+.root :global(.owui-rail-divider){display:block;width:22px;height:1px;background:var(--line);margin:4px 0 2px}
+.root :global(.owui-sidebar-top){min-height:55px;border:0;padding:2px 4px 12px}
+.root :global(.owui-brand){gap:10px}
+.root :global(.owui-brand strong){font-weight:700;font-size:16px;line-height:1.3;letter-spacing:-.02em}
+.root :global(.owui-brand small){font-size:11px;line-height:1.5;margin-top:4px}
+.root :global(.owui-brand .noata-logo){width:34px;height:34px}
+.root :global(.owui-new-chat){border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:13px;min-height:46px;background:var(--accent-soft);color:var(--accent);box-shadow:none}
+.root :global(.owui-new-chat:hover){background:color-mix(in srgb,var(--accent) 14%,var(--surface-soft));border-color:color-mix(in srgb,var(--accent) 45%,var(--line));transform:translateY(-1px)}
+/* Shortcut label must remain legible in every light/dark palette. */
+.root :global(.owui-new-chat kbd){font-size:10px;opacity:1;color:inherit}
+.root :global(.owui-search){border:0;background:var(--surface);border-radius:12px;padding:9px 11px}
+.root :global(.owui-search input){font-size:12px}
+.root :global(.owui-search:focus-within){outline:2px solid var(--accent);outline-offset:2px}
+.root :global(.owui-section-label){padding:7px 10px 2px;color:var(--muted);font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase}
+.root[dir="rtl"] :global(.owui-section-label){letter-spacing:0}
+.root :global(.owui-history-label){padding-top:2px}
+.root :global(.owui-sidebar-links){gap:2px;padding:2px 0 8px;border:0}
+.root :global(.owui-sidebar-links button){min-height:40px;border-radius:10px;font-size:12px;gap:10px}
+.root :global(.owui-sidebar-links :is(a,button)){transition:background-color var(--one-fast),color var(--one-fast),transform var(--one-fast)}
+.root :global(.owui-sidebar-footer button){transition:background-color var(--one-fast),color var(--one-fast),transform var(--one-fast)}
+.root :global(.owui-sidebar-links :is(a,button):hover){transform:translateX(2px)}
+.root :global(.owui-sidebar-footer button:hover){transform:translateX(2px)}
+.root[dir="rtl"] :global(.owui-sidebar-links :is(a,button):hover){transform:translateX(-2px)}
+.root[dir="rtl"] :global(.owui-sidebar-footer button:hover){transform:translateX(-2px)}
+.root :global(.aura-home-return){border:0;border-radius:10px;background:transparent;margin:0}
+.root :global(.aura-home-return small){display:none}
+.root :global(.aura-home-return strong){font-size:12px;font-weight:500}
+.root :global(.owui-history){scrollbar-width:thin;padding-inline:1px}
+.root :global(.owui-chat-group h3){font-size:11px;font-weight:600;letter-spacing:.02em;margin-block:18px 8px}
+.root :global(.owui-chat-title){font-size:12px;min-height:38px;gap:8px}
+.root :global(.owui-chat-title > svg){display:none}
+.root :global(.owui-chat-row){border-radius:10px}
+.root :global(.owui-sidebar-footer){border:0;gap:2px;padding:8px 0 0}
+.root :global(.owui-sidebar-footer button){min-height:40px;font-size:12px;border-radius:10px}
+.root :global(.owui-navbar){flex:none;display:flex;justify-content:space-between;min-height:64px;padding:10px 24px;gap:16px;background:var(--surface);border:0}
+.root :global(.owui-navbar-start){min-width:0;gap:8px}
+.root :global(.owui-navbar-center){flex:1;min-width:0;justify-content:center}
+.root :global(.owui-chat-heading){font-size:12px;max-width:28ch}
+.root :global(.owui-model-trigger){padding:6px 9px;background:transparent;border:0;border-radius:10px;gap:8px;min-height:40px}
+.root :global(.owui-model-trigger small){display:none}
+.root :global(.owui-model-trigger strong){font-size:13px;font-weight:600;max-width:28ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.root :global(.owui-navbar-actions){gap:2px}
+.root :global(.owui-icon),.root :global(.owui-round){min-width:38px;width:38px;height:38px;border-radius:11px}
+.root :global(.owui-messages){flex:1;min-height:0;padding:22px max(20px,calc((100% - var(--owui-content))/2));scrollbar-width:thin;scroll-padding-block:28px}
+.root :global(.owui-thread){width:100%;max-width:var(--owui-content);margin:auto;gap:30px}
+.root :global(.owui-message){animation:message-in var(--one-message) var(--one-ease);min-width:0}
+.root :global(.owui-message-body){min-width:0}
+.root :global(.owui-message.assistant){grid-template-columns:40px minmax(0,1fr);gap:12px}
+.root :global(.owui-message.assistant > .owui-message-avatar){display:grid;place-items:center;height:40px;width:40px;flex:none;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);color:var(--ink);box-shadow:none}
+.root :global(.owui-message-avatar .noata-logo){width:36px!important;height:36px!important;flex:none}
+.root :global(.owui-message-meta){font-size:12px;margin-bottom:9px}
+.root :global(.owui-message-meta strong){font-size:12px}
+.root :global(.owui-provider-info){display:none}
+.root :global(.owui-message .ai-rich-message){font-size:15px;line-height:1.8;max-width:74ch;overflow-wrap:anywhere}
+.root :global(.owui-message.user .ai-rich-message){border:0;border-radius:20px;background:var(--surface-soft);padding:13px 19px;max-width:min(100%,62ch)}
+.root :global(.owui-message.user .owui-message-meta){display:none}
+.root :global(.owui-message-actions){opacity:1;gap:2px;margin-top:10px}
+.root :global(.owui-message-actions button){width:34px;min-height:34px;border-radius:9px}
+.root :global(.owui-composer-wrap){flex:none;width:100%;padding:12px max(20px,calc((100% - var(--owui-content))/2)) max(14px,env(safe-area-inset-bottom));background:var(--surface)}
+.root :global(.owui-composer){width:100%;max-width:var(--owui-content);margin:auto;border:1px solid var(--line);border-radius:23px;padding:12px 14px 10px;background:var(--surface);box-shadow:0 4px 24px color-mix(in srgb,var(--ink) 5%,transparent);transition:border-color var(--one-fast),box-shadow var(--one-fast)}
+.root :global(.owui-composer:focus-within){border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 9%,transparent)}
+.root :global(.owui-composer textarea){font-size:16px;line-height:1.65;min-height:48px;max-height:180px;padding:6px 4px;background:transparent;text-align:start}
+.root :global(.owui-composer-toolbar){margin-top:4px;padding:0;min-height:40px}
+/* Foreground/background must switch atomically between palettes: animating both
+   through incompatible intermediate colors failed WCAG AA in real Chrome. */
+.root :global(.owui-input-menu-wrap > button.owui-round){color:var(--ink);background:var(--surface);opacity:1;transition:transform var(--one-fast)}
+.root :global(.owui-send){min-height:38px;min-width:38px;width:38px;height:38px;border-radius:13px}
+.root :global(.owui-disclaimer){font-size:11px;line-height:1.5;color:var(--muted);max-width:var(--owui-content);margin:10px auto 0;text-align:center;min-height:16px}
+.root :global(.owui-welcome){min-height:0;max-width:660px;margin:0 auto;text-align:center;padding:0;gap:0}
+.root :global(.owui-welcome-logo){display:grid;margin:0 auto 12px;background:transparent;width:42px;height:42px;border-radius:0}
+.root :global(.noata-one-eyebrow){display:block;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin-bottom:14px}
+.root :global(.owui-welcome h1){font-size:clamp(28px,3.8vw,46px);font-weight:650;line-height:1.3;letter-spacing:-.035em;margin:0;animation:welcome-in var(--one-panel) var(--one-ease)}
+.root[dir="rtl"] :global(.owui-welcome h1){letter-spacing:0;line-height:1.5}
+.root :global(.owui-welcome > p){font-size:14px;line-height:1.7;color:var(--muted);max-width:50ch;margin:12px auto 0}
+.root :global(.noata-one-signin){display:inline-block;font-size:13px;color:var(--accent);text-decoration:underline;text-underline-offset:4px;margin-top:10px}
+.root[data-empty="true"] :global(.owui-main){overflow:auto}
+.root[data-empty="true"] :global(.owui-messages){flex:none;overflow:visible;margin-top:auto;padding-block:30px 24px}
+.root[data-empty="true"] :global(.owui-thread){display:none}
+.root[data-empty="true"] :global(.owui-composer-wrap){margin-bottom:auto;padding-top:0;animation:welcome-in var(--one-panel) var(--one-ease)}
+.root :global(.noata-suggested-actions.welcome){max-width:var(--owui-content);margin:18px auto 0}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-grid){grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-item){min-height:44px;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:var(--surface-soft);box-shadow:none;font-size:12px;font-weight:500;line-height:1.5;gap:8px;animation:welcome-in var(--one-message) var(--one-ease) both}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-item:hover){border-color:var(--line);box-shadow:none;transform:translateY(-1px)}
+.root :global(.noata-suggested-spark){background:transparent;height:20px;width:20px;flex-basis:20px;font-size:18px}
+.root :global(.noata-suggested-arrow){font-size:14px}
+.root :global(.noata-generated-file){border-radius:17px;padding:18px;box-shadow:none;animation:welcome-in var(--one-panel) var(--one-ease)}
+.root :global(.noata-generated-file-actions button){min-height:38px;border-radius:10px}
+.root :global(.noata-dialog--ai){width:min(820px,calc(100vw - 24px));max-height:calc(100dvh - 32px);border-radius:22px;padding:22px}
+.root :global(.noata-dialog--ai .owui-settings){grid-template-columns:155px minmax(0,1fr);gap:20px;min-height:0}
+.root :global(.owui-settings-tabs button){font-size:12px;min-height:40px;border-radius:10px;text-align:start}
+.root :global(.owui-settings-content){padding:4px;max-height:65dvh;overflow:auto}
+.root :global(.owui-settings-content h3){font-size:18px}
+.root :global(.owui-settings-content p){font-size:12px;line-height:1.7}
+.root :global(.owui-model-menu),.root :global(.owui-input-menu),.root :global(dialog[open]){animation:panel-in var(--one-menu) var(--one-ease)}
+.root :global(button){transition:background-color var(--one-fast),border-color var(--one-fast),color var(--one-fast),transform var(--one-fast)}
+.root :global(button:active:not(:disabled)){transform:translateY(1px)}
+.root :global(:is(button,a,input,textarea,summary):focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+@keyframes welcome-in{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes message-in{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes panel-in{from{opacity:.5;transform:translateY(3px)}to{opacity:1;transform:none}}
+@keyframes sidebar-arrive{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(max-width:980px){
+ .root{grid-template-columns:minmax(0,1fr)}
+ .root :global(.owui-navbar){padding-inline:14px;min-height:58px;gap:6px}
+ .root :global(.owui-navbar-center){display:none}
+ .root :global(.owui-navbar-actions){gap:0}
+ .root :global(.owui-model-trigger strong){max-width:24ch}
+}
+@media(max-width:640px){
+ .root{--owui-content:100%}
+ .root :global(.owui-navbar){min-height:54px;padding:7px 8px}
+ .root :global(.owui-navbar-start){gap:0}
+ .root :global(.owui-model-trigger){padding-inline:5px}
+ .root :global(.owui-model-trigger strong){max-width:22ch;font-size:12px}
+ .root :global(.owui-navbar-actions > button){display:none}
+ .root :global(.owui-messages){padding:20px 12px}
+ .root :global(.owui-message.assistant){grid-template-columns:34px minmax(0,1fr);gap:9px}
+ .root :global(.owui-message.assistant > .owui-message-avatar){display:grid;width:34px;height:34px;border-radius:10px}
+ .root :global(.owui-message-avatar .noata-logo){width:30px!important;height:30px!important}
+ .root :global(.owui-message .ai-rich-message){font-size:15px}
+ .root :global(.owui-composer-wrap){padding-inline:10px;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+ .root :global(.owui-composer){border-radius:20px;padding:10px}
+ .root :global(.owui-welcome-logo){margin-bottom:8px}
+ .root :global(.noata-one-eyebrow){margin-bottom:9px}
+ .root :global(.owui-welcome > p){font-size:13px;max-width:31ch}
+ .root :global(.owui-disclaimer){font-size:10px}
+ .root :global(.noata-suggested-actions.welcome .noata-suggested-item){font-size:11px;min-height:48px;padding:8px;gap:5px}
+ .root :global(.noata-suggested-actions.welcome .noata-suggested-spark){display:none}
+ .root :global(.noata-dialog--ai .owui-settings){grid-template-columns:minmax(0,1fr);gap:12px}
+ .root :global(.owui-settings-tabs){display:flex;overflow:auto;max-width:100%;gap:4px}
+ .root :global(.owui-settings-tabs button){flex:none}
+ .root :global(.owui-settings-content){max-height:60dvh}
+}
+@media(max-height:650px){
+ .root[data-empty="true"] :global(.owui-messages){padding-block:14px}
+ .root :global(.owui-welcome-logo),.root :global(.noata-one-eyebrow){display:none}
+ .root :global(.owui-welcome h1){font-size:28px}
+ .root :global(.owui-welcome > p){margin-top:4px}
+ .root :global(.noata-suggested-actions.welcome){margin-top:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ .root{--one-fast:0ms;--one-menu:0ms;--one-message:0ms;--one-panel:0ms}
+}
+:global(html[data-noata-motion="reduce"]) .root{--one-fast:90ms;--one-menu:0ms;--one-message:0ms;--one-panel:0ms}
+:global(html[data-noata-motion="off"]) .root{--one-fast:0ms;--one-menu:0ms;--one-message:0ms;--one-panel:0ms}
+
+.root :global(.noata-one-actions){position:relative}
+.root :global(.noata-one-actions > summary){display:grid;place-items:center;list-style:none;cursor:pointer;width:38px;height:38px;border-radius:11px;color:var(--muted)}
+.root :global(.noata-one-actions > summary::-webkit-details-marker){display:none}
+.root :global(.noata-one-actions[open] > summary),.root :global(.noata-one-actions > summary:hover){background:var(--surface-soft);color:var(--ink)}
+.root :global(.noata-one-actions-menu){position:absolute;inset-inline-end:0;top:calc(100% + 6px);width:215px;max-width:calc(100vw - 24px);display:grid;gap:3px;padding:7px;background:var(--surface);border:1px solid var(--line);border-radius:15px;box-shadow:0 10px 28px color-mix(in srgb,var(--ink) 12%,transparent);animation:panel-in var(--one-menu) var(--one-ease)}
+.root :global(.noata-one-actions-menu button){display:flex;align-items:center;text-align:start;gap:10px;width:100%;min-height:40px;padding:9px 10px;border:0;border-radius:9px;background:transparent;color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+.root :global(.noata-one-actions-menu button:hover){background:var(--surface-soft)}
+
+@font-face{font-family:NoataEditorial;src:url("/fonts/lora.ttf") format("truetype");font-weight:400 700;font-display:swap;unicode-range:U+0000-024F,U+1E00-1EFF}
+@font-face{font-family:NoataMono;src:url("/fonts/roboto-mono.ttf") format("truetype");font-weight:100 700;font-display:swap;unicode-range:U+0000-024F,U+1E00-1EFF}
+.root :global(.owui-message.assistant .ai-rich-message :is(h1,h2,h3)){font-family:NoataEditorial,NoataArabic,serif;font-weight:650;line-height:1.5;margin-block:1.5em .65em;letter-spacing:-.015em}
+.root :global(.owui-message.assistant .ai-rich-message h2){font-size:1.4em}.root :global(.owui-message.assistant .ai-rich-message h3){font-size:1.15em}.root :global(.owui-message.assistant .ai-rich-message p){margin-block:.65em 1em}
+.root[data-typography="editorial"] :global(.owui-message.assistant .ai-rich-message){font-family:NoataEditorial,NoataArabic,serif;line-height:1.9}
+.root[data-typography="mono"] :global(.owui-message.assistant .ai-rich-message){font-family:NoataMono,NoataArabic,monospace;font-size:14px;line-height:1.85}
+.root :global(.noata-typography-choice){display:grid;gap:8px;margin-top:18px;font-size:13px;font-weight:600}.root :global(.noata-typography-choice select){font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+
+/* Balanced tracks center the shared title regardless of model-control width.
+   Logical alignment works in English and Arabic and with either sidebar state. */
+.root :global(.owui-navbar){display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center}
+.root :global(.owui-navbar-start){display:flex;justify-self:start;max-width:100%;min-width:0}
+.root :global(.owui-model-picker){min-width:0}
+.root :global(.owui-model-trigger){max-width:100%;min-width:0}
+.root :global(.owui-model-trigger > span){min-width:0}
+.root :global(.owui-model-trigger strong){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.root :global(.owui-navbar-center){display:flex;flex-direction:column;align-items:center;justify-self:center;gap:3px;max-width:min(32vw,28ch);min-width:0}
+.root :global(.noata-header-brand){display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;color:var(--ink)}
+.root :global(.noata-header-brand strong){font-size:13px;font-weight:650}
+.root :global(.noata-header-brand .noata-logo){width:24px;height:24px;flex:none}
+.root :global(.owui-navbar-center .owui-chat-heading){font-size:10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.root :global(.owui-navbar-actions){justify-self:end;display:flex}
+@media(max-width:820px){.root :global(.owui-navbar){grid-template-columns:minmax(0,1fr) auto}.root :global(.owui-navbar-center){display:none}}
+
+/* Fixed actions, one history scroller, and a quiet footer. */
+.root :global(.noata-organized-sidebar){gap:8px;overflow:hidden;isolation:isolate}
+.root :global(.noata-organized-sidebar > :not(.owui-history)){flex-shrink:0}
+.root :global(.noata-organized-sidebar .owui-sidebar-top){padding:2px 4px 8px;min-height:52px}
+.root :global(.noata-organized-sidebar .owui-brand strong){font-size:15px;letter-spacing:0}
+.root :global(.noata-organized-sidebar .owui-brand small){font-size:10px;max-width:19ch;margin-top:2px}
+.root :global(.noata-organized-sidebar .owui-new-chat){min-height:44px;gap:9px;white-space:nowrap}
+.root :global(.noata-sidebar-search){min-height:42px;border:1px solid var(--line);gap:9px;background:var(--surface)}
+.root :global(.noata-sidebar-search input){min-width:0;width:100%;font-size:12px}
+.root :global(.noata-organized-sidebar .owui-section-label){padding:9px 10px 0;font-size:10px;letter-spacing:.05em}
+.root :global(.noata-organized-sidebar .owui-sidebar-links){padding:0 0 8px;gap:2px;border-bottom:1px solid var(--line)}
+.root :global(.noata-organized-sidebar .owui-sidebar-links :is(a,button)){min-height:38px;gap:10px;font-size:12px;padding-inline:10px;transform:none}
+.root :global(.noata-history-heading){display:flex;align-items:center;justify-content:space-between;min-height:34px;padding-inline:10px}
+.root :global(.noata-history-heading h2){margin:0;color:var(--muted);font-size:11px;font-weight:650;line-height:1.4}
+.root :global(.noata-history-heading .owui-icon){width:30px;height:30px;min-height:30px;border:0;background:transparent;color:var(--muted)}
+.root :global(.noata-history-heading .owui-icon[aria-pressed="true"]){background:var(--accent-soft);color:var(--accent)}
+.root :global(.noata-chat-index){overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:auto;scrollbar-width:thin;padding:0 2px 12px}
+.root :global(.noata-chat-index-empty){overflow:hidden;display:flex;align-items:flex-start;justify-content:center}
+.root :global(.noata-chat-index .owui-chat-group h3){margin-block:12px 5px;padding-inline:10px;font-size:10px;font-weight:600}
+.root :global(.noata-chat-index .owui-chat-group:first-child h3){margin-top:2px}
+.root :global(.noata-chat-index .owui-chat-title){font-size:12px;min-height:38px;padding-inline:10px}
+.root :global(.noata-chat-index .owui-chat-row.active){background:var(--accent-soft);color:var(--accent)}
+.root :global(.noata-chat-index .owui-chat-row .owui-chat-title span){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.root :global(.noata-chat-index .aura-history-menu summary){opacity:0;transition:opacity var(--one-fast)}
+.root :global(.noata-chat-index .owui-chat-row:is(:hover,:focus-within) .aura-history-menu summary),.root :global(.noata-chat-index .aura-history-menu[open] summary){opacity:1}
+.root :global(.noata-chat-index-empty .owui-history-empty){width:100%;max-width:220px;gap:10px;margin:12px 0;padding:20px 14px;text-align:center;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.root :global(.noata-chat-index-empty .owui-history-empty > svg){width:28px;height:28px;padding:11px;box-sizing:content-box;border-radius:15px;background:var(--accent-soft);color:var(--accent)}
+.root :global(.owui-history-empty strong){font-size:12px;font-weight:650;line-height:1.6;color:var(--ink)}
+.root :global(.noata-chat-index-empty .owui-history-empty p){font-size:11px;line-height:1.8;margin:0;color:var(--muted)}
+.root :global(.owui-history-empty button),.root :global(.noata-history-more),.root :global(.noata-history-retry button){border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);min-height:34px;padding:7px 11px;font:inherit;font-size:11px;cursor:pointer;transition:background var(--one-fast),border-color var(--one-fast)}
+.root :global(.owui-history-empty button:hover),.root :global(.noata-history-more:hover){background:var(--accent-soft);border-color:var(--accent)}
+.root :global(.noata-history-more){display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px}
+.root :global(.noata-history-status),.root :global(.noata-history-retry){font-size:11px;line-height:1.7;color:var(--muted);padding:12px;text-align:center}
+.root :global(.noata-organized-sidebar .owui-sidebar-footer){border-top:1px solid var(--line);padding-top:8px;gap:0}
+.root :global(.noata-organized-sidebar .owui-sidebar-footer button){min-height:36px;padding-inline:10px;font-size:11px}
+@media (hover:none){.root :global(.noata-chat-index .aura-history-menu summary){opacity:1}}
+@media (max-height:680px){.root :global(.noata-organized-sidebar){gap:4px}.root :global(.noata-organized-sidebar .owui-brand small){display:none}.root :global(.noata-organized-sidebar .owui-sidebar-top){min-height:44px}}
+@media (prefers-reduced-motion:reduce){.root :global(.noata-organized-sidebar *){animation:none!important;transition:none!important}}
+
+
+/* October reading experience: intentional hierarchy, no added chrome on the chat surface. */
+.root{--owui-sidebar:278px;--owui-content:810px}
+.root:global(.sidebar-collapsed){--owui-sidebar:64px}
+.root :global(.noata-organized-sidebar){
+  gap:9px;padding:17px 12px 12px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 3%,var(--surface-soft)),var(--surface-soft) 39%);
+  border-inline-end:1px solid color-mix(in srgb,var(--line) 85%,transparent)
+}
+.root :global(.noata-organized-sidebar .owui-sidebar-top){min-height:52px;padding:2px 4px 10px;gap:6px;align-items:center}
+.root :global(.noata-organized-sidebar .owui-brand){display:flex;align-items:center;min-width:0;gap:10px;flex:1}
+.root :global(.noata-organized-sidebar .owui-brand .noata-logo){height:37px;width:37px;flex-shrink:0}
+.root :global(.noata-organized-sidebar .owui-brand strong){font-size:15px;line-height:1.3;font-weight:780;letter-spacing:-.01em}
+.root :global(.noata-organized-sidebar .owui-brand small){display:block;margin:2px 0 0;font-size:10px;max-width:20ch;line-height:1.4;color:var(--muted)}
+.root :global(.noata-organized-sidebar .owui-sidebar-top>.owui-icon){width:32px;height:32px;min-width:32px;flex:none;border:1px solid transparent}
+.root :global(.noata-organized-sidebar .owui-sidebar-top>.owui-icon:hover){border-color:var(--line);background:var(--surface)}
+.root :global(.noata-organized-sidebar .owui-new-chat){min-height:46px;display:flex;gap:10px;padding-inline:14px;margin-top:4px;
+  border-radius:14px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));
+  background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 12%,var(--surface)),color-mix(in srgb,var(--accent) 5%,var(--surface)));
+  color:var(--ink);font-weight:700;font-size:13px;box-shadow:none}
+.root :global(.noata-organized-sidebar .owui-new-chat svg){color:var(--accent)}
+.root :global(.noata-organized-sidebar .owui-new-chat:hover){border-color:var(--accent);background:var(--accent-soft);color:var(--ink);transform:translateY(-1px)}
+.root :global(.noata-sidebar-search){margin:1px 0 3px;min-height:42px;padding-inline:12px;border-radius:13px;background:var(--surface);border:1px solid var(--line);transition:border-color 160ms,box-shadow 160ms}
+.root :global(.noata-sidebar-search:focus-within){outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)}
+.root :global(.noata-sidebar-search input){color:var(--ink);font-size:12px;line-height:1.4}
+.root :global(.noata-workspace-menu){flex:none;min-width:0;border-bottom:1px solid var(--line);padding-bottom:7px}
+.root :global(.noata-workspace-menu>summary){display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 11px;
+  min-height:37px;list-style:none;cursor:pointer;border-radius:10px;color:var(--muted);font-size:11px;font-weight:720;letter-spacing:.02em}
+.root[dir="rtl"] :global(.noata-workspace-menu>summary){letter-spacing:0}
+.root :global(.noata-workspace-menu>summary::-webkit-details-marker){display:none}
+.root :global(.noata-workspace-menu>summary span){display:flex;align-items:center;gap:10px}
+.root :global(.noata-workspace-menu>summary>svg){transition:transform 160ms}
+.root :global(.noata-workspace-menu[open]>summary>svg){transform:rotate(180deg)}
+.root :global(.noata-workspace-menu>summary:hover){background:var(--surface);color:var(--ink)}
+.root :global(.noata-workspace-menu .owui-sidebar-links){display:grid;gap:3px;padding:4px 0 2px;border-bottom:0}
+.root :global(.noata-workspace-menu .owui-sidebar-links :is(a,button)){min-height:37px;display:flex;align-items:center;gap:11px;padding:8px 11px;
+  font-size:12px;border-radius:10px;white-space:normal;color:var(--muted)}
+.root :global(.noata-workspace-menu .owui-sidebar-links :is(a,button):hover),
+.root :global(.noata-workspace-menu .owui-sidebar-links .active){background:var(--accent-soft);color:var(--ink)}
+.root :global(.noata-workspace-menu .owui-sidebar-links :is(a,button) svg){flex:none}
+.root :global(.noata-history-heading){min-height:36px;margin-top:2px;padding-inline:8px}
+.root :global(.noata-history-heading h2){font-size:12px;font-weight:750;color:var(--ink)}
+.root :global(.noata-chat-index){flex:1;min-height:0;padding:2px 1px 12px;scrollbar-gutter:stable;scrollbar-color:color-mix(in srgb,var(--muted) 25%,transparent) transparent}
+.root :global(.noata-chat-index .owui-chat-group){margin:0 0 14px}
+.root :global(.noata-chat-index .owui-chat-group h3){padding:5px 9px 7px;margin:0 0 3px;font-size:10px;line-height:1.6;font-weight:720;color:var(--muted);letter-spacing:.015em}
+.root :global(.noata-chat-index .owui-chat-row){min-height:42px;padding:2px 3px;border:1px solid transparent;border-radius:11px;margin-bottom:2px;transition:background-color 140ms,border-color 140ms}
+.root :global(.noata-chat-index .owui-chat-row:hover){background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.root :global(.noata-chat-index .owui-chat-row.active){background:var(--accent-soft);color:var(--ink);border-color:color-mix(in srgb,var(--accent) 14%,transparent)}
+.root :global(.noata-chat-index .owui-chat-title){height:auto;min-height:36px;font-size:12px;gap:8px;font-weight:490;line-height:1.55;text-align:start;padding:7px 9px}
+.root :global(.noata-chat-index .owui-chat-row.active .owui-chat-title){font-weight:690;color:var(--ink)}
+.root :global(.noata-chat-index .owui-chat-title>svg){display:block;flex:none;width:14px;height:14px;color:var(--muted);opacity:.68}
+.root :global(.noata-chat-index .owui-chat-row.active .owui-chat-title>svg){color:var(--accent);opacity:1}
+.root :global(.noata-chat-index .aura-history-menu summary){width:30px;height:30px;display:grid;place-items:center;border-radius:9px}
+.root :global(.noata-organized-sidebar .owui-sidebar-footer){padding:10px 0 0;border-top:1px solid var(--line);gap:1px}
+.root :global(.noata-organized-sidebar .owui-sidebar-footer button){min-height:36px;padding:8px 10px;font-size:11px;color:var(--muted)}
+.root :global(.noata-organized-sidebar .owui-sidebar-footer button:hover){background:var(--surface);color:var(--ink)}
+.root :global(.owui-sidebar.collapsed){padding:15px 8px;border-inline-end:1px solid var(--line)}
+.root :global(.owui-rail){gap:9px}
+.root :global(.owui-rail .owui-icon){border-radius:12px;width:42px;min-width:42px;height:42px;display:grid;place-items:center}
+.root :global(.owui-rail .owui-rail-primary){background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.root :global(.owui-rail-divider){width:26px;margin:0 0 1px}
+
+/* Rich, readable response typography across languages and response lengths. */
+.root :global(.owui-message.assistant .ai-rich-message){max-width:100%;font-size:15px;line-height:1.85;overflow-wrap:break-word;color:var(--ink)}
+.root :global(.owui-message.assistant .ai-rich-message :is(h1,h2,h3,h4)){font-weight:750;line-height:1.5;overflow-wrap:anywhere;letter-spacing:0}
+.root :global(.owui-message.assistant .ai-rich-message h1){font-size:clamp(21px,2.5vw,27px);margin:1.5em 0 .65em}
+.root :global(.owui-message.assistant .ai-rich-message h2){font-size:clamp(18px,2.2vw,22px);margin:1.65em 0 .65em}
+.root :global(.owui-message.assistant .ai-rich-message h3){font-size:16px;margin:1.3em 0 .55em}
+.root :global(.owui-message.assistant .ai-rich-message :is(h1,h2,h3):first-child){margin-top:0}
+.root :global(.owui-message.assistant .ai-rich-message p){margin:.45em 0 1.05em;max-width:80ch}
+.root :global(.owui-message.assistant .ai-rich-message :is(ul,ol)){display:block;margin:.65em 0 1.25em;padding-inline-start:1.65em;max-width:80ch}
+.root :global(.owui-message.assistant .ai-rich-message li){padding-inline-start:.22em;margin:.3em 0;line-height:1.8}
+.root :global(.owui-message.assistant .ai-rich-message li::marker){color:var(--accent)}
+.root :global(.owui-message.assistant .ai-rich-message li>p){display:inline;margin:0}
+.root :global(.owui-message.assistant .ai-rich-message blockquote){margin:1.15em 0;padding:14px 18px;border-inline-start:3px solid var(--accent);
+  background:color-mix(in srgb,var(--accent) 6%,var(--surface));border-radius:0 14px 14px 0;color:var(--ink)}
+.root[dir="rtl"] :global(.owui-message.assistant .ai-rich-message blockquote){border-radius:14px 0 0 14px}
+.root :global(.owui-message.assistant .ai-rich-message blockquote p){margin:0}
+.root :global(.owui-message.assistant .ai-rich-message :not(pre)>code){padding:2px 5px;border-radius:6px;background:var(--surface-soft);
+  border:1px solid var(--line);font-size:.88em;unicode-bidi:isolate}
+.root :global(.owui-message.assistant .ai-rich-message pre){max-width:100%;overflow:auto;margin:7px 0 6px;padding:18px;
+  border:1px solid var(--line);border-radius:14px;background:var(--surface-soft);color:var(--ink);line-height:1.6;text-align:left;direction:ltr}
+.root :global(.owui-message.assistant .ai-rich-message table){width:100%;max-width:100%;overflow-x:auto;display:block;margin:15px 0;border-collapse:separate;border-spacing:0;
+  border:1px solid var(--line);border-radius:12px;font-size:13px;line-height:1.6}
+.root :global(.owui-message.assistant .ai-rich-message :is(td,th)){padding:10px 13px;text-align:start;border-bottom:1px solid var(--line);border-inline-end:1px solid var(--line);vertical-align:top}
+.root :global(.owui-message.assistant .ai-rich-message th){background:var(--surface-soft);font-weight:720}
+.root :global(.owui-message.assistant .ai-rich-message hr){height:1px;border:0;background:var(--line);margin:24px 0}
+.root :global(.owui-message.assistant .ai-rich-message a){color:var(--accent);text-underline-offset:3px}
+.root :global(.owui-message.assistant .ai-rich-message img){max-width:100%;height:auto;border-radius:14px}
+.root :global(.owui-message.assistant.streaming .ai-rich-message::after){content:"";display:inline-block;height:1.05em;width:2px;margin-inline-start:3px;
+  vertical-align:-.14em;background:var(--accent);border-radius:2px;animation:noata-caret 900ms steps(1,end) infinite}
+.root :global(.owui-message.assistant.streaming .owui-stream-badge){display:inline-flex;align-items:center;gap:8px;color:var(--muted)}
+.root :global(.owui-message.assistant.streaming .owui-stream-badge::before){content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);animation:noata-pulse 1.5s ease-in-out infinite}
+.root :global(.owui-thinking){align-items:center;gap:7px}
+.root :global(.owui-thinking em){font-style:normal;font-size:12px;color:var(--muted)}
+@keyframes noata-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes noata-pulse{0%,100%{opacity:.4;transform:scale(.86)}50%{opacity:1;transform:scale(1)}}
+
+/* Verified Quran — its own Arabic script, separate from normal explanation. */
+@font-face{font-family:NoataChatQuran;src:url("/fonts/amiri-quran.ttf") format("truetype");font-display:swap}
+.root :global(.noata-quran-passage){margin:19px 0 22px;max-width:100%;border:1px solid color-mix(in srgb,var(--accent) 16%,var(--line));
+  border-radius:20px;overflow:hidden;background:linear-gradient(155deg,color-mix(in srgb,var(--accent) 4%,var(--surface)),var(--surface));
+  box-shadow:0 8px 24px color-mix(in srgb,var(--ink) 3%,transparent)}
+.root :global(.noata-quran-heading){display:flex;align-items:center;gap:11px;padding:13px 16px;border-bottom:1px solid var(--line);font-family:inherit}
+.root :global(.noata-quran-symbol){height:35px;width:35px;flex:none;border-radius:11px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.root :global(.noata-quran-heading>span:nth-child(2)){display:grid;gap:2px;min-width:0}
+.root :global(.noata-quran-heading strong){font-size:13px;font-weight:750}
+.root :global(.noata-quran-heading small){font-size:10px;color:var(--muted)}
+.root :global(.noata-quran-open){display:flex;align-items:center;gap:5px;margin-inline-start:auto;font-size:11px;font-weight:650;
+  white-space:nowrap;text-decoration:none;padding:7px 9px;border-radius:9px;color:var(--accent)}
+.root :global(.noata-quran-open:hover){background:var(--accent-soft)}
+.root :global(.noata-quran-text){padding:18px clamp(17px,4vw,32px);font-family:NoataChatQuran,serif;font-size:clamp(22px,2.5vw,28px);
+  line-height:2.35;text-align:justify;text-align-last:start;overflow-wrap:normal;word-break:normal;color:var(--ink)}
+.root :global(.noata-quran-verse){display:inline}
+.root :global(.noata-quran-verse-number){display:inline-block;white-space:nowrap;color:var(--accent);font-family:NoataChatQuran,serif;font-size:.75em;letter-spacing:0}
+.root :global(.noata-quran-source){border-top:1px solid var(--line);padding:9px 16px;color:var(--muted);font-size:10px;line-height:1.5}
+.root :global(.noata-quran-loading),.root :global(.noata-quran-error){padding:20px 18px;margin:0;line-height:1.8;font-size:12px;color:var(--muted)}
+.root :global(.noata-quran-error){color:var(--ink)}
+@media(max-width:980px){.root{--owui-sidebar:0px}.root:global(.sidebar-collapsed){--owui-sidebar:0px}}
+@media(max-width:640px){
+ .root :global(.noata-organized-sidebar){padding:14px 11px 11px}
+ .root :global(.owui-message.assistant .ai-rich-message){font-size:14px;line-height:1.85}
+ .root :global(.owui-message.assistant .ai-rich-message :is(h1,h2)){font-size:18px}
+ .root :global(.noata-quran-heading){padding:11px;gap:8px}
+ .root :global(.noata-quran-text){padding:13px 14px;font-size:24px;line-height:2.2}
+ .root :global(.noata-quran-open){font-size:10px;padding:6px 3px}
+ .root :global(.noata-quran-passage){border-radius:15px}
+}
+@media(prefers-reduced-motion:reduce){.root :global(.owui-message.assistant.streaming .ai-rich-message::after),.root :global(.owui-message.assistant.streaming .owui-stream-badge::before){animation:none!important}}
+:global(html[data-noata-motion="off"]) .root :global(.owui-message.assistant.streaming .ai-rich-message::after),
+:global(html[data-noata-motion="off"]) .root :global(.owui-message.assistant.streaming .owui-stream-badge::before){animation:none!important}
+
+.root :global(.noata-stream-placeholder){min-height:87px}
+.root :global(.noata-stream-placeholder .owui-message-body){min-width:0}
+.root :global(.noata-stream-progress){display:flex;align-items:center;gap:12px;min-height:37px;color:var(--muted);font-size:12px;line-height:1.7}
+.root :global(.noata-stream-indicator){display:inline-flex;align-items:center;gap:4px;flex:none;height:22px}
+.root :global(.noata-stream-indicator i){width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.35;animation:noata-stream-wave 1.1s ease-in-out infinite}
+.root :global(.noata-stream-indicator i:nth-child(2)){animation-delay:140ms}
+.root :global(.noata-stream-indicator i:nth-child(3)){animation-delay:280ms}
+@keyframes noata-stream-wave{0%,65%,100%{opacity:.3;transform:translateY(0)}32%{opacity:1;transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.root :global(.noata-stream-indicator i){animation:none;opacity:.7;transform:none}}
+:global(html[data-noata-motion="off"]) .root :global(.noata-stream-indicator i){animation:none;opacity:.7;transform:none}
+
+
+/* Noata AI editorial/navigation revision · targeted last-in-module overrides */
+.root{--owui-sidebar:322px;--owui-content:835px}
+.root:global(.sidebar-collapsed){--owui-sidebar:70px}
+.root :global(.noata-organized-sidebar){
+ padding:17px 14px 12px;
+ background:color-mix(in srgb,var(--surface-soft) 88%,var(--surface));
+ gap:11px;
+}
+.root :global(.noata-organized-sidebar .owui-sidebar-top){
+ display:flex;align-items:center;justify-content:space-between;
+ padding:2px 4px 14px;min-height:64px;
+ border-bottom:1px solid color-mix(in srgb,var(--line) 75%,transparent);
+}
+.root :global(.noata-organized-sidebar .owui-brand){min-width:0;flex:1;display:flex;gap:11px;align-items:center}
+.root :global(.noata-organized-sidebar .owui-brand .noata-logo){width:42px!important;height:42px!important;flex:none}
+.root :global(.noata-organized-sidebar .owui-brand>div){min-width:0;display:flex;flex-direction:column;gap:2px}
+.root :global(.noata-organized-sidebar .owui-brand strong){font-size:17px;line-height:1.25;font-weight:780;color:var(--ink)}
+.root :global(.noata-organized-sidebar .owui-brand small){font-size:11px;line-height:1.5;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.root :global(.noata-organized-sidebar .owui-new-chat){display:flex;align-items:center;gap:11px;min-height:48px;
+ background:var(--accent);color:var(--on-accent,#fff);
+ border-color:var(--accent);font-size:13px;font-weight:760;border-radius:13px;
+ padding:11px 15px;box-shadow:0 6px 16px color-mix(in srgb,var(--accent) 13%,transparent);margin:0}
+.root :global(.noata-organized-sidebar .owui-new-chat svg){color:inherit}
+.root :global(.noata-organized-sidebar .owui-new-chat:hover:not(:disabled)){background:color-mix(in srgb,var(--accent) 88%,var(--ink));border-color:var(--accent);color:var(--on-accent,#fff);box-shadow:0 9px 22px color-mix(in srgb,var(--accent) 19%,transparent);transform:translateY(-1px)}
+.root :global(.noata-sidebar-search){min-height:43px;margin:0 0 2px;padding-inline:13px}
+.root :global(.noata-sidebar-search input){font-size:12px}
+.root :global(.noata-quick-nav){display:grid;gap:8px;min-width:0;flex:none;padding:7px 0 12px;border-bottom:1px solid var(--line)}
+.root :global(.noata-sidebar-caption){display:block;margin:0 8px 2px;font-size:10px;font-weight:760;letter-spacing:.07em;color:var(--muted)}
+.root[dir="rtl"] :global(.noata-sidebar-caption){letter-spacing:0}
+.root :global(.noata-quick-grid){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.root :global(.noata-quick-link){
+ min-width:0;min-height:72px;padding:11px 10px;border-radius:13px;
+ display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:9px;
+ background:var(--surface);border:1px solid var(--line);
+ color:var(--ink);font-size:11px;font-weight:680;line-height:1.45;
+ text-align:start;text-decoration:none;cursor:pointer;
+ transition:border-color var(--one-fast),background-color var(--one-fast),transform var(--one-fast);
+}
+.root :global(.noata-quick-link svg){width:18px;height:18px;color:var(--accent);flex:none}
+.root :global(.noata-quick-link span){display:block;min-width:0;max-width:100%;overflow-wrap:break-word}
+.root :global(.noata-quick-link:hover){border-color:color-mix(in srgb,var(--accent) 42%,var(--line));background:var(--accent-soft);transform:translateY(-1px)}
+.root :global(.noata-temporary-toggle){
+ display:flex;align-items:center;gap:10px;width:100%;min-height:41px;
+ padding:8px 11px;border-radius:11px;border:0;
+ color:var(--muted);background:transparent;
+ font:inherit;font-size:11.5px;line-height:1.5;font-weight:650;cursor:pointer;text-align:start;
+}
+.root :global(.noata-temporary-toggle:hover){background:var(--surface);color:var(--ink)}
+.root :global(.noata-temporary-toggle>span:nth-child(2)){flex:1;min-width:0}
+.root :global(.noata-temporary-toggle svg){flex:none}
+.root :global(.noata-temporary-switch){width:33px;height:19px;display:flex;align-items:center;padding:3px;border-radius:99px;border:1px solid var(--line);background:var(--line);transition:background-color var(--one-fast)}
+.root :global(.noata-temporary-switch i){width:11px;height:11px;background:var(--surface);border-radius:50%;display:block;transition:transform var(--one-fast)}
+.root :global(.noata-temporary-toggle.active){color:var(--ink)}
+.root :global(.noata-temporary-toggle.active .noata-temporary-switch){background:var(--accent);border-color:var(--accent)}
+.root :global(.noata-temporary-toggle.active .noata-temporary-switch i){transform:translateX(-13px)}
+.root[dir="ltr"] :global(.noata-temporary-toggle.active .noata-temporary-switch i){transform:translateX(13px)}
+.root :global(.noata-history-heading){padding:0 5px;min-height:34px;margin:0}
+.root :global(.noata-history-heading h2){font-size:12px;font-weight:760}
+.root :global(.noata-chat-index){flex:1;min-height:0;padding:0 1px 12px;scrollbar-gutter:stable}
+.root :global(.noata-chat-index .owui-chat-group){margin-block:0 11px}
+.root :global(.noata-chat-index .owui-chat-group h3){font-size:10.5px;font-weight:730;padding-inline:10px;margin:5px 0 2px}
+.root :global(.noata-chat-index .owui-chat-title){
+ width:100%;min-width:0;min-height:41px;max-width:100%;
+ font-size:12px;line-height:1.5;font-weight:500;padding:9px 11px;color:var(--muted);
+ display:flex;align-items:center;
+}
+.root :global(.noata-chat-index .owui-chat-title span){flex:1;display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;text-align:start}
+.root :global(.noata-chat-index .owui-chat-row){max-width:100%;min-width:0;border-radius:11px;margin-block:2px;overflow:visible}
+.root :global(.noata-chat-index .owui-chat-row:hover .owui-chat-title),
+.root :global(.noata-chat-index .owui-chat-row.active .owui-chat-title){color:var(--ink)}
+.root :global(.noata-chat-index .owui-chat-row.active){border-color:color-mix(in srgb,var(--accent) 18%,transparent)}
+.root :global(.noata-chat-index .owui-chat-row .aura-history-menu){flex:none}
+.root :global(.noata-organized-sidebar .owui-sidebar-footer){gap:1px;margin-top:0;padding:9px 0 0}
+.root :global(.noata-organized-sidebar .owui-sidebar-footer button){min-height:37px;padding:8px 10px;font-size:11px}
+.root :global(.noata-compact-rail){padding:16px 10px;background:var(--surface-soft);overflow:visible}
+.root :global(.noata-compact-rail .owui-rail){gap:8px}
+.root :global(.noata-compact-rail .owui-rail .owui-icon){width:44px;height:44px;min-width:44px;flex:none;border:1px solid transparent;border-radius:13px}
+.root :global(.noata-compact-rail .owui-rail .owui-rail-toggle){border-color:var(--line);background:var(--surface);color:var(--ink);margin-bottom:2px}
+.root :global(.noata-compact-rail .owui-rail .owui-rail-primary){border-color:color-mix(in srgb,var(--accent) 23%,transparent);background:var(--accent-soft);color:var(--accent)}
+.root :global(.noata-compact-rail .owui-rail-divider){width:26px;margin:0 0 3px}
+.root :global(.noata-compact-rail .owui-icon:hover){background:var(--surface);color:var(--ink);border-color:var(--line)}
+.root :global(.noata-compact-rail .owui-rail-spacer){flex:1}
+@media(max-width:980px){.root{--owui-sidebar:0px}.root:global(.sidebar-collapsed){--owui-sidebar:0px}}
+@media(max-height:690px){
+ .root :global(.noata-organized-sidebar){gap:6px;padding-block:11px}
+ .root :global(.noata-quick-link){min-height:58px;padding:8px 10px;gap:5px}
+ .root :global(.noata-quick-nav){gap:4px;padding-block:4px 6px}
+ .root :global(.noata-organized-sidebar .owui-sidebar-top){min-height:51px;padding-bottom:5px}
+ .root :global(.noata-organized-sidebar .owui-brand small){display:none}
+}
+
+
+/* Verified Qur'an · Mashaf-inspired eight-point seals.
+   Numbers are discrete ornaments, not characters inside the Uthmani font. */
+.root :global(.noata-quran-text){
+  text-rendering:optimizeLegibility;
+  font-kerning:normal;
+  hanging-punctuation:none;
+}
+.root :global(.noata-quran-verse-number){
+  --quran-seal-outline:color-mix(in srgb,var(--accent) 58%,var(--muted));
+  --quran-seal-wash:color-mix(in srgb,var(--accent) 5%,var(--surface));
+  position:relative;
+  box-sizing:border-box;
+  display:inline-grid;
+  grid-template-areas:"seal";
+  place-items:center;
+  inline-size:1.51em;
+  block-size:1.51em;
+  margin-inline:.25em .24em;
+  padding:0;
+  vertical-align:-.38em;
+  white-space:nowrap;
+  direction:rtl;
+  unicode-bidi:isolate;
+  isolation:isolate;
+  color:var(--accent);
+  line-height:1;
+  font-size:1em;
+  font-style:normal;
+  font-weight:400;
+  letter-spacing:0;
+  user-select:text;
+  font-variant-numeric:normal;
+  font-feature-settings:"kern" 1;
+}
+.root :global(.noata-quran-verse-seal){
+  grid-area:seal;
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  pointer-events:none;
+  filter:drop-shadow(0 1px 1px color-mix(in srgb,var(--ink) 6%,transparent));
+}
+.root :global(.noata-quran-seal-petal){
+  fill:var(--quran-seal-wash);
+  stroke:var(--quran-seal-outline);
+  stroke-width:1.05;
+  stroke-linejoin:round;
+}
+.root :global(.noata-quran-seal-center){
+  fill:var(--surface);
+  stroke:color-mix(in srgb,var(--accent) 32%,var(--line));
+  stroke-width:1.1;
+}
+.root :global(.noata-quran-seal-ring){
+  stroke:color-mix(in srgb,var(--accent) 38%,var(--line));
+  stroke-width:.85;
+}
+.root :global(.noata-quran-verse-digits){
+  grid-area:seal;
+  display:block;
+  position:relative;
+  z-index:1;
+  font-family:NoataArabic,"Noto Naskh Arabic",system-ui,sans-serif;
+  font-weight:750;
+  font-size:.49em;
+  line-height:1;
+  letter-spacing:0;
+  font-variant-numeric:normal;
+  font-feature-settings:"tnum" 0;
+  direction:ltr;
+  unicode-bidi:isolate;
+  transform:translateY(-.03em);
+  color:var(--accent);
+}
+@media(max-width:640px){
+  .root :global(.noata-quran-verse-number){
+    inline-size:1.45em;
+    block-size:1.45em;
+    vertical-align:-.35em;
+    margin-inline:.22em .23em;
+  }
+  .root :global(.noata-quran-verse-digits){font-size:.5em}
+}
+@media(forced-colors:active){
+  .root :global(.noata-quran-verse-seal){filter:none}
+  .root :global(.noata-quran-seal-petal),
+  .root :global(.noata-quran-seal-center){fill:Canvas;stroke:CanvasText}
+  .root :global(.noata-quran-seal-ring){stroke:CanvasText}
+  .root :global(.noata-quran-verse-digits){color:CanvasText}
+}

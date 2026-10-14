@@ -1,6 +1,8 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useEffect, useMemo, useState } from "react";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 
 type Unit = {
@@ -9,6 +11,7 @@ type Unit = {
   title_ar: string;
   title_en: string;
   description_ar: string;
+  description_en: string;
   metadata: unknown;
 };
 type Lesson = {
@@ -28,68 +31,105 @@ type Progress = {
 function locked(metadata: unknown) {
   return Boolean(
     metadata &&
-    typeof metadata === "object" &&
-    "locked" in metadata &&
-    (metadata as { locked?: boolean }).locked,
+      typeof metadata === "object" &&
+      "locked" in metadata &&
+      (metadata as { locked?: boolean }).locked,
   );
 }
 
 export function LearnLive() {
+  const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
+  const account = useVerifiedAccount();
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
-  const [course, setCourse] = useState("Noata");
+  const [course, setCourse] = useState<{title_ar:string;title_en:string}|null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
+    if (account.loading) return;
+    setProgress([]);
+    let active = true;
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
     void (async () => {
-      const { data: courseRows } = await supabase
-        .from("courses")
-        .select("id,title_ar")
-        .eq("active", true)
-        .order("created_at")
-        .limit(1);
-      const courseRow = courseRows?.[0];
-      if (!courseRow) {
-        setLoading(false);
-        return;
+      try {
+        const courses = await supabase
+          .from("courses")
+          .select("id,title_ar,title_en")
+          .eq("active", true)
+          .order("created_at")
+          .limit(1)
+          .abortSignal(controller.signal);
+        if (courses.error)
+          throw Error(t("تعذّر تحميل المسار. بياناتك محفوظة؛ جرّب مرة أخرى.","Could not load the learning path. Your data is saved; please try again."));
+        const courseRow = courses.data?.[0];
+        if (!courseRow) {
+          if (active) {
+            setUnits([]);
+            setLessons([]);
+          }
+          return;
+        }
+        const [unitResult, auth] = await Promise.all([
+          supabase
+            .from("units")
+            .select("id,position,title_ar,title_en,description_ar,description_en,metadata")
+            .eq("course_id", courseRow.id)
+            .order("position")
+            .abortSignal(controller.signal),
+          Promise.resolve({ data: { user: account.user } }),
+        ]);
+        if (unitResult.error) throw Error(t("تعذّر تحميل وحدات المسار.","Could not load the units."));
+        const unitRows = unitResult.data ?? [];
+        const lessonResult = unitRows.length
+          ? await supabase
+              .from("lessons")
+              .select("id,unit_id,position,title_ar,title_en,content")
+              .in(
+                "unit_id",
+                unitRows.map((u) => u.id),
+              )
+              .order("position")
+              .abortSignal(controller.signal)
+          : { data: [], error: null };
+        if (lessonResult.error) throw Error(t("تعذّر تحميل الدروس.","Could not load the lessons."));
+        let progressRows: Progress[] = [];
+        if (auth.data.user) {
+          const result = await supabase
+            .from("lesson_progress")
+            .select("lesson_id,completed_at,best_score")
+            .eq("user_id", auth.data.user.id)
+            .abortSignal(controller.signal);
+          if (result.error) throw Error(t("تعذّر تحميل تقدّمك؛ حاول مرة أخرى.","Could not load your progress. Please try again."));
+          progressRows = result.data ?? [];
+        }
+        if (active) {
+          setCourse(courseRow);
+          setUnits(unitRows as Unit[]);
+          setLessons((lessonResult.data ?? []) as Lesson[]);
+          setProgress(progressRows);
+        }
+      } catch (error) {
+        if (active)
+          setError(
+            error instanceof Error ? error.message : t("تعذّر الاتصال بالمسار.","Could not connect to the learning path."),
+          );
+      } finally {
+        if (active) setLoading(false);
       }
-      setCourse(courseRow.title_ar);
-
-      const [
-        { data: unitRows },
-        { data: lessonRows },
-        {
-          data: { user },
-        },
-      ] = await Promise.all([
-        supabase
-          .from("units")
-          .select("id,position,title_ar,title_en,description_ar,metadata")
-          .eq("course_id", courseRow.id)
-          .order("position"),
-        supabase
-          .from("lessons")
-          .select("id,unit_id,position,title_ar,title_en,content")
-          .order("position"),
-        supabase.auth.getUser(),
-      ]);
-      setUnits((unitRows ?? []) as Unit[]);
-      setLessons((lessonRows ?? []) as Lesson[]);
-
-      if (user) {
-        const { data } = await supabase
-          .from("lesson_progress")
-          .select("lesson_id,completed_at,best_score")
-          .eq("user_id", user.id);
-        setProgress((data ?? []) as Progress[]);
-      }
-      setLoading(false);
     })();
-  }, [supabase]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [supabase, reload, account.user, account.loading, t]);
 
   const completed = new Set(
     progress.filter((x) => x.completed_at).map((x) => x.lesson_id),
@@ -113,39 +153,60 @@ export function LearnLive() {
     <>
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
-          <div className="eyebrow" style={{ color: "var(--accent)" }}>
-            CURRICULUM MAP
-          </div>
-          <h1 style={{ margin: "6px 0 0" }}>رحلة التعلّم</h1>
+          <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("كل فكرة، خطوة في رحلتك","Every idea is a step on your journey")}</div>
+          <h1 style={{ margin: "6px 0 0" }}>{t("رحلة التعلّم","Learning journey")}</h1>
         </div>
-        <span className="pill">{course}</span>
+        <span className="pill">{course?(locale==="en"?course.title_en:course.title_ar):"Noata"}</span>
       </header>
-      <section className="panel">
+      {(error || account.error) && (
+        <div className="aura-load-error" role="alert">
+          <strong>{error || account.error}</strong>
+          <button
+            type="button"
+            onClick={() => {
+              if (account.error) void account.refresh();
+              else setReload((n) => n + 1);
+            }}
+          >{t("إعادة المحاولة","Try again")}</button>
+        </div>
+      )}
+      <section className="panel" aria-busy={loading || account.loading}>
         <div className="panel-head">
           <div>
-            <h2>تقدّم المسار</h2>
-            <p style={{ margin: "5px 0 0", color: "var(--muted)" }}>
-              التقدم مبني على إكمال الدروس والإتقان، مش مجرد فتح الصفحات.
-            </p>
+            <h2>{t("تقدّم المسار","Learning path progress")}</h2>
+            <p style={{ margin: "5px 0 0", color: "var(--muted)" }}>{t("التقدم مبني على إكمال الدروس والإتقان، مش مجرد فتح الصفحات.","Progress reflects lesson completion and mastery, rather than page visits.")}</p>
           </div>
-          <b>{loading ? "—" : percent + "%"}</b>
+          <b>{loading || error || account.error ? "—" : percent + "%"}</b>
         </div>
-        <div className="progress">
-          <i style={{ width: percent + "%" }} />
+        <div
+          className="progress"
+          role="progressbar"
+          aria-label={t("تقدّم المسار","Learning path progress")}
+          aria-valuenow={
+            loading || error || account.error ? undefined : percent
+          }
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <i
+            style={{
+              width: (loading || error || account.error ? 0 : percent) + "%",
+            }}
+          />
         </div>
       </section>
       <div className="filter-bar">
         <input
           className="search"
-          aria-label="ابحث عن درس"
+          aria-label={t("ابحث عن درس","Search lessons")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="عن إيه حابب تتعلم؟"
+          placeholder={t("عن إيه حابب تتعلم؟","What would you like to learn?")}
         />
         {[
-          ["all", "كل الدروس"],
-          ["new", "لسه قدّامك"],
-          ["complete", "مكتمل"],
+          ["all", t("كل الدروس","All lessons")],
+          ["new", t("لسه قدّامك","To learn")],
+          ["complete", t("مكتمل","Completed")],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -157,10 +218,18 @@ export function LearnLive() {
           </button>
         ))}
       </div>
-      {!loading && !lessons.some(visible) && (
+      {!loading && !error && !lessons.some(visible) && (
         <div className="panel empty-state">
-          <h2>مفيش دروس مطابقة لبحثك.</h2>
-          <p>جرّب كلمة تانية أو غيّر التصفية.</p>
+          <h2>
+            {lessons.length
+              ? t("مفيش دروس مطابقة لبحثك.","No lessons match your search.")
+              : t("الدروس لم تُنشر بعد.","Lessons have not been published yet.")}
+          </h2>
+          <p>
+            {lessons.length
+              ? t("جرّب كلمة تانية أو غيّر التصفية.","Try another search or change the filter.")
+              : t("تظهر المواد هنا بعد مراجعتها ونشرها.","Content appears here after review and publication.")}
+          </p>
         </div>
       )}
       <section style={{ display: "grid", gap: 16, marginTop: 18 }}>
@@ -168,17 +237,18 @@ export function LearnLive() {
           const unitLessons = lessons.filter(
             (l) => l.unit_id === unit.id && visible(l),
           );
-          const done = unitLessons.filter((l) => completed.has(l.id)).length;
-          const unitProgress = unitLessons.length
-            ? Math.round((done / unitLessons.length) * 100)
+          const allUnitLessons = lessons.filter((l) => l.unit_id === unit.id);
+          const done = allUnitLessons.filter((l) => completed.has(l.id)).length;
+          const unitProgress = allUnitLessons.length
+            ? Math.round((done / allUnitLessons.length) * 100)
             : 0;
           const isLocked = locked(unit.metadata);
           if (!unitLessons.length && (query || filter !== "all")) return null;
           return (
             <article
-              className="panel"
+              className="panel aura-curriculum-unit"
               key={unit.id}
-              style={{ opacity: isLocked ? 0.58 : 1 }}
+              data-locked={isLocked}
             >
               <div className="panel-head">
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -186,7 +256,7 @@ export function LearnLive() {
                     {String(unit.position).padStart(2, "0")}
                   </div>
                   <div>
-                    <h2 style={{ margin: 0 }}>{unit.title_ar}</h2>
+                    <h2 style={{ margin: 0 }}>{locale==="en"?unit.title_en:unit.title_ar}</h2>
                     <p
                       style={{
                         margin: "4px 0 0",
@@ -194,12 +264,12 @@ export function LearnLive() {
                         fontSize: 12,
                       }}
                     >
-                      {unit.description_ar}
+                      {locale==="en"?unit.description_en:unit.description_ar}
                     </p>
                   </div>
                 </div>
                 <span className="pill">
-                  {isLocked ? "قريبًا" : unitProgress + "%"}
+                  {isLocked ? t("قريبًا","Coming soon") : unitProgress + "%"}
                 </span>
               </div>
               <div className="quest-list">
@@ -211,13 +281,13 @@ export function LearnLive() {
                         {completed.has(lesson.id) ? "✓" : lesson.position}
                       </div>
                       <div>
-                        <h3>{lesson.title_ar}</h3>
+                        <h3>{locale==="en"?lesson.title_en:lesson.title_ar}</h3>
                         <p>
                           {row?.completed_at
-                            ? "مكتمل · أفضل نتيجة " +
+                            ? t("مكتمل · أفضل نتيجة ","Completed · Best score ") +
                               Math.round(Number(row.best_score)) +
                               "%"
-                            : "جاهز للتعلّم"}
+                            : t("جاهز للتعلّم","Ready to learn")}
                         </p>
                       </div>
                       <a
@@ -231,19 +301,17 @@ export function LearnLive() {
                           background: isLocked
                             ? "var(--surface-soft)"
                             : "var(--accent)",
-                          color: isLocked ? "var(--muted)" : "#fff",
+                          color: isLocked ? "var(--muted)" : "var(--surface)",
                         }}
                         href={isLocked ? "#" : "/lesson/" + lesson.id}
                       >
-                        {completed.has(lesson.id) ? "راجع" : "ابدأ"}
+                        {completed.has(lesson.id) ? t("راجع","Review") : t("ابدأ","Start")}
                       </a>
                     </div>
                   );
                 })}
                 {!unitLessons.length && (
-                  <div style={{ color: "var(--muted)", fontSize: 12 }}>
-                    المحتوى تحت المراجعة.
-                  </div>
+                  <div style={{ color: "var(--muted)", fontSize: 12 }}>{t("المحتوى تحت المراجعة.","Content is under review.")}</div>
                 )}
               </div>
             </article>

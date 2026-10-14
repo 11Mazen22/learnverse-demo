@@ -1,6 +1,10 @@
 "use client";
+import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ModuleWelcome } from "@/components/ui/module-welcome";
+import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
+import { createOperationKeys } from "@/lib/ai/operation-keys";
 import { createClient } from "@/lib/supabase/client";
 
 type BossQuestion = {
@@ -9,9 +13,11 @@ type BossQuestion = {
   position: number | null;
   question_type: string;
   prompt_ar: string;
+   prompt_en: string | null;
+   choices_en: unknown;
   choices_ar: unknown;
 };
-type Grade = { correct?: boolean; explanation_ar?: string };
+type Grade = { correct?: boolean; explanation_ar?: string; explanation_en?:string };
 type BossResult = {
   score?: number;
   passed?: boolean;
@@ -28,8 +34,9 @@ type BoxResult = {
 const opts = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
 
 export function BossLive() {
+ const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
-  const [unit, setUnit] = useState<{ id: string; title_ar: string } | null>(
+  const [unit, setUnit] = useState<{ id: string; title_ar: string; title_en: string } | null>(
     null,
   );
   const [questions, setQuestions] = useState<BossQuestion[]>([]);
@@ -38,150 +45,200 @@ export function BossLive() {
   const [grade, setGrade] = useState<Grade | null>(null);
   const [bossResult, setBossResult] = useState<BossResult | null>(null);
   const [box, setBox] = useState<BoxResult | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const { account, busy, status, run } = useConfirmedMutation();
+  const operationKeys = useRef(createOperationKeys());
+  const signedIn = account.loading ? null : Boolean(account.user);
   const [error, setError] = useState("");
 
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
   useEffect(() => {
+    if (account.loading) return;
+    let active = true;
+    operationKeys.current.clear();
+    setQuestions([]);
+    setAnswer("");
+    setGrade(null);
+    setIdx(0);
+    setBossResult(null);
+    setBox(null);
+    setLoading(true);
+    setError("");
     void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setSignedIn(false);
-        return;
+      try {
+        const user = account.user;
+        if (!user) {
+          return;
+        }
+        const { data: units, error: readError } = await supabase
+          .from("units")
+          .select("id,title_ar,title_en,metadata")
+          .eq("boss_enabled", true)
+          .order("position");
+        if (!active) return;
+        if (readError) throw readError;
+        const selected = units?.find(
+          (row) =>
+            !(
+              row.metadata &&
+              typeof row.metadata === "object" &&
+              "locked" in row.metadata &&
+              (row.metadata as { locked?: boolean }).locked
+            ),
+        );
+        if (!selected) return;
+        setUnit({ id: selected.id, title_ar: selected.title_ar,title_en:selected.title_en });
+        const { data: q, error: questionError } = await supabase
+          .from("questions")
+          .select("id,unit_id,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en")
+          .eq("unit_id", selected.id)
+          .is("variant_of", null)
+          .in("publication_status", ["published_demo", "published"])
+          .order("position")
+          .limit(3);
+        if (!active) return;
+        if (questionError) throw questionError;
+        setQuestions((q ?? []) as BossQuestion[]);
+      } catch {
+        if (active) setError(t("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.","Could not load this page. Please try again."));
+      } finally {
+        if (active) setLoading(false);
       }
-      setSignedIn(true);
-      const { data: units } = await supabase
-        .from("units")
-        .select("id,title_ar,metadata")
-        .eq("boss_enabled", true)
-        .order("position");
-      const selected = units?.find(
-        (row) =>
-          !(
-            row.metadata &&
-            typeof row.metadata === "object" &&
-            "locked" in row.metadata &&
-            (row.metadata as { locked?: boolean }).locked
-          ),
-      );
-      if (!selected) return;
-      setUnit({ id: selected.id, title_ar: selected.title_ar });
-      const { data: q } = await supabase
-        .from("questions")
-        .select("id,unit_id,position,question_type,prompt_ar,choices_ar")
-        .eq("unit_id", selected.id)
-        .is("variant_of", null)
-        .in("publication_status", ["published_demo", "published"])
-        .order("position")
-        .limit(3);
-      setQuestions((q ?? []) as BossQuestion[]);
     })();
-  }, [supabase]);
+    return () => {
+      active = false;
+    };
+  }, [supabase, reload, account.user, account.loading]);
 
   const current = questions[idx];
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!current || !answer.trim() || busy) return;
-    setBusy(true);
-    setError("");
-    const { data, error } = await supabase.rpc("submit_attempt", {
-      p_question_id: current.id,
-      p_response: { value: answer },
-      p_assisted: false,
-      p_idempotency_key: crypto.randomUUID(),
-      p_practice_repeat: false,
-    });
-    if (error) {
-      setError(error.message);
-      setBusy(false);
-      return;
-    }
-    setGrade((data ?? {}) as Grade);
-    setBusy(false);
+    await run(async (check) => {
+      setError("");
+      const { data, error } = await supabase.rpc("submit_attempt", {
+        p_question_id: current.id,
+        p_response: { value: answer },
+        p_assisted: false,
+        p_idempotency_key: operationKeys.current.get(
+          JSON.stringify([current.id, answer]),
+        ),
+        p_practice_repeat: false,
+      });
+      check();
+      if (error) throw error;
+      if (typeof (data as Grade | null)?.correct !== "boolean")
+        throw Error("Missing grade");
+      setGrade(data as Grade);
+    }, "");
   }
 
   async function advance() {
     if (!current || !grade) return;
-    if (!grade.correct) {
-      const { data: variant } = await supabase
-        .from("questions")
-        .select("id,unit_id,position,question_type,prompt_ar,choices_ar")
-        .eq("variant_of", current.id)
-        .in("publication_status", ["published_demo", "published"])
-        .limit(1)
-        .maybeSingle();
-      if (variant) {
-        setQuestions((list) =>
-          list.map((q, i) => (i === idx ? (variant as BossQuestion) : q)),
-        );
+    await run(async (check) => {
+      if (!grade.correct) {
+        const { data: variant, error: variantError } = await supabase
+          .from("questions")
+          .select("id,unit_id,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en")
+          .eq("variant_of", current.id)
+          .in("publication_status", ["published_demo", "published"])
+          .limit(1)
+          .maybeSingle();
+        check();
+        if (variantError) throw variantError;
+        if (variant) {
+          setQuestions((list) =>
+            list.map((q, i) => (i === idx ? (variant as BossQuestion) : q)),
+          );
+          setAnswer("");
+          setGrade(null);
+          return;
+        }
         setAnswer("");
         setGrade(null);
         return;
       }
-    }
-    if (idx < questions.length - 1) {
-      setIdx((x) => x + 1);
-      setAnswer("");
-      setGrade(null);
-      return;
-    }
+      if (idx < questions.length - 1) {
+        setIdx((x) => x + 1);
+        setAnswer("");
+        setGrade(null);
+        return;
+      }
 
-    if (!unit) return;
-    setBusy(true);
-    const { data, error } = await supabase.rpc("complete_unit_boss", {
-      p_unit_id: unit.id,
-      p_question_ids: questions.map((q) => q.id),
-    });
-    if (error) {
-      setError(error.message);
-      setBusy(false);
-      return;
-    }
-    setBossResult((data ?? {}) as BossResult);
-    setBusy(false);
+      if (!unit) return;
+      const { data, error } = await supabase.rpc("complete_unit_boss", {
+        p_unit_id: unit.id,
+        p_question_ids: questions.map((q) => q.id),
+      });
+      check();
+      if (error) throw error;
+      if (typeof (data as BossResult | null)?.passed !== "boolean")
+        throw Error("Missing confirmed boss result");
+      setBossResult(data as BossResult);
+    }, "");
   }
 
   async function openBox() {
     if (!bossResult?.reward_box_id) return;
-    setBusy(true);
-    setError("");
-    const { data, error } = await supabase.rpc("claim_reward_box", {
-      p_box_id: bossResult.reward_box_id,
-    });
-    if (error) setError(error.message);
-    else setBox((data ?? {}) as BoxResult);
-    setBusy(false);
+    const boxId = bossResult.reward_box_id;
+    await run(async (check) => {
+      setError("");
+      const { data, error } = await supabase.rpc("claim_reward_box", {
+        p_box_id: boxId,
+      });
+      check();
+      if (error) throw error;
+      if (!data) throw Error("Missing reward result");
+      setBox(data as BoxResult);
+    }, "");
   }
 
+  if (account.error)
+    return (
+      <section className="aura-load-error" role="alert">
+        <h2>{account.error}</h2>
+        <button type="button" onClick={() => void account.refresh()}>{t("إعادة المحاولة","Try again")}</button>
+      </section>
+    );
+  if (account.loading || loading)
+    return (
+      <section className="aura-loading-state" role="status">
+        <span />
+        <h2>{t("بنجهّز مساحتك…","Preparing your space…")}</h2>
+        <p>{t("لحظات ونرتّب خطوتك التالية.","Finding your next step.")}</p>
+      </section>
+    );
+  if (error && !questions.length)
+    return (
+      <section className="aura-load-error" role="alert">
+        <strong>{error}</strong>
+        <button type="button" onClick={() => setReload((n) => n + 1)}>{t("إعادة المحاولة","Try again")}</button>
+      </section>
+    );
   if (signedIn === false)
     return (
-      <section className="panel" style={{ textAlign: "center", padding: 32 }}>
-        <h2>Unit Boss محتاج حساب.</h2>
-        <a
-          className="btn"
-          href="/login"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
-        >
-          دخول
-        </a>
-      </section>
+      <ModuleWelcome
+        title={t("اجمع كل اللي اتعلمته.","Bring your learning together.")}
+        description={t("تحدّي الوحدة يربط المهارات في تجربة واحدة. الإنجاز والمكافآت يُسجّلان من نتائجك، دون تكرار المكافأة.","Combine your skills in one challenge. Your results determine your achievement and rewards.")}
+        icon="boss"
+        route="/boss"
+        eyebrow={t("تحدّي الوحدة","Unit challenge")}
+        steps={[t("تأكد من استعدادك","Check your readiness"), t("طبّق مهاراتك معًا","Apply your skills together"), t("احتفل بإنجازك","Celebrate your achievement")]}
+      />
     );
 
   if (bossResult)
     return (
       <section className="hero" style={{ textAlign: "center", padding: 46 }}>
-        <div className="eyebrow">UNIT BOSS RESULT</div>
+        <div className="eyebrow">{t("نتيجة تحدّي الوحدة","Unit challenge result")}</div>
         <h1>
-          {bossResult.passed ? "Boss defeated 🔥" : "لسه الـ Boss واقف 👀"}
+          {bossResult.passed ? t("اجتزت تحدّي الوحدة!","Unit challenge passed!") : t("فرصة جديدة لفهم أعمق","Another chance to build understanding")}
         </h1>
-        <p>
-          نتيجتك {bossResult.score ?? 0}/3.{" "}
+        <p>{t("نتيجتك ","Your result ")}{bossResult.score ?? 0}/3.{" "}
           {bossResult.passed
-            ? "أثبتّ فهمك وقدرتك على تطبيق اللي اتعلمته."
-            : "راجع المهارات الضعيفة وارجع بمحاولة أقوى."}
+            ? t("أثبتّ فهمك وقدرتك على تطبيق اللي اتعلمته.","You showed your understanding and applied what you learned.")
+            : t("راجع المهارات الضعيفة وارجع بمحاولة أقوى.","Practice the skills that need work, then try again.")}
         </p>
         {bossResult.passed && (
           <div
@@ -202,9 +259,7 @@ export function BossLive() {
             disabled={busy}
             className="btn btn-primary"
             style={{ marginTop: 22 }}
-          >
-            🎁 افتح Mystery Box
-          </button>
+          >{t("افتح صندوق المكافآت","Open reward box")}</button>
         )}
         {box && (
           <div
@@ -240,31 +295,30 @@ export function BossLive() {
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
             UNIT BOSS
           </div>
-          <h1 style={{ margin: "6px 0 0" }}>{unit?.title_ar ?? "Loading…"}</h1>
+          <h1 style={{ margin: "6px 0 0" }}>
+            {(locale==="en"?unit?.title_en:unit?.title_ar) ?? t("تحدّي الوحدة","Unit challenge")}
+          </h1>
         </div>
         <span className="pill">{questions.length ? idx + 1 : 0}/3</span>
       </header>
       <section className="hero" style={{ padding: 28, marginBottom: 18 }}>
-        <div className="eyebrow">الخطوة الأخيرة في الوحدة</div>
-        <h2 style={{ margin: "8px 0", fontSize: 30 }}>هنا، فهمك هو قوّتك.</h2>
-        <p>
-          تحدّي من ثلاث مراحل: فهم الفكرة، تطبيقها، واستخدامها في موقف جديد. خُد
-          وقتك، وورّينا اللي اتعلمته.
-        </p>
+        <div className="eyebrow">{t("الخطوة الأخيرة في الوحدة","The unit’s final step")}</div>
+        <h2 style={{ margin: "8px 0", fontSize: 30 }}>{t("هنا، فهمك هو قوّتك.","Your understanding is your strength.")}</h2>
+        <p>{t("تحدّي من ثلاث مراحل: فهم الفكرة، تطبيقها، واستخدامها في موقف جديد. خُد وقتك، وورّينا اللي اتعلمته.","Three stages: understand the idea, apply it, and use it in a new situation. Take your time and show what you learned.")}</p>
       </section>
       <section className="panel" style={{ padding: 28 }}>
         {!current ? (
-          <p>Loading Boss…</p>
+          <p>{t("لا يوجد تحدّي منشور لهذه الوحدة بعد.","No challenge has been published for this unit yet.")}</p>
         ) : (
           <form onSubmit={submit}>
-            <h2 style={{ lineHeight: 1.6 }}>{current.prompt_ar}</h2>
+            <h2 style={{ lineHeight: 1.6 }}>{(locale==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
             {current.question_type === "multiple-choice" ? (
               <div style={{ display: "grid", gap: 10 }}>
-                {opts(current.choices_ar).map((x, i) => (
+                {opts((locale==="en" ? current.choices_en : current.choices_ar)).map((x, i) => (
                   <button
                     key={x}
                     type="button"
-                    disabled={Boolean(grade)}
+                    disabled={Boolean(grade) || busy}
                     onClick={() => setAnswer(String(i))}
                     style={{
                       textAlign: "start",
@@ -290,11 +344,14 @@ export function BossLive() {
               <input
                 className="search"
                 style={{ width: "100%" }}
-                disabled={Boolean(grade)}
+                disabled={Boolean(grade) || busy}
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                inputMode="decimal"
-                placeholder="الإجابة…"
+                inputMode={
+                  current.question_type === "numeric" ? "decimal" : "text"
+                }
+                aria-label={t("إجابتك على السؤال","Your answer")}
+                placeholder={t("الإجابة…","Your answer…")}
               />
             )}
             {grade && (
@@ -308,11 +365,15 @@ export function BossLive() {
                     : "rgba(227,87,87,.08)",
                 }}
               >
-                <b>{grade.correct ? "Perfect" : "Not yet"}</b>
-                <p>{grade.explanation_ar}</p>
+                <b>{grade.correct ? t("صح","Correct") : t("حاول مرة أخرى","Try again")}</b>
+                <p>{(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
               </div>
             )}
-            {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
+            {(error || status) && (
+              <p role="alert" style={{ color: "var(--danger)" }}>
+                {error || status}
+              </p>
+            )}
             <div
               style={{
                 display: "flex",
@@ -328,9 +389,7 @@ export function BossLive() {
                     background: "var(--accent)",
                     color: "var(--surface)",
                   }}
-                >
-                  تحقق
-                </button>
+                >{t("تحقق","Check answer")}</button>
               ) : (
                 <button
                   type="button"
@@ -344,7 +403,7 @@ export function BossLive() {
                   {grade.correct
                     ? idx === questions.length - 1
                       ? "Finish Boss"
-                      : "التالي"
+                      : t("التالي","Next")
                     : "Parallel recovery"}
                 </button>
               )}

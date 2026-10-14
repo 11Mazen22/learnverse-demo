@@ -36,23 +36,23 @@ create function public.submit_attempt(
   p_practice_repeat boolean default false
 )
 returns jsonb language sql security invoker set search_path=''
-as $ select private.submit_attempt(p_question_id,p_response,p_assisted,p_idempotency_key,p_practice_repeat); $;
+as $$ select private.submit_attempt(p_question_id,p_response,p_assisted,p_idempotency_key,p_practice_repeat); $$;
 
 create function public.complete_lesson(p_lesson_id uuid,p_score numeric)
 returns jsonb language sql security invoker set search_path=''
-as $ select private.complete_lesson(p_lesson_id,p_score); $;
+as $$ select private.complete_lesson(p_lesson_id,p_score); $$;
 
 create function public.purchase_shop_item(p_item_id uuid,p_idempotency_key text)
 returns jsonb language sql security invoker set search_path=''
-as $ select private.purchase_shop_item(p_item_id,p_idempotency_key); $;
+as $$ select private.purchase_shop_item(p_item_id,p_idempotency_key); $$;
 
 create function public.equip_cosmetic(p_item_id uuid)
 returns jsonb language sql security invoker set search_path=''
-as $ select private.equip_cosmetic(p_item_id); $;
+as $$ select private.equip_cosmetic(p_item_id); $$;
 
 create function public.claim_reward_box(p_box_id uuid)
 returns jsonb language sql security invoker set search_path=''
-as $ select private.claim_reward_box(p_box_id); $;
+as $$ select private.claim_reward_box(p_box_id); $$;
 
 create function public.claim_ai_quota(
   p_user_id uuid,
@@ -62,7 +62,7 @@ create function public.claim_ai_quota(
 )
 returns table(allowed boolean,remaining int,reset_at timestamptz)
 language sql security invoker set search_path=''
-as $ select * from private.claim_ai_quota(p_user_id,p_capability,p_limit,p_window_seconds); $;
+as $$ select * from private.claim_ai_quota(p_user_id,p_capability,p_limit,p_window_seconds); $$;
 
 revoke all on function public.submit_attempt(uuid,jsonb,boolean,text,boolean) from public,anon;
 grant execute on function public.submit_attempt(uuid,jsonb,boolean,text,boolean) to authenticated;

@@ -1,0 +1,93 @@
+/* Noata's single, viewport-aware caption surface.
+   Rendered at document.body level, beyond clipped/scrollable menus. */
+.noata-global-tooltip{
+  position:fixed;
+  inset:auto auto auto auto;
+  top:0;left:0;
+  z-index:2147483000;
+  display:block;
+  width:max-content;max-width:min(255px,calc(100vw - 22px));
+  box-sizing:border-box;
+  padding:8px 12px;
+  border-radius:10px;
+  background:color-mix(in srgb,var(--ink) 94%,#192c49);
+  color:var(--surface);
+  border:1px solid color-mix(in srgb,var(--surface) 10%,transparent);
+  box-shadow:0 8px 24px color-mix(in srgb,var(--ink) 17%,transparent);
+  font-family:inherit;
+  font-size:11.5px;
+  font-weight:650;
+  line-height:1.6;
+  text-align:start;
+  overflow-wrap:anywhere;
+  white-space:normal;
+  pointer-events:none;
+  user-select:none;
+  animation:noata-caption-enter 140ms cubic-bezier(.2,.75,.3,1) both;
+}
+.noata-global-tooltip::after{
+  content:"";
+  position:absolute;
+  width:7px;height:7px;
+  background:inherit;
+  transform:rotate(45deg);
+  pointer-events:none;
+}
+.noata-global-tooltip[data-side="left"]::after{
+  right:-4px;top:calc(50% - 4px);
+  border-top:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+  border-right:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+}
+.noata-global-tooltip[data-side="right"]::after{
+  left:-4px;top:calc(50% - 4px);
+  border-left:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+  border-bottom:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+}
+.noata-global-tooltip[data-side="top"]::after{
+  bottom:-4px;left:calc(50% - 4px);
+  border-bottom:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+  border-right:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+}
+.noata-global-tooltip[data-side="bottom"]::after{
+  top:-4px;left:calc(50% - 4px);
+  border-top:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+  border-left:1px solid color-mix(in srgb,var(--surface) 8%,transparent);
+}
+@keyframes noata-caption-enter{
+  from{opacity:0;transform:translateY(3px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  .noata-global-tooltip{animation:none!important}
+}
+html[data-reduced-motion="true"] .noata-global-tooltip,
+html[data-noata-motion="off"] .noata-global-tooltip{animation:none!important}
+
+/* Tooltip refinement: a restrained neutral caption, not a full-size action card. */
+.noata-global-tooltip{
+ max-width:min(210px,calc(100vw - 24px));
+ padding:6px 10px;
+ border-radius:9px;
+ background:var(--surface);
+ color:var(--ink);
+ border:1px solid var(--line);
+ box-shadow:0 7px 22px color-mix(in srgb,var(--ink) 11%,transparent),0 2px 5px color-mix(in srgb,var(--ink) 3%,transparent);
+ font-family:inherit;
+ font-size:11px;
+ font-weight:650;
+ line-height:1.5;
+ letter-spacing:0;
+ text-align:center;
+ z-index:2147483000;
+}
+.noata-global-tooltip[data-ready="false"]{visibility:hidden;opacity:0;animation:none}
+.noata-global-tooltip::after{background:var(--surface);border:1px solid var(--line)}
+.noata-global-tooltip[data-side="left"]::after{border-left:0;border-bottom:0}
+.noata-global-tooltip[data-side="right"]::after{border-right:0;border-top:0}
+.noata-global-tooltip[data-side="top"]::after{border-top:0;border-left:0}
+.noata-global-tooltip[data-side="bottom"]::after{border-bottom:0;border-right:0}
+@keyframes noata-caption-enter{
+ from{opacity:0;transform:translateY(2px)}
+ to{opacity:1;transform:translateY(0)}
+}
+@media(hover:none) and (pointer:coarse){.noata-global-tooltip{display:none}}

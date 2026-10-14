@@ -1,0 +1,652 @@
+/* NOATA MUSHAF — deliberate, scripture-first visual redesign.
+   This stylesheet loads after quran.css; the source data, reciter engine and
+   existing navigation contracts are unchanged. */
+.mushaf.aura-quran{
+  --mushaf-edge:color-mix(in srgb,var(--accent) 17%,var(--line));
+  --mushaf-glow:color-mix(in srgb,var(--accent) 6%,var(--surface));
+  --mushaf-ink:var(--ink);
+  width:100%;
+  max-width:1370px;
+  margin:0 auto;
+  padding:clamp(10px,1.35vw,22px);
+  gap:clamp(16px,2vw,24px);
+  overflow:visible;
+}
+.mushaf .mushaf-hero{
+  position:relative;overflow:hidden;
+  border-radius:24px;
+  min-height:195px;
+  padding:clamp(23px,3.6vw,47px);
+  border:1px solid var(--mushaf-edge);
+  background:
+    radial-gradient(circle at 7% 8%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 36%),
+    radial-gradient(circle at 90% 87%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 40%),
+    var(--surface);
+  box-shadow:0 12px 40px color-mix(in srgb,var(--ink) 3%,transparent);
+}
+.mushaf .mushaf-hero::after{
+  content:"";position:absolute;inset:15px;pointer-events:none;border:1px solid color-mix(in srgb,var(--accent) 12%,transparent);
+  border-radius:17px;
+}
+.mushaf .mushaf-hero-copy{position:relative;z-index:1}
+.mushaf .mushaf-eyebrow{font-size:11px;font-weight:760;letter-spacing:.02em}
+.mushaf .mushaf-hero h1{margin:8px 0 10px;font-size:clamp(32px,4vw,48px);line-height:1.5;font-weight:760}
+.mushaf .mushaf-hero h1>span{font-size:clamp(17px,2vw,22px);font-weight:530;line-height:1.7;color:var(--muted)}
+.mushaf .mushaf-hero p{font-size:12px;line-height:1.95}
+.mushaf .mushaf-hero-facts{margin-top:17px;gap:11px 19px;font-size:10px}
+.mushaf .mushaf-hero-facts span{color:var(--muted);font-weight:600}
+.mushaf .mushaf-hero-facts svg{color:var(--accent)}
+.mushaf .mushaf-hero-seal{
+  position:relative;z-index:1;
+  width:145px;border-radius:50%;
+  border:1px solid var(--mushaf-edge);
+  box-shadow:inset 0 0 0 7px var(--surface),inset 0 0 0 8px var(--mushaf-edge),0 10px 25px color-mix(in srgb,var(--ink) 4%,transparent);
+  background:var(--mushaf-glow);
+}
+.mushaf .mushaf-global-search{
+  min-height:60px;
+  border:1px solid var(--line);
+  box-shadow:0 5px 22px color-mix(in srgb,var(--ink) 2%,transparent);
+}
+.mushaf .mushaf-search-help{padding-inline:12px;line-height:1.7}
+.mushaf .mushaf-workspace{
+  display:grid;
+  grid-template-columns:minmax(230px,268px) minmax(0,1fr);
+  gap:clamp(14px,1.7vw,24px);
+  align-items:start;
+}
+.mushaf .mushaf-main{
+  display:flex;
+  flex-direction:column;
+  gap:clamp(15px,2vw,25px);
+  min-width:0;
+}
+.mushaf .mushaf-side{min-width:0}
+.mushaf .mushaf-navigator{
+  border:1px solid var(--mushaf-edge);border-radius:19px;
+  background:var(--surface);
+  padding:17px 12px 0;
+  box-shadow:0 8px 27px color-mix(in srgb,var(--ink) 2%,transparent);
+}
+.mushaf .mushaf-section-heading{padding:4px 7px 17px}
+.mushaf .mushaf-surah-list{scrollbar-width:thin;max-height:clamp(360px,64vh,710px)}
+.mushaf .mushaf-surah-item{min-height:56px;border-radius:12px;padding:8px 10px;gap:10px;margin-block:3px}
+.mushaf .mushaf-surah-number{width:31px;height:31px;flex:none;border-radius:10px;font-variant-numeric:tabular-nums;font-weight:720}
+.mushaf .mushaf-surah-item strong{font-weight:750;font-size:12px}
+.mushaf .mushaf-surah-item small{font-size:10px}
+.mushaf .mushaf-index-search{border-radius:11px}
+.mushaf .mushaf-reading{
+  position:relative;
+  width:100%;
+  max-width:none;
+  border:1px solid var(--mushaf-edge);
+  border-radius:23px;
+  overflow:clip;
+  background:var(--surface);
+  box-shadow:0 18px 54px color-mix(in srgb,var(--ink) 4%,transparent);
+}
+.mushaf .mushaf-reading-tools{
+  min-height:65px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:12px clamp(15px,2vw,25px);
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+}
+.mushaf .mushaf-surah-select{min-width:0;flex:1}
+.mushaf .mushaf-surah-select select{
+  min-width:130px;max-width:min(100%,265px);
+  min-height:42px;
+  background:var(--surface-soft);
+  border-radius:11px;
+  color:var(--ink);
+  font-weight:690;
+}
+.mushaf .mushaf-focus-button,.mushaf .mushaf-listen-link{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:42px;white-space:nowrap;padding:8px 12px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:11px;color:var(--muted);font-size:11px;
+  text-decoration:none;font-weight:650;
+}
+.mushaf .mushaf-focus-button:hover,.mushaf .mushaf-listen-link:hover{color:var(--accent);background:var(--mushaf-glow);border-color:var(--mushaf-edge)}
+.mushaf .mushaf-chapter{
+  position:relative;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 50% 5%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 65%),
+    linear-gradient(180deg,var(--surface-soft),var(--surface));
+  padding:clamp(25px,4vw,45px) 18px clamp(18px,2vw,29px);
+  border-bottom:1px solid var(--mushaf-edge);
+  text-align:center;
+}
+.mushaf .mushaf-chapter::before,.mushaf .mushaf-chapter::after{
+  content:"✦";position:absolute;top:50%;font-size:11px;color:var(--accent);opacity:.45;pointer-events:none;
+}
+.mushaf .mushaf-chapter::before{inset-inline-start:8%}
+.mushaf .mushaf-chapter::after{inset-inline-end:8%}
+.mushaf .mushaf-chapter h2{
+  margin:10px 0 4px;
+  font-family:AmiriQuran,NoataArabic,serif;
+  font-weight:500;
+  font-size:clamp(35px,4.7vw,52px);
+  line-height:1.7;color:var(--ink);
+}
+.mushaf .mushaf-chapter-kicker{font-size:10px;color:var(--accent);font-weight:720;letter-spacing:.025em}
+.mushaf .mushaf-chapter p{font-size:12px;line-height:1.75;color:var(--muted)}
+.mushaf .mushaf-chapter-rule{margin:18px auto 0;width:100px;height:1px;opacity:.65;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.mushaf .mushaf-reading-toolbar{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0;
+  padding:9px clamp(12px,2vw,25px);
+  border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 88%,var(--surface-soft));
+}
+.mushaf .mushaf-reader-controls{
+  flex:1 1 320px;
+  padding:5px 0;border:0;display:flex;justify-content:space-between;gap:12px;
+}
+.mushaf .mushaf-reader-controls>.mushaf-segmented{min-width:0}
+.mushaf .mushaf-segmented{border-radius:12px}
+.mushaf .mushaf-segmented button{border-radius:9px;font-size:11px;font-weight:690;min-height:39px}
+.mushaf .mushaf-segmented button[aria-pressed="true"]{background:var(--surface);border:1px solid var(--mushaf-edge);color:var(--accent);box-shadow:0 2px 8px color-mix(in srgb,var(--ink) 5%,transparent)}
+.mushaf .aura-quran-font{gap:4px;flex-shrink:0}
+.mushaf .aura-quran-font button{min-height:39px;min-width:36px;border:1px solid var(--line);color:var(--ink);border-radius:9px}
+.mushaf .aura-quran-font button:disabled{opacity:.43}
+.mushaf .mushaf-jump{
+  flex:0 1 auto;display:flex;align-items:center;
+  padding:5px 0;border:0;background:transparent;
+  border-inline-start:1px solid var(--line);
+  margin-inline-start:18px;padding-inline-start:18px;
+}
+.mushaf .mushaf-jump form{gap:8px;flex-wrap:nowrap}
+.mushaf .mushaf-jump label{white-space:nowrap;font-size:10.5px;font-weight:680}
+.mushaf .mushaf-jump input{width:60px;min-height:40px;border-radius:10px;background:var(--surface);color:var(--ink);text-align:center;font-variant-numeric:tabular-nums}
+.mushaf .mushaf-jump button{min-height:40px;border-radius:10px;background:var(--mushaf-glow);color:var(--ink)}
+.mushaf .mushaf-jump button:disabled{opacity:.55}
+.mushaf .mushaf-flow{padding:0;background:var(--surface)}
+.mushaf .mushaf-flow-assist{
+  display:flex;gap:9px;align-items:center;justify-content:center;
+  padding:13px clamp(16px,3vw,32px);
+  min-height:45px;
+  background:var(--mushaf-glow);
+  border-bottom:1px solid var(--mushaf-edge);
+  text-align:center;color:var(--muted);font-size:11px;line-height:1.65;
+}
+.mushaf .mushaf-flow-assist svg{color:var(--accent);flex:none}
+.mushaf .mushaf-flow-script{
+  display:block;
+  min-width:0;
+  padding:clamp(23px,4.5vw,58px) clamp(19px,5vw,66px);
+  max-width:100%;
+  font-family:AmiriQuran,"Traditional Arabic",serif;
+  font-weight:400;
+  line-height:2.4;
+  text-align:justify;
+  text-align-last:start;
+  word-break:normal;
+  overflow-wrap:normal;
+  text-rendering:optimizeLegibility;
+  font-kerning:normal;
+  color:var(--ink);
+  background:var(--surface);
+}
+.mushaf .mushaf-flow .mushaf-flow-verse{
+  display:inline;
+  padding:0;margin:0;
+  border:0;
+  background:transparent;
+  line-height:inherit;
+  scroll-margin-top:140px;
+  text-align:inherit;
+}
+.mushaf .mushaf-flow .mushaf-flow-words{display:inline;white-space:normal}
+.mushaf .mushaf-flow .mushaf-flow-marker{
+  font-size:inherit;
+  font-family:inherit;
+  display:inline-grid;
+  vertical-align:-.35em;
+  place-items:center;
+  margin-inline:.12em .19em;
+  border:0;
+  border-radius:50%;
+  padding:0;
+  inline-size:1.48em;
+  block-size:1.48em;
+  background:transparent;
+  color:var(--accent);
+  line-height:1;
+  white-space:nowrap;
+  cursor:pointer;
+  direction:rtl;
+  isolation:isolate;
+}
+.mushaf .mushaf-flow-marker .noata-quran-verse-number{
+  display:inline-grid;
+  inline-size:100%;block-size:100%;
+  margin:0;vertical-align:0;
+  font-size:1em;
+  font-family:NoataArabic,serif;
+  pointer-events:none;
+}
+.mushaf .noata-quran-verse-number{line-height:1;vertical-align:middle;white-space:nowrap}
+.mushaf .mushaf-flow-marker:hover,.mushaf .mushaf-flow-marker[aria-pressed="true"]{background:var(--mushaf-glow);box-shadow:0 0 0 2px var(--mushaf-edge)}
+.mushaf .mushaf-flow-marker:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.mushaf .mushaf-flow .mushaf-highlighted .mushaf-flow-words,
+.mushaf .mushaf-flow .mushaf-playing .mushaf-flow-words{
+  background:var(--mushaf-glow);border-radius:3px;
+  box-decoration-break:clone;-webkit-box-decoration-break:clone;
+}
+.mushaf .mushaf-selection-toolbar{
+  position:sticky;top:8px;z-index:3;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  min-height:64px;
+  padding:9px clamp(12px,3vw,23px);
+  border-bottom:1px solid var(--mushaf-edge);
+  border-top:1px solid var(--mushaf-edge);
+  background:var(--surface);
+  box-shadow:0 6px 18px color-mix(in srgb,var(--ink) 5%,transparent);
+}
+.mushaf .mushaf-selection-label{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:12px;font-weight:700}
+.mushaf .mushaf-selection-label .noata-quran-verse-number{inline-size:34px;block-size:34px;flex:none;font-size:24px;margin:0}
+.mushaf .mushaf-selection-actions{display:flex;align-items:center;gap:7px}
+.mushaf .mushaf-verse-action,.mushaf .mushaf-selection-close{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:8px 11px;min-height:38px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-family:inherit;font-size:11px;font-weight:700;
+  cursor:pointer;
+}
+.mushaf .mushaf-verse-action:hover:not(:disabled),.mushaf .mushaf-selection-close:hover{background:var(--mushaf-glow);border-color:var(--mushaf-edge)}
+.mushaf .mushaf-verse-action[aria-pressed="true"]{color:var(--accent);background:var(--mushaf-glow);border-color:var(--mushaf-edge)}
+.mushaf .mushaf-verse-action:disabled{opacity:.45;cursor:not-allowed}
+.mushaf .mushaf-selection-close{min-width:38px;padding:8px}
+.mushaf .mushaf-verse-cards{
+  display:grid;
+  gap:12px;
+  padding:clamp(15px,2.5vw,25px);
+  background:var(--surface-soft);
+}
+.mushaf .mushaf-verse-cards .mushaf-study-card{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  margin:0;
+  padding:0;
+  border-radius:15px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  box-shadow:0 4px 15px color-mix(in srgb,var(--ink) 2%,transparent);
+  scroll-margin-top:50px;
+  overflow:visible;
+}
+.mushaf .mushaf-verse-cards .mushaf-study-card:nth-child(even){background:var(--surface)}
+.mushaf .mushaf-study-heading{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  padding:9px clamp(12px,2vw,20px);
+  border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface) 80%,var(--surface-soft));
+  border-radius:15px 15px 0 0;
+}
+.mushaf .mushaf-study-index{display:inline-flex;align-items:center;gap:9px;font-size:11px;color:var(--muted);font-weight:700}
+.mushaf .mushaf-study-index .noata-quran-verse-number{inline-size:36px;block-size:36px;margin:0;font-size:25px}
+.mushaf .mushaf-study-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.mushaf .mushaf-study-script.aura-quran-verse{
+  display:block;width:100%;margin:0!important;
+  padding:clamp(12px,2.3vw,24px) clamp(16px,3.2vw,35px);
+  font-family:AmiriQuran,"Traditional Arabic",serif;
+  line-height:2.3;
+  font-weight:400;
+  text-align:start;
+  color:var(--ink);
+  overflow-wrap:normal;
+  word-break:normal;
+}
+.mushaf .mushaf-study-card.mushaf-highlighted,
+.mushaf .mushaf-study-card.mushaf-playing{border-color:var(--accent);box-shadow:0 0 0 1px var(--mushaf-edge),0 7px 24px color-mix(in srgb,var(--accent) 7%,transparent)}
+.mushaf .mushaf-study-card.mushaf-playing::before{display:none}
+.mushaf .mushaf-expand{padding:17px 15px;gap:8px;background:var(--surface);border-top:1px solid var(--line)}
+.mushaf .mushaf-expand button{min-height:42px;border-radius:11px}
+.mushaf .mushaf-chapter-nav{margin:0;display:flex;justify-content:space-between;gap:11px;padding:15px clamp(14px,3vw,25px);border-top:1px solid var(--mushaf-edge)}
+.mushaf .mushaf-chapter-nav button{min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--ink);font-size:11px;font-weight:700}
+.mushaf .mushaf-chapter-nav button:not(:disabled):hover{background:var(--mushaf-glow)}
+.mushaf .mushaf-chapter-nav>span{font-variant-numeric:tabular-nums;font-size:11px}
+.mushaf .mushaf-listening-studio{
+  display:grid;gap:13px;padding:clamp(16px,2.6vw,25px);
+  background:color-mix(in srgb,var(--surface) 94%,var(--surface-soft));
+  border:1px solid var(--mushaf-edge);border-radius:20px;
+  scroll-margin-top:20px;
+}
+.mushaf .mushaf-studio-heading{display:flex;align-items:center;gap:12px;padding:0 3px 12px;border-bottom:1px solid var(--line)}
+.mushaf .mushaf-studio-heading>div{display:grid;gap:4px}
+.mushaf .mushaf-studio-heading strong{font-size:15px;font-weight:770}
+.mushaf .mushaf-studio-heading div>span{font-size:11px;color:var(--muted)}
+.mushaf .mushaf-studio-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:12px;color:var(--accent);background:var(--mushaf-glow)}
+.mushaf .mushaf-reciters,.mushaf .mushaf-player{border-radius:15px;box-shadow:none}
+.mushaf .mushaf-player{padding:clamp(15px,2.4vw,24px)}
+.mushaf .mushaf-attribution{border-radius:17px;font-size:11px}
+.mushaf-focused .mushaf-workspace{max-width:1150px}
+.mushaf-focused .mushaf-hero{min-height:150px}
+@media(min-width:1400px){
+ .mushaf .mushaf-workspace{grid-template-columns:278px minmax(0,1fr)}
+}
+@media(max-width:1070px){
+ .mushaf .mushaf-workspace{grid-template-columns:225px minmax(0,1fr)}
+ .mushaf .mushaf-reading-toolbar{align-items:stretch}
+ .mushaf .mushaf-jump{margin-inline-start:0;padding-inline-start:0;border:0;border-top:1px solid var(--line);width:100%;justify-content:flex-end}
+}
+@media(max-width:850px){
+ .mushaf .mushaf-workspace{grid-template-columns:minmax(0,1fr)}
+ .mushaf .mushaf-side{display:grid;gap:10px}
+ .mushaf .mushaf-surah-list{max-height:260px}
+ .mushaf .mushaf-focus-button,.mushaf .mushaf-listen-link{font-size:11px}
+}
+@media(max-width:560px){
+ .mushaf.aura-quran{padding:6px;gap:14px}
+ .mushaf .mushaf-hero{min-height:0;padding:23px 18px;border-radius:18px}
+ .mushaf .mushaf-hero::after{inset:9px;border-radius:13px}
+ .mushaf .mushaf-hero h1{font-size:31px}
+ .mushaf .mushaf-hero h1>span{font-size:16px}
+ .mushaf .mushaf-hero p{font-size:11px}
+ .mushaf .mushaf-global-search{min-height:50px;border-radius:14px}
+ .mushaf .mushaf-reading{border-radius:17px}
+ .mushaf .mushaf-reading-tools{padding:10px 12px;gap:8px}
+ .mushaf .mushaf-surah-select{flex:1 1 100%;max-width:100%}
+ .mushaf .mushaf-surah-select select{max-width:100%;width:100%}
+ .mushaf .mushaf-chapter{padding:22px 12px}
+ .mushaf .mushaf-chapter::before{inset-inline-start:5%}
+ .mushaf .mushaf-chapter::after{inset-inline-end:5%}
+ .mushaf .mushaf-chapter h2{font-size:36px}
+ .mushaf .mushaf-reading-toolbar{padding:8px 10px}
+ .mushaf .mushaf-reader-controls{flex-wrap:wrap;justify-content:space-between}
+ .mushaf .mushaf-reader-controls>.mushaf-segmented{flex:1 1 100%}
+ .mushaf .mushaf-jump{justify-content:space-between;padding-top:9px}
+ .mushaf .mushaf-jump form{width:100%;justify-content:space-between}
+ .mushaf .mushaf-flow-script{padding:21px 16px;line-height:2.25;text-align:start}
+ .mushaf .mushaf-flow-assist{font-size:10px;padding:10px 13px}
+ .mushaf .mushaf-flow .mushaf-flow-marker{inline-size:1.34em;block-size:1.34em;vertical-align:-.3em;margin-inline:.11em .14em}
+ .mushaf .mushaf-selection-toolbar{gap:6px}
+ .mushaf .mushaf-selection-label .noata-quran-verse-number{inline-size:29px;block-size:29px}
+ .mushaf .mushaf-verse-cards{padding:10px;gap:10px}
+ .mushaf .mushaf-study-heading{padding:9px 11px}
+ .mushaf .mushaf-study-actions{gap:5px}
+ .mushaf .mushaf-verse-action{padding:8px 9px}
+ .mushaf .mushaf-study-script.aura-quran-verse{padding:15px;line-height:2.2}
+ .mushaf .mushaf-listening-studio{padding:12px}
+ .mushaf .mushaf-chapter-nav{padding:12px 9px}
+ .mushaf .mushaf-chapter-nav button{font-size:10px;padding:8px}
+}
+@media(max-width:360px){
+ .mushaf .mushaf-verse-action span{display:none}
+ .mushaf .mushaf-verse-action{min-width:39px}
+ .mushaf .mushaf-hero-facts{gap:9px}
+ .mushaf .mushaf-chapter::before,.mushaf .mushaf-chapter::after{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .mushaf .mushaf-verse-card,.mushaf .mushaf-flow-marker{transition:none!important;animation:none!important}
+}
+@media(forced-colors:active){
+ .mushaf .mushaf-reading,.mushaf .mushaf-navigator{border:1px solid CanvasText}
+ .mushaf .mushaf-flow-marker[aria-pressed="true"]{outline:2px solid Highlight}
+}
+
+
+/* Reuse the verified-chat Quran medallion geometry in the full Mushaf;
+   this stylesheet must not rely on chat's locally-scoped CSS module. */
+.mushaf .noata-quran-verse-number{
+  --mushaf-seal-ink:color-mix(in srgb,var(--accent) 58%,var(--muted));
+  --mushaf-seal-wash:color-mix(in srgb,var(--accent) 5%,var(--surface));
+  position:relative;
+  isolation:isolate;
+  box-sizing:border-box;
+  display:inline-grid;
+  grid-template-areas:"seal";
+  place-items:center;
+  inline-size:1.45em;
+  block-size:1.45em;
+  margin-inline:.17em;
+  padding:0;
+  color:var(--accent);
+  background:transparent;
+  font-size:1em;
+  vertical-align:-.34em;
+  line-height:1;
+  direction:rtl;
+  unicode-bidi:isolate;
+}
+.mushaf .noata-quran-verse-seal{
+  display:block;grid-area:seal;
+  width:100%;height:100%;
+  overflow:visible;
+  filter:drop-shadow(0 1px 1px color-mix(in srgb,var(--ink) 6%,transparent));
+  pointer-events:none;
+}
+.mushaf .noata-quran-seal-petal{
+  fill:var(--mushaf-seal-wash);
+  stroke:var(--mushaf-seal-ink);
+  stroke-width:1.05;stroke-linejoin:round;
+}
+.mushaf .noata-quran-seal-center{
+  fill:var(--surface);
+  stroke:color-mix(in srgb,var(--accent) 32%,var(--line));
+  stroke-width:1.1;
+}
+.mushaf .noata-quran-seal-ring{
+  stroke:color-mix(in srgb,var(--accent) 38%,var(--line));
+  stroke-width:.85;
+}
+.mushaf .noata-quran-verse-digits{
+  grid-area:seal;position:relative;z-index:1;
+  display:block;
+  margin:0;padding:0;
+  font-family:NoataArabic,"Noto Naskh Arabic",system-ui,sans-serif;
+  font-weight:760;font-size:.49em;
+  font-variant-numeric:normal;
+  line-height:1;letter-spacing:0;
+  direction:ltr;unicode-bidi:isolate;
+  color:var(--accent);
+  transform:translateY(-.03em);
+}
+@media(forced-colors:active){
+  .mushaf .noata-quran-verse-seal{filter:none}
+  .mushaf .noata-quran-seal-petal,.mushaf .noata-quran-seal-center{fill:Canvas;stroke:CanvasText}
+  .mushaf .noata-quran-seal-ring{stroke:CanvasText}
+  .mushaf .noata-quran-verse-digits{color:CanvasText}
+}
+
+
+/* Mushaf identity · final single-source layout.
+   Its arch, book, Arabic title and tagline have intentional fixed proportions.
+   Do not place additional overrides after this block. */
+.mushaf .mushaf-hero-insignia{
+  --insignia-line:color-mix(in srgb,var(--accent) 40%,var(--line));
+  --insignia-faint:color-mix(in srgb,var(--accent) 24%,var(--line));
+  position:relative;
+  isolation:isolate;
+  display:block;
+  flex:0 0 auto;
+  width:clamp(194px,17.7vw,226px);
+  aspect-ratio:240/280;
+  height:auto;
+  min-width:0;
+  margin:0 clamp(2px,1.2vw,12px);
+  filter:drop-shadow(0 10px 17px color-mix(in srgb,var(--ink) 4%,transparent));
+  color:var(--accent);
+}
+.mushaf .mushaf-hero-insignia::before{
+  content:"";
+  position:absolute;
+  inset:17% 17% 11%;
+  border-radius:44% 44% 31% 31%;
+  background:radial-gradient(ellipse at 50% 43%,
+    color-mix(in srgb,var(--accent) 7%,var(--surface)),
+    color-mix(in srgb,var(--surface) 94%,transparent) 73%);
+  pointer-events:none;
+}
+.mushaf .mushaf-insignia-frame{
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  pointer-events:none;
+}
+.mushaf .mushaf-insignia-outer{
+  fill:color-mix(in srgb,var(--accent) 1%,var(--surface));
+  stroke:var(--insignia-line);
+  stroke-width:1.15;
+}
+.mushaf .mushaf-insignia-inner{
+  stroke:var(--insignia-faint);
+  stroke-width:1.1;
+}
+.mushaf .mushaf-insignia-crown{fill:var(--accent);opacity:.6}
+.mushaf .mushaf-insignia-crown-soft{fill:var(--accent);opacity:.24}
+.mushaf .mushaf-insignia-base{
+  stroke:var(--insignia-line);
+  stroke-width:1.15;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  opacity:.57;
+}
+/* Content is inset from the sloping arch, not aligned to its visible edges. */
+.mushaf .mushaf-insignia-content{
+  position:absolute;
+  z-index:1;
+  inset:24% 13.5% 21%;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:clamp(9px,1.05vw,12px);
+  padding:0;
+  text-align:center;
+  pointer-events:none;
+  min-width:0;
+}
+.mushaf .mushaf-insignia-halo{
+  display:grid;
+  flex:0 0 auto;
+  place-items:center;
+  width:clamp(43px,4.15vw,53px);
+  aspect-ratio:1;
+  height:auto;
+  margin:0;
+  border:1px solid var(--insignia-faint);
+  border-radius:15px;
+  color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 5%,var(--surface));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--surface) 85%,transparent);
+}
+.mushaf .mushaf-insignia-halo svg{
+  display:block;
+  width:77%;
+  height:77%;
+  overflow:visible;
+}
+.mushaf .mushaf-insignia-wordmark{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(3px,.3vw,5px);
+  width:100%;
+  min-width:0;
+  padding:0;
+  margin:0;
+  text-align:center;
+}
+.mushaf .mushaf-insignia-arabic{
+  display:block;
+  max-width:100%;
+  margin:0;
+  padding:0;
+  font-family:AmiriQuran,NoataArabic,serif;
+  font-size:clamp(21px,1.92vw,25px);
+  font-weight:600;
+  line-height:1.31;
+  white-space:nowrap;
+  letter-spacing:0;
+  text-align:center;
+  color:var(--ink);
+}
+.mushaf .mushaf-insignia-divider{
+  display:flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  width:62px;
+  max-width:56%;
+  height:5px;
+  padding:0;
+  margin:0;
+}
+.mushaf .mushaf-insignia-divider i{
+  display:block;
+  flex:1;
+  width:auto;
+  height:1px;
+  background:var(--insignia-line);
+}
+.mushaf .mushaf-insignia-divider b{
+  display:block;
+  flex:0 0 auto;
+  width:4px;
+  height:4px;
+  border:1px solid var(--insignia-line);
+  transform:rotate(45deg);
+}
+.mushaf .mushaf-insignia-caption,
+.mushaf[lang="en"] .mushaf-insignia-caption{
+  display:block;
+  flex:0 0 auto;
+  max-width:100%;
+  margin:0;
+  padding:0;
+  font-family:system-ui,NoataArabic,sans-serif;
+  font-size:clamp(7px,.69vw,8.1px);
+  font-weight:670;
+  line-height:1.45;
+  letter-spacing:.025em;
+  color:var(--muted);
+  white-space:nowrap;
+  text-align:center;
+}
+.mushaf .mushaf-insignia-caption[lang="ar"]{
+  font-family:NoataArabic,system-ui,sans-serif;
+  letter-spacing:0;
+  font-size:clamp(7px,.72vw,8.5px);
+}
+@media(max-width:920px){
+  .mushaf .mushaf-hero-insignia{width:186px;margin:0 2px}
+  .mushaf .mushaf-insignia-content{gap:8px;inset:24% 13% 21%}
+  .mushaf .mushaf-insignia-halo{width:44px;border-radius:12px}
+  .mushaf .mushaf-insignia-arabic{font-size:21px}
+  .mushaf .mushaf-insignia-caption,
+  .mushaf[lang="en"] .mushaf-insignia-caption{font-size:7px}
+}
+@media(max-width:700px){
+  .mushaf .mushaf-hero{flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  .mushaf .mushaf-hero-copy{text-align:center;width:100%}
+  .mushaf .mushaf-eyebrow,.mushaf .mushaf-hero-facts{justify-content:center}
+  .mushaf .mushaf-hero-insignia{width:181px;margin:0 auto}
+}
+@media(max-width:380px){
+  .mushaf .mushaf-hero-insignia{width:166px}
+  .mushaf .mushaf-insignia-content{gap:7px}
+  .mushaf .mushaf-insignia-halo{width:41px;border-radius:11px}
+  .mushaf .mushaf-insignia-arabic{font-size:19px}
+  .mushaf .mushaf-insignia-caption,
+  .mushaf[lang="en"] .mushaf-insignia-caption,
+  .mushaf .mushaf-insignia-caption[lang="ar"]{font-size:6.7px}
+}
+@media(forced-colors:active){
+  .mushaf .mushaf-hero-insignia{filter:none}
+  .mushaf .mushaf-insignia-outer{fill:Canvas;stroke:CanvasText}
+  .mushaf .mushaf-insignia-inner,.mushaf .mushaf-insignia-base{stroke:CanvasText}
+  .mushaf .mushaf-insignia-crown,.mushaf .mushaf-insignia-crown-soft{fill:CanvasText}
+  .mushaf .mushaf-insignia-arabic,.mushaf .mushaf-insignia-caption{color:CanvasText}
+  .mushaf .mushaf-insignia-halo{background:Canvas;border-color:CanvasText}
+}

@@ -1,0 +1,24 @@
+export type SpecialistModel="Fanar-Guard-2"|"Fanar-Diwan";
+export function specialistRequest(model:SpecialistModel,text:string,context:unknown){
+ const prompt=text.trim();if(!prompt||prompt.length>14000)throw Error("specialist_text_limit");
+ if(model==="Fanar-Diwan")return {path:"/poems/generations",body:{model,prompt}};
+ const prior=typeof context==="string"?context.trim():"";
+ if(prior.length>2000)throw Error("specialist_context_limit");
+ return {path:"/moderations",body:{model,prompt:prior||"Review the safety of this text.",response:prompt}};
+}
+export function specialistReply(model:SpecialistModel,value:unknown,locale:"ar"|"en"):string{
+ if(!value||typeof value!=="object")throw Error("specialist_invalid_response");
+ const data=value as Record<string,unknown>;
+ if(model==="Fanar-Diwan"){
+  if(typeof data.poem!=="string"||data.poem.trim().length<12||data.poem.length>20000)throw Error("poem_invalid_response");
+  const poem=data.poem.trim().split(/\r?\n/).map(line=>line.trimEnd()+"  ").join("\n");
+  return (locale==="ar"?"## مسودة شعرية\n\n":"## Poetry draft\n\n")+poem+"\n\n"+
+   (locale==="ar"?"*مسودة من ديوان. راجع الصياغة والنسبة الأدبية قبل النشر.*":"*A draft from Diwan. Review wording and attribution before publishing.*");
+ }
+ const safety=data.safety,cultural=data.cultural_awareness;
+ if(typeof safety!=="number"||!Number.isFinite(safety)||typeof cultural!=="number"||!Number.isFinite(cultural))throw Error("guard_invalid_response");
+ const n=(x:number)=>String(Number(x.toFixed(2)));
+ return locale==="ar"
+ ? "## مراجعة سلامة النص\n\n| المقياس | نتيجة النموذج |\n| --- | ---: |\n| السلامة | "+n(safety)+" |\n| الوعي الثقافي | "+n(cultural)+" |\n\nهذه درجات فحص آلي، وليست تحققًا من صحة الحقائق أو ضمانًا لسلامة المحتوى. راجع السياق قبل اتخاذ قرار."
+ : "## Text safety review\n\n| Measure | Model score |\n| --- | ---: |\n| Safety | "+n(safety)+" |\n| Cultural awareness | "+n(cultural)+" |\n\nThese are automated screening scores, not a factual accuracy check or a guarantee of safe content. Review the context before making a decision.";
+}

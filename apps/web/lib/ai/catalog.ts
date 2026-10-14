@@ -69,7 +69,7 @@ export const FANAR_CAPABILITIES: FanarCapability[] = [
     category: "islamic",
     endpoint: "/chat/completions",
     quota: "50/min",
-    visibleInPicker: true,
+    visibleInPicker: false,
     use: "islamic",
   },
   {
@@ -150,7 +150,7 @@ export const FANAR_CAPABILITIES: FanarCapability[] = [
     category: "safety",
     endpoint: "/moderations",
     quota: "50/min",
-    visibleInPicker: false,
+    visibleInPicker: true,
     use: "moderation",
   },
   {
@@ -168,7 +168,7 @@ export const FANAR_CAPABILITIES: FanarCapability[] = [
     category: "creative",
     endpoint: "/poems/generations",
     quota: "50/min",
-    visibleInPicker: false,
+    visibleInPicker: true,
     use: "poetry",
   },
 ];

@@ -1,0 +1,371 @@
+\set ON_ERROR_STOP on
+begin;
+create schema qa;
+grant usage on schema qa to anon,authenticated,service_role;
+create function qa.check(ok boolean,label text) returns text language plpgsql as $$
+begin if ok is distinct from true then raise exception 'QA FAIL: %',label; end if;return 'QA PASS: '||label;end;
+$$;
+create function qa.denied(statement text,label text,expected_message text default null) returns text language plpgsql as $$
+begin
+  begin execute statement;exception when others then
+    if sqlstate='42501' or (sqlstate='P0001' and sqlerrm=expected_message) then return 'QA PASS: '||label;end if;
+    raise;
+  end;
+  raise exception 'QA FAIL: operation was allowed: %',label;
+end;
+$$;
+create function qa.invalid(statement text,label text) returns text language plpgsql as $$
+begin
+  begin execute statement;exception when invalid_parameter_value then return 'QA PASS: '||label;end;
+  raise exception 'QA FAIL: invalid operation was allowed: %',label;
+end;
+$$;
+create function qa.artifact_constraint_denied(statement text,label text,expected_state text default '23514') returns text
+language plpgsql as $qa$
+begin
+ begin execute statement;
+ exception when others then
+  if sqlstate=expected_state then return 'QA PASS: '||label;end if;
+  raise exception 'QA FAIL: % rejected for unexpected SQLSTATE % (%): %',label,sqlstate,expected_state,sqlerrm;
+ end;
+ raise exception 'QA FAIL: unexpectedly accepted: %',label;
+end
+$qa$;
+-- Dedicated local identities only. Metadata must never promote their roles.
+insert into auth.users(id,raw_user_meta_data) values
+ ('00000000-0000-0000-0000-000000000001','{"role":"admin","display_name":"Local student A"}'),
+ ('00000000-0000-0000-0000-000000000002','{"display_name":"Local student B"}'),
+ ('00000000-0000-0000-0000-000000000003','{"display_name":"Local teacher A"}'),
+ ('00000000-0000-0000-0000-000000000004','{"display_name":"Local teacher B"}'),
+ ('00000000-0000-0000-0000-000000000005','{"display_name":"Local admin"}');
+select qa.check((select role='student' from public.profiles where id='00000000-0000-0000-0000-000000000001'),'signup metadata cannot escalate role');
+update public.profiles set role='teacher' where id in ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004');
+update public.profiles set role='admin' where id='00000000-0000-0000-0000-000000000005';
+insert into public.classes(id,slug,name,grade_label,academic_year) values
+ ('10000000-0000-0000-0000-000000000001','qa-a','QA A','QA','QA'),
+ ('10000000-0000-0000-0000-000000000002','qa-b','QA B','QA','QA');
+insert into public.class_memberships(class_id,student_id) values
+ ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001'),
+ ('10000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000002');
+insert into public.teacher_class_access(class_id,teacher_id) values
+ ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000003'),
+ ('10000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000004');
+insert into public.assignments(id,class_id,created_by,title,published_at) values
+ ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000003','Published A',now()),
+ ('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000003','Draft A',null),
+ ('20000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000004','Published B',now());
+insert into public.ai_conversations(id,user_id,title) values
+ ('30000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','A private'),
+ ('30000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000002','B private');
+insert into public.ai_messages(id,conversation_id,role,content) values
+ ('40000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','user','A private text'),
+ ('40000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000002','user','B private text');
+select qa.check((select count(*)=5 from public.user_settings),'signup creates settings');
+select qa.check((select count(*)=5 from public.notifications where type='welcome'),'signup creates welcome notification');
+select qa.check((select count(*)=2 from public.notifications where type='assignment'),'assignment publishing notifies only class members');
+select qa.check((select count(*)=1 from storage.buckets where id='noata-documents' and public=false and file_size_limit=8388608),'private-document bucket fixture is private and bounded');
+select qa.check(to_regclass('public.ai_document_files') is not null,'private-document metadata migration applied');
+select qa.check((select bool_and(not public) from storage.buckets),'base storage buckets private');
+set local role anon;
+select qa.check((select count(*)=0 from public.profiles),'anonymous profiles denied');
+select qa.check((select count(*)=0 from public.ai_messages),'anonymous messages denied');
+select qa.check((select count(*)=0 from public.question_keys),'anonymous answer keys denied');
+select qa.denied($s$select public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',100)$s$,'anonymous learning RPC denied');
+reset role;
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select qa.check((select count(*)=1 from public.profiles),'student cannot read another profile');
+select qa.check((select count(*)=1 from public.ai_conversations),'conversation owner isolation');
+-- Account-owned AI palette, tested with deterministic local-only UUID.
+insert into public.user_theme_designs(id,user_id,name,description,tokens)
+values('99000000-0000-0000-0000-000000000001',auth.uid(),'QA Ocean','Isolated theme',
+  '{"accent":"#24508c","deep":"#10243b","bright":"#58a9c1"}'::jsonb);
+select qa.check((select count(*)=1 from public.user_theme_designs),'own AI palette visible');
+update public.user_settings set active_design_id='99000000-0000-0000-0000-000000000001'
+where user_id=auth.uid();
+select qa.check((select active_design_id='99000000-0000-0000-0000-000000000001' from public.user_settings where user_id=auth.uid()),'owner can activate own AI design');
+
+select qa.check((select count(*)=1 from public.ai_messages),'message owner isolation');
+
+-- Optional Noata Memory is owned by the authenticated account. This is an
+-- isolated database fixture, NOT a legitimate signed-in hosted QA session.
+insert into public.ai_memory_consent(user_id,enabled) values(auth.uid(),true);
+insert into public.ai_user_memories(user_id,content,source)
+ values(auth.uid(),'I prefer mathematics explanations in Arabic.','manual');
+select qa.check((select enabled from public.ai_memory_consent where user_id=auth.uid()),
+ 'owner can explicitly opt in to memory');
+select qa.check((select count(*)=1 from public.ai_user_memories where user_id=auth.uid()),
+ 'owner can save and read personal memories');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from public.ai_user_memories),
+ 'second account cannot read first account memory');
+select qa.check((select count(*)=0 from public.ai_memory_consent),
+ 'second account cannot inspect first account memory consent');
+select qa.denied(
+ $m$insert into public.ai_user_memories(user_id,content,source)
+ values('00000000-0000-0000-0000-000000000001','Cross-account writing forbidden','manual')$m$,
+ 'second account cannot insert a memory for the first account');
+with attempted as (update public.ai_user_memories set content='Tampered memory'
+ where user_id='00000000-0000-0000-0000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),
+ 'second account cannot edit first account memory');
+with attempted as (delete from public.ai_user_memories
+ where user_id='00000000-0000-0000-0000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),
+ 'second account cannot erase first account memory');
+with attempted as (update public.ai_memory_consent set enabled=false
+ where user_id='00000000-0000-0000-0000-000000000001' returning user_id)
+select qa.check((select count(*)=0 from attempted),
+ 'second account cannot revoke first account memory consent');
+insert into public.ai_user_memories(user_id,content,source)
+ values(auth.uid(),'I prefer short science summaries.','manual');
+select qa.check((select count(*)=1 from public.ai_user_memories),
+ 'second account can maintain its own separate memories');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select qa.check((select count(*)=1 from public.ai_user_memories),
+ 'first account still sees only its own saved memory');
+update public.ai_memory_consent set enabled=false where user_id=auth.uid();
+select qa.check((select enabled=false from public.ai_memory_consent where user_id=auth.uid()),
+ 'owner can revoke memory consent without needing to delete account');
+
+select qa.check((select count(*)=0 from public.question_keys),'student answer keys denied');
+select qa.check((select count(*)=1 from public.assignments),'student sees published assignments in own class only');
+select qa.denied($s$update public.profiles set role='admin' where id=auth.uid()$s$,'direct role escalation denied');
+select qa.denied($s$update public.profiles set xp=999 where id=auth.uid()$s$,'direct XP editing denied');
+select qa.denied($s$update public.profiles set gems=999 where id=auth.uid()$s$,'direct GEM balance editing denied');
+select qa.denied($s$insert into public.ledger(user_id,currency,amount,reason,idempotency_key) values(auth.uid(),'GEM',99,'FAKE','client-fake-gems')$s$,'client cannot mint forged GEM ledger entries');
+select qa.denied($s$select public.set_user_role(auth.uid(),'admin')$s$,'student admin RPC denied','Admin access required');
+select qa.denied($s$select * from public.admin_ai_usage_summary()$s$,'student AI usage summary denied');
+select qa.denied($s$select * from public.claim_ai_quota(auth.uid(),'text',100,60)$s$,'student service quota RPC denied');
+select qa.denied($s$select * from public.ai_request_receipts$s$,'student inference receipt access denied');
+select qa.denied($s$update public.notifications set title='spoofed' where user_id=auth.uid()$s$,'notification text immutable to client');
+with changed as(update public.notifications set read_at=now() where user_id=auth.uid() returning id)
+select qa.check((select count(*)>0 from changed),'notification read status writable by owner');
+select qa.denied($s$insert into public.ai_messages(conversation_id,role,content) values('30000000-0000-0000-0000-000000000002','user','injection')$s$,'cross-account message insert denied');
+select qa.denied($s$insert into public.ai_attachments(user_id,conversation_id,storage_path,mime_type,size_bytes) values(auth.uid(),'30000000-0000-0000-0000-000000000002',auth.uid()||'/qa.txt','text/plain',1)$s$,'cross-account attachment conversation denied');
+select qa.denied($s$insert into public.ai_attachments(user_id,message_id,storage_path,mime_type,size_bytes) values(auth.uid(),'40000000-0000-0000-0000-000000000002',auth.uid()||'/qa.txt','text/plain',1)$s$,'cross-account attachment message denied');
+select qa.denied($s$insert into public.ai_attachments(user_id,storage_path,mime_type,size_bytes) values(auth.uid(),'00000000-0000-0000-0000-000000000002/qa.txt','text/plain',1)$s$,'cross-account attachment path denied');
+insert into public.ai_attachments(user_id,conversation_id,message_id,storage_path,mime_type,size_bytes)
+values(auth.uid(),'30000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001',auth.uid()||'/qa.png','image/png',1);
+select qa.check((select count(*)=1 from public.ai_attachments),'own attachment metadata allowed');
+insert into storage.objects(bucket_id,name) values('noata-uploads',auth.uid()||'/qa.png');
+select qa.denied($s$insert into storage.objects(bucket_id,name) values('noata-uploads','00000000-0000-0000-0000-000000000002/qa.png')$s$,'cross-account storage upload denied');
+select qa.denied($s$insert into storage.objects(bucket_id,name) values('noata-generated',auth.uid()||'/qa.png')$s$,'generated storage client upload denied');
+select qa.check((select count(*)=1 from storage.objects),'own storage object visible');
+select qa.denied($s$insert into public.assignment_submissions(assignment_id,student_id,score) values('20000000-0000-0000-0000-000000000001',auth.uid(),100)$s$,'student cannot grade on submission');
+select qa.denied($s$insert into public.assignment_submissions(assignment_id,student_id) values('20000000-0000-0000-0000-000000000002',auth.uid())$s$,'draft assignment submission denied');
+select qa.denied($s$insert into public.assignment_submissions(assignment_id,student_id) values('20000000-0000-0000-0000-000000000003',auth.uid())$s$,'foreign class submission denied');
+insert into public.assignment_submissions(assignment_id,student_id,submitted_at) values('20000000-0000-0000-0000-000000000001',auth.uid(),now());
+select qa.denied($s$update public.assignment_submissions set assignment_id='20000000-0000-0000-0000-000000000003' where student_id=auth.uid()$s$,'submission cannot move to foreign assignment');
+select qa.denied($s$update public.assignment_submissions set score=100 where student_id=auth.uid()$s$,'student cannot update own grade');
+select qa.denied($s$select public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',100)$s$,'unearned lesson completion denied');
+select qa.denied($s$select private.complete_lesson_internal('29ea460d-92fc-570b-942a-c80fe012be22',100)$s$,'internal lesson bypass denied');
+select qa.check((public.submit_attempt('05c00c64-b9b8-5736-b996-86dd82a3dd83','{"value":"0"}',false,'qa-first',false)->>'correct')='false','actual incorrect answer grading');
+select qa.check((public.submit_attempt('05c00c64-b9b8-5736-b996-86dd82a3dd83','{"value":"0"}',false,'qa-first',false)->>'duplicate')='true','attempt retry returns same result');
+select qa.invalid($s$select public.submit_attempt('05c00c64-b9b8-5736-b996-86dd82a3dd83','{"value":"1"}',false,'qa-first',false)$s$,'idempotency key cannot change answer');
+select qa.check((public.submit_attempt('9d871ff7-39fe-5a54-87d9-e9de30c37371','{"value":"1"}',false,'qa-variant',false)->>'correct')='true','parallel variant grading');
+select qa.check((public.complete_unit_boss('1193c2ae-2e06-53d0-ae79-ad338fb52742',array['33fddc1b-daaa-582f-87a5-71b6ce7eb904','44ca081f-ceae-536e-9bfc-e29c506cb208','367a897d-0394-586e-a5cf-062fed876601']::uuid[])->>'score')::int=0,'unrelated correct answer cannot pass Unit Boss');
+select public.submit_attempt('b4ebb1e4-c88f-545a-8cdd-9faa970e5311','{"value":"8"}',false,'qa-second',false);
+select public.submit_attempt('d25f0844-8a0c-59e4-b93b-4cbde38e9bb8','{"value":"1"}',false,'qa-third',false);
+select qa.check((public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',100)->>'best_score')::numeric=67,'lesson score comes from attempts not client claim');
+select qa.check((public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',100)->>'xp_reward')::int=0,'repeated completion cannot award XP twice');
+select qa.check((select count(*)=2 from public.ledger where reason='LESSON_COMPLETION'),'one XP and one coin completion ledger entry');
+select qa.check((public.purchase_shop_item('51784f92-e172-59ea-9298-d7b7bac522be','qa-purchase')->>'duplicate')='false','purchase confirms persisted receipt');
+select qa.check((public.purchase_shop_item('51784f92-e172-59ea-9298-d7b7bac522be','qa-purchase')->>'duplicate')='true','purchase retry is idempotent');
+select qa.check((public.equip_cosmetic('51784f92-e172-59ea-9298-d7b7bac522be')->>'slot')='avatar','owned cosmetic can equip');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from storage.objects),'other student storage is private');
+select qa.check((select count(*)=0 from public.ai_attachments),'other student attachment rows are private');
+select qa.check((select count(*)=0 from public.user_theme_designs),'AI palette rows invisible to other account');
+with changed as(update public.user_theme_designs set name='STOLEN'
+  where id='99000000-0000-0000-0000-000000000001' returning id)
+select qa.check((select count(*)=0 from changed),'cross-account palette mutation is blocked');
+do $noata_ai_owner$
+begin
+  begin
+    update public.user_settings
+      set active_design_id='99000000-0000-0000-0000-000000000001'
+      where user_id=auth.uid();
+    raise exception 'QA FAIL: cross-account AI design activation succeeded';
+  exception when foreign_key_violation then
+    raise notice 'QA PASS: cross-account AI design activation is rejected by database integrity';
+  end;
+end $noata_ai_owner$;
+
+-- This student's actual first attempt on all three questions is correct.
+-- A forged p_score value cannot affect the backend-computed mastery result.
+select public.submit_attempt('05c00c64-b9b8-5736-b996-86dd82a3dd83','{"value":"1"}',false,'qa-gem-first',false);
+select public.submit_attempt('b4ebb1e4-c88f-545a-8cdd-9faa970e5311','{"value":"8"}',false,'qa-gem-second',false);
+select public.submit_attempt('d25f0844-8a0c-59e4-b93b-4cbde38e9bb8','{"value":"1"}',false,'qa-gem-third',false);
+select qa.check((public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',0)->>'best_score')::numeric=100,'verified 100 percent mastery overrides forged client score');
+select qa.check((select gems=8 from public.profiles where id=auth.uid()),'perfect verified learning earns 5 mastery and 3 bonus Gems');
+select qa.check((select count(*)=2 from public.ledger where user_id=auth.uid() and currency='GEM'),'verified Gems recorded as distinct immutable receipts');
+select public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',0);
+select qa.check((select gems=8 from public.profiles where id=auth.uid()),'lesson retries cannot duplicate Gems');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
+select qa.check((select count(*)=0 from public.assignment_submissions),'unrelated teacher cannot read submission');
+select qa.check((select count(*)=0 from public.attempts where user_id='00000000-0000-0000-0000-000000000001'),'unrelated teacher cannot read other class attempts');
+select qa.check((select count(*)>0 from public.attempts where user_id='00000000-0000-0000-0000-000000000002'),'assigned teacher can read own class attempts');
+select qa.check((select count(*)=0 from public.profiles where id='00000000-0000-0000-0000-000000000001'),'unrelated teacher cannot read student profile');
+with changed as(update public.assignment_submissions set score=100 returning id)
+select qa.check((select count(*)=0 from changed),'unrelated teacher cannot grade');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000003';
+select qa.check((select count(*)=1 from public.assignment_submissions),'assigned teacher can read submission');
+select qa.check((select count(*)>0 from public.attempts),'assigned teacher can read learning attempts');
+select qa.denied($s$update public.questions set publication_status='published' where id='92286df0-8362-52fa-9f3c-233111d9e388'$s$,'teacher cannot bypass publish RPC using table update');
+select qa.denied($s$select public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','publish')$s$,'teacher cannot publish via RPC','Admin access required to publish');
+with changed as(update public.assignment_submissions set score=83 returning id)
+select qa.check((select count(*)=1 from changed),'assigned teacher can grade');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+with changed as(update public.assignment_submissions set metadata='{"overwrite":true}' returning id)
+select qa.check((select count(*)=0 from changed),'graded submission cannot be overwritten by student');
+select qa.check((select count(*)=1 from public.notifications where type='grade'),'student receives grade notification');
+select public.submit_attempt('33fddc1b-daaa-582f-87a5-71b6ce7eb904','{"value":"5"}',false,'qa-boss-one',false);
+select public.submit_attempt('44ca081f-ceae-536e-9bfc-e29c506cb208','{"value":"0"}',false,'qa-boss-two',false);
+select public.submit_attempt('367a897d-0394-586e-a5cf-062fed876601','{"value":"1"}',false,'qa-boss-three',false);
+select qa.check((public.complete_unit_boss('1193c2ae-2e06-53d0-ae79-ad338fb52742',array['33fddc1b-daaa-582f-87a5-71b6ce7eb904','44ca081f-ceae-536e-9bfc-e29c506cb208','367a897d-0394-586e-a5cf-062fed876601']::uuid[])->>'score')::int=3,'three actual boss answers earn completion');
+select qa.check((public.claim_reward_box((select id from public.reward_boxes limit 1))->>'duplicate')='false','owner can claim earned box');
+select qa.check((public.claim_reward_box((select id from public.reward_boxes limit 1))->>'duplicate')='true','reward retry cannot award twice');
+select qa.check((select count(*)=2 from public.ledger where reason='MYSTERY_BOX'),'one XP and one coin reward ledger entry');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000003';
+select public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','submit_review');
+select public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','approve');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+select qa.check((public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','publish')->>'publication_status')='published','admin can publish reviewed question');
+select qa.check((public.set_user_role('00000000-0000-0000-0000-000000000002','teacher')->>'role')='teacher','admin role change succeeds');
+select qa.check((select count(*)=1 from public.audit_events where action='ROLE_CHANGED'),'role change has audit evidence');
+select qa.check((select count(*)=0 from public.class_memberships where student_id='00000000-0000-0000-0000-000000000002'),'role change removes stale membership');
+
+-- Genesis 3.0 artifact correctness: actual PostgreSQL constraint/RLS assertions.
+-- Synthetic fixtures in isolated PostgreSQL; separate from authenticated Staging E2E.
+
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+values('96000000-0000-4000-8000-000000000001',auth.uid(),'study.pdf','application/pdf',
+ auth.uid()::text||'/genesis/study.pdf',2108);
+select qa.check(
+ (select mime_type='application/pdf' and byte_size=2108 from public.ai_artifacts where id='96000000-0000-4000-8000-000000000001'),
+ 'authenticated owner can insert and read genuine PDF metadata');
+select qa.check(
+ (select count(*)=6 and bool_and(position(expected.mime in pg_get_constraintdef(c.oid))>0)
+  from pg_constraint c cross join lateral (
+   select unnest(array[
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/markdown','text/plain'
+   ]) as mime
+  ) expected
+  where c.conrelid='public.ai_artifacts'::regclass and c.conname='ai_artifacts_mime_type_check'),
+ 'six supported artifact MIME values retained in constraint');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000002',auth.uid(),'unsafe.exe','application/x-msdownload',auth.uid()::text||'/genesis/unsafe.exe',100)$s$,
+ 'unsupported executable MIME rejected');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000003',auth.uid(),'empty.pdf','application/pdf',auth.uid()::text||'/genesis/empty.pdf',0)$s$,
+ 'zero-byte artifact rejected');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000004',auth.uid(),'oversize.pdf','application/pdf',auth.uid()::text||'/genesis/oversize.pdf',12582913)$s$,
+ 'oversize artifact rejected');
+select qa.artifact_constraint_denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000005',auth.uid(),'../bad.pdf','application/pdf',auth.uid()::text||'/genesis/bad.pdf',100)$s$,
+ 'unsafe artifact filename rejected');
+select qa.denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000006','00000000-0000-0000-0000-000000000002',
+ 'other.pdf','application/pdf','00000000-0000-0000-0000-000000000002/genesis/other.pdf',100)$s$,
+ 'cross-owner PDF metadata insertion blocked by RLS');
+select qa.denied(
+ $s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size)
+ values('96000000-0000-4000-8000-000000000007',auth.uid(),
+ 'path.pdf','application/pdf','00000000-0000-0000-0000-000000000002/genesis/path.pdf',100)$s$,
+ 'own PDF record cannot point into another account storage path');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from public.ai_artifacts where id='96000000-0000-4000-8000-000000000001'),
+ 'second user cannot see first user PDF artifact');
+with attempted as (delete from public.ai_artifacts where id='96000000-0000-4000-8000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),'second user cannot delete first user PDF artifact');
+reset role;
+select qa.check(
+ (select relrowsecurity from pg_class where oid='public.ai_artifacts'::regclass),
+ 'artifact table RLS remains enabled');
+select qa.check(
+ (select not public and 'application/pdf'=any(allowed_mime_types) and file_size_limit=12582912
+ from storage.buckets where id='noata-ai-artifacts'),
+ 'private bucket, PDF allowlist and 12MiB limit preserved');
+select qa.check((select public=false and file_size_limit=8388608 and
+ 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'=any(allowed_mime_types)
+ from storage.buckets where id='noata-documents'),
+ 'Original XLSX uploads remain private and retain the 8MiB bucket cap');
+reset role;
+select qa.check((select bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'),'RLS enabled on every application table');
+
+-- Real SQL for Storage's preliminary and finalized metadata, in this isolated fixture only.
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+insert into public.ai_document_files(id,user_id,conversation_id,name,storage_path,mime_type,size_bytes)
+values('97000000-0000-4000-8000-000000000001',auth.uid(),'30000000-0000-0000-0000-000000000001','QA original.pdf',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf','application/pdf',3);
+insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","contentLength":3}');
+select qa.check((select count(*)=1 from storage.objects where bucket_id='noata-documents'),'owner Storage permission probe succeeds when storage path differs from display name');
+select qa.denied($s$insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","contentLength":4}')$s$,'declared size mismatch is denied');
+select qa.denied($s$insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"text/plain","size":3}')$s$,'MIME mismatch is denied');
+with attempted as (delete from public.ai_document_files where id='97000000-0000-4000-8000-000000000001' returning id)
+select qa.check((select count(*)=0 from attempted),'metadata stays while original bytes exist');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from storage.objects where bucket_id='noata-documents'),'another account cannot read original Storage bytes');
+select qa.check((select count(*)=0 from public.ai_document_files where id='97000000-0000-4000-8000-000000000001'),'another account cannot read original metadata');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+delete from storage.objects where bucket_id='noata-documents';
+insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/97000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","size":3}');
+select qa.check((select count(*)=1 from storage.objects where bucket_id='noata-documents'),'owner finalized byte metadata also passes');
+delete from storage.objects where bucket_id='noata-documents';
+delete from public.ai_document_files where id='97000000-0000-4000-8000-000000000001';
+select qa.check((select count(*)=0 from public.ai_document_files where id='97000000-0000-4000-8000-000000000001'),'cleanup deletes metadata only after original object removal');
+reset role;
+
+
+-- Private retained originals and immutable, owner-bound revision identity.
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+insert into public.ai_document_files(id,user_id,conversation_id,name,storage_path,mime_type,size_bytes,library_saved)
+values('98000000-0000-4000-8000-000000000001',auth.uid(),'30000000-0000-0000-0000-000000000001','Retained original.pdf',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/98000000-0000-4000-8000-000000000001.pdf','application/pdf',3,true);
+insert into storage.objects(bucket_id,name,metadata) values('noata-documents',
+ '00000000-0000-0000-0000-000000000001/30000000-0000-0000-0000-000000000001/98000000-0000-4000-8000-000000000001.pdf',
+ '{"mimetype":"application/pdf","size":3}');
+insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,source_document_id,version,source_content)
+values('98000000-0000-4000-8000-000000000002',auth.uid(),'Revision.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000002/revision.pdf',10,'98000000-0000-4000-8000-000000000001',99,'Full original facts preserved');
+select qa.check((select version=2 from public.ai_artifacts where id='98000000-0000-4000-8000-000000000002'),'database assigns version 2 for a retained document revision');
+insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,parent_artifact_id,version)
+values('98000000-0000-4000-8000-000000000003',auth.uid(),'Revision three.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000003/revision.pdf',10,'98000000-0000-4000-8000-000000000002',99);
+select qa.check((select version=3 from public.ai_artifacts where id='98000000-0000-4000-8000-000000000003'),'database assigns the next parent revision version');
+select qa.denied($s$update public.ai_artifacts set source_content='Overwrite' where id='98000000-0000-4000-8000-000000000002'$s$,'original revision source is immutable for authenticated clients');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.denied($s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,parent_artifact_id)
+values('98000000-0000-4000-8000-000000000004',auth.uid(),'Wrong owner.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000004/revision.pdf',10,'98000000-0000-4000-8000-000000000002')$s$,'cross-account parent artifacts are refused','Source artifact is unavailable for this owner');
+select qa.denied($s$insert into public.ai_artifacts(id,user_id,filename,mime_type,storage_path,byte_size,source_document_id)
+values('98000000-0000-4000-8000-000000000005',auth.uid(),'Wrong document.pdf','application/pdf',auth.uid()::text||'/98000000-0000-4000-8000-000000000005/revision.pdf',10,'98000000-0000-4000-8000-000000000001')$s$,'cross-account original documents are refused','Source document is unavailable for this owner');
+select qa.check((select count(*)=0 from storage.objects where bucket_id='noata-documents'),'retained originals are still private to their owner');
+reset role;
+update public.ai_document_files set conversation_id=null where id='98000000-0000-4000-8000-000000000001';
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select qa.check((select count(*)=1 from storage.objects where bucket_id='noata-documents'),'retained original survives removal of its conversation association');
+select qa.check((select count(*)=1 from public.ai_document_files where id='98000000-0000-4000-8000-000000000001'),'retained original cleanup metadata survives');
+reset role;
+
+rollback;

@@ -1,10 +1,12 @@
 # Verification and human QA
 
-Current evidence and limitations are in IMPLEMENTATION_STATUS.md. This is a release gate, not a claim that unchecked flows pass.
+Current Phase 5 evidence and limitations are in [NOATA_AURA_PHASE5_MATRIX.md](NOATA_AURA_PHASE5_MATRIX.md). Earlier IMPLEMENTATION_STATUS.md inventory is historical. This is a release gate, not a claim that unchecked flows pass.
 
 Automated commands: pnpm typecheck; pnpm modern:test; deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts; pnpm build; pnpm legacy:check. CI uses Node 24 and a frozen lockfile. Local production smoke passed 18 routes, frame denial and nosniff headers.
 
-## Browser matrix (pending)
+## Browser matrix (authenticated and manual gates pending)
+
+Public route/theme, attachment, keyboard, automated accessibility and performance evidence now runs in `scripts/browser-aura-smoke.mjs`. It does not certify the authenticated workflows below.
 
 Run each applicable flow on desktop 1440, tablet 768 and mobile 390, in light/dark, Arabic RTL and mixed-language text. Record browser, viewport, user role, exact commit, result and screenshot. Check keyboard-only navigation, dialog focus/Escape, screen-reader names, zoom200%, reduced motion, loading/empty/offline/error behavior and console/network errors.
 

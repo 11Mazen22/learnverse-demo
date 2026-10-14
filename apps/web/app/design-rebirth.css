@@ -1,0 +1,346 @@
+/*
+ * NOATA AURA — LIGHT STUDIO / DARK ATELIER
+ * Mode and palette are independent. The light experience stays luminous and
+ * outlined; the dark world is softly illuminated. Original Noata vector
+ * remains the only logo, with semantic per-theme color.
+ */
+html[data-palette="custom"] {
+ --ink:#203044;--muted:#607489;--surface:#ffffff;--surface-soft:#f7faff;
+ --line:color-mix(in srgb,var(--custom-accent) 20%,#e2e9f3);
+ --accent:var(--custom-accent);--accent-soft:color-mix(in srgb,var(--custom-accent) 9%,#fff);
+ --blue-500:var(--custom-accent);--blue-400:var(--custom-bright);
+ --navy-950:var(--custom-deep);--navy-900:var(--custom-accent);
+ --hero-deep:var(--custom-deep);--hero-middle:var(--custom-accent);
+ --hero-bright:var(--custom-bright);--hero-glint:color-mix(in srgb,var(--custom-bright) 28%,#fff);
+ --hero-copy:#eef8ff;
+}
+html[data-theme="dark"][data-palette="custom"] {
+ --ink:#f2f6fc;--muted:#c5d0e1;
+ --surface:color-mix(in srgb,var(--custom-deep) 78%,#19213a);
+ --surface-soft:color-mix(in srgb,var(--custom-deep) 84%,#080d1b);
+ --line:color-mix(in srgb,var(--custom-bright) 27%,#222c42);
+ --accent:color-mix(in srgb,var(--custom-accent) 35%,#fff);
+ --accent-soft:color-mix(in srgb,var(--custom-accent) 23%,#1a2640);
+ --on-accent:#101829;
+}
+/* Light dashboard: ivory/white base, custom blue (Classic) or world-tinted
+ * outlines, subtle geometry and proper logo contrast. */
+html[data-theme="light"] .page-content .dashboard-hero {
+ --hero-on-surface:var(--ink);
+ color:var(--ink);
+ background:
+ radial-gradient(ellipse at 4% 5%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 48%),
+ radial-gradient(ellipse at 97% 90%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 50%),
+ linear-gradient(130deg,#ffffff 15%,var(--surface) 68%,var(--surface-soft));
+ border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line));
+ box-shadow:0 2px 3px #0b294507,0 16px 45px color-mix(in srgb,var(--accent) 11%,transparent);
+}
+html[data-theme="light"] .page-content .dashboard-hero :is(h1,h2,h3,.eyebrow) {color:var(--ink)}
+html[data-theme="light"] .page-content .dashboard-hero .eyebrow {color:var(--accent)}
+html[data-theme="light"] .page-content .dashboard-hero p {color:var(--muted)}
+html[data-theme="light"] .page-content .dashboard-hero .aura-scene-caption {color:var(--ink)}
+html[data-theme="light"] .page-content .dashboard-hero .aura-scene-note {
+ color:var(--accent);
+ border-color:color-mix(in srgb,var(--accent) 25%,var(--line));
+ background:var(--accent-soft);
+}
+html[data-theme="light"] .page-content .dashboard-hero .btn-primary {
+ color:#ffffff;background:var(--accent);
+ border:1px solid var(--accent);
+ box-shadow:0 12px 26px color-mix(in srgb,var(--accent) 17%,transparent);
+}
+html[data-theme="light"] .page-content .dashboard-hero .btn-primary:hover {
+ background:color-mix(in srgb,var(--accent) 88%,#071728);color:white;
+}
+html[data-theme="light"] .page-content .dashboard-hero .btn-secondary {
+ color:var(--accent);background:#ffffff;
+ border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));
+}
+html[data-theme="light"] .page-content .dashboard-hero .btn-secondary:hover {
+ background:var(--accent-soft);color:var(--accent);
+}
+html[data-theme="light"] .page-content .dashboard-hero::after {
+ opacity:.8;border-color:color-mix(in srgb,var(--accent) 20%,transparent);
+ box-shadow:0 0 0 42px color-mix(in srgb,var(--accent) 6%,transparent),0 0 0 84px color-mix(in srgb,var(--accent) 3%,transparent);
+}
+html[data-theme="light"] .dashboard-hero .aura-brand-halo {
+ background:radial-gradient(circle,color-mix(in srgb,var(--accent) 12%,transparent),transparent 66%);
+ border:1px solid color-mix(in srgb,var(--accent) 28%,transparent);
+}
+html[data-theme="light"] .dashboard-hero .noata-logo {
+ --brand-mark-ink:var(--accent);
+ --brand-mark-paper:#ffffff;
+ --brand-mark-accent:color-mix(in srgb,var(--accent) 55%,#c2eaff);
+}
+html[data-theme="light"] .dashboard-hero .aura-brand-scene {
+ color:var(--ink);
+}
+html[data-theme="dark"] .page-content .dashboard-hero {
+ background:
+ radial-gradient(ellipse at 88% 12%,color-mix(in srgb,var(--hero-glint) 17%,transparent),transparent 40%),
+ radial-gradient(ellipse at 5% 85%,color-mix(in srgb,var(--accent) 15%,transparent),transparent 52%),
+ linear-gradient(128deg,var(--hero-deep),var(--hero-middle) 73%,var(--hero-bright));
+ border:1px solid color-mix(in srgb,var(--hero-glint) 25%,transparent);
+ box-shadow:0 28px 75px color-mix(in srgb,var(--hero-deep) 32%,transparent);
+}
+.page-content .dashboard-hero {
+ border-radius:clamp(24px,3vw,39px);
+ min-height:clamp(330px,34vw,460px);
+ padding:clamp(26px,4.1vw,65px);
+ gap:clamp(18px,4vw,60px);
+ position:relative;isolation:isolate;overflow:hidden;
+}
+.page-content .dashboard-hero::before {
+ content:"";position:absolute;width:160px;height:160px;
+ inset-inline-start:22%;top:-110px;border:1px solid color-mix(in srgb,var(--accent) 19%,transparent);
+ border-radius:999px;pointer-events:none;z-index:-1;
+}
+.page-content .dashboard-hero h2 {
+ font-size:clamp(31px,4.3vw,60px);
+ line-height:1.35;letter-spacing:-.065em;
+ text-wrap:balance;max-width:16ch;
+}
+.page-content .dashboard-hero .eyebrow {font-size:12px;letter-spacing:.035em;font-weight:850}
+.page-content .dashboard-hero p {font-size:clamp(13px,1.1vw,16px);line-height:1.9}
+.page-content .dashboard-hero .hero-actions {display:flex;flex-wrap:wrap;gap:11px}
+.page-content .dashboard-hero .hero-actions .btn {min-height:52px;border-radius:15px;padding:12px 20px;transition:transform .24s cubic-bezier(.22,1,.36,1),box-shadow .24s ease,background-color .2s ease}
+.page-content .dashboard-hero .hero-actions .btn:hover{transform:translateY(-3px)}
+.page-content .dashboard-hero .aura-brand-scene{min-height:210px}
+.page-content .dashboard-hero .aura-brand-halo{border-radius:50%;max-width:min(100%,380px)}
+.page-content .dashboard-hero .noata-logo .noata-logo-vector{filter:drop-shadow(0 12px 22px color-mix(in srgb,var(--accent) 22%,transparent))}
+@media (min-width:1000px) {.page-content .dashboard-hero h2{max-width:18ch}}
+/* Account entry: eliminate large empty boxes and cropped hero texts.
+ * The exact auth actions keep their original handlers. */
+.auth-shell:not(.is-centered) {gap:0;isolation:isolate}
+.auth-shell:not(.is-centered) .auth-aside {
+ overflow:hidden;position:relative;min-width:0;
+ padding:clamp(25px,3.8vw,65px);
+ justify-content:center;gap:clamp(24px,4vh,42px);
+ background:
+ radial-gradient(circle at 85% 16%,color-mix(in srgb,var(--hero-glint) 17%,transparent),transparent 48%),
+ linear-gradient(139deg,var(--hero-deep),var(--hero-middle) 75%,var(--hero-bright));
+ border-inline-end:1px solid color-mix(in srgb,var(--hero-glint) 26%,transparent);
+}
+.auth-shell:not(.is-centered) .auth-aside::before {
+ content:"";position:absolute;inset-inline-start:-130px;inset-block-start:13%;
+ width:420px;aspect-ratio:1;border-radius:50%;
+ border:1px solid color-mix(in srgb,var(--hero-glint) 30%,transparent);
+ box-shadow:0 0 0 80px color-mix(in srgb,var(--hero-glint) 5%,transparent),
+            0 0 0 140px color-mix(in srgb,var(--hero-glint) 3%,transparent);
+ pointer-events:none;
+}
+.auth-shell:not(.is-centered) .auth-aside > *{position:relative;z-index:1;max-width:100%}
+.auth-shell:not(.is-centered) .auth-aside-copy h2{
+ font-size:clamp(34px,4.5vw,64px);line-height:1.25;letter-spacing:-.055em;
+ max-width:12ch;overflow-wrap:normal;white-space:normal;
+}
+.auth-shell:not(.is-centered) .auth-aside-copy h2 span{display:block;color:var(--hero-glint)}
+.auth-shell:not(.is-centered) .auth-aside-copy p{font-size:clamp(13px,1.2vw,16px);line-height:1.9;max-width:45ch}
+.auth-shell:not(.is-centered) .auth-aside-stage{
+ min-height:175px;display:grid;place-items:center;gap:18px;
+ border:1px solid color-mix(in srgb,var(--hero-glint) 37%,transparent);
+ border-radius:29px;
+ background:linear-gradient(145deg,color-mix(in srgb,var(--hero-glint) 13%,transparent),color-mix(in srgb,var(--hero-deep) 12%,transparent));
+ box-shadow:0 26px 60px color-mix(in srgb,var(--hero-deep) 19%,transparent);
+ padding:25px;overflow:hidden;
+}
+.auth-shell:not(.is-centered) .auth-aside-stage::after{border-color:color-mix(in srgb,var(--hero-glint) 45%,transparent)}
+.auth-aside-stage-glow{position:absolute;inset:0;pointer-events:none;border-radius:inherit}
+.noata-auth-journey-visual{display:flex;align-items:center;gap:clamp(12px,1.6vw,26px);justify-content:center;flex-wrap:wrap;width:100%}
+.noata-auth-journey-visual .noata-logo{--brand-mark-ink:#ffffff;--brand-mark-paper:var(--hero-deep);--brand-mark-accent:var(--hero-glint)}
+.noata-auth-journey-copy{display:grid;gap:9px;max-width:215px}
+.noata-auth-journey-copy strong{font-size:clamp(16px,1.8vw,23px);line-height:1.4}
+.noata-auth-journey-copy small{font-size:11px;letter-spacing:.1em;opacity:.83}
+.noata-auth-milestones{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
+.noata-auth-milestones span{border:1px solid color-mix(in srgb,var(--hero-glint) 31%,transparent);border-radius:999px;padding:6px 11px;font-size:11px;font-weight:750}
+.auth-shell .auth-aside-points{gap:8px}
+.auth-shell .auth-aside-points li{min-height:47px;padding:12px 15px;border-radius:14px;background:color-mix(in srgb,var(--hero-glint) 10%,transparent);border:1px solid color-mix(in srgb,var(--hero-glint) 19%,transparent);line-height:1.75}
+.auth-shell:not(.is-centered) .auth-card{width:min(470px,calc(100% - 38px));padding:clamp(23px,3vw,43px);border-radius:27px}
+.auth-shell .auth-card h1{font-size:clamp(26px,2.6vw,35px)}
+.auth-shell .auth-form{gap:14px}
+.auth-shell .auth-field input{min-height:47px;border-radius:13px}
+.auth-shell .auth-tabs{border-radius:13px}
+.auth-shell .auth-google,.auth-shell .auth-primary{min-height:48px;border-radius:13px}
+html[data-theme="light"] .auth-shell:not(.is-centered) .auth-aside {
+ color:var(--ink);
+ background:
+ radial-gradient(ellipse at 85% 20%,color-mix(in srgb,var(--accent) 11%,transparent),transparent 50%),
+ linear-gradient(142deg,#ffffff 12%,var(--surface) 65%,var(--surface-soft));
+ border-inline-end:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));
+}
+html[data-theme="light"] .auth-shell:not(.is-centered) .auth-aside::before{
+ border-color:color-mix(in srgb,var(--accent) 26%,transparent);
+ box-shadow:0 0 0 80px color-mix(in srgb,var(--accent) 5%,transparent),0 0 0 140px color-mix(in srgb,var(--accent) 2%,transparent)
+}
+html[data-theme="light"] .auth-shell .auth-aside-copy h2{color:var(--ink)}
+html[data-theme="light"] .auth-shell .auth-aside-copy h2 span{color:var(--accent)}
+html[data-theme="light"] .auth-shell .auth-aside-copy p{color:var(--muted);opacity:1}
+html[data-theme="light"] .auth-shell .auth-aside-kicker{color:var(--accent)}
+html[data-theme="light"] .auth-shell .auth-aside .noata-brand-copy :is(strong,small){color:var(--ink)}
+html[data-theme="light"] .auth-shell .auth-aside-stage{
+ background:color-mix(in srgb,var(--surface) 85%,var(--accent-soft));
+ border-color:color-mix(in srgb,var(--accent) 29%,var(--line));
+ box-shadow:0 20px 58px color-mix(in srgb,var(--accent) 10%,transparent);
+}
+html[data-theme="light"] .auth-shell .noata-auth-journey-visual .noata-logo{
+ --brand-mark-ink:var(--accent);--brand-mark-paper:#ffffff;--brand-mark-accent:color-mix(in srgb,var(--accent) 55%,#c2eaff);
+}
+html[data-theme="light"] .auth-shell .noata-auth-journey-copy :is(strong,small),
+html[data-theme="light"] .auth-shell .auth-aside-stage-caption{color:var(--ink)}
+html[data-theme="light"] .auth-shell .noata-auth-milestones span{
+ border-color:color-mix(in srgb,var(--accent) 32%,var(--line));
+ background:#fff;color:var(--accent);
+}
+html[data-theme="light"] .auth-shell .auth-aside-points li{
+ background:#ffffff;border-color:color-mix(in srgb,var(--accent) 22%,var(--line));color:var(--ink)
+}
+html[data-theme="light"] .auth-shell .auth-aside-points li svg{color:var(--accent)}
+html[data-theme="dark"] .auth-shell .auth-aside-points li{color:#f4f7ff}
+/* Named palette selector redesign and discoverable AI creator link */
+.noata-theme-guidance{font-size:11px!important;line-height:1.8;color:var(--muted);padding:5px 7px 11px}
+.noata-theme-studio-link{display:flex;align-items:center;justify-content:space-between;gap:9px;min-height:48px;padding:11px 13px;margin-top:12px;border-radius:14px;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));font-weight:850;font-size:12px}
+.noata-theme-studio-link:hover{background:color-mix(in srgb,var(--accent-soft) 78%,var(--accent))}
+.aura-theme-menu{border:1px solid var(--line)!important;border-radius:23px!important;box-shadow:0 28px 95px color-mix(in srgb,var(--ink) 22%,transparent)!important}
+.noata-palette-gallery .noata-palette-grid button{border-radius:15px;min-height:61px}
+.noata-palette-grid button[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--accent),0 6px 19px color-mix(in srgb,var(--accent) 9%,transparent)}
+.noata-custom-theme-choices{display:grid;gap:7px;padding:12px 0;border-top:1px solid var(--line)}
+.noata-custom-theme-choices>strong{font-size:12px}
+.noata-custom-theme-choices button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:7px;min-height:49px;text-align:start}
+.noata-custom-theme-choices button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+.noata-custom-theme-choices button span{flex:1;font-size:12px}
+.noata-custom-theme-choices .noata-design-swatches{width:44px;grid-template-columns:repeat(2,1fr);gap:2px}
+.noata-custom-theme-choices .noata-design-swatches span{width:17px;height:17px}
+/* AI Design Studio — restrained glass visuals and real live previews. */
+.noata-design-studio{min-width:0;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:25px;padding:clamp(18px,3vw,30px);margin:22px 0;scroll-margin-top:110px;
+ background:radial-gradient(ellipse at 94% 0%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 51%),var(--surface);
+ box-shadow:0 14px 45px color-mix(in srgb,var(--ink) 6%,transparent)}
+.noata-design-studio-header{display:flex;align-items:center;gap:17px;margin-bottom:22px}
+.noata-design-studio-crest{flex:0 0 53px;height:53px;display:grid;place-items:center;border-radius:17px;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line))}
+.noata-design-studio-header h2{font-size:clamp(22px,2.5vw,32px);margin:4px 0 5px;letter-spacing:-.05em}
+.noata-design-studio-header p{margin:0;color:var(--muted);line-height:1.85;font-size:12px}
+.noata-design-studio-header .noata-design-kicker{font-size:10px;font-weight:900;letter-spacing:.15em;color:var(--accent)}
+.noata-design-studio-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:18px}
+.noata-design-compose{display:flex;flex-direction:column;gap:9px}
+.noata-design-compose label{font-weight:850;font-size:13px}
+.noata-design-compose textarea{border-radius:14px;background:var(--surface-soft)!important;color:var(--ink)!important;border:1px solid var(--line);resize:vertical;padding:13px 15px;line-height:1.85;font:inherit;font-size:13px;min-height:73px}
+.noata-design-compose textarea:focus{outline:3px solid color-mix(in srgb,var(--accent) 28%,transparent);border-color:var(--accent)}
+.noata-design-compose .noata-design-small{font-size:11px;color:var(--muted);margin:4px 0 10px;line-height:1.85}
+.noata-design-login-note{border:1px solid var(--line);border-radius:12px;padding:10px;color:var(--muted)}
+.noata-design-login-note a{color:var(--accent);text-decoration:underline}
+.noata-design-primary{display:flex;align-items:center;justify-content:center;gap:10px;padding:11px 17px;min-height:48px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);border-radius:13px;font-weight:850}
+.noata-design-primary:disabled{opacity:.54;cursor:not-allowed}
+.noata-design-preview-zone{border:1px dashed color-mix(in srgb,var(--accent) 32%,var(--line));border-radius:19px;min-height:335px;padding:12px;background:color-mix(in srgb,var(--surface) 80%,var(--accent-soft))}
+.noata-design-blank{height:100%;min-height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:12px;color:var(--muted);padding:22px}
+.noata-design-blank svg{color:var(--accent)}
+.noata-design-blank strong{color:var(--ink);font-size:17px}
+.noata-design-blank p{max-width:28ch;font-size:13px;margin:0}
+.noata-design-result{display:flex;flex-direction:column;gap:11px}
+.noata-design-preview-card{border:2px solid;border-radius:16px;background:#fff;color:#18283a;overflow:hidden}
+.noata-design-preview-top{min-height:120px;color:white;padding:18px;display:flex;flex-direction:column;gap:7px;justify-content:center}
+.noata-design-preview-top>span{font-weight:800;font-size:10px;letter-spacing:.14em}
+.noata-design-preview-top strong{font-size:24px}
+.noata-design-preview-dots{display:flex;gap:5px}
+.noata-design-preview-dots span{width:7px;height:7px;border-radius:50%;border:1px solid white}
+.noata-design-preview-bottom{display:grid;gap:6px;padding:13px}
+.noata-design-preview-bottom strong{font-size:16px}
+.noata-design-preview-bottom p{font-size:11px;margin:0;color:#526477}
+.noata-design-preview-button{display:inline-flex;width:max-content;border-radius:9px;padding:6px 12px;color:white;font-size:11px;font-weight:850}
+.noata-design-swatches{display:flex;align-items:center;gap:6px}
+.noata-design-swatches span{width:23px;height:23px;border-radius:7px;border:1px solid #0002}
+.noata-design-result-actions{display:flex;gap:6px;flex-wrap:wrap}
+.noata-design-result-actions button,.noata-design-saved-actions button{min-height:37px;padding:7px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--ink);font-size:11px;font-weight:750}
+.noata-design-result-actions button:nth-child(2),.noata-design-saved-actions button:first-child{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.noata-design-collection-header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:20px 0 12px}
+.noata-design-collection-header h3{margin:0;font-size:18px}
+.noata-design-collection-header p{margin:0;color:var(--muted);font-size:12px}
+.noata-design-collection-header small{white-space:nowrap;color:var(--accent);font-weight:800}
+.noata-design-saved-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:11px}
+.noata-design-saved-card{display:flex;flex-direction:column;align-items:flex-start;gap:7px;border:1px solid var(--line);background:var(--surface-soft);border-radius:15px;padding:13px;min-width:0}
+.noata-design-saved-card strong{font-size:14px}
+.noata-design-saved-card>small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.noata-design-saved-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.noata-design-saved-actions button:last-child{color:var(--danger)}
+.noata-design-notice,.noata-design-error,.noata-design-preview-disclaimer,.noata-design-empty{font-size:12px;line-height:1.85;border-radius:12px;padding:11px 14px;margin:12px 0}
+.noata-design-notice{color:var(--accent);background:var(--accent-soft)}
+.noata-design-error{color:var(--danger);border:1px solid var(--danger)}
+.noata-design-preview-disclaimer,.noata-design-empty{color:var(--muted);background:var(--surface-soft)}
+@media(max-width:1050px){.noata-design-studio-layout{grid-template-columns:1fr}}
+@media(max-width:900px){.auth-shell:not(.is-centered) .auth-aside{display:none}.auth-shell:not(.is-centered){display:grid;grid-template-columns:minmax(0,1fr);min-height:100dvh;padding:25px 10px}.auth-shell:not(.is-centered) .auth-card{width:min(500px,100%)}}
+@media(max-width:640px){.page-content .dashboard-hero{padding:25px 20px}.page-content .dashboard-hero h2{font-size:clamp(28px,8vw,39px)}.page-content .dashboard-hero .hero-actions .btn{flex:1 1 150px}.noata-design-studio{padding:17px 13px}.noata-design-studio-header{align-items:flex-start;gap:10px}.noata-design-studio-crest{flex-basis:44px;height:44px}.noata-design-saved-list{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.page-content .dashboard-hero .btn,.noata-design-studio *, .noata-design-studio *::before,.noata-design-studio *::after{animation:none!important;transition:none!important;transform:none!important}}
+html[data-reduced-motion="true"] :is(.page-content .dashboard-hero .btn,.noata-design-studio,.noata-design-studio *){animation:none!important;transition:none!important;transform:none!important}
+
+/* New appearance command-center structure: clear hierarchy and comfortable
+ * anchored navigation, independently of the signed-in palette choice. */
+.aura-settings-page .aura-settings-heading{
+ min-height:180px;
+ background:
+   radial-gradient(ellipse at 88% 6%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 50%),
+   linear-gradient(124deg,var(--surface),var(--surface-soft));
+ border-color:color-mix(in srgb,var(--accent) 25%,var(--line));
+ box-shadow:0 20px 55px color-mix(in srgb,var(--ink) 6%,transparent);
+ position:relative;overflow:hidden;
+}
+.aura-settings-page .aura-settings-heading::before{
+ content:"";position:absolute;pointer-events:none;border:1px solid color-mix(in srgb,var(--accent) 16%,transparent);
+ width:170px;height:170px;aspect-ratio:1;border-radius:50%;
+ inset-inline-start:-90px;inset-block-end:-100px;
+ box-shadow:0 0 0 37px color-mix(in srgb,var(--accent) 4%,transparent);
+}
+.aura-settings-page .aura-settings-heading>*{position:relative;z-index:1}
+.aura-settings-page .aura-settings-heading h1{font-size:clamp(30px,3vw,43px);letter-spacing:-.065em}
+.aura-settings-page .aura-settings-email{background:var(--surface);border-color:color-mix(in srgb,var(--accent) 20%,var(--line))}
+.aura-settings-page .aura-settings-nav{border-radius:18px;min-height:57px;box-shadow:0 10px 27px color-mix(in srgb,var(--ink) 5%,transparent);scroll-padding:15px}
+.aura-settings-page .aura-settings-nav>a{display:inline-flex;align-items:center;min-height:41px;font-size:12px;border:1px solid transparent}
+.aura-settings-page .aura-settings-nav>a:hover,.aura-settings-page .aura-settings-nav>a:focus-visible{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.aura-settings-page .aura-settings-section{border-radius:23px;transition:border-color .22s ease,box-shadow .22s ease,transform .22s cubic-bezier(.22,1,.36,1)}
+.aura-settings-page .aura-settings-section:hover{border-color:color-mix(in srgb,var(--accent) 28%,var(--line));box-shadow:0 13px 33px color-mix(in srgb,var(--ink) 5%,transparent)}
+.aura-settings-page .aura-settings-section:focus-within{border-color:color-mix(in srgb,var(--accent) 43%,var(--line))}
+.aura-settings-theme-options button{min-height:82px;border-radius:16px;transition:background-color .2s ease,border-color .2s ease,transform .2s ease}
+.aura-settings-theme-options button:hover{transform:translateY(-2px);border-color:var(--accent)}
+.aura-settings-theme-options button[aria-pressed=true]{box-shadow:inset 0 0 0 1px var(--accent),0 9px 19px color-mix(in srgb,var(--accent) 9%,transparent)}
+.noata-appearance-footnote{padding:12px 14px;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 19%,var(--line));border-radius:12px;line-height:1.85;color:var(--muted);font-size:11px;margin:0}
+.aura-settings-page .aura-settings-savebar{box-shadow:0 13px 37px color-mix(in srgb,var(--accent) 7%,transparent)}
+.aura-settings-page .aura-settings-savebar button{color:var(--on-accent)}
+.aura-settings-page .aura-settings-label :is(input,select):focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 30%,transparent);outline-offset:2px;border-color:var(--accent)}
+html[data-theme="dark"] .aura-settings-page .aura-settings-heading{
+ background:radial-gradient(ellipse at 78% 18%,color-mix(in srgb,var(--accent) 13%,transparent),transparent 48%),var(--surface);
+}
+@media(max-width:760px){.aura-settings-page .aura-settings-heading{min-height:auto}.aura-settings-page .aura-settings-nav{top:0}.aura-settings-page .aura-settings-section{padding:18px}}
+@media(prefers-reduced-motion:reduce){.aura-settings-page .aura-settings-section,.aura-settings-theme-options button{transition:none!important;transform:none!important}}
+html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html[data-reduced-motion="true"] .aura-settings-theme-options button{transition:none!important;transform:none!important}
+
+/* Respectful Mushaf compact reader with explicit expansion and real-audio glow. */
+.noata-quran-preview-toggle{display:flex;justify-content:space-between;align-items:center;gap:17px;flex-wrap:wrap;padding:21px clamp(16px,3vw,29px);margin:18px 0 4px;background:color-mix(in srgb,var(--surface) 86%,var(--accent-soft));border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));border-radius:21px}
+.noata-quran-preview-toggle>div{min-width:0;flex:1 1 220px}
+.noata-quran-preview-toggle strong{font-size:14px;color:var(--ink)}
+.noata-quran-preview-toggle p{margin:5px 0 0;font-size:12px;color:var(--muted);line-height:1.8}
+.noata-quran-preview-toggle button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;border:1px solid var(--accent);border-radius:13px;background:var(--accent);color:var(--on-accent);font-weight:850;padding:9px 17px;font-size:13px}
+.noata-quran-preview-toggle button svg{transition:transform .25s ease}
+.noata-quran-preview-toggle button[aria-expanded="true"] svg{transform:rotate(180deg)}
+.noata-quran-preview-toggle button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.aura-quran .aura-quran-ayah[data-playing="true"]{
+ border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));
+ background:radial-gradient(ellipse at 80% 25%,color-mix(in srgb,var(--accent) 9%,transparent),transparent 71%),var(--surface);
+ box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 14%,transparent),0 17px 42px color-mix(in srgb,var(--accent) 15%,transparent);
+ transition:background .24s ease,box-shadow .24s ease,border-color .24s ease;
+}
+@media(max-width:600px){.noata-quran-preview-toggle{padding:17px 13px}.noata-quran-preview-toggle button{width:100%}}
+@media(prefers-reduced-motion:reduce){.noata-quran-preview-toggle button svg,.aura-quran .aura-quran-ayah[data-playing="true"]{transition:none!important}}
+
+/* Quran player: controls stay above a long Surah even in five-Ayah mode. */
+.noata-quran-audio-dock{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:19px clamp(14px,2vw,26px);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:20px;background:var(--surface);box-shadow:0 9px 30px color-mix(in srgb,var(--ink) 5%,transparent);margin:18px 0}
+.noata-quran-audio-dock>div{display:grid;gap:4px;flex:1 1 210px;min-width:0}
+.noata-quran-audio-dock>div strong{font-size:17px;color:var(--ink)}
+.noata-quran-audio-dock>div span{font-size:11px;color:var(--muted)}
+.noata-quran-audio-dock label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);font-weight:750}
+.noata-quran-audio-dock select{min-width:150px;max-width:240px;padding:9px 12px;border-radius:12px;background:var(--surface-soft);border:1px solid var(--line);color:var(--ink)}
+.noata-quran-audio-dock .btn{min-height:44px;border:1px solid var(--accent);border-radius:13px;padding:10px 14px;background:var(--accent-soft);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.noata-quran-audio-dock>small{flex-basis:100%;color:var(--muted);font-size:11px;line-height:1.6}
+.noata-quran-surah-matches{border:1px solid var(--line);border-radius:18px;padding:15px 18px;background:var(--surface);margin:14px 0}
+.noata-quran-surah-matches>strong{font-size:14px}
+.noata-quran-surah-matches>div{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.noata-quran-surah-matches button{border:1px solid var(--line);background:var(--surface-soft);color:var(--ink);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:start;font-weight:800}
+.noata-quran-surah-matches button:hover{border-color:var(--accent);color:var(--accent)}
+.noata-quran-surah-matches small{font-size:10px;color:var(--muted);font-weight:500}
+@media(max-width:700px){.noata-quran-audio-dock>div{flex-basis:100%}.noata-quran-audio-dock label{flex:1 1 100%;justify-content:space-between}.noata-quran-audio-dock label select{flex:1;max-width:none;min-width:0}.noata-quran-audio-dock .btn{width:100%}}

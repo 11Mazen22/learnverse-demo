@@ -11,8 +11,16 @@ const securityHeaders=[
 
 const nextConfig:NextConfig={
   reactStrictMode:true,
+  env: {
+    NEXT_PUBLIC_NOATA_DEPLOYMENT_ENV: process.env.VERCEL_ENV ?? "development",
+    NEXT_PUBLIC_NOATA_PRODUCTION_PROJECT_REF: process.env.VERCEL_ENV === "production"
+      ? process.env.NOATA_PRODUCTION_SUPABASE_REF ?? ""
+      : "",
+  },
   poweredByHeader:false,
   compress:true,
+  serverExternalPackages:["@sparticuz/chromium","puppeteer-core","pdfkit","fontkit"],
+  outputFileTracingIncludes:{"/api/documents/pdf":["./public/fonts/*.woff2","./public/fonts/*.ttf","./lib/pdf/fonts/noto-sans-math-latin-400-normal.woff","./node_modules/@sparticuz/chromium/bin/**"],"/api/ai/chart-pdf":["./public/fonts/*.woff2","./lib/pdf/fonts/noto-sans-math-latin-400-normal.woff","./node_modules/@sparticuz/chromium/bin/**"],"/api/pdf":["./lib/pdf/fonts/**"]},
   async headers(){
     return [{
       source:"/:path*",

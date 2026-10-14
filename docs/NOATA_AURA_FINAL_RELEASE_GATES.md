@@ -1,0 +1,111 @@
+# Noata Aura final candidate — release gates
+
+## Current checkpoint — 2026-10-09
+
+**NOT READY — SPECIFIC RELEASE BLOCKERS REMAIN.** This checkpoint supersedes conflicting historical gate states below; it does not turn synthetic sessions into authenticated verification.
+
+### Integrated implementation and defects repaired
+
+The authorized development branches were reconciled at `c4f95d35eb2931cbb7cd1e1afb2f0230f4da39db`; PR #3 remains OPEN/DRAFT against `master`. The guard, account/workshop/PDF corrections and Quran contrast repair are integrated, not disconnected branch implementations. Production has not been modified or deployed.
+
+- Supabase browser, server, session proxy, Auth, REST/RPC, Storage and direct AI streaming transports fail closed for missing/invalid configuration, unauthorized origins and redirects. Preview/development authorize only `vpfpjvhafkmygetjkfcp`; production requires an explicit production environment and approved production reference. Invalid Auth configuration is caught before SDK calls and preserves an actionable Arabic error without retry loops.
+- The account avatar opens a menu rather than signing out. Account settings and explicit confirmed logout are retained. Workshop requests use the existing readiness/provider path; unavailable service must not be described as an actual learning result or successful conversation.
+- Arabic PDF extraction/readback and account/workspace regressions are covered by the integrated suites. Quran attribution now has sufficient foreground contrast in both themes; accessibility assertions were not weakened.
+- Generated `next-env.d.ts` is no longer source-controlled. `next typegen` precedes typechecking so a clean checkout has the required framework declarations. CI explicitly rejects dirty or wrong-revision browser/database/PDF artifacts after all checks, rather than suppressing the dirty flag.
+
+### Directly obtained verification
+
+For implementation head `c4f95d3`, [PR run 37872338384](https://github.com/11Mazen22/learnverse-demo/actions/runs/37872338384) and [push run 37872335624](https://github.com/11Mazen22/learnverse-demo/actions/runs/37872335624) completed SUCCESS. Frozen install, TypeScript, Auth/Supabase/provider regressions, Arabic email-template checks, Deno checking, 19 base migrations/74 local SQL authorization checks, real PDF/DOCX fixtures, production build, full Chrome, responsive/axe, HTTP denial checks and 199 aggregate tests passed. The PR run executes the GitHub test-merge revision `8a5f9458d310447ad6707f057c499f3036a662a0`, not the source SHA; its browser outcome recorded 811 assertions, 180 public views, 48 synthetic views and 265 screenshots. That outcome was dirty because a tracked generated Next declaration was rewritten by the production build. It is implementation evidence, **not clean final-candidate evidence**. The generated-file correction and new artifact gate must pass at the subsequent committed head; do not attribute the earlier SUCCESS to it.
+
+Exact-source hosted preview at `c4f95d3`: `dpl_5CjkyLrdBd6yBVA3vt4f9Wi7nZxx`, READY, https://noata-94in1mam2-noata.vercel.app (verified through deployment metadata). Authorized `vercel curl` returned `/health` 200; anonymous `/api/documents/pdf` 401; foreign-origin PDF POST 403; `/api/qa-target` 404 with `enabled:false`. Deployment protection remains enabled and the standalone browser reaches Vercel sign-in, not an authenticated Noata session. These HTTP checks do not certify authenticated PDF rendering or account flows.
+
+Live Quran checks on that preview returned the complete 114-Surah index, Fatiha (7 verses), Baqarah (286 verses, final global number 293), and Nas (6 verses, final global number 6236). All seven Fatiha recitation links were present; a real media range request returned 206 and `audio/mpeg`. This removes the earlier API-connectivity blocker for the tested endpoints; it does not certify all text manually or actual browser playback.
+
+Approved staging Auth settings were queried without exposing keys: email enabled, email confirmation required, signup enabled, **Google disabled**. Anonymous `noata-ai-v2` POST returns 401. The initialization record in [connected staging verification](NOATA_CONNECTED_STAGING_VERIFICATION_20261008.md) already reports 19 migrations, 32 public tables, 70 RLS policies and JWT-protected Edge Functions; do not reinitialize or describe staging as empty. A fresh management metadata request for the approved project is permission denied here; live schema and deployed function revision were not reverified.
+
+PR #4 at `7abe2ddd7abff3fdf9858e389dee67617160b78d` was tested independently: all nine real PDFKit parser/binary/font/pagination/Arabic extraction regressions passed. It remains unmerged because its distinct `/api/pdf` request uses `markdown`, while the current workflow uses `/api/documents/pdf` with `text`; its route also lacks the current same-origin, bounded streaming-body and rate/concurrency protections. Passing renderer tests alone is not authorization to replace the integrated PDF service or merge overlapping platform changes.
+
+### Remaining mandatory gates and minimum intervention
+
+1. **Approved staging management and test accounts:** grant the Supabase connection access to `vpfpjvhafkmygetjkfcp`, not the unapproved connected `qvfywwpoktmbjsunqizr`. Supply disposable staging student A/B, teacher A/B and admin credentials only through secure QA configuration. Enable preview-only `NOATA_STAGING_QA_ENABLED=true` with the matching staging ref before the opt-in runner submits credentials. Real sessions, role/RLS denial/receipt checks, session persistence and authenticated serverless PDF remain unexecuted.
+2. **Google OAuth:** configure the Google OAuth web client securely in approved staging and enable the provider. Its Google authorized redirect URI is `https://vpfpjvhafkmygetjkfcp.supabase.co/auth/v1/callback`. Supabase must permit the application's canonical preview `/auth/callback` and its generated `flow`/`next` query parameters. Keep the client secret in provider settings, not source/chat. Genuine user Google sign-in/cancellation/PKCE/session tests are still required.
+3. **Fanar and voice:** configure/confirm staging Edge Function `FANAR_API_KEY` securely, then execute authenticated readiness and real Arabic streaming/multi-turn/vision/document/model/STT/TTS/quota tests. This session cannot establish whether the deployed secret exists; no fake provider success or 503 resolution is claimed.
+4. **Email delivery:** configure the approved staging sender/SMTP and a controlled test mailbox, apply the reviewed RTL templates there, then verify actual signup/recovery/invite/magic-link/email-change delivery, expiry and redirects. Template tests are not delivery evidence.
+5. **Private originals:** retention remains OFF and its migration unapplied. Enabling it requires separately authorized staging migration reconciliation, real Storage ownership/expiry/quota-race/deletion tests and cleanup scheduling. No production-scale lifecycle or distributed PDF quota claim is made.
+6. **Manual accessibility/device/performance:** screen-reader, physical touch/IME, cold-device Web Vitals, load testing and actual Quran playback remain required. OCR/XLSX/PPTX are unsupported and not advertised; they are scope limits, not verified capabilities.
+
+The latest final handoff must identify the subsequent integrated SHA, its own complete CI runs and READY preview, with a clean exact-revision artifact. Historical evidence below remains useful for attribution only. PR #3 stays draft and no production deployment/merge is permitted without explicit approval.
+
+## Historical evidence through 2026-10-08
+
+Prepared 2026-10-08. **NOT READY FOR PRODUCTION.** PR [#3](https://github.com/11Mazen22/learnverse-demo/pull/3) remains draft; branch `noata-aura-platform-overhaul-20261008`. Production, billing, official domains and the existing database were not changed. The private-document storage migration remains unapplied.
+
+## Revision and evidence contract
+
+Baseline actually fetched from Git is `2b6c9b9b352a8cf1c74e30bfc679a109f68af839`. The user independently verified PR workflow [37728570750](https://github.com/11Mazen22/learnverse-demo/actions/runs/37728570750) SUCCESS, push workflow [37728567137](https://github.com/11Mazen22/learnverse-demo/actions/runs/37728567137) SUCCESS, and Vercel preview `dpl_HWfRU9pkW6yQv7MY3T5CJFtirEg4` READY at https://noata-cgdyh3tnu-noata.vercel.app. This is attributed user API evidence and certifies only that baseline. The older BLOCKED deployment's precise restriction is still unconfirmed; the later READY preview does not establish its cause.
+
+For the new candidate, use `git rev-parse HEAD` and the revision/dirty fields in generated browser/PDF outcomes. A dirty-tree result is implementation evidence only, not final exact-head verification. Native Git and GitHub PR/Actions/check/status API reads now work. Log/artifact redirects still receive network denials; deployment-list API access is permission denied. Vercel/Supabase management bindings remain absent. New-head workflow/deployment results must be read for the exact candidate and never inferred from local tests or earlier green runs.
+
+## Completed independent engineering
+
+- Private workspace ownership/revision guards clear messages, attachments, microphone/player state, open writing editors and bounded session-only drafts on logout or account change. Cached drafts are actively evicted after 30 minutes. Late history/provider continuations cannot restore another account's UI. Switching accounts removes the prior chat URL and history loading disables composer edits/sends. Partial AI replies retain their actual content and explicit stopped/failed state; retry retains relevant source attachments.
+- Writing changes survive close/reopen in bounded RAM and require an explicit discard choice. Escape uses the same protection as the close button. Unsent work has a navigation/reload warning; session-only drafts are not durable storage.
+- REST/auth/storage reads and writes have bounded waits. Role screens fail closed, hide account data while identity changes, distinguish unknown balances from zero, and expose meaningful read/retry errors.
+- Learning and reward mutations serialize, validate receipts and retain idempotency keys across ambiguous failures. Assignment submission inserts cannot overwrite existing grades; duplicate conflicts require owner-scoped readback. Teacher creation checks draft, item count and publication receipts; grading and admin changes validate exact returned rows.
+- Notifications show honest unread/read states and follow links only after confirmed read writes. Account preferences, theme saves and staff forms reject stale account continuations and protect unsaved work.
+- Canonical Quran protocol validation checks chapter/verse ordering and global numbering without rewriting text. Recitation URLs and response sequences are validated separately; unavailable audio does not hide text. Chapter navigation remains available if the index fails.
+- Arabic PDF extraction preserves logical clusters, floating diacritics, punctuation and separated table cells. PDF fonts retain contextual joining while problematic glyph-pair ligatures are disabled to preserve text mapping. Real Arabic PDF/DOCX rendering, input fixture previews, original-source attribution, responsive layout, accessibility and existing browser regression coverage are preserved. The full Chrome launcher retains dynamic ports, isolated profiles, multiprocess launch, full exit/WebSocket diagnostics and CDP timeout/crash recovery.
+
+## Gate status
+
+| Gate | Status | Evidence / remaining work |
+| --- | --- | --- |
+| TypeScript, production build and regression suite | VERIFIED locally | 64 modern tests and 139 aggregate tests pass, with no failures or skips; production build and TypeScript pass. Generated exact-head outcomes must match the committed candidate. |
+| Deno backend dependency/type checking | VERIFIED locally | Standard Deno/Web APIs need no unused JSR runtime declaration; npm Supabase SDK pinned to 2.117.3 with committed lockfile. No backend deployed. |
+| Real PDF/DOCX export and original previews | VERIFIED locally | 11-page Arabic PDF readback including complete source sentences, table rows, list phrases, diacritics, all page titles/footers, end marker, page bounds and actual raster pages 1/6/11; DOCX roundtrip and real input fixtures. Authenticated serverless PDF deployment remains unverified. |
+| Browser startup/fault/timeout recovery | VERIFIED locally | Seven fault regressions, including a surviving child after parent crash; three simultaneous sessions, timeout recovery and complete group cleanup. CI's pinned Chrome 146.0.7680.153 now installs and runs locally. Resource snapshots and bounded check annotations supplement full crash artifacts. Historical hosted SIGTRAP cause remains unconfirmed. |
+| Six-width, two-theme public UI and accessibility | VERIFIED locally when outcome is green | Complete suite requires 180 public and 48 synthetic views with no detected axe violations; incomplete findings retained. Progress guest, keyboard hints and dark admin tabs were corrected. Synthetic fixture views await finite transitions; a separate tool-toggle regression samples every frame without waiting for theme transitions. The actual tool-toggle color transition defect is fixed in CSS. History labels have a semantic region role. Locked curriculum text/icons retain full opacity; Start links use a contrasting theme foreground. Published/locked catalog fixtures add twelve synthetic audits. Detailed incomplete findings remain for manual review. Final outcome must show the candidate revision and clean tree. |
+| Account-switch/private UI client contracts | VERIFIED with synthetic fixtures only | Notification denial/readback, role UI denial, per-conversation drafts, editor clearing and late stream/logout rejection. Fake sessions exist only in JavaScript; request interception blocks real backend traffic. Synthetic staff/inbox screenshots and axe checks are clearly labeled. |
+| Real authenticated workflows and role/RLS boundaries | BLOCKED | Isolated staging `vpfpjvhafkmygetjkfcp` is provisioned/healthy per user API verification but has zero application tables, migrations, Auth users and Edge Functions. Management connections and secure bindings are unavailable here. Nineteen base migrations initialize in local PostgreSQL with simulated claims; 74 SQL authorization/concurrency checks pass. This does not initialize or verify live Supabase. Synthetic UI fixtures are not authentication, provider or RLS evidence. Real student A/B, teacher A/B and admin checks are mandatory. |
+| Private originals: Storage RLS, expiry/quotas and cleanup lifecycle | IMPLEMENTED—NOT YET VERIFIED | Feature remains off; migration unapplied. Real policy, cross-user, signed-link, metadata, quota-race, byte deletion and scheduler checks require staging. |
+| Live models/tools, vision, citation fidelity, STT/TTS | BLOCKED | Real providers and staging credentials unavailable. Configured capabilities and unit tests are not provider-health evidence. |
+| OCR / XLSX / PPTX | NOT IMPLEMENTED | Unsupported formats are not advertised as working. Scanned PDFs disclose unavailable extraction; no verified OCR provider. |
+| Canonical Quran index/text and real recitation | BLOCKED for live verification | External API access returns proxy CONNECT 403. Protocol tests and explicitly synthetic UI fixtures do not certify canonical text or playback. |
+| Manual screen reader/touch/IME, cold-device performance and load | IMPLEMENTED—NOT YET VERIFIED | Automated axe and local transfer/timing budgets provide partial evidence; manual and realistic device/load work remains. |
+| New exact-head full GitHub workflow | BLOCKED pending connected verification | Push triggers the entire workflow, including pinned Chrome, PDFs, Deno, all browser checks, HTTP smoke and aggregate tests. Supply exact new SHA and successful run IDs; preserve failures/artifacts. |
+| New exact-head READY Vercel preview | BLOCKED pending connected verification | Require deployment ID/URL and source SHA for the candidate. A preview built against the existing backend is public-review-only, not authorized staging. |
+| Production release | BLOCKED | Keep PR draft and production unchanged until mandatory gates pass and explicit release approval is given. |
+
+## Outstanding issues and severity
+
+**P1 — release blocking:** missing initialized isolated staging and secure execution access prevent real auth, role/RLS, Storage lifecycle, provider/voice and authenticated serverless PDF verification. Canonical Quran API reads are now available; actual endpoint/audio checks and manual source review must be reported separately. New-head GitHub results require exact-SHA API verification; authorized Vercel management/preview verification is still required. Manual screen-reader/touch/IME and realistic device/load gates remain unexecuted. Previous green baseline CI does not remove any of these blockers.
+
+**P2 — scope limitations:** OCR, XLSX and PPTX are not implemented and are not advertised as supported. Session-only writing/composer drafts survive navigation and reopening, but not page reload or session expiry; the interface discloses this. Distributed PDF quotas and a production cleanup scheduler are not implemented. Do not enable retained originals or claim production concurrency readiness before these lifecycle/scale requirements are satisfied.
+
+## Reproduce
+
+```bash
+pnpm install --frozen-lockfile
+pnpm verify
+deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
+node scripts/document-export-smoke.mjs
+node --test scripts/qa-browser.test.mjs
+NOATA_CHROMIUM_PATH=/usr/bin/chromium node scripts/browser-launch-smoke.mjs
+NOATA_CHROMIUM_PATH=/usr/bin/chromium node scripts/browser-aura-smoke.mjs
+```
+
+Use Node 24 / pnpm 10.17.1. CI installs full Chrome for Testing itself; local native Chrome is an explicit fallback when Google's download is blocked. Do not select the packaged serverless PDF executable for interactive browser QA. Artifacts under `artifacts/noata-browser/`, `artifacts/noata-browser-launch/` and `artifacts/noata-documents/` record actual outcomes and revision. Synthetic browser data is marked `synthetic-ui-only`; it never enters production or creates a real user.
+
+The [$0 staging proposal](NOATA_STAGING_PROPOSAL.md) is concrete and eligible according to the user's Supabase cost check: Noata organization `sbvcxdwcawkddndptsuh`, `noata-staging`, `eu-west-2`, Free, one remaining active Free slot, $0/month estimate. **The user created and verified Free staging `vpfpjvhafkmygetjkfcp`, ACTIVE_HEALTHY, eu-west-2.** Non-destructive base setup and QA are authorized but blocked here by missing connections/secure bindings. The 18-file initialization bundle excludes private-document retention and has not been executed. Keep `jdkfqdzgphzqbbzmerzr` excluded. Follow the isolated staging contract in [the implementation matrix](NOATA_AURA_PHASE5_MATRIX.md), [TESTING](TESTING.md) and [AI capability matrix](AI_CAPABILITY_MATRIX.md).
+
+## Most recent connected results before the curriculum correction
+
+The user independently verified **a2572fb5dc3f809f78a594731874635d7bca5c37**: PR #3 OPEN/DRAFT/unmerged; [push 37769509536](https://github.com/11Mazen22/learnverse-demo/actions/runs/37769509536) and [PR 37769514581](https://github.com/11Mazen22/learnverse-demo/actions/runs/37769514581) **FAILURE** at real browser accessibility (`/learn` locked-unit icons in both themes and Start links in dark, 768/390/320). TypeScript, modern tests, Deno, startup, real document fixtures and build passed; HTTP/legacy steps were skipped. Local browser success at that same head did not load the external catalog and does not refute CI. Corrected styles and an isolated anonymous catalog fixture now cover those states, without suppressing assertions. A new exact-head run is mandatory.
+
+That head's preview **dpl_D5PKLDsgppWfw3gfWwH9jWiDa2ss** is **BLOCKED**, https://noata-nv8jbobet-noata.vercel.app, source SHA confirmed by user. The response returned the [team-configuration link](https://vercel.com/docs/deployments/troubleshoot-project-collaboration#team-configuration) without an exact code. Detailed connected diagnostics remain required; do not infer billing, alter identities/membership or bypass limits.
+
+## Current candidate changes
+
+The full local pinned-Chrome run passed 736 assertions and 236 screenshots before commit, including frame-level tool contrast, the unchanged editor discard/reopen test, PDF previews, keyboard/theme behavior and 228 public/synthetic axe views. Dirty-tree results are implementation evidence only. The final handoff must identify clean exact-head runs and hosted outcomes independently.
+
+A real PostgreSQL harness found and repaired six malformed SQL bodies in 0007. The additional authorization migration prevents unearned lesson completion, incorrect Boss scoring, teacher direct-publish bypass, cross-account attachments and mutable submission identities; it scopes teacher learning records and serializes duplicate attempts/purchases. Read [the migration review](NOATA_STAGING_MIGRATION_REVIEW.md) before any staging application. All migrations remain unapplied remotely; document retention remains off.

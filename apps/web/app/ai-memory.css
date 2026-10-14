@@ -1,0 +1,28 @@
+
+/* Explicit memory controls, all six palettes via semantic variables. */
+.noata-memory-panel{display:grid;gap:10px;margin-block:14px;color:var(--ink);}
+.noata-memory-panel h3,.noata-memory-panel p{margin:0;}
+.noata-memory-panel>p,.noata-memory-note{font-size:12px;line-height:1.65;color:var(--muted);}
+.noata-memory-consent{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:start;min-height:64px;padding:12px 14px;
+ border:1px solid var(--line);border-radius:14px;background:var(--surface-soft);color:var(--ink);cursor:pointer;font:inherit;}
+.noata-memory-consent strong{font-size:13px;display:block}.noata-memory-consent small{display:block;font-size:11px;margin-top:4px;color:var(--muted)}
+.noata-memory-switch{width:31px;height:31px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:11px;}
+.noata-memory-switch.enabled{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);}
+.noata-memory-form{display:grid;gap:8px}.noata-memory-form label{font-size:13px;font-weight:700}
+.noata-memory-form textarea{resize:vertical;min-height:75px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:11px;font:inherit;line-height:1.6;}
+.noata-memory-controls,.noata-memory-list-title{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.noata-memory-controls span{margin-inline-end:auto;font-size:11px;color:var(--muted)}
+.noata-memory-panel button{transition:border-color 160ms ease,background 160ms ease}
+.noata-memory-controls button,.noata-memory-list-title button,.noata-memory-list button{border:1px solid var(--line);border-radius:9px;padding:7px 11px;font:inherit;font-size:12px;background:var(--surface);color:var(--ink);cursor:pointer}
+.noata-memory-controls button[type=submit]{background:var(--accent);color:var(--on-accent,#fff);border-color:var(--accent);}
+.noata-memory-panel button:disabled{opacity:.55;cursor:not-allowed}
+.noata-memory-panel button:focus-visible,.noata-memory-panel textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.noata-memory-panel .danger{color:#bb4655}
+.noata-memory-list-title{padding-block:8px;border-top:1px solid var(--line)}
+.noata-memory-list-title strong{font-size:13px}
+.noata-memory-list{list-style:none;padding:0;margin:0;display:grid;gap:8px;max-height:320px;overflow-y:auto}
+.noata-memory-list li{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface-soft)}
+.noata-memory-list li p{font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.noata-memory-list li div{display:flex;gap:7px;justify-content:flex-end;margin-top:8px}
+.noata-memory-error{color:#bd334b!important}
+@media(prefers-reduced-motion:reduce){.noata-memory-panel button{transition:none}}

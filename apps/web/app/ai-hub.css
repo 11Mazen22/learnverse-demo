@@ -1,0 +1,62 @@
+/* Noata Intelligence Studio — complete welcome/answer tool surface. Uses theme-semantic colors. */
+.noata-launchpad{width:min(100%,900px);margin:31px auto 12px;text-align:start;position:relative}
+.noata-launchpad-heading{padding:clamp(17px,2.7vw,28px);border:1px solid var(--line);border-radius:25px;
+ display:flex;gap:20px;align-items:center;justify-content:space-between;
+ background:radial-gradient(ellipse at 85% 10%,color-mix(in srgb,var(--accent) 13%,transparent),transparent 65%),
+ linear-gradient(135deg,var(--surface),var(--surface-soft));}
+.noata-launchpad-overline{font-size:10px;font-weight:800;letter-spacing:.13em;color:var(--accent);text-transform:uppercase}
+.noata-launchpad-heading h2{margin:9px 0 7px;font-size:clamp(20px,2.6vw,28px);line-height:1.3;color:var(--ink);font-weight:750}
+.noata-launchpad-heading p{margin:0;color:var(--muted);font-size:12px;line-height:1.8;max-width:590px}
+.noata-launchpad-mark{display:grid;place-items:center;flex:0 0 65px;height:65px;
+ background:color-mix(in srgb,var(--accent) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--accent) 29%,var(--line));
+ border-radius:22px;font-size:34px;color:var(--accent)}
+.noata-launchpad-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:13px}
+.noata-launch-tile{min-width:0;display:flex;align-items:flex-start;gap:11px;padding:16px 13px;min-height:102px;text-align:start;
+ border:1px solid var(--line);border-radius:18px;color:var(--ink);background:var(--surface);
+ box-shadow:0 2px 12px color-mix(in srgb,var(--ink) 3%,transparent);cursor:pointer;
+ transition:transform 180ms cubic-bezier(.2,.8,.2,1),border-color 180ms,box-shadow 180ms;
+ animation:noata-launch-in .28s cubic-bezier(.2,.8,.2,1) both;}
+.noata-launch-tile:hover:not(:disabled){transform:translateY(-3px);border-color:var(--accent);box-shadow:0 11px 26px color-mix(in srgb,var(--accent) 12%,transparent)}
+.noata-launch-tile:active:not(:disabled){transform:translateY(0)}
+.noata-launch-tile:disabled{opacity:.55;cursor:not-allowed}
+.noata-launch-symbol{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;background:var(--accent-soft);color:var(--accent);
+ border-radius:11px;font-size:23px;font-weight:750;line-height:1}
+.noata-launch-copy{display:grid;gap:6px;flex:1;min-width:0}.noata-launch-copy strong{font-size:13px;line-height:1.35}
+.noata-launch-copy small{font-size:11px;line-height:1.6;color:var(--muted);font-weight:450}
+.noata-launch-tile>.icon{opacity:.65}
+.noata-launch-tile svg{margin-inline-start:auto;flex:0 0 auto;color:var(--muted)}
+@keyframes noata-launch-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.noata-answer-artifacts{display:grid;gap:5px;margin:10px 0 7px;width:100%}
+.noata-artifact-main{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.noata-artifact-main>button,.noata-export-more>summary{display:inline-flex;align-items:center;gap:7px;min-height:36px;
+ border:1px solid var(--line);border-radius:11px;padding:7px 12px;cursor:pointer;color:var(--ink);font:inherit;font-size:12px;
+ font-weight:650;background:var(--surface-soft);transition:border-color 180ms,background 180ms}
+.noata-artifact-main>button:hover,.noata-export-more>summary:hover{border-color:var(--accent);color:var(--accent)}
+.noata-artifact-main>button:disabled{opacity:.5;cursor:wait}
+.noata-export-more{position:relative}.noata-export-more>summary{list-style:none}.noata-export-more>summary::-webkit-details-marker{display:none}
+.noata-export-format-menu{display:flex;gap:7px;flex-wrap:wrap;border-radius:13px;margin-top:6px}
+.noata-export-format-menu button{font:inherit;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--line);
+ border-radius:10px;background:var(--surface);color:var(--ink);padding:9px 10px}
+.noata-export-format-menu button:disabled{opacity:.5;cursor:wait}
+.noata-export-format-menu button span{font-size:10px;color:var(--muted);font-weight:450;margin-inline-start:6px}
+.noata-artifact-status{font-size:11px;line-height:1.55;color:var(--muted);margin:5px 0}
+.noata-launch-tile:focus-visible,.noata-artifact-main button:focus-visible,.noata-export-more>summary:focus-visible,.noata-capability-center button:focus-visible{
+ outline:3px solid var(--accent);outline-offset:3px}
+.noata-capability-center{display:grid;gap:13px;color:var(--ink)}
+.noata-capability-center h3,.noata-capability-center p{margin:0}.noata-capability-center>p{color:var(--muted);font-size:12px;line-height:1.75}
+.noata-capability-heading{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.noata-capability-heading strong{font-size:12px}.noata-capability-heading button{border:1px solid var(--line);border-radius:10px;
+ background:var(--surface);font:inherit;color:var(--ink);padding:9px 12px;cursor:pointer}
+.noata-capability-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:0;list-style:none;margin:0}
+.noata-capability-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px;
+ border:1px solid var(--line);background:var(--surface-soft);border-radius:13px;font-size:12px}
+.noata-capability-badge{padding:5px 8px;font-size:10px;font-weight:700;border:1px solid var(--line);border-radius:100px;white-space:nowrap}
+.noata-capability-badge.status-configured,.noata-capability-badge.status-local{color:var(--accent);background:var(--accent-soft)}
+.noata-capability-badge.status-unavailable,.noata-capability-badge.status-planned{color:var(--muted);background:var(--surface)}
+.noata-capability-center .noata-capability-footer{font-size:11px}
+@media(max-width:900px){.noata-launchpad-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.noata-launchpad{margin-top:22px}.noata-launchpad-heading{padding:18px;border-radius:18px}
+ .noata-launchpad-mark{display:none}.noata-launchpad-grid{grid-template-columns:1fr;gap:8px}
+ .noata-launch-tile{min-height:68px;padding:12px}.noata-capability-list{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.noata-launch-tile{animation:none;transition:none}.noata-launch-tile:hover{transform:none}}
+html[data-noata-motion="off"] .noata-launch-tile{animation:none!important;transition:none!important;transform:none!important}

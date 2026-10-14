@@ -1,0 +1,50 @@
+name: Noata Mushaf Reader QA
+
+on:
+  push:
+    branches:
+      - noata-mushaf-reading-renaissance-20261014
+      - noata-mushaf-emblem-typography-20261014
+      - noata-mushaf-emblem-20261014
+      - noata-mushaf-emblem-grid-20261014
+      - noata-aura-platform-overhaul-20261008
+  pull_request:
+    branches:
+      - noata-aura-platform-overhaul-20261008
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noata-mushaf-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reader:
+    name: Quran reader TS, build and responsive Chrome
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://vpfpjvhafkmygetjkfcp.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_network_isolation_fixture_only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: node --test apps/web/lib/quran/verse-number.test.ts
+      - run: pnpm build
+      - run: node scripts/install-qa-chrome.mjs
+      - run: node scripts/browser-mushaf-reading-smoke.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: noata-mushaf-reading-browser-evidence
+          path: artifacts/noata-mushaf/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -14,18 +14,29 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_document_files: {
+        Row: {id:string;user_id:string;conversation_id:string|null;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at:string;expires_at:string;library_saved:boolean}
+        Insert: {id:string;user_id:string;conversation_id:string;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at?:string;expires_at?:string;library_saved?:boolean}
+        Update: {id?:string;user_id?:string;conversation_id?:string|null;name?:string;storage_path?:string;mime_type?:string;size_bytes?:number;created_at?:string;expires_at?:string}
+        Relationships: [{foreignKeyName:"ai_document_files_conversation_id_fkey";columns:["conversation_id"];isOneToOne:false;referencedRelation:"ai_conversations";referencedColumns:["id"]}]
+      }
+
       ai_attachments: {
         Row: {
           conversation_id: string | null
           created_at: string
           id: string
           message_id: string | null
+          library_saved: boolean
+          filename: string | null
           mime_type: string
           size_bytes: number
           storage_path: string
           user_id: string
         }
         Insert: {
+          filename?: string | null
+          library_saved?: boolean
           conversation_id?: string | null
           created_at?: string
           id?: string
@@ -40,6 +51,8 @@ export type Database = {
           created_at?: string
           id?: string
           message_id?: string | null
+          library_saved?: boolean
+          filename?: string | null
           mime_type?: string
           size_bytes?: number
           storage_path?: string
@@ -871,6 +884,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           coins: number
+          gems: number
           created_at: string
           display_name: string
           id: string
@@ -884,6 +898,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           coins?: number
+          gems?: number
           created_at?: string
           display_name?: string
           id: string
@@ -897,6 +912,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           coins?: number
+          gems?: number
           created_at?: string
           display_name?: string
           id?: string
@@ -1310,32 +1326,95 @@ export type Database = {
           },
         ]
       }
+      user_theme_designs: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string
+          tokens: Json
+          visible: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string
+          tokens: Json
+          visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string
+          tokens?: Json
+          visible?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_projects: {
+        Row: {id:string;user_id:string;name:string;instructions:string;created_at:string;updated_at:string}
+        Insert: {id?:string;user_id:string;name:string;instructions?:string;created_at?:string;updated_at?:string}
+        Update: {id?:string;user_id?:string;name?:string;instructions?:string;created_at?:string;updated_at?:string}
+        Relationships: []
+      }
+      ai_artifacts: {
+        Row: {id:string;user_id:string;project_id:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version:number;created_at:string;parent_artifact_id:string|null;source_document_id:string|null;source_content:string|null}
+        Insert: {id:string;user_id:string;project_id?:string|null;filename:string;mime_type:string;storage_path:string;byte_size:number;version?:number;created_at?:string;parent_artifact_id?:string|null;source_document_id?:string|null;source_content?:string|null}
+        Update: {id?:string;user_id?:string;project_id?:string|null;filename?:string;mime_type?:string;storage_path?:string;byte_size?:number;version?:number;created_at?:string}
+        Relationships: [{foreignKeyName:"artifact_own_project";columns:["project_id","user_id"];isOneToOne:false;referencedRelation:"ai_projects";referencedColumns:["id","user_id"]}]
+      }
+      ai_memory_consent: {
+        Row: {user_id:string;enabled:boolean;updated_at:string}
+        Insert: {user_id:string;enabled?:boolean;updated_at?:string}
+        Update: {user_id?:string;enabled?:boolean;updated_at?:string}
+        Relationships: []
+      }
+      ai_user_memories: {
+        Row: {id:string;user_id:string;content:string;source:string;created_at:string;updated_at:string}
+        Insert: {id?:string;user_id:string;content:string;source?:string;created_at?:string;updated_at?:string}
+        Update: {id?:string;user_id?:string;content?:string;source?:string;created_at?:string;updated_at?:string}
+        Relationships: []
+      }
       user_settings: {
         Row: {
+          active_design_id: string | null
           ai_memory_enabled: boolean
           created_at: string
           default_ai_model: string
           locale: string
+          palette: string | null
           reduced_motion: boolean
           theme: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
           default_ai_model?: string
           locale?: string
+          palette?: string | null
           reduced_motion?: boolean
           theme?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
           default_ai_model?: string
           locale?: string
+          palette?: string | null
           reduced_motion?: boolean
           theme?: string
           updated_at?: string
