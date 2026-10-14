@@ -63,7 +63,6 @@ function ConversationItem({
         aria-current={c.id === p.activeId ? "page" : undefined}
         title={c.title}
       >
-        <Icon name="chat" size={16} />
         <span dir="auto">{c.title}</span>
       </button>
       <details className="aura-history-menu">
@@ -113,50 +112,30 @@ export function ConversationHistory(p: Props) {
     return { pinned, groups: Array.from(groups.entries()) };
   }, [p.rows,t]);
 
+
   if (p.collapsed) {
     return (
-      <aside className="owui-sidebar collapsed" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
+      <aside className="owui-sidebar collapsed noata-compact-rail" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
         <div className="owui-rail">
-          <button
-            type="button"
-            className="owui-icon owui-rail-toggle"
-            onClick={p.onToggleCollapse}
-            aria-label={t("فتح القائمة الجانبية","Open sidebar")}
-            data-tooltip={t("فتح القائمة الجانبية","Open sidebar")}
-          >
+          <button type="button" className="owui-icon owui-rail-toggle" onClick={p.onToggleCollapse}
+            aria-label={t("توسيع القائمة","Expand sidebar")} title={t("توسيع القائمة","Expand sidebar")}>
             <Icon name="sidebar" />
           </button>
-          <span className="owui-rail-divider" aria-hidden="true" />
-          <button
-            type="button"
-            className="owui-icon owui-rail-primary"
-            onClick={p.onNew}
-            disabled={p.busy}
-            aria-label={t("محادثة جديدة","New conversation")}
-            data-tooltip={t("محادثة جديدة","New conversation")}
-          >
-            <Icon name="edit" />
+          <span className="owui-rail-divider" aria-hidden="true"/>
+          <button type="button" className="owui-icon owui-rail-primary" onClick={p.onNew} disabled={p.busy}
+            aria-label={t("محادثة جديدة","New chat")} title={t("محادثة جديدة","New chat")}>
+            <Icon name="edit"/>
           </button>
-          <button type="button" className="owui-icon" onClick={()=>{p.onToggleCollapse?.();requestAnimationFrame(()=>searchField.current?.focus());}} aria-label={t("بحث في المحادثات","Search conversations")} data-tooltip={t("بحث في المحادثات","Search conversations")}><Icon name="search" /></button>
-          <Link className="owui-icon" href="/" aria-label={t("لوحة Noata","Noata dashboard")} data-tooltip={t("لوحة Noata","Noata dashboard")}>
-            <Icon name="home" />
-          </Link>
-          {p.onOpenLibrary && (
-            <button type="button" className="owui-icon" onClick={p.onOpenLibrary} aria-label={t("المشروعات والملفات","Projects and files")} data-tooltip={t("المشروعات والملفات","Projects and files")}>
-              <Icon name="archive" />
-            </button>
-          )}
-          <button type="button" className="owui-icon" onClick={p.onArchiveView} aria-label={p.archived?t("المحادثات","Conversations"):t("الأرشيف","Archive")} data-tooltip={p.archived?t("المحادثات","Conversations"):t("الأرشيف","Archive")}><Icon name={p.archived?"chat":"archive"} /></button>
-          <span className="owui-rail-spacer" />
-          <button
-            type="button"
-            className="owui-icon"
-            onClick={p.onOpenSettings}
-            aria-label={t("إعدادات Noata AI","Noata AI settings")}
-            data-tooltip={t("إعدادات Noata AI","Noata AI settings")}
-          >
-            <Icon name="settings" />
+          <button type="button" className="owui-icon" onClick={p.onToggleCollapse}
+            aria-label={t("فتح البحث في المحادثات","Open conversation search")} title={t("فتح البحث في المحادثات","Open conversation search")}>
+            <Icon name="search"/>
           </button>
+          <Link href="/" className="owui-icon" aria-label={t("مساحة التعلّم","Learning space")} title={t("مساحة التعلّم","Learning space")}><Icon name="home"/></Link>
+          {p.onOpenLibrary && <button type="button" className="owui-icon" onClick={p.onOpenLibrary}
+            aria-label={t("المشروعات والملفات","Projects and files")} title={t("المشروعات والملفات","Projects and files")}><Icon name="folder"/></button>}
+          <span className="owui-rail-spacer"/>
+          <button type="button" className="owui-icon" onClick={p.onOpenSettings}
+            aria-label={t("الإعدادات","Settings")} title={t("الإعدادات","Settings")}><Icon name="settings"/></button>
         </div>
       </aside>
     );
@@ -169,7 +148,7 @@ export function ConversationHistory(p: Props) {
           <NoataLogo size={38}/>
           <div>
             <strong>Noata AI</strong>
-            <small>{t("مساحتك لكل فكرة","Your space for every idea")}</small>
+            <small>{t("فكّر، تعلّم، واصنع","Think · Learn · Create")}</small>
           </div>
         </div>
         <button
@@ -203,27 +182,26 @@ export function ConversationHistory(p: Props) {
         />
       </label>
 
-      <details className="noata-workspace-menu">
-        <summary><span><Icon name="folder" size={15}/>{t("مساحة العمل","Workspace")}</span><Icon name="chevron" size={14}/></summary>
-        <div className="owui-sidebar-links">
-        <Link href="/" className="aura-home-return">
-          <Icon name="home" size={16} />
-          <span><strong>{t("مساحة التعلّم","Learning space")}</strong><small>{t("العودة إلى الرئيسية","Back to home")}</small></span>
-        </Link>
-        {p.onOpenLibrary&&<button type="button" onClick={p.onOpenLibrary}><Icon name="folder" size={16}/><span>{t("المشروعات والملفات","Projects and files")}</span></button>}
-        <button
-          type="button"
-          onClick={p.onTemporary}
-          disabled={p.busy}
-          aria-pressed={p.temporary}
-          className={p.temporary ? "active" : ""}
-        >
-          <Icon name="clock" size={16} />
-          <span>{t("محادثة مؤقتة","Temporary conversation")}</span>
-          {p.temporary && <i>{t("مفعّل","On")}</i>}
-        </button>
+
+      <nav className="noata-quick-nav" aria-label={t("مساحة العمل","Workspace")}>
+        <span className="noata-sidebar-caption">{t("مساحة العمل","WORKSPACE")}</span>
+        <div className="noata-quick-grid">
+          <Link href="/" className="noata-quick-link">
+            <Icon name="home" size={17}/>
+            <span>{t("مساحة التعلّم","Learning space")}</span>
+          </Link>
+          {p.onOpenLibrary && <button type="button" className="noata-quick-link" onClick={p.onOpenLibrary}>
+            <Icon name="folder" size={17}/>
+            <span>{t("المشروعات والملفات","Projects & files")}</span>
+          </button>}
         </div>
-      </details>
+        <button type="button" className={"noata-temporary-toggle"+(p.temporary?" active":"")}
+          disabled={p.busy} aria-pressed={p.temporary} onClick={p.onTemporary}>
+          <Icon name="clock" size={16}/>
+          <span>{t("محادثة مؤقتة","Temporary chat")}</span>
+          <span className="noata-temporary-switch" aria-hidden="true"><i/></span>
+        </button>
+      </nav>
 
       <div className="noata-history-heading"><h2>{p.query.trim()?t("نتائج البحث","Search results"):p.archived?t("الأرشيف","Archived chats"):t("محادثاتك","Your chats")}</h2><button type="button" className="owui-icon" onClick={p.onArchiveView} aria-pressed={p.archived} aria-label={p.archived?t("الرجوع للمحادثات","Back to conversations"):t("الأرشيف","Archive")} title={p.archived?t("الرجوع للمحادثات","Back to conversations"):t("الأرشيف","Archive")}><Icon name={p.archived?"chat":"archive"} size={16}/></button></div>
       <div className={"owui-history noata-chat-index "+(!p.rows.length?"noata-chat-index-empty":"")} role="region" aria-label={p.archived ? t("المحادثات المؤرشفة","Archived conversations") : t("المحادثات","Conversations")}>
