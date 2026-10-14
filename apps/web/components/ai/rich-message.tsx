@@ -11,6 +11,7 @@ import { safeStorageLink } from "@/lib/ai/workspace";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {displayMarkdown} from "@/lib/ai/display-markdown";
 import {splitQuranDirectives} from "@/lib/ai/quran-directives";
+import {splitPresentationBlocks} from "@/lib/ai/presentation-blocks";
 import {QuranPassage} from "./quran-passage";
 import {interactiveResponseSegments} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {validatedResearch} from "../../../../supabase/functions/noata-ai/research.ts";
@@ -22,7 +23,13 @@ export const RichMessage=memo(function RichMessage({ content, research, streamin
   const segments=interactiveResponseSegments(content,streaming);
   return (
     <div dir="auto" className="ai-rich-message">
-      {segments.map((segment,index)=>segment.type==="interactive"?<ResponseComponent key={segment.data.id+index} data={segment.data}/>:segment.type==="pending"?<p key={index} className="noata-widget-note">{streaming?t("بنجهّز العرض التفاعلي…","Preparing interactive view…"):t("لم يكتمل العرض التفاعلي. يمكنك قراءة الشرح أو إعادة المحاولة.","The interactive view was incomplete. Read the explanation or try again.")}</p>:segment.type==="fallback"?<p key={index}>{segment.text||t("العرض التفاعلي غير متاح. اقرأ الشرح أعلاه.","Interactive view unavailable. Read the explanation above.")}</p>:<Fragment key={"markdown-"+index}>{splitQuranDirectives(segment.text).map((part,partIndex)=>part.kind==="quran"?<QuranPassage key={partIndex} surah={part.surah} start={part.start} end={part.end}/>:<ReactMarkdown key={partIndex}
+      {segments.map((segment,index)=>segment.type==="interactive"?<ResponseComponent key={segment.data.id+index} data={segment.data}/>:segment.type==="pending"?<p key={index} className="noata-widget-note">{streaming?t("بنجهّز العرض التفاعلي…","Preparing interactive view…"):t("لم يكتمل العرض التفاعلي. يمكنك قراءة الشرح أو إعادة المحاولة.","The interactive view was incomplete. Read the explanation or try again.")}</p>:segment.type==="fallback"?<p key={index}>{segment.text||t("العرض التفاعلي غير متاح. اقرأ الشرح أعلاه.","Interactive view unavailable. Read the explanation above.")}</p>:<Fragment key={"markdown-"+index}>{splitQuranDirectives(segment.text).map((part,partIndex)=>part.kind==="quran"?<QuranPassage key={partIndex} surah={part.surah} start={part.start} end={part.end}/>:<Fragment key={partIndex}>{splitPresentationBlocks(part.text).map((block,blockIndex)=>block.type==="poem"?<figure key={blockIndex} className="noata-literary-piece" lang={/[؀-ۿ]/.test(block.text)?"ar":"en"} dir={/[؀-ۿ]/.test(block.text)?"rtl":"ltr"}>
+          <div className="noata-literary-rule" aria-hidden="true"><span>✦</span></div>
+          <div className="noata-literary-verses">{block.text.split(/\n\s*\n/).map((stanza,si)=><p className="noata-literary-stanza" key={si}>{stanza.split("\n").map((line,li)=><span className="noata-literary-line" key={li}>{line}</span>)}</p>)}</div>
+          <figcaption className="noata-literary-end" aria-hidden="true">✦</figcaption>
+        </figure>:block.type==="insight"||block.type==="example"?<aside key={blockIndex} className={"noata-literary-note "+(block.type==="example"?"is-example":"is-insight")}>
+          <strong>{block.type==="example"?t("مثال توضيحي","Example"):t("فكرة مهمة","Key insight")}</strong><p dir="auto">{block.text}</p>
+        </aside>:<ReactMarkdown key={blockIndex}
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: false }]]}
         components={{
@@ -78,8 +85,8 @@ export const RichMessage=memo(function RichMessage({ content, research, streamin
           ),
         }}
       >
-        {displayMarkdown(evidence?.status==="complete"?part.text.replace(/\[(\d{1,2})\](?!\()/g,(marker,id)=>{const source=evidence.sources.find(s=>s.id===Number(id));return source?`[${id}](<${source.url}>)`:marker;}):part.text)}
-      </ReactMarkdown>)}</Fragment>)}
+        {displayMarkdown(evidence?.status==="complete"?block.text.replace(/\[(\d{1,2})\](?!\()/g,(marker,id)=>{const source=evidence.sources.find(s=>s.id===Number(id));return source?`[${id}](<${source.url}>)`:marker;}):block.text)}
+      </ReactMarkdown>)}</Fragment>)}</Fragment>)}
     </div>
   );
 });
