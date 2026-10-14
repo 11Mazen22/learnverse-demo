@@ -101,10 +101,10 @@ async function run(){
  await navigate("/login");
  await waitFor(()=>evaluate('!!document.querySelector(".auth-password button")'),"password button");
  await evaluate('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Tab",bubbles:true}));document.querySelector(".auth-password button").focus()');
- await waitFor(()=>evaluate('!!document.getElementById("noata-global-tooltip")'),"password focus caption");
- const mobile=await evaluate('(()=>{const r=document.getElementById("noata-global-tooltip").getBoundingClientRect();return {x:r.x,right:r.right,y:r.y,bottom:r.bottom,width:innerWidth,height:innerHeight}})()');
- assert(mobile.x>=0&&mobile.right<=mobile.width&&mobile.y>=0&&mobile.bottom<=mobile.height,"mobile tooltip fits "+JSON.stringify(mobile));
- await capture("mobile-password-focus");
+ await sleep(550);
+ const mobile=await evaluate('(()=>{const b=document.querySelector(".auth-password button"),r=b.getBoundingClientRect();return {visibleLabel:b.innerText.trim(),aria:b.getAttribute("aria-label"),tip:!!document.getElementById("noata-global-tooltip"),overflow:document.documentElement.scrollWidth-innerWidth,left:r.left,right:r.right,width:innerWidth}})()');
+ assert(mobile.visibleLabel.length>0&&!mobile.tip&&mobile.overflow<=3&&mobile.left>=0&&mobile.right<=mobile.width,"Already-labelled mobile password control must not show a redundant caption or clip "+JSON.stringify(mobile));
+ await capture("mobile-password-clean");
  console.log("Tooltip Chrome QA PASS: RTL hover, keyboard focus, English, dismissal and 320px viewport");
 }
 let failed=false;
