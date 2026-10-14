@@ -952,7 +952,7 @@ export function useAIWorkspace() {
           } else if(quranQuote.end>chapter.numberOfAyahs) {
             result={content:t("عدد الآيات المطلوب أكبر من عدد آيات السورة. جرّب رقمًا أقل.","The requested verse count exceeds the length of this Surah. Try a smaller count."),model:"Noata Mushaf"};
           } else {
-            result={content:"## "+chapter.name+"\n\n[[quran:"+chapter.number+":"+quranQuote.start+"-"+quranQuote.end+"]]",model:"Noata Mushaf"};
+            result={content:"[[quran:"+chapter.number+":"+quranQuote.start+"-"+quranQuote.end+"]]",model:"Noata Mushaf"};
           }
         } catch (error) {
           controller.signal.throwIfAborted();
