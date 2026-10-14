@@ -4,163 +4,210 @@ import {useEffect,useLayoutEffect,useRef,useState} from "react";
 import {createPortal} from "react-dom";
 import {tooltipPosition,tooltipPreferredSide} from "@/lib/ui/tooltip-position";
 
-type Trigger={element:HTMLElement;label:string;source:"pointer"|"focus"};
+type Source="pointer"|"keyboard";
+type Trigger={element:HTMLElement;label:string;source:Source;revision:number};
 const TIP_ID="noata-global-tooltip";
 const CONTROLS='button, a, summary, [role="button"], input[type="button"], input[type="submit"], [data-tooltip]';
+const HOVER_DELAY=420;
 
-function getTrigger(node:EventTarget|null):HTMLElement|null{
+function controlFrom(node:EventTarget|null):HTMLElement|null{
   if(!(node instanceof Element))return null;
   const target=node.closest<HTMLElement>(CONTROLS);
-  if(!target || target.matches(':disabled,[aria-disabled="true"]') || !target.isConnected)return null;
-  if(target.closest('[data-noata-tooltip="off"]'))return null;
+  if(!target || !target.isConnected || target.matches(':disabled,[aria-disabled="true"]'))return null;
+  if(target.closest('[data-noata-tooltip="off"],[inert]'))return null;
+  const modal=document.querySelector<HTMLElement>('dialog[open], [role="dialog"][aria-modal="true"]');
+  if(modal && !modal.contains(target))return null;
   return target;
 }
-function caption(target:HTMLElement,suppressedTitle:string|null):string{
-  const accessible=target.getAttribute("data-tooltip")
-    ||target.getAttribute("aria-label")
-    ||target.getAttribute("title")
-    ||suppressedTitle;
-  // Text-labelled buttons still get a small caption; links with visible text
-  // do not acquire noisy, redundant hover popovers.
-  if(!accessible && target.matches("a"))return "";
-  const text=accessible || target.innerText || target.textContent || "";
-  const cleaned=text.replace(/\s+/g," ").trim();
-  return cleaned.length>0&&cleaned.length<=90?cleaned:"";
+function getCaption(target:HTMLElement,hiddenTitle:string|null):string{
+  const explicit=target.getAttribute("data-tooltip")?.trim();
+  if(explicit==="off")return "";
+  if(explicit)return explicit.slice(0,75);
+  // Never repeat descriptions or full labels from already-readable buttons.
+  const visible=(target.innerText||target.textContent||"").replace(/\s+/g," ").trim();
+  const compact=target.classList.contains("owui-icon") || target.matches(".noata-compact-rail *,[data-icon-only]");
+  if(!compact && visible.length>0)return "";
+  const label=target.getAttribute("aria-label")||target.getAttribute("title")||hiddenTitle||"";
+  const concise=label.replace(/\s+/g," ").trim();
+  return concise.length>0&&concise.length<=75?concise:"";
 }
 
-/** One overlay for the entire product: it is outside sidebar overflow and
- * also works for keyboard focus, dialogs, RTL, and dynamically inserted buttons. */
+/** Intent-driven captions; mouse movement or keyboard navigation is required.
+ * Click-induced focus, programmatic focus, stationary pointers and touch must
+ * never create a floating tooltip. */
 export function TooltipHost(){
   const [trigger,setTrigger]=useState<Trigger|null>(null);
-  const activeRef=useRef<Trigger|null>(null);
-  const bubbleRef=useRef<HTMLDivElement>(null);
-  const timerRef=useRef<number|null>(null);
-  const hiddenTitle=useRef<{element:HTMLElement;title:string}|null>(null);
-  const describedBy=useRef<{element:HTMLElement;old:string|null}|null>(null);
+  const current=useRef<Trigger|null>(null);
+  const popup=useRef<HTMLDivElement>(null);
+  const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const hovered=useRef<HTMLElement|null>(null);
+  const blocked=useRef<HTMLElement|null>(null);
+  const keyboardMode=useRef(false);
+  const titleBackup=useRef<{element:HTMLElement;value:string}|null>(null);
+  const descriptionBackup=useRef<{element:HTMLElement;value:string|null}|null>(null);
+  const sequence=useRef(0);
 
-  useLayoutEffect(()=>{
-    if(!trigger || !bubbleRef.current || !trigger.element.isConnected)return;
-    const bubble=bubbleRef.current;
-    const rect=trigger.element.getBoundingClientRect();
-    const isRail=!!trigger.element.closest(".owui-rail,.noata-compact-rail");
-    const rtl=getComputedStyle(trigger.element).direction==="rtl";
-    const pos=tooltipPosition(rect,{width:bubble.offsetWidth,height:bubble.offsetHeight},
-      {width:window.innerWidth,height:window.innerHeight},tooltipPreferredSide(isRail,rtl));
-    bubble.style.left=pos.left+"px";
-    bubble.style.top=pos.top+"px";
-    bubble.dataset.side=pos.side;
-  },[trigger]);
+  const position=()=>{
+    const item=current.current,box=popup.current;
+    if(!item||!box||!item.element.isConnected)return;
+    const rect=item.element.getBoundingClientRect();
+    const rail=!!item.element.closest(".owui-rail,.noata-compact-rail");
+    const rtl=getComputedStyle(item.element).direction==="rtl";
+    const target=tooltipPosition(rect,{width:box.offsetWidth,height:box.offsetHeight},
+      {width:window.innerWidth,height:window.innerHeight},tooltipPreferredSide(rail,rtl));
+    box.style.left=target.left+"px";
+    box.style.top=target.top+"px";
+    box.dataset.side=target.side;
+    box.dataset.ready="true";
+  };
+  useLayoutEffect(()=>{position()},[trigger]);
 
   useEffect(()=>{
-    const clearTimer=()=>{if(timerRef.current!==null){window.clearTimeout(timerRef.current);timerRef.current=null;}};
+    const clear=()=>{if(timer.current!==null){clearTimeout(timer.current);timer.current=null}};
     const restoreTitle=()=>{
-      const item=hiddenTitle.current;
-      if(item && item.element.isConnected)item.element.setAttribute("title",item.title);
-      hiddenTitle.current=null;
+      const b=titleBackup.current;
+      if(b?.element.isConnected)b.element.setAttribute("title",b.value);
+      titleBackup.current=null;
     };
     const restoreDescription=()=>{
-      const item=describedBy.current;
-      if(item&&item.element.isConnected){
-        if(item.old===null)item.element.removeAttribute("aria-describedby");
-        else item.element.setAttribute("aria-describedby",item.old);
+      const b=descriptionBackup.current;
+      if(b?.element.isConnected){
+        if(b.value===null)b.element.removeAttribute("aria-describedby");
+        else b.element.setAttribute("aria-describedby",b.value);
       }
-      describedBy.current=null;
+      descriptionBackup.current=null;
     };
     const hide=()=>{
-      clearTimer();activeRef.current=null;setTrigger(null);
-      restoreTitle();restoreDescription();
+      clear();current.current=null;setTrigger(null);
+      restoreDescription();restoreTitle();
     };
-    const activate=(element:HTMLElement,source:Trigger["source"])=>{
-      const label=caption(element,hiddenTitle.current?.element===element?hiddenTitle.current.title:null);
-      if(!label)return;
-      clearTimer();
-      const previous=activeRef.current;
-      if(previous?.element===element && previous?.label===label && previous.source===source)return;
-      restoreDescription();
-      if(hiddenTitle.current?.element!==element)restoreTitle();
-      if(!hiddenTitle.current && element.hasAttribute("title")){
-        hiddenTitle.current={element,title:element.getAttribute("title")??""};
+    const stripTitle=(element:HTMLElement)=>{
+      if(titleBackup.current?.element===element)return;
+      restoreTitle();
+      const title=element.getAttribute("title");
+      if(title!==null){
+        titleBackup.current={element,value:title};
         element.removeAttribute("title");
       }
-      if(source==="focus"){
+    };
+    const show=(element:HTMLElement,source:Source)=>{
+      if(!element.isConnected || element===blocked.current || element!==hovered.current&&source==="pointer")return;
+      if(source==="keyboard" && (document.activeElement!==element||!keyboardMode.current))return;
+      const label=getCaption(element,titleBackup.current?.element===element?titleBackup.current.value:null);
+      if(!label)return;
+      clear();
+      if(current.current?.element===element&&current.current.label===label&&current.current.source===source)return;
+      restoreDescription();
+      stripTitle(element);
+      if(source==="keyboard"){
         const old=element.getAttribute("aria-describedby");
-        describedBy.current={element,old};
+        descriptionBackup.current={element,value:old};
         element.setAttribute("aria-describedby",[old,TIP_ID].filter(Boolean).join(" "));
       }
-      const next={element,label,source};
-      activeRef.current=next;setTrigger(next);
+      const next={element,label,source,revision:++sequence.current};
+      current.current=next;setTrigger(next);
     };
-    const onPointerOver=(event:PointerEvent)=>{
-      if(event.pointerType==="touch")return;
-      const element=getTrigger(event.target);
-      if(!element || element===activeRef.current?.element)return;
-      clearTimer();
-      const label=caption(element,hiddenTitle.current?.element===element?hiddenTitle.current.title:null);
-      if(!label)return;
-      // Suppress native browser title boxes that would duplicate our tooltip.
-      if(hiddenTitle.current?.element!==element)restoreTitle();
-      if(element.hasAttribute("title")){
-        hiddenTitle.current={element,title:element.getAttribute("title")??""};
-        element.removeAttribute("title");
+    const onMove=(event:PointerEvent)=>{
+      if(event.pointerType!=="mouse"&&event.pointerType!=="pen")return;
+      keyboardMode.current=false;
+      const element=controlFrom(event.target);
+      if(element!==blocked.current)blocked.current=null;
+      if(element!==hovered.current){
+        clear();
+        if(current.current)hide();
+        hovered.current=element;
       }
-      timerRef.current=window.setTimeout(()=>activate(element,"pointer"),260);
+      if(!element||element===blocked.current||current.current?.element===element)return;
+      // Movement, not synthetic pointerover, is the evidence of hover.
+      const label=getCaption(element,titleBackup.current?.element===element?titleBackup.current.value:null);
+      if(!label)return;
+      stripTitle(element);
+      if(timer.current===null)timer.current=setTimeout(()=>{
+        timer.current=null;
+        if(hovered.current===element&&blocked.current!==element&&element.matches(":hover"))show(element,"pointer");
+      },HOVER_DELAY);
     };
-    const onPointerOut=(event:PointerEvent)=>{
-      const element=getTrigger(event.target);
+    const onOut=(event:PointerEvent)=>{
+      const element=controlFrom(event.target);
       if(!element)return;
       const related=event.relatedTarget;
-      if(related instanceof Node && element.contains(related))return;
-      clearTimer();
-      if(activeRef.current?.element===element){
-        if(document.activeElement===element && activeRef.current.source==="focus")return;
-        hide();
-      }else if(hiddenTitle.current?.element===element)restoreTitle();
+      if(related instanceof Node&&element.contains(related))return;
+      if(hovered.current===element)hovered.current=null;
+      if(blocked.current===element)blocked.current=null;
+      clear();
+      if(current.current?.element===element&&current.current.source==="pointer")hide();
+      else if(!current.current)restoreTitle();
     };
-    const onFocusIn=(event:FocusEvent)=>{
-      const element=getTrigger(event.target);
-      if(element)activate(element,"focus");
+    const onFocus=(event:FocusEvent)=>{
+      const element=controlFrom(event.target);
+      if(!keyboardMode.current||!element)return;
+      hovered.current=null;blocked.current=null;clear();
+      show(element,"keyboard");
     };
-    const onFocusOut=(event:FocusEvent)=>{
-      if(activeRef.current?.element===event.target)hide();
+    const onBlur=(event:FocusEvent)=>{
+      if(current.current?.element===event.target&&current.current.source==="keyboard")hide();
     };
-    const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape")hide();};
-    const onPointerDown=()=>hide();
-    const onScroll=()=>hide();
-    const reposition=()=>{
-      const current=activeRef.current,bubble=bubbleRef.current;
-      if(!current||!bubble||!current.element.isConnected){hide();return;}
-      const rect=current.element.getBoundingClientRect();
-      const pos=tooltipPosition(rect,{width:bubble.offsetWidth,height:bubble.offsetHeight},
-        {width:window.innerWidth,height:window.innerHeight},
-        tooltipPreferredSide(!!current.element.closest(".owui-rail,.noata-compact-rail"),
-          getComputedStyle(current.element).direction==="rtl"));
-      bubble.style.left=pos.left+"px";bubble.style.top=pos.top+"px";bubble.dataset.side=pos.side;
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key==="Escape"){hide();blocked.current=document.activeElement instanceof HTMLElement?document.activeElement:null;return;}
+      if(event.key==="Tab"||event.key==="ArrowDown"||event.key==="ArrowUp"||event.key==="ArrowLeft"||event.key==="ArrowRight"){
+        keyboardMode.current=true;
+        // If the focus stays on the same button, a subsequent keyboard
+        // navigation key must not surface a stale pointer caption.
+        if(current.current?.source==="pointer")hide();
+      }else if(event.key==="Enter"||event.key===" "){hide();keyboardMode.current=false;}
     };
-    document.addEventListener("pointerover",onPointerOver);
-    document.addEventListener("pointerout",onPointerOut);
-    document.addEventListener("focusin",onFocusIn);
-    document.addEventListener("focusout",onFocusOut);
-    document.addEventListener("keydown",onKeyDown);
-    document.addEventListener("pointerdown",onPointerDown);
+    const onDown=(event:PointerEvent)=>{
+      keyboardMode.current=false;
+      blocked.current=controlFrom(event.target);
+      hovered.current=null;
+      hide();
+    };
+    const onClick=()=>{keyboardMode.current=false;hide()};
+    const onScroll=()=>{hovered.current=null;hide()};
+    const onVisibility=()=>{if(document.hidden)hide()};
+    const onExit=()=>{hovered.current=null;blocked.current=null;hide()};
+    const onResize=()=>{if(current.current)hide()};
+    const onMutation=()=>{
+      const item=current.current;
+      if(item && (!item.element.isConnected || controlFrom(item.element)!==item.element))hide();
+    };
+    const observer=new MutationObserver(onMutation);
+    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["open","aria-modal","aria-hidden","inert"]});
+    document.addEventListener("pointermove",onMove,{passive:true});
+    document.addEventListener("pointerout",onOut);
+    document.addEventListener("pointerdown",onDown,true);
+    document.addEventListener("click",onClick,true);
+    document.addEventListener("focusin",onFocus);
+    document.addEventListener("focusout",onBlur);
+    document.addEventListener("keydown",onKey,true);
     document.addEventListener("scroll",onScroll,true);
-    window.addEventListener("resize",reposition);
+    document.addEventListener("wheel",onScroll,{passive:true});
+    document.addEventListener("visibilitychange",onVisibility);
+    window.addEventListener("blur",onExit);
+    window.addEventListener("resize",onResize);
+    window.addEventListener("popstate",onExit);
     return ()=>{
-      clearTimer();restoreTitle();restoreDescription();
-      document.removeEventListener("pointerover",onPointerOver);
-      document.removeEventListener("pointerout",onPointerOut);
-      document.removeEventListener("focusin",onFocusIn);
-      document.removeEventListener("focusout",onFocusOut);
-      document.removeEventListener("keydown",onKeyDown);
-      document.removeEventListener("pointerdown",onPointerDown);
+      observer.disconnect();clear();restoreTitle();restoreDescription();
+      document.removeEventListener("pointermove",onMove);
+      document.removeEventListener("pointerout",onOut);
+      document.removeEventListener("pointerdown",onDown,true);
+      document.removeEventListener("click",onClick,true);
+      document.removeEventListener("focusin",onFocus);
+      document.removeEventListener("focusout",onBlur);
+      document.removeEventListener("keydown",onKey,true);
       document.removeEventListener("scroll",onScroll,true);
-      window.removeEventListener("resize",reposition);
+      document.removeEventListener("wheel",onScroll);
+      document.removeEventListener("visibilitychange",onVisibility);
+      window.removeEventListener("blur",onExit);
+      window.removeEventListener("resize",onResize);
+      window.removeEventListener("popstate",onExit);
     };
   },[]);
 
-  return trigger ? createPortal(
-    <div key={trigger.label} id={TIP_ID} ref={bubbleRef} className="noata-global-tooltip"
-      role="tooltip" dir="auto" data-noata-tooltip-overlay="" data-side="top">
+  return trigger?createPortal(
+    <div key={trigger.revision} id={TIP_ID} role="tooltip" dir="auto"
+      ref={popup} className="noata-global-tooltip" data-noata-tooltip-overlay="" data-ready="false" data-side="top">
       {trigger.label}
-    </div>,document.body,
+    </div>,document.body
   ):null;
 }
