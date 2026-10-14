@@ -19,8 +19,8 @@ export function lineChartGeometry(data:LineChartData){
  return {left,top,width,height,min,max,points,path:points.map((point,i)=>(i?"L":"M")+point.x.toFixed(2)+" "+point.y.toFixed(2)).join(" ")};
 }
 /** Static SVG is built solely from validated points and XML-escaped strings. */
-export function chartPdfMarkup(data:ActualChartData):string{
- if(data.type==="xy_chart")return xyChartPdfMarkup(data);
+export function chartPdfMarkup(data:ActualChartData,documentTitle?:string):string{
+ if(data.type==="xy_chart")return xyChartPdfMarkup(data,data.title===documentTitle);
  const g=lineChartGeometry(data),baseline=g.top+g.height;
  const grid=Array.from({length:5},(_,i)=>{
   const y=g.top+i*g.height/4,value=g.max-i*(g.max-g.min)/4;
@@ -33,7 +33,7 @@ export function chartPdfMarkup(data:ActualChartData):string{
  const dots=g.points.map(point=>'<circle cx="'+point.x+'" cy="'+point.y+'" r="4" fill="#146ec1" stroke="#fff" stroke-width="2"/>').join("");
  const table='<table class="noata-chart-table"><thead><tr><th>'+xml(data.xLabel)+'</th><th>'+xml(data.yLabel)+'</th></tr></thead><tbody>'+
   data.points.map(point=>'<tr><td>'+xml(point.label)+'</td><td>'+point.value+'</td></tr>').join("")+'</tbody></table>';
- return '<section class="noata-chart-report" style="break-inside:avoid"><h2>'+xml(data.title)+'</h2>'+
+ return '<section class="noata-chart-report" style="break-inside:avoid">'+(data.title===documentTitle?"":'<h2>'+xml(data.title)+'</h2>')+
  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+CHART_WIDTH+' '+CHART_HEIGHT+'" style="width:100%;height:auto;max-width:720px" role="img">'+
  grid+labels+'<path d="'+g.path+'" stroke="#146ec1" fill="none" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg>'+
  '<p style="font-size:9pt;color:#526d87">'+xml(data.xLabel)+' · '+xml(data.yLabel)+'</p></section>'+

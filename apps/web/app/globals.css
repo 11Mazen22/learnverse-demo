@@ -4331,3 +4331,7 @@ svg[data-icon="arrow"]:dir(ltr) path { transform-box: fill-box; transform-origin
 .noata-chart-actions button:disabled{opacity:.5;cursor:default}
 @media(max-width:640px){.noata-chart-actions button,.noata-chart-legend button{min-height:44px}.noata-xy-grid text{font-size:16px}.noata-xy-label{font-size:18px}}
 @media(prefers-reduced-motion:reduce){.noata-xy-chart *{transition:none!important;animation:none!important}}
+
+/* Compact graph coordinates retain legible axis labels instead of shrinking a desktop canvas. */
+.noata-xy-graph--compact .noata-xy-grid text{font-size:22px}
+.noata-xy-graph--compact .noata-xy-label{font-size:24px}

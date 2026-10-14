@@ -15,3 +15,5 @@ test("Canonical source keeps validated chart values and styles for later PDF rev
  const recovered=findActualCharts(saved);assert.equal(recovered.length,1);assert.deepEqual(recovered[0],fixture);
  assert.equal(retainChartSource(saved,answer),saved);
 });
+
+test("Compact chart geometry preserves numeric spacing and keeps all observations within bounds",()=>{const g=xyChartGeometry(fixture,{width:420,height:360,compact:true}),p=g.series[0].rendered;assert.equal(g.canvasWidth,420);assert.ok(g.left>=110);assert.ok(Math.abs((p[1].px-p[0].px)/(p[2].px-p[0].px)-.1)<1e-8);assert.ok(p.every(v=>v.px>=g.left&&v.px<=g.left+g.width&&v.py>=g.top&&v.py<=g.top+g.height));assert.ok(!xyChartPdfMarkup(fixture,true).includes("<h2>"));});

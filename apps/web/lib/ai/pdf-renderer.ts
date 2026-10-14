@@ -44,7 +44,7 @@ export async function renderNoataPdf(text: string, title: string, screenshotPath
     const embedded=findActualCharts(text),charts=[...new Map([...(chart?[chart]:[]),...embedded].map(value=>[JSON.stringify(value),value])).values()].slice(0,6);
     if(embedded.length)text=responseText(text);
     let html=await documentHtml(text,title,{arabic:arabic.toString("base64"),latin:latin.toString("base64"),symbols:symbols.toString("base64"),extra:extra?.toString("base64")},style,font);
-    if(charts.length)html=html.replace("</main>",charts.map(chartPdfMarkup).join("")+"</main>");
+    if(charts.length)html=html.replace("</main>",charts.map(value=>chartPdfMarkup(value,title)).join("")+"</main>");
     await page.setContent(html,{waitUntil:"networkidle0",timeout:15_000});
     // Explicitly load both subsets: English-only documents never trigger the
     // Arabic subset naturally, and an unused font is not a failed font.

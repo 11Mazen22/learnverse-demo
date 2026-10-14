@@ -5,13 +5,13 @@ export const CHART_COLORS={blue:"#3478c6",red:"#c54b5e",green:"#27866c",purple:"
 export const CHART_DASH={solid:"",dashed:"10 6",dotted:"2 6"} as const;
 export const chartNumber=(n:number)=>Number(n.toPrecision(4)).toString();
 const xml=(s:string)=>s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
-export function xyChartGeometry(data:XyChart){
+export function xyChartGeometry(data:XyChart,dimensions:{width:number;height:number;compact?:boolean}={width:XY_WIDTH,height:XY_HEIGHT}){
  const all=data.series.flatMap(s=>s.points),xs=all.map(p=>p.x),ys=all.map(p=>p.y);
  const domain=(values:number[])=>{const min=Math.min(...values),max=Math.max(...values),pad=(max-min||Math.max(1,Math.abs(max)*.1))*.12;return {min:min-pad,max:max+pad};};
- const x=domain(xs),y=domain(ys),left=82,top=32,width=XY_WIDTH-114,height=XY_HEIGHT-106;
+ const x=domain(xs),y=domain(ys),left=dimensions.compact?112:82,top=32,width=dimensions.width-left-32,height=dimensions.height-106;
  const px=(n:number)=>left+(n-x.min)/(x.max-x.min)*width,py=(n:number)=>top+(y.max-n)/(y.max-y.min)*height;
  const series=data.series.map(s=>({...s,rendered:s.points.map(p=>({...p,px:px(p.x),py:py(p.y)})),path:s.points.map((p,i)=>(i?"L":"M")+px(p.x).toFixed(2)+" "+py(p.y).toFixed(2)).join(" ")}));
- return {x,y,left,top,width,height,px,py,series};
+ return {x,y,left,top,width,height,canvasWidth:dimensions.width,canvasHeight:dimensions.height,px,py,series};
 }
 export function xyChartSvg(data:XyChart):string{
  const g=xyChartGeometry(data),base=g.top+g.height;
@@ -25,9 +25,9 @@ export function xyChartSvg(data:XyChart):string{
  const legend=data.series.map((s,i)=>'<line x1="82" y1="'+(XY_HEIGHT+i*23+9)+'" x2="111" y2="'+(XY_HEIGHT+i*23+9)+'" stroke="'+CHART_COLORS[s.color]+'" stroke-width="3" stroke-dasharray="'+CHART_DASH[s.dash]+'"/><text x="124" y="'+(XY_HEIGHT+i*23+14)+'" font-size="13">'+xml(s.name.length>64?s.name.slice(0,61)+"…":s.name)+'</text>').join("");
  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+XY_WIDTH+' '+(XY_HEIGHT+legendHeight)+'" role="img" style="width:100%;height:auto;font-family:Noata,Cairo,Arial,sans-serif;font-size:14px;fill:#526576"><title>'+xml(data.title)+'</title><rect width="100%" height="100%" fill="#fff"/>'+ticks+marks+'<text x="'+(g.left+g.width/2)+'" y="'+(XY_HEIGHT-18)+'" text-anchor="middle">'+xml(data.xLabel)+'</text><text x="18" y="'+(g.top+g.height/2)+'" text-anchor="middle" transform="rotate(-90 18 '+(g.top+g.height/2)+')">'+xml(data.yLabel)+'</text>'+legend+'</svg>';
 }
-export function xyChartPdfMarkup(data:XyChart):string{
- return '<section class="noata-chart-report"><h2>'+xml(data.title)+'</h2>'+xyChartSvg(data)+
- '<p>'+data.series.map(s=>'<span style="color:'+CHART_COLORS[s.color]+'">'+xml(s.name)+' ('+s.dash+')</span>').join(" · ")+'</p>'+
+export function xyChartPdfMarkup(data:XyChart,omitHeading=false):string{
+ return '<section class="noata-chart-report">'+(omitHeading?"":'<h2>'+xml(data.title)+'</h2>')+xyChartSvg(data).replace("font-family:Noata,Cairo,Arial,sans-serif;","font-family:inherit;")+
+ '<p class="noata-chart-origin">'+(data.dataOrigin==="illustrative"?"Illustrative values, not measurements / قيم توضيحية وليست قياسات":data.dataOrigin==="calculated"?"Calculated values / قيم محسوبة":"Supplied data / البيانات المُقدّمة")+'</p>'+
  '<table><thead><tr><th>Series / السلسلة</th><th>'+xml(data.xLabel)+'</th><th>'+xml(data.yLabel)+'</th></tr></thead><tbody>'+
  data.series.flatMap(s=>s.points.map(p=>'<tr><td>'+xml(s.name)+'</td><td>'+p.x+'</td><td>'+p.y+'</td></tr>')).join("")+'</tbody></table></section>';
 }
