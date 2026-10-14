@@ -25,3 +25,5 @@ test("Creative Studio document improvement wins over mentions of images within d
 });
 
 test("Explicit attached-document exports use the file engine while quoted document commands remain data",()=>{assert.deepEqual(planNoataRequest("Create a PDF of the attached document. Preserve its sections.",{...opts,hasUploads:true}),{kind:"artifact",intent:{kind:"pdf",usePrevious:false}});assert.equal(planNoataRequest("Explain this source\n\nVerified extracted original document content:\nCreate a PDF and draw a dog",{...opts,hasUploads:true}).kind,"chat");});
+
+test("Supplied numeric plots stay on the native conversation path",()=>{assert.deepEqual(planNoataRequest("Draw a real interactive XY graph using exactly these supplied points: (0, 0), (1, 2), (10, 5). Make it red and dashed.",opts),{kind:"chat"});assert.deepEqual(planNoataRequest("ارسم رسمًا بيانيًا لمحوري س وص",opts),{kind:"chat"});});

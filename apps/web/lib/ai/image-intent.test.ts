@@ -13,3 +13,6 @@ test("Real provider routes only explicit single-image creation",()=>{
  assert.equal(imageGenerationIntent("Describe this image"),null);
  assert.equal(imageGenerationIntent("What is an image?"),null);
 });
+
+// Real Staging regression: drawing an XY graph previously invoked raster generation.
+test("Graph requests never become raster images",()=>{for(const q of ["Draw a real interactive XY graph using points (0, 0), (1, 2), (10, 5). Make the line red and dashed.","Draw a graph showing x and y axis","ارسم رسمًا بيانيًا بمحور س وص","Plot y = x²","Draw y = 2x + 1","Create a scatter chart of these coordinates"])assert.equal(imageGenerationIntent(q),null,q);});

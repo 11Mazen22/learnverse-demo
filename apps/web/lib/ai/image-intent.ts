@@ -1,9 +1,12 @@
 /** Genesis: conservative conversational routing to an actual image provider.
  * Do not send editing, multi-image, SVG or transparent-asset requests to a raster-only generator.
  */
+import {graphRequested} from "../../../../supabase/functions/noata-ai/graph-delivery.ts";
 export function imageGenerationIntent(prompt:string):"image"|null{
  const q=prompt.trim();
  if(!q||q.length>2800)return null;
+ // Numeric plots need the native chart engine, not a painted approximation.
+ if(graphRequested(q)||/\b(?:[xy][ -]axis|axes|coordinates?|quadratic|scatter|histogram)\b|\b[xy]\s*=|محاور|إحداثيات|احداثيات|منحنى الدالة/i.test(q))return null;
  if(/^(?:how|why|what|explain|teach|tutorial)\b|^(?:ازاي|إزاي|كيف|اشرح)(?:\s|$)/i.test(q))return null;
  if(/\b(?:svg|vector|edit|modify|retouch|background removal|remove background|transparent|transparency)\b|(?:فيكتور|شفاف|شفافة|تعديل|عدّل|غير الخلفية|غيّر الخلفية)/i.test(q))return null;
  if(/\b(?:[2-9]|10|twenty|five|multiple|several)\s+(?:images|pictures|icons|logos|posters)\b|(?:صور|أيقونات|لوجوهات)\s+(?:متعددة|كثيرة)/i.test(q))return null;
