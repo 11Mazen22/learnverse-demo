@@ -1,0 +1,44 @@
+name: Noata Quran Verse Medallions QA
+
+on:
+  push:
+    branches:
+      - noata-quran-verse-medallions-20261014
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noata-quran-seals
+  cancel-in-progress: true
+
+jobs:
+  quran-seals:
+    name: Quran verse seal visual and number integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://vpfpjvhafkmygetjkfcp.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_network_isolation_fixture_only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: node --test apps/web/lib/quran/verse-number.test.ts
+      - run: node --check scripts/browser-quran-seals-smoke.mjs
+      - run: pnpm build
+      - run: node scripts/install-qa-chrome.mjs
+      - run: node scripts/browser-quran-seals-smoke.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: noata-quran-verse-seal-evidence
+          path: artifacts/noata-quran-seals/
+          if-no-files-found: ignore
+          retention-days: 7
