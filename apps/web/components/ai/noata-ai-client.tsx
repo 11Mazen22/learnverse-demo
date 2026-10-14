@@ -685,6 +685,7 @@ export function NoataAIClient() {
                     </span>
                   </div>
                   <RichMessage content={pendingText} streaming/>
+                  <span className="noata-stream-progress sr-only" role="status">{t("يظهر الرد مباشرة مع وصول أجزاء النص من النموذج.","The response appears as chunks arrive from the model.")}</span>
                   {!busy && (
                     <div className="owui-message-actions">
                       <button
@@ -699,15 +700,21 @@ export function NoataAIClient() {
             )}
 
             {busy && !pendingText && (
-              <div className="owui-thinking" role="status">
+              <article className="owui-message assistant streaming noata-stream-placeholder" role="status" aria-live="polite">
                 <div className="owui-message-avatar" aria-hidden="true">
                   <NoataLogo size={30} />
                 </div>
-                <span />
-                <span />
-                <span />
-                <em>{notice || t("Noata بتفكر…","Noata is working…")}</em>
-              </div>
+                <div className="owui-message-body">
+                  <div className="owui-message-meta">
+                    <strong>Noata AI</strong>
+                    <span className="owui-stream-badge">{t("جاري التحضير…","Preparing response…")}</span>
+                  </div>
+                  <div className="noata-stream-progress">
+                    <span className="noata-stream-indicator" aria-hidden="true"><i/><i/><i/></span>
+                    <span>{notice || t("في انتظار أول جزء من الإجابة…","Waiting for the first response chunk…")}</span>
+                  </div>
+                </div>
+              </article>
             )}
 
             {error && (
