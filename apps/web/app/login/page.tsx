@@ -216,7 +216,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
   const showTabs = mode === "signin" || mode === "signup";
 
   return (
-    <main id="noata-main" className="auth-shell">
+    <main id="noata-main" className="auth-shell auth-renaissance-shell">
       <aside className="auth-aside" aria-hidden="true">
         <NoataBrand size={44} />
         <div className="auth-aside-copy">
@@ -320,7 +320,8 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
                       placeholder={mode === "signup" ? t("12 حرفًا على الأقل","At least 12 characters") : "••••••••"}
                     />
                     <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? t("إخفاء كلمة المرور","Hide password") : t("إظهار كلمة المرور","Show password")}>
-                      {showPassword ? t("إخفاء","Hide") : t("إظهار","Show")}
+                      <Icon name={showPassword ? "eye-off" : "eye"} size={18}/>
+                      <span className="auth-visibility-copy">{showPassword ? t("إخفاء","Hide") : t("إظهار","Show")}</span>
                     </button>
                   </span>
                 </div>
