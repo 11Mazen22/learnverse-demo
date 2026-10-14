@@ -76,6 +76,18 @@ async function run(){
      "Mushaf emblem text must stay inside the arch: "+JSON.stringify(composition));
    assert(caption.bottom<=composition.box.top+composition.box.height*.83,
      "Mushaf emblem tagline must clear the lower arch ornament: "+JSON.stringify(composition));
+   const midpoint=(r)=>(r.left+r.right)/2;
+   const archMidpoint=(composition.box.left+composition.box.right)/2;
+   assert(Math.abs(midpoint(book)-archMidpoint)<3 && Math.abs(midpoint(title)-archMidpoint)<3 &&
+     Math.abs(midpoint(caption)-archMidpoint)<3,
+     "All three emblem zones must share a single exact optical center: "+JSON.stringify(composition));
+   assert(title.scrollWidth<=title.clientWidth+1 && caption.scrollWidth<=caption.clientWidth+1,
+     "Arabic heading and translated subtitle must never be truncated: "+JSON.stringify(composition));
+   assert(title.width < composition.box.right-composition.box.left-20 &&
+     caption.width < composition.box.right-composition.box.left-20,
+     "Wordmark must have breathable horizontal margins: "+JSON.stringify(composition));
+   assert(caption.bottom<=composition.box.top+composition.box.height*.79,
+     "Subtitle must sit above the bottom decorative flourish: "+JSON.stringify(composition));
    assert(content.top>=composition.box.top+composition.box.height*.15 &&
      content.bottom<=composition.box.bottom-composition.box.height*.12,
      "Mushaf emblem composition must keep ornamental margins: "+JSON.stringify(composition));
