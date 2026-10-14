@@ -1,5 +1,5 @@
-import {isPoetryRequest} from "@/lib/ai/presentation-blocks";
 "use client";
+import {isPoetryRequest} from "@/lib/ai/presentation-blocks";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 /*
  * Noata AI full workspace.
