@@ -109,5 +109,3 @@ html[dir="ltr"] .owui-mobile-sidebar .noata-temporary-toggle.active .noata-tempo
 @media(prefers-reduced-motion:reduce){
   .noata-literary-piece *,.noata-literary-note *,.owui-mobile-sidebar *{animation:none!important;transition:none!important}
 }
-
-}
