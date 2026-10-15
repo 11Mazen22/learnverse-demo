@@ -20,9 +20,12 @@ export async function readFanarTextResponse(response:Response,onContent:(content
   if(!response.ok||!response.body)throw Error("Answer review response unavailable");
   if(!response.headers.get("content-type")?.includes("text/event-stream")){
     const data=await response.json(),content=data?.choices?.[0]?.message?.content;
-    if(typeof content!=="string"||content.length>500000)throw Error("Invalid answer review response");
+    const finishReason=typeof data?.choices?.[0]?.finish_reason==="string"?data.choices[0].finish_reason:"stop";
+    if(typeof content!=="string"||content.length>500000||!content.trim()||!(finishReason==="stop"||finishReason==="end_turn")){
+      throw Error("Invalid or incomplete answer review response");
+    }
     onContent(content);
-    return {content,finishReason:typeof data?.choices?.[0]?.finish_reason==="string"?data.choices[0].finish_reason:"stop"};
+    return {content,finishReason};
   }
   const reader=response.body.getReader(),decoder=new TextDecoder();
   let buffer="",content="",finishReason="stop",finished=false;
@@ -48,6 +51,9 @@ export async function readFanarTextResponse(response:Response,onContent:(content
       while((end=buffer.indexOf("\n\n"))>=0){consume(buffer.slice(0,end));buffer=buffer.slice(end+2);}
       if(finished)break;
       if(part.done){if(buffer.trim())consume(buffer);break;}
+    }
+    if(!finished||!(finishReason==="stop"||finishReason==="end_turn")||!content.trim()){
+      throw Error("Answer review stream ended before completion");
     }
     return {content,finishReason};
   }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
