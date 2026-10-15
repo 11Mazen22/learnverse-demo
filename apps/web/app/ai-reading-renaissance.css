@@ -109,16 +109,3 @@ html[dir="ltr"] .owui-mobile-sidebar .noata-temporary-toggle.active .noata-tempo
 @media(prefers-reduced-motion:reduce){
   .noata-literary-piece *,.noata-literary-note *,.owui-mobile-sidebar *{animation:none!important;transition:none!important}
 }
-/* A restrained end-of-response caret accompanies genuine streamed text.
-   Expensive math rendering and syntax highlighting are deferred until completion. */
-.owui-layout .owui-message.assistant.streaming .ai-rich-message > :last-child::after{
-  content:"";display:inline-block;width:.42em;height:1.05em;margin-inline-start:.14em;
-  border-radius:2px;background:currentColor;opacity:.68;vertical-align:-.16em;
-  animation:noata-stream-caret 900ms steps(2,end) infinite
-}
-@keyframes noata-stream-caret{50%{opacity:.12}}
-@media(prefers-reduced-motion:reduce){
-  .owui-layout .owui-message.assistant.streaming .ai-rich-message > :last-child::after{
-    animation:none;opacity:.35
-  }
-}
