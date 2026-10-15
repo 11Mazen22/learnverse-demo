@@ -7,6 +7,7 @@ Baseline `9d5d2a1bd3c3783e1b7b89f85906299651489492`; candidate branch `noata-gen
 | Baseline modern tests | PASS | 383/383, no skips |
 | Candidate modern tests | PENDING | The previous candidate passed 405/405. This continuation adds three focused artifact-derivative cases; the full suite must rerun in CI |
 | Multi-format research-to-file conversion | PASS locally; CI pending | Focused artifact/research run passed 21/21. Additional formats reuse the first answer, preserve citation IDs/caveats, and make an explicit no-search request; XLSX conversion must not invent values |
+| Large private-library project lists | PASS locally; CI pending | Stable bounded project pages, de-duplicated append, load-more state, and project creation beyond the former 50-item cap; component acceptance remains in CI |
 | TypeScript and text integrity | PASS | Workspace type generation/tsc; text-integrity check |
 | Production build | PASS locally | Final source built with pinned pnpm 10.17.1; clean committed CI/build remains required |
 | Research provider adapter | PASS with deterministic responses | Fixed endpoint, missing/disabled/unknown config, authority suffix attack, scope retention, per-call quota, partial failure, cancellation and source allowlist |

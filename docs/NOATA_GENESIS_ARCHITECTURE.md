@@ -18,6 +18,8 @@ Wikipedia remains an explicitly labelled optional background path for non-curren
 
 Existing PDF/DOCX/XLSX/PPTX generation, private artifact rows, storage paths, version lineage and per-format compensation remain. Actual research references now enter PPTX reference slides and XLSX reference worksheets as well as PDF/DOCX. Eight-sheet workbooks cannot append a ninth reference sheet; their evidence remains in the conversation. This limit is not full export provenance acceptance.
 
+The private library loads projects in stable, bounded pages and exposes a load-more control; the former 50-project creation cap is removed. Project traversal reuses the library's deduplicating page merge and aborts stale requests when the owner or view changes.
+
 Multi-format deliverables beyond the first are reformatted from the shared answer rather than rerunning the original request. Workbook conversions must use only existing values and fail honestly when they cannot produce a useful table without inventing data.
 
 `office-preservation.ts` adds original-package edits for DOCX paragraphs, PPTX paragraphs, and XLSX inline strings/numeric cells. It keeps untouched compressed local ZIP records exactly, rewrites only the selected XML part and updates central-directory offsets/CRCs. Numeric changes also request full workbook recalculation. It never extracts paths to disk, executes macros, fetches relationships or accepts model-authored XML.

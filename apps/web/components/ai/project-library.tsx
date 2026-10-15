@@ -19,6 +19,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
  const [media,setMedia]=useState<{url:string;item:Upload}|null>(null);
  useEffect(()=>()=>{if(media)URL.revokeObjectURL(media.url);},[media]);
  const [query,setQuery]=useState(""),[serverQuery,setServerQuery]=useState(""),[page,setPage]=useState(0),[hasMore,setHasMore]=useState(false);
+ const [projectPage,setProjectPage]=useState(0),[hasMoreProjects,setHasMoreProjects]=useState(false),[projectsLoading,setProjectsLoading]=useState(false);
  const loadedView=useRef("");
  useEffect(()=>{const timer=setTimeout(()=>{setServerQuery(query);setPage(0);},250);return()=>clearTimeout(timer);},[query]);
  const previewHeading=useRef<HTMLHeadingElement>(null),searchInput=useRef<HTMLInputElement>(null),wasPreviewing=useRef(false);
@@ -29,8 +30,25 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
  useEffect(()=>{
   viewOwner.current=owner;
   setProjects([]);setArtifacts([]);setUploads([]);setEditing(null);setOriginal(null);setMedia(null);
-  setSelected("all");setQuery("");setServerQuery("");setPage(0);setName("");setError("");setNotice("");loadedView.current="";
+  setSelected("all");setQuery("");setServerQuery("");setPage(0);setProjectPage(0);setHasMoreProjects(false);setProjectsLoading(false);setName("");setError("");setNotice("");loadedView.current="";
  },[owner,open,locale]);
+ useEffect(()=>{
+  if(!owner||!open){setProjectsLoading(false);return;}
+  let active=true;const controller=new AbortController();let deadline:ReturnType<typeof setTimeout>|undefined;const {from,to}=libraryPage(projectPage);
+  setProjectsLoading(true);
+  const request=supabase.from("ai_projects").select(LIBRARY_COLUMNS.projects).eq("user_id",owner)
+   .order("updated_at",{ascending:false}).order("id",{ascending:false}).range(from,to).abortSignal(controller.signal);
+  void Promise.race([request,new Promise<never>((_,reject)=>{deadline=setTimeout(()=>{controller.abort();reject(Error("project_timeout"));},20000);})])
+   .then(({data,error})=>{
+    if(!active||current.current!==owner)return;
+    if(error)throw error;
+    const rows=(data??[]) as unknown as Project[];
+    setProjects(old=>mergeLibraryPage(old,rows,projectPage===0));setHasMoreProjects(rows.length===LIBRARY_PAGE_SIZE);
+   })
+   .catch(()=>{if(active&&current.current===owner)setError(t("\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639.","Could not load projects."));})
+   .finally(()=>{clearTimeout(deadline);if(active&&current.current===owner)setProjectsLoading(false);});
+  return()=>{active=false;clearTimeout(deadline);controller.abort();};
+ },[owner,open,supabase,projectPage,revision,locale]);
  useEffect(()=>{
   let active=true;setLoading(Boolean(owner&&open));setError("");
   if(!owner||!open)return;
@@ -48,18 +66,16 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
       .or("library_saved.eq.true,expires_at.gt."+new Date().toISOString());
     let attachments=supabase.from("ai_attachments").select(LIBRARY_COLUMNS.media).eq("user_id",owner).or("library_saved.eq.true,conversation_id.not.is.null");
     if(serverQuery.trim()){documents=documents.ilike("name",pattern);attachments=attachments.ilike("filename",pattern);}
-    const [projectResult,artifactResult,documentResult,attachmentResult]=await Promise.race([Promise.all([
-     supabase.from("ai_projects").select(LIBRARY_COLUMNS.projects).eq("user_id",owner).order("updated_at",{ascending:false}).limit(50).abortSignal(controller.signal),
+    const [artifactResult,documentResult,attachmentResult]=await Promise.race([Promise.all([
      files.order("created_at",{ascending:false}).order("id",{ascending:false}).range(from,to).abortSignal(controller.signal),
      documents.order("created_at",{ascending:false}).order("id",{ascending:false}).range(from,to).abortSignal(controller.signal),
      attachments.order("created_at",{ascending:false}).order("id",{ascending:false}).range(from,to).abortSignal(controller.signal)
     ]),new Promise<never>((_,reject)=>{deadline=setTimeout(()=>{controller.abort();reject(Error("workspace_timeout"));},20000);})]);
     if(!active||current.current!==owner)return;
-    for(const result of [projectResult,artifactResult,documentResult,attachmentResult])if(result.error)throw result.error;
+    for(const result of [artifactResult,documentResult,attachmentResult])if(result.error)throw result.error;
     const artifactRows=(artifactResult.data??[]) as unknown as Artifact[];
     const documentRows=(documentResult.data??[]) as unknown as Omit<Upload,"kind">[];
     const mediaRows=(attachmentResult.data??[]) as unknown as (Omit<Upload,"kind"|"name">&{filename?:string|null})[];
-    setProjects((projectResult.data??[]) as unknown as Project[]);
     setArtifacts(rows=>mergeLibraryPage(rows,artifactRows,replace));
     const uploadRows:Upload[]=[...documentRows.map(d=>({...d,kind:"document" as const})),...mediaRows.map(a=>({...a,name:a.filename??a.storage_path.split("/").at(-1)??"Upload",kind:"media" as const}))];
     setUploads(rows=>mergeLibraryPage(rows,uploadRows,replace).sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id)));
@@ -81,12 +97,12 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
  },[previewing,editing?.id,original?.documentId,media?.item.id]);
  function closePreview(){setEditing(null);setOriginal(null);setMedia(null);}
  async function createProject(){
-  if(!owner||busy||name.trim().length<2||name.length>80||projects.length>=50)return;
+  if(!owner||busy||name.trim().length<2||name.length>80)return;
   setBusy(true);setError("");setNotice("");
   try{
    const {data,error}=await supabase.from("ai_projects").insert({user_id:owner,name:name.trim()}).select("*").single();
    if(error)throw error;
-   if(current.current===owner){setProjects(p=>[data,...p]);setName("");setNotice(t("تم إنشاء المشروع.","Project created."));}
+   if(current.current===owner){setProjects([]);setProjectPage(0);setHasMoreProjects(false);setRevision(n=>n+1);setName("");setNotice(t("تم إنشاء المشروع.","Project created."));}
   }catch{if(current.current===owner)setError(t("تعذّر إنشاء المشروع.","Could not create project."));}
   finally{if(current.current===owner)setBusy(false);}
  }
@@ -96,7 +112,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
   try{
    const {error}=await supabase.from("ai_projects").delete().eq("id",project.id).eq("user_id",owner);
    if(error)throw error;
-   if(current.current===owner){setProjects(p=>p.filter(x=>x.id!==project.id));setArtifacts(a=>a.map(x=>x.project_id===project.id?{...x,project_id:null}:x));setSelected("all");setPage(0);}
+   if(current.current===owner){setProjects([]);setProjectPage(0);setHasMoreProjects(false);setRevision(n=>n+1);setArtifacts(a=>a.map(x=>x.project_id===project.id?{...x,project_id:null}:x));setSelected("all");setPage(0);}
   }catch{if(current.current===owner)setError(t("تعذّر حذف المشروع.","Could not delete project."));}
   finally{if(current.current===owner)setBusy(false);}
  }
@@ -169,11 +185,13 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
    <form className="noata-library-create" onSubmit={e=>{e.preventDefault();void createProject();}}>
     <label htmlFor="noata-project-name">{t("مشروع جديد","New project")}</label>
     <input id="noata-project-name" maxLength={80} value={name} onChange={e=>setName(e.target.value)} placeholder={t("مثال: مذاكرة العلوم","Example: Science revision")}/>
-    <button type="submit" disabled={busy||name.trim().length<2||projects.length>=50}>{t("إنشاء","Create")}</button>
+    <button type="submit" disabled={busy||name.trim().length<2}>{t("إنشاء","Create")}</button>
    </form>
    {projects.length>0&&<div className="noata-library-projects">{projects.map(p=><div key={p.id}>
     <strong dir="auto">{p.name}</strong><button type="button" disabled={busy} onClick={()=>void deleteProject(p)}>{t("حذف المشروع","Delete project")}</button>
    </div>)}</div>}
+   {projectsLoading&&<p role="status">{t("جاري تحميل المشاريع…","Loading projects…")}</p>}
+   {hasMoreProjects&&<button type="button" className="noata-library-more" disabled={projectsLoading||busy} onClick={()=>setProjectPage(n=>n+1)}>{t("عرض المزيد من المشاريع","Load more projects")}</button>}
    <label className="noata-library-filter">{t("ابحث في ملفاتك","Search files")}<input ref={searchInput} type="search" dir="auto" value={query} onChange={e=>setQuery(e.target.value)} placeholder={t("ابحث باسم الملف…","Search by filename…")} maxLength={120}/></label>
    <label className="noata-library-filter">{t("تصفية المكتبة","Filter library")}
     <select value={selected} onChange={e=>{setSelected(e.target.value);setPage(0);}}>
