@@ -2,7 +2,7 @@ name: Noata CI
 
 on:
   push:
-    branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008, noata-ai-reading-experience-20261014, fix-noata-tooltip-intent-20261014]
+    branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008, noata-ai-reading-experience-20261014, fix-noata-tooltip-intent-20261014, noata-genesis-capabilities-20261015]
   pull_request:
     branches: [master, noata-aura-platform-overhaul-20261008]
 
@@ -51,6 +51,8 @@ jobs:
         run: node --test scripts/qa-browser.test.mjs
       - name: Verify branded Arabic Auth emails
         run: node --test scripts/email-templates.test.mjs
+      - name: Install independent PDF raster verification
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y poppler-utils
       - run: pnpm modern:test
       - name: Verify authenticated requests stay outside the PWA cache
         run: node --test scripts/pwa-cache.test.mjs

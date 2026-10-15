@@ -11,6 +11,8 @@ import { createFanarStream } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,searchNeedsTopic,runResearch,researchContext,type Research} from "./research.ts";
+import {encyclopediaFallbackAllowed} from "./research-policy.ts";
+import {searchProviderConfigured} from "./search-provider.ts";
 import {searchEncyclopedia} from "./encyclopedia.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
@@ -102,10 +104,10 @@ function unavailableResearchContent(responseLanguage:"ar"|"en"){return responseL
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
-  await claim(userId,"web_search");
-  const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,onStatus:status=>emit?.({status})});
-  if(broad.status==="complete"||plan.fresh||plan.reason==="private"||plan.reason==="opt_out")return broad;
+  const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??1),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
+  if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
   // Real limited Wikipedia references, never represented as current news.
+  await claim(userId,"web_search");
   const background=await searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})});
   return background.status==="complete"?background:broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
@@ -619,7 +621,7 @@ async function handleChat(
   const remembered=await loadApprovedMemory(userId,latestText,payload.temporary===true,model,typeof payload.conversationId==="string"?payload.conversationId:undefined);
   const capabilities=capabilitySystemContext({
     fanar:Boolean(FANAR_KEY),
-    brave:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY"))&&Deno.env.get("NOATA_SEARCH_ENABLED")==="true",
+    brave:searchProviderConfigured({key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave"}),
     memorySchema:true
   });
   let lookupPlan=searchPlan(latestText);
@@ -961,11 +963,11 @@ Deno.serve(async (req) => {
     // Authenticated, side-effect-free diagnostic. Configured does not claim
     // that an upstream Fanar inference has already succeeded.
     if (payload.action === "readiness")
-      return json({ provider: "Fanar", configured: Boolean(FANAR_KEY), researchConfiguration:{enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",credentialPresent:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY"))},sadiq2Enabled:Deno.env.get("NOATA_SADIQ_2_ENABLED")==="true" });
+      return json({ provider: "Fanar", configured: Boolean(FANAR_KEY), researchConfiguration:{enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",credentialPresent:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY")),provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",configured:searchProviderConfigured({key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave"})},sadiq2Enabled:Deno.env.get("NOATA_SADIQ_2_ENABLED")==="true" });
     if (payload.action === "capabilities")
       return json({kind:"capabilities",capabilities:getCapabilityAvailability({
         fanar:Boolean(FANAR_KEY),
-        brave:Deno.env.get("NOATA_SEARCH_ENABLED")==="true"&&Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY")),
+        brave:searchProviderConfigured({key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave"}),
         memorySchema:true
       }),disclaimer:"configured indicates credentials, not a successful live provider request"});
     if (!FANAR_KEY)
