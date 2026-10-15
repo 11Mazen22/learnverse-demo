@@ -5,11 +5,11 @@ Baseline `9d5d2a1bd3c3783e1b7b89f85906299651489492`; candidate branch `noata-gen
 | Area | Result | Actual evidence / remaining gate |
 |---|---|---|
 | Baseline modern tests | PASS | 383/383, no skips |
-| Candidate modern tests | PENDING | The previous candidate passed 405/405. This continuation adds three focused artifact-derivative cases; the full suite must rerun in CI |
-| Multi-format research-to-file conversion | PASS locally; CI pending | Focused artifact/research run passed 21/21. Additional formats reuse the first answer, preserve citation IDs/caveats, and make an explicit no-search request; XLSX conversion must not invent values |
-| Large private-library project lists | PASS locally; CI pending | Stable bounded project pages, de-duplicated append, load-more state, and project creation beyond the former 50-item cap; component acceptance remains in CI |
-| TypeScript and text integrity | PASS | Workspace type generation/tsc; text-integrity check |
-| Production build | PASS locally | Final source built with pinned pnpm 10.17.1; clean committed CI/build remains required |
+| Candidate modern tests | PASS | 408/408 on exact source `33d06a9466a898eeb4532c4e13acbf1d3c98a4c5`, CI run `38671603459` |
+| Multi-format research-to-file conversion | PASS | Additional formats reuse the first answer, preserve citation IDs/caveats, and make an explicit no-search request; XLSX conversion must not invent values. Covered by the 408-test CI suite |
+| Large private-library project lists | PASS for bounded paging | Stable, ordered 24-row project pages, de-duplicated append, load-more state, removal of the former 50-project creation cap; shared page traversal tests plus exact-head TypeScript/build/CI pass. No large live-account dataset was queried |
+| TypeScript and text integrity | PASS | Exact-head CI `38671603459`: text integrity and workspace TypeScript checks passed |
+| Production build | PASS | Exact-head CI `38671603459` completed the production build successfully |
 | Research provider adapter | PASS with deterministic responses | Fixed endpoint, missing/disabled/unknown config, authority suffix attack, scope retention, per-call quota, partial failure, cancellation and source allowlist |
 | Official NASA current sources | BLOCKED | No authorized live Brave execution. No actual search-provider call occurred in these unit cases |
 | Citation fidelity | PARTIAL | Unknown ID/destination checks and syntactic claim provenance pass. Human/real-provider semantic entailment not accepted |
@@ -31,4 +31,5 @@ Required live scenarios A–J from the brief remain tracked: A/B/C require real 
 
 ## First connected CI result and follow-up
 
-Run `38646227194` at source `ebf4eb5` / merge checkout `fe26f1f` passed source, Deno, database/recovery, PDF/DOCX, builds, Chrome startup and raster checks. Browser inspection passed 180 public views and the genuine targeted DOCX download/readback, then failed its 390px fit assertion after 1126 assertions. The fix constrains intrinsic grid tracks and records settled resize geometry before asserting the same fit limits. Full new-head acceptance remains mandatory. Both live databases were subsequently read structurally: 33 migrations/38 public tables/all RLS; document probe has no anonymous execution privilege.
+
+Exact latest head `33d06a9466a898eeb4532c4e13acbf1d3c98a4c5` passed CI run `38671603459`: 408 modern tests, typecheck, Deno, build, 125 local PostgreSQL authorization assertions, recovery fixtures, Arabic PDF/DOCX, image-edit PNG readback, 1,304 public-browser assertions across 301 screenshots, Production HTTP smoke, and the aggregate legacy suite. CI fixtures are not the blocked live SQL acceptance, authenticated account/provider acceptance, or a Production recovery rehearsal.
