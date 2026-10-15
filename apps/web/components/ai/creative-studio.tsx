@@ -7,6 +7,7 @@ import {revisionMayLoseContent} from "@/lib/ai/revision-quality";
 import {canCreateExtractedRevision,requiresPartialExtractionAcknowledgement,revisionRequiresExtractedDraft} from "@/lib/ai/document-revision-safety";
 import {artifactRevisionPrompt} from "@/lib/ai/artifact-revision-prompt";
 import {artifactFilename} from "@/lib/ai/artifact-filename";
+import {isPdfPageOrderValid} from "@/lib/ai/pdf-page-order";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {Dialog} from "@/components/ui/dialog";
 import {Icon} from "@/components/ui/icon";
@@ -73,6 +74,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const onPages=useCallback((n:number)=>setPageCount(old=>old===n?old:n),[]);
  const activeFormat=file?.format??(localSource?.format==="text"?"docx":localSource?.format);
  const activeName=file?.filename??localSource?.name??"Noata document";
+ const pageOrderValid=activeFormat==="pdf"&&isPdfPageOrderValid(pageOrder,pageCount);
  useEffect(()=>{
   let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setMode(initialMode);setPartialRevisionAcknowledged(false);setOriginalText("");setInstruction("");setSectionStart("whole");
   setOutputFormat(activeFormat??"pdf");setStyle("classic");setFont("noata");
@@ -110,7 +112,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     if(activeFormat==="pdf"){
      const {extractPdfDocument}=await import("@/lib/ai/pdf-ingest");
      const parsed=await extractPdfDocument(new File([loadedFile],activeName,{type:"application/pdf"}));
-     if(live)setPageOrder(Array.from({length:parsed.totalPages},(_,i)=>i+1).join(", "));
+     if(live){setPageCount(parsed.totalPages);setPageOrder(Array.from({length:parsed.totalPages},(_,i)=>i+1).join(", "));}
      view={pages:parsed.pages.map(p=>({title:"Page "+p.page,lines:p.text.split("\n").filter(Boolean)})),
        editableText:parsed.pages.map(p=>"# Page "+p.page+"\n"+p.text).join("\n\n"),
        partial:parsed.truncated||parsed.scannedPages.length>0};
@@ -129,8 +131,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
   let bytes:Uint8Array;
   if(kind==="pdf"&&mode==="pages"&&loaded){
    const {pdfPageOrder,revisePdfPages}=await import("@/lib/ai/pdf-page-edit");
-   const count=pageOrder.trim().split(/[,،\s]+/).filter(Boolean).length;
-   bytes=await revisePdfPages(new Uint8Array(await loaded.arrayBuffer()),{order:pdfPageOrder(pageOrder,count),rotatePage,rotation:rotation as 0|90|180|270});
+   if(!pageOrderValid)throw Error("pdf_page_order_invalid");
+   bytes=await revisePdfPages(new Uint8Array(await loaded.arrayBuffer()),{order:pdfPageOrder(pageOrder,pageCount),rotatePage,rotation:rotation as 0|90|180|270});
   }else if(kind==="pdf"){
    const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text:draft,title:activeName.replace(/\.(pdf|docx|xlsx|pptx)$/i,"").slice(0,120),style,font})});
    if(!response.ok)throw Error("PDF generation unavailable ("+response.status+")");
@@ -245,11 +247,13 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    {loaded&&mode==="targeted"&&(activeFormat==="docx"||activeFormat==="pptx"||activeFormat==="xlsx")&&<OfficeTextEditor source={loaded} format={activeFormat} name={activeName} owner={owner} parentId={file?.id} documentId={localSource?.documentId} onSaved={onRevisionSaved}/>}
    {loaded&&mode==="pages"&&<section className="noata-creative-editor noata-office-editor" aria-label={t("تعديل صفحات PDF","Edit PDF pages")}>
     <p>{t("غيّر ترتيب الصفحات أو دوّر صفحة مع الحفاظ على محتواها الأصلي. اكتب رقم كل صفحة مرة واحدة. هذه العملية لا تحذف معلومات ولا تخفيها.","Reorder pages or rotate a page while retaining its original content. Enter each page number exactly once. This operation does not delete or redact information.")}</p>
-    <label>{t("ترتيب الصفحات","Page order")}<input dir="ltr" maxLength={1200} value={pageOrder} onChange={e=>setPageOrder(e.target.value)} disabled={busy} placeholder="3, 1, 2"/></label>
-    <label>{t("رقم الصفحة الأصلية المراد تدويرها","Original page number to rotate")}<input type="number" min={1} value={rotatePage} onChange={e=>setRotatePage(Number(e.target.value))} disabled={busy}/></label>
+    <p className="noata-pdf-page-count">{t("عدد صفحات الملف الأصلي:","Original PDF page count:")} <strong>{pageCount}</strong></p>
+    <label>{t("ترتيب الصفحات","Page order")}<input dir="ltr" aria-invalid={Boolean(pageOrder.trim())&&!pageOrderValid} aria-describedby="noata-pdf-order-hint" maxLength={1200} value={pageOrder} onChange={e=>setPageOrder(e.target.value)} disabled={busy} placeholder="3, 1, 2"/></label>
+    <p id="noata-pdf-order-hint" className={Boolean(pageOrder.trim())&&!pageOrderValid?"noata-creative-error":"noata-memory-note"} role={Boolean(pageOrder.trim())&&!pageOrderValid?"alert":"note"}>{pageCount>200?t("تدعم هذه المساحة ترتيب ملفات PDF حتى 200 صفحة فقط. الملف الأصلي لم يتغير.","This workspace supports PDF page reordering up to 200 pages. The original file remains unchanged."):<>{t("أدخل كل رقم صفحة من 1 إلى ","Enter every page number from 1 to ")}{pageCount}{t(" مرة واحدة، دون تكرار أو صفحات ناقصة."," exactly once, with no duplicates or omitted pages.")}</>}</p>
+        <label>{t("رقم الصفحة الأصلية المراد تدويرها","Original page number to rotate")}<input type="number" min={1} max={pageCount} value={rotatePage} onChange={e=>setRotatePage(Number(e.target.value))} disabled={busy}/></label>
     <label>{t("تدوير إضافي","Additional rotation")}<select value={rotation} disabled={busy} onChange={e=>setRotation(Number(e.target.value))}>{[0,90,180,270].map(n=><option key={n} value={n}>{n}°</option>)}</select></label>
     <p>{t("الملفات الموقّعة أو المشفّرة أو ذات النماذج والإجراءات التفاعلية لا تدعم هذه العملية.","Signed, encrypted, form-bearing or active-action PDFs are excluded from this operation.")}</p>
-    <div className="noata-creative-buttons"><button type="button" disabled={busy||!pageOrder.trim()} onClick={()=>void exportVersion("pdf")}>{t("تنزيل PDF المعدّل","Download edited PDF")}</button><button type="button" disabled={busy||!owner||!pageOrder.trim()} onClick={()=>void saveRevision()}>{t("حفظ نسخة PDF","Save PDF revision")}</button></div>
+    <div className="noata-creative-buttons"><button type="button" disabled={busy||!pageOrderValid} onClick={()=>void exportVersion("pdf")}>{t("تنزيل PDF المعدّل","Download edited PDF")}</button><button type="button" disabled={busy||!owner||!pageOrderValid} onClick={()=>void saveRevision()}>{t("حفظ نسخة PDF","Save PDF revision")}</button></div>
    </section>}
    {loaded&&inspection&&mode==="preview"&&<section className="noata-creative-preview" aria-label={t("محتويات الملف الأصلي","Original file contents")}>
     <div className="noata-creative-pages"><button type="button" disabled={page<=1} onClick={()=>setPage(x=>x-1)}>{t("السابق","Previous")}</button>
