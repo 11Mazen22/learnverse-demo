@@ -396,7 +396,7 @@ async function verifyDocuments(){
       const reopened=await officeTextTargets(new Uint8Array(downloaded.bytes),"docx");
       invariant(reopened.some(p=>p.text==="عنوان مُعدّل · Revised heading"),"Downloaded DOCX reopens with the exact replacement");
       invariant(reopened.some(p=>p.text.includes("English reference 38")),"Untouched final DOCX section is retained");
-      invariant(await evaluate('document.querySelector(".noata-office-editor button:last-child").disabled'),"Guest cannot save an owner-scoped revision");
+      invariant(await evaluate('document.querySelector(".noata-office-edit-queue-controls .noata-creative-buttons button:last-child").disabled'),"Guest cannot save an owner-scoped revision");
       for(const width of [1440,390,320]){
        location.width=width;
        await command("Emulation.setDeviceMetricsOverride",{width,height:900,deviceScaleFactor:1,mobile:width<=768});
