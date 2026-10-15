@@ -4,6 +4,7 @@ import type {LibrarySource} from "@/lib/ai/library-source";
 import {safeStorageLink} from "@/lib/ai/workspace";
 import {SUPABASE_URL,supabaseFetch} from "@/lib/supabase/config";
 import {revisionMayLoseContent} from "@/lib/ai/revision-quality";
+import {canCreateExtractedRevision,requiresPartialExtractionAcknowledgement,revisionRequiresExtractedDraft} from "@/lib/ai/document-revision-safety";
 import {artifactRevisionPrompt} from "@/lib/ai/artifact-revision-prompt";
 import {artifactFilename} from "@/lib/ai/artifact-filename";
 import {useCallback,useEffect,useMemo,useRef,useState} from "react";
@@ -58,6 +59,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);
  const [loaded,setLoaded]=useState<Blob|null>(null),[inspection,setInspection]=useState<StudioInspection|null>(null);
  const [draft,setDraft]=useState(""),[mode,setMode]=useState<"preview"|"edit"|"compare"|"targeted"|"pages">("preview");
+ const [partialRevisionAcknowledged,setPartialRevisionAcknowledged]=useState(false);
  const [pageOrder,setPageOrder]=useState(""),[rotatePage,setRotatePage]=useState(1),[rotation,setRotation]=useState(0);
  const [originalText,setOriginalText]=useState("");
  const [sectionStart,setSectionStart]=useState("whole");
@@ -72,7 +74,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const activeFormat=file?.format??(localSource?.format==="text"?"docx":localSource?.format);
  const activeName=file?.filename??localSource?.name??"Noata document";
  useEffect(()=>{
-  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setMode(initialMode);setOriginalText("");setInstruction("");setSectionStart("whole");
+  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setMode(initialMode);setPartialRevisionAcknowledged(false);setOriginalText("");setInstruction("");setSectionStart("whole");
   setOutputFormat(activeFormat??"pdf");setStyle("classic");setFont("noata");
   if(!file&&!localSource)return;
   void(async()=>{
@@ -157,7 +159,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
   finally{if(operation.current===ticket)setBusy(false);}
  }
  async function exportVersion(kind:Format){
-  if(!draft.trim()||busy)return;
+  if((revisionRequiresExtractedDraft(mode)&&!draft.trim())||busy)return;
+  if(!canCreateExtractedRevision(Boolean(inspection?.partial),partialRevisionAcknowledged,mode)){setError(t("استخراج النص غير مكتمل. راجع التحذير وأكّد أنك تقبل احتمال فقد المحتوى غير المستخرج قبل التصدير.","Text extraction is incomplete. Review the warning and acknowledge the risk of omitting unextracted content before exporting."));return;}
   const ticket=operation.current;
   setBusy(true);setError("");setStatus("");
   try{
@@ -169,7 +172,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
   finally{if(operation.current===ticket)setBusy(false);}
  }
  async function saveRevision(){
-  if(!owner||!outputFormat||busy||!draft.trim())return;
+  if(!owner||!outputFormat||busy||(revisionRequiresExtractedDraft(mode)&&!draft.trim()))return;
+  if(!canCreateExtractedRevision(Boolean(inspection?.partial),partialRevisionAcknowledged,mode)){setError(t("استخراج النص غير مكتمل. راجع التحذير وأكّد أنك تقبل احتمال فقد المحتوى غير المستخرج قبل الحفظ.","Text extraction is incomplete. Review the warning and acknowledge the risk of omitting unextracted content before saving."));return;}
   const ticket=operation.current;
   setBusy(true);setStatus("");setError("");
   let path="",uploaded=false;
@@ -206,6 +210,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  }
  function prepareAI(){
   if(!draft.trim())return;
+  if(!canCreateExtractedRevision(Boolean(inspection?.partial),partialRevisionAcknowledged,mode)){setError(t("استخراج النص غير مكتمل. أكّد أنك تفهم أن النسخة الناتجة قد لا تتضمن الأجزاء غير المستخرجة.","Text extraction is incomplete. Acknowledge that the resulting revision may omit unextracted parts."));return;}
   const selected=sectionStart==="whole"?null:sections.find(s=>s.start===Number(sectionStart));
   if(sectionStart!=="whole"&&!selected){setError(t("تغيّر موضع القسم بعد تعديل النص. اختر القسم من جديد.","The section moved after your text edit. Select the section again."));return;}
   let scope:ReturnType<typeof scopedRevision>|undefined;
@@ -221,6 +226,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
   if(onPrepareEdit)onPrepareEdit(prompt,source);else if(onAskAI)onAskAI(prompt,source);
  }
  const pageInfo=inspection?.pages[page-1];const isPdf=activeFormat==="pdf";
+ const revisionAllowed=canCreateExtractedRevision(Boolean(inspection?.partial),partialRevisionAcknowledged,mode);
  const content=<>
   {inline&&<div className="noata-artifact-inline-heading"><strong>{t("معاينة الملف وتحريره","Preview & edit file")}</strong><button type="button" onClick={onClose} aria-label={t("إغلاق معاينة الملف","Close file preview")}><Icon name="close" size={16}/></button></div>}
   <div className="noata-creative-studio" dir={locale==="ar"?"rtl":"ltr"}>
@@ -262,6 +268,10 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    </div>}
    {loaded&&inspection&&mode==="compare"&&<div className="noata-revision-compare"><section><h4>{t("المحتوى الأصلي","Original content")}</h4><pre dir="auto">{originalText}</pre></section><section><h4>{t("التعديل المقترح","Proposed revision")}</h4><pre dir="auto">{draft}</pre></section></div>}
    {loaded&&inspection&&mode!=="targeted"&&mode!=="pages"&&<div className="noata-creative-actions">
+    {requiresPartialExtractionAcknowledgement(Boolean(inspection.partial),mode)&&<div className="noata-creative-error noata-creative-partial-warning" role="group" aria-label={t("تأكيد الاستخراج الجزئي","Partial extraction acknowledgement")}>
+     <p role="alert">{t("تحذير: استخراج النص غير مكتمل أو توجد صفحات ممسوحة ضوئيًا. النسخة المعاد إنشاؤها من النص قد تفقد هذه الأجزاء، بينما يبقى الملف الأصلي دون تغيير.","Warning: text extraction is incomplete or scanned pages were detected. A revision rebuilt from text may omit those parts; the original file remains unchanged.")}</p>
+     <label><input type="checkbox" checked={partialRevisionAcknowledged} onChange={e=>{setPartialRevisionAcknowledged(e.target.checked);setError("");}}/> {t("أفهم أن النسخة الجديدة قد لا تتضمن محتوى لم يتم استخراجه.","I understand the new revision may omit content that was not extracted.")}</label>
+    </div>}
     {sections.length>0&&<label className="noata-creative-instruction">{t("نطاق التعديل بالذكاء الاصطناعي","AI revision scope")}<select value={sectionStart} onChange={e=>setSectionStart(e.target.value)}><option value="whole">{t("المستند كاملًا","Entire document")}</option>{sections.map(s=><option key={s.start} value={s.start} disabled={s.end-s.start>14000}>{s.label}{s.end-s.start>14000?" · "+t("اختر قسمًا فرعيًا","Choose a subsection"):""}</option>)}</select></label>}
     {sectionStart!=="whole"&&<p>{t("سنعدّل القسم المحدد ونجمعه مع بقية المصدر في نسخة كاملة جديدة.","The selected section will be revised and reassembled with the surrounding source into a complete new version.")}</p>}
     {<label className="noata-creative-instruction">{t("اطلب تحسينًا من Noata AI","Ask Noata AI to improve this file")}
@@ -274,9 +284,9 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
      <button type="button" className="noata-download-original" disabled={busy||!loaded} onClick={()=>void downloadOriginal()}>
       <Icon name="download" size={15}/>{t("تنزيل الملف الأصلي","Download original")}
      </button>
-     <button type="button" disabled={busy||(!onPrepareEdit&&!onAskAI)||!draft.trim()} onClick={prepareAI}><Icon name="sparkles" size={15}/>{t("تحضير طلب تحسين","Prepare AI revision")}</button>
-     <button type="button" disabled={busy||!draft.trim()} onClick={()=>void exportVersion(outputFormat)}><Icon name="download" size={15}/>{busy?t("جارٍ التصدير…","Exporting…"):t("تنزيل النسخة المعدّلة","Export revised file")}</button>
-     <button type="button" disabled={busy||!owner||!draft.trim()} onClick={()=>void saveRevision()}><Icon name="archive" size={15}/>{busy?t("جارٍ التنفيذ…","Working…"):t("حفظ نسخة جديدة في المكتبة","Save revision to library")}</button>
+     <button type="button" disabled={busy||(!onPrepareEdit&&!onAskAI)||!draft.trim()||!revisionAllowed} onClick={prepareAI}><Icon name="sparkles" size={15}/>{t("تحضير طلب تحسين","Prepare AI revision")}</button>
+     <button type="button" disabled={busy||!draft.trim()||!revisionAllowed} onClick={()=>void exportVersion(outputFormat)}><Icon name="download" size={15}/>{busy?t("جارٍ التصدير…","Exporting…"):t("تنزيل النسخة المعدّلة","Export revised file")}</button>
+     <button type="button" disabled={busy||!owner||!draft.trim()||!revisionAllowed} onClick={()=>void saveRevision()}><Icon name="archive" size={15}/>{busy?t("جارٍ التنفيذ…","Working…"):t("حفظ نسخة جديدة في المكتبة","Save revision to library")}</button>
     </div>
    </div>}
    {status&&<p role="status">{status}</p>}
