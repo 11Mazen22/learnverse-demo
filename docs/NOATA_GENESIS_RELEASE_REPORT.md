@@ -14,7 +14,7 @@ New runtime dependency: exact `pdf-lib@1.17.1`; lockfile generated with pinned p
 
 ## Configuration and release gate
 
-Preview-only overrides for this branch target approved staging `vpfpjvhafkmygetjkfcp` and disable inherited unrelated administrator/database credentials. Retained-original storage and QA bootstrap remain disabled. No production settings change.
+The current branch-scoped Preview `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_URL` both resolve to approved Staging `vpfpjvhafkmygetjkfcp`, not Production `jdkfqdzgphzqbbzmerzr`. The web app's Supabase client uses the public publishable key. Vercel metadata also lists administrator/database variable names scoped to this Preview branch; their values were not decrypted or inspected, so this report does not claim they are empty or Staging-specific. `NOATA_STAGING_QA_ENABLED` and `NOATA_DOCUMENT_STORAGE_ENABLED` are false. No Production setting changed.
 
 `BRAVE_SEARCH_API_KEY` and `NOATA_SEARCH_ENABLED=true` are required in the **staging Edge Function secrets** for real research. Optional `NOATA_SEARCH_PROVIDER=brave` and `NOATA_RESEARCH_MAX_QUERIES=1..3` control the adapter/budget. Default budget remains one; no paid service was provisioned. Web environment values do not configure Edge Function secrets.
 
@@ -28,6 +28,17 @@ Production rollback is unnecessary because no promotion occurred. For candidate 
 
 ## Connected staging evidence
 
-Draft PR [#15](https://github.com/11Mazen22/learnverse-demo/pull/15). Initial source `ebf4eb54a1018983f9b17e05556a483596c188e7` has a READY preview `dpl_6T1esSog2FWnhhSWNVfCBCgMDrxo`; `/health` reports that revision with security headers and QA endpoint 404. Staging AI v38 is ACTIVE/JWT protected; its 23 retrieved source files match, bundle `72b499fe70de74b026c59651b7a957e6cc41c1fa90080ecaab29939659e32995`. Production remains unchanged. Fresh read-only SQL confirms 33 migrations/38 public tables/all RLS in both projects.
+Draft PR [#15](https://github.com/11Mazen22/learnverse-demo/pull/15). Historical initial source `ebf4eb54a1018983f9b17e05556a483596c188e7` had a READY preview. The prior database inventory recorded 33 migrations and 38 public tables/all RLS in both projects; the latest direct live SQL acceptance attempt was blocked by the automatic approval usage limit and is not claimed as rechecked here.
 
-Initial PR compatibility run [38646227194](https://github.com/11Mazen22/learnverse-demo/actions/runs/38646227194) tested merge revision `fe26f1fde2e53d60c8a17d8d3e4c0bf02c41d39a`. It passed dependencies, TypeScript, 405 modern tests, Deno, database/recovery fixtures, document rendering, builds, Chrome startup and manual PNG transforms, then failed the new 390px editor geometry assertion. The real downloaded DOCX and readback had passed. The candidate now constrains the editor grid tracks, waits for finite resize transitions and records actual geometry/screenshots before the unchanged fit assertion. A subsequent full run is required; this failed run is not release acceptance.
+Historical PR compatibility run [38646227194](https://github.com/11Mazen22/learnverse-demo/actions/runs/38646227194) tested merge revision `fe26f1fde2e53d60c8a17d8d3e4c0bf02c41d39a` and found a 390px editor-geometry failure. That was fixed and followed by successful exact-head CI; see the refreshed evidence below.
+
+## Final Staging acceptance attempt — 2026-10-15
+
+- PR #15 remains open and Draft, base `master`, head `9d12cfd78aa2f6e6f24dd5a3d931e660aeb06c29`; it is not merged.
+- Vercel project `noata` deployed the candidate branch at READY deployment `dpl_DoYdFrEFRTH28JwCc6GnFc5JXD6Q`. Git metadata names the exact branch and commit; GitHub labels the alias as Preview. `/health` returned the same commit at `2026-10-15T03:30:08Z`.
+- The Preview selects `noata-ai-v2`. Staging `noata-ai-v2` v38 is ACTIVE with JWT verification enabled. All 23 files returned by the Supabase function-source endpoint hash-match the local candidate after normalizing line endings; bundle hash is `72b499fe70de74b026c59651b7a957e6cc41c1fa90080ecaab29939659e32995`.
+- Branch-scoped public/server Supabase URLs match Staging and not Production. The Supabase Edge Function secret inventory is unavailable through the connected Supabase tools; no Brave secret was read or changed. No live Brave query occurred.
+- Preview `/api/qa-target` returned 404 `{"enabled":false}`. `/api/documents?capabilities=1` returned `{"retention":false,"library":true}`. There was no authenticated Noata QA session open, so role, cross-account, upload, download, and unauthorized-mutation checks were not attempted.
+- Existing encrypted recovery evidence is partial: archive integrity, database fixture restore and data checks passed, while binary Storage backup remains pending for four objects and Production/local ICU versions differ. Hosted Auth/Storage recovery is not established. See `NOATA_GENESIS_RECOVERY.md`.
+- Exact-head CI [38672293164](https://github.com/11Mazen22/learnverse-demo/actions/runs/38672293164) succeeded on this commit: 408 modern tests, TypeScript, Deno, build, 125 local PostgreSQL authorization assertions, recovery fixtures, Arabic PDF/DOCX, image-edit PNG readback, 1,304 browser assertions/301 screenshots, Production HTTP smoke and aggregate legacy suite. These checks are not the blocked live acceptance gates. See `NOATA_GENESIS_TEST_MATRIX.md`.
+- No Production schema/data/function/secret/environment/deployment changed. Live Brave, authenticated cross-account, fresh direct SQL, missing Storage-byte recovery and full collation/hosted-service recovery remain release blockers. Keep the PR in Draft.
