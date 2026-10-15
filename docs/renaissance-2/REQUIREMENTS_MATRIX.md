@@ -1,6 +1,6 @@
-# Noata AI Renaissance 2.0 — Requirements Matrix (Initial Inventory)
+# Noata AI Renaissance 2.0 — Requirements Matrix (section-level inventory)
 
-This is the **section-level coverage index** for all 48 numbered sections of the supplied master specification. It is not yet an atomic subrequirement matrix; expanding every subsection remains open work. Do not interpret any section below as fully verified.
+This file is the concise 48-section coverage index. The companion [REQUIREMENTS_TRACEABILITY.md](./REQUIREMENTS_TRACEABILITY.md) adds stable atomic IDs, source-line references, conservative statuses and current evidence. A section's status is not proof that every requirement in it passed.
 
 | Section | Requirement group | Status | Current evidence |
 |---|---|---|---|

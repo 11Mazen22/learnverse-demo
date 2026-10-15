@@ -18,7 +18,7 @@ import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
 import {memorySystemContext,lastChatRecallRequested,type MemoryItem} from "./memory.ts";
-import {conversationalMemoryIntent,memoryStorageRefusal,memoryResultMessage} from "./memory-actions.ts";
+import {conversationalMemoryIntent,memoryStorageRefusal,memoryResultMessage,persistentMemoryAllowed} from "./memory-actions.ts";
 import {getCapabilityAvailability,validateCapabilityExecution,capabilitySystemContext} from "./capabilities.ts";
 
 const FANAR_BASE = Deno.env.get("FANAR_BASE_URL") ?? "https://api.fanar.qa/v1";
@@ -452,7 +452,7 @@ async function c1Thinking(messages: any[],protectedMessages:{role:string;content
 
 /** Consent is never inferred from historical settings, provider input or chat history. */
 async function loadApprovedMemory(userId:string,request:string,temporary:boolean,model:string,currentConversationId?:string):Promise<string>{
- if(temporary)return "";
+ if(!persistentMemoryAllowed(temporary))return "";
  const {data:opt,error:consentError}=await admin.from("ai_memory_consent").select("enabled").eq("user_id",userId).maybeSingle();
  if(consentError||opt?.enabled!==true)return "";
  const {data:rows,error}=await admin.from("ai_user_memories")
@@ -481,7 +481,7 @@ async function loadApprovedMemory(userId:string,request:string,temporary:boolean
 
 /** Authenticated Memory actions are deterministic: never claim success from model text. */
 async function executeUserMemoryRequest(userId:string,request:string,temporary:boolean,language:"ar"|"en",conversationId?:string):Promise<string|null>{
- if(temporary)return null;
+ if(!persistentMemoryAllowed(temporary))return null;
  const action=conversationalMemoryIntent(request);
  const isPrior=lastChatRecallRequested(request);
  if(action.kind==="none"&&!isPrior)return null;
