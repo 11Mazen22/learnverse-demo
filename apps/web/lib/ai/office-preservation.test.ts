@@ -5,7 +5,7 @@ import {readFile} from "node:fs/promises";
 import {packageZip,createNoataDocx} from "./docx-export.ts";
 import {createNoataPptx} from "./pptx-export.ts";
 import {createNoataXlsx} from "./xlsx-export.ts";
-import {MAX_OFFICE_TEXT_EDITS,mergeOfficeTextEdits,officeTextTargets,queueOfficeTextEdit,reviseOfficeText,type OfficeFormat} from "./office-preservation.ts";
+import {MAX_OFFICE_TEXT_EDITS,mergeOfficeTextEdits,officeReplacementProblem,officeTextTargets,queueOfficeTextEdit,reviseOfficeText,type OfficeFormat} from "./office-preservation.ts";
 const content:Record<OfficeFormat,Uint8Array>={docx:createNoataDocx("# Original heading\nFirst paragraph\n# Section three\nPreserve this content"),pptx:createNoataPptx("# Original heading\n- First slide content\n\n---\n\n# Keep slide two\n- Unchanged content"),xlsx:createNoataXlsx("| Item | Value |\n| --- | --- |\n| A | 10 |\n| B | 20 |\n| Total | =SUM(B2:B3) |")};
 // Python's independent ZIP implementation adds ordinary DEFLATE compression,
 // binary media, package metadata and an archive comment, then reopens every result.
@@ -105,4 +105,15 @@ test("multiple text changes are written into one valid private Office revision",
  const after=await officeTextTargets(result.bytes,"docx");
  assert.ok(after.some(target=>target.text==="Revised heading"));
  assert.ok(after.some(target=>target.text==="Revised paragraph"));
+});
+
+test("targeted edit preflight rejects values the OOXML writer cannot represent and validates numeric cells",()=>{
+ const paragraph={part:"word/document.xml",index:0,text:"Original",kind:"paragraph" as const,valueType:"text" as const};
+ const numeric={part:"xl/worksheets/sheet1.xml",index:0,text:"12",kind:"cell" as const,valueType:"number" as const};
+ assert.equal(officeReplacementProblem(paragraph,"شرح عربي ممتاز 👍"),null);
+ assert.equal(officeReplacementProblem(paragraph,"first line\nsecond line"),"control_characters");
+ assert.equal(officeReplacementProblem(paragraph,"tab\tvalue"),"control_characters");
+ assert.equal(officeReplacementProblem(paragraph,"x".repeat(5001)),"too_long");
+ assert.equal(officeReplacementProblem(numeric,"not a number"),"number");
+ assert.equal(officeReplacementProblem(numeric,"-42.5e2"),null);
 });

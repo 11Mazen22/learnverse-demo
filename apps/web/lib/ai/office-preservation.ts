@@ -3,7 +3,20 @@
  * Explicitly excludes encrypted/ZIP64/signed/macro packages and complex text fields.
  */
 export type OfficeFormat="docx"|"pptx"|"xlsx";
-export type OfficeTextTarget={part:string;index:number;text:string;kind:"paragraph"|"cell"};
+export type OfficeTextTarget={part:string;index:number;text:string;kind:"paragraph"|"cell";valueType?:"text"|"number"};
+export type OfficeReplacementProblem="invalid_text"|"too_long"|"control_characters"|"number";
+
+/** Shared preflight validation used by the editor UI and the package writer. */
+export function officeReplacementProblem(target:Pick<OfficeTextTarget,"valueType">|undefined,value:unknown):OfficeReplacementProblem|null {
+ if(typeof value!=="string")return "invalid_text";
+ if(value.length>5000)return "too_long";
+ // This editor changes one existing OOXML paragraph/cell at a time. The writer
+ // intentionally rejects line breaks, tabs and XML control characters rather
+ // than silently flattening them or generating malformed OOXML.
+ if(/[\x00-\x1f\uD800-\uDFFF]/u.test(value))return "control_characters";
+ if(target?.valueType==="number"&&(!/^-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value)||!Number.isFinite(Number(value))))return "number";
+ return null;
+}
 export type OfficeTextEdit=OfficeTextTarget & {replacement:string};
 export const MAX_OFFICE_TEXT_EDITS=30;
 const officeEditKey=(item:OfficeTextTarget)=>item.part+"|"+item.index;
@@ -106,7 +119,7 @@ export async function officeTextTargets(bytes:Uint8Array,format:OfficeFormat):Pr
  const a=archive(bytes),targets:OfficeTextTarget[]=[];
  for(const entry of editableParts(a,format)){
   const xml=await partText(a,entry);
-  blocks(xml,format).forEach((b,index)=>{if(b.text.length<=5000)targets.push({part:entry.path,index,text:b.text,kind:b.kind});});
+  blocks(xml,format).forEach((b,index)=>{if(b.text.length<=5000)targets.push({part:entry.path,index,text:b.text,kind:b.kind,valueType:b.tag==="v"?"number":"text"});});
   if(targets.length>1000)throw Error("office_target_limit");
  }
  return targets;
@@ -121,8 +134,8 @@ export async function reviseOfficeText(bytes:Uint8Array,format:OfficeFormat,edit
    const block=targets[edit.index];
    if(!Number.isInteger(edit.index)||!block||seen.has(edit.index)||block.text!==edit.text||block.kind!==edit.kind)throw Error("office_stale_target");
    seen.add(edit.index);
-   if(typeof edit.replacement!=="string"||edit.replacement.length>5000||/[\x00-\x1f\uD800-\uDFFF]/u.test(edit.replacement))throw Error("office_text_invalid");
-   if(block.tag==="v"&&(!/^-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(edit.replacement)||!Number.isFinite(Number(edit.replacement))))throw Error("office_number_invalid");
+   const problem=officeReplacementProblem({valueType:block.tag==="v"?"number":"text"},edit.replacement);
+   if(problem)throw Error(problem==="number"?"office_number_invalid":"office_text_invalid");
    if(edit.replacement===edit.text)continue;
    if(block.tag==="v")numericChange=true;
    // Insert only character data. Keep every run, run property and paragraph property.
