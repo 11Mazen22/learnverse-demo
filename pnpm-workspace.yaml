@@ -1,3 +1,5 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  katex@0.16.47: 0.18.2
