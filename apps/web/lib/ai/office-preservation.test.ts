@@ -5,7 +5,7 @@ import {readFile} from "node:fs/promises";
 import {packageZip,createNoataDocx} from "./docx-export.ts";
 import {createNoataPptx} from "./pptx-export.ts";
 import {createNoataXlsx} from "./xlsx-export.ts";
-import {officeTextTargets,reviseOfficeText,type OfficeFormat} from "./office-preservation.ts";
+import {MAX_OFFICE_TEXT_EDITS,mergeOfficeTextEdits,officeTextTargets,queueOfficeTextEdit,reviseOfficeText,type OfficeFormat} from "./office-preservation.ts";
 const content:Record<OfficeFormat,Uint8Array>={docx:createNoataDocx("# Original heading\nFirst paragraph\n# Section three\nPreserve this content"),pptx:createNoataPptx("# Original heading\n- First slide content\n\n---\n\n# Keep slide two\n- Unchanged content"),xlsx:createNoataXlsx("| Item | Value |\n| --- | --- |\n| A | 10 |\n| B | 20 |\n| Total | =SUM(B2:B3) |")};
 // Python's independent ZIP implementation adds ordinary DEFLATE compression,
 // binary media, package metadata and an archive comment, then reopens every result.
@@ -79,3 +79,30 @@ for(const [format,name] of [["docx","word-reference.docx"],["xlsx","workbook-ref
   compare(bytes,result.bytes,result.changedParts);
   assert.ok((await officeTextTargets(result.bytes,format)).some(t=>t.text==="Revised reference heading"));
  });
+
+test("targeted Office edits can be queued together without duplicate targets",()=>{
+ const heading={part:"word/document.xml",index:0,text:"Original heading",kind:"paragraph" as const};
+ const paragraph={part:"word/document.xml",index:1,text:"First paragraph",kind:"paragraph" as const};
+ const queued=queueOfficeTextEdit(queueOfficeTextEdit([],heading,"Staged heading"),paragraph,"Staged paragraph");
+ const updated=queueOfficeTextEdit(queued,heading,"Final heading");
+ assert.equal(MAX_OFFICE_TEXT_EDITS,30);
+ assert.equal(updated.length,2);
+ const merged=mergeOfficeTextEdits(updated,heading,"Current draft");
+ assert.deepEqual(merged.map(edit=>edit.replacement),["Current draft","Staged paragraph"]);
+});
+
+test("multiple text changes are written into one valid private Office revision",async()=>{
+ const original=fixture("docx");
+ const targets=await officeTextTargets(original,"docx");
+ const heading=targets.find(target=>target.text==="Original heading");
+ const paragraph=targets.find(target=>target.text==="First paragraph");
+ assert.ok(heading);assert.ok(paragraph);
+ const result=await reviseOfficeText(original,"docx",[
+  {...heading,replacement:"Revised heading"},
+  {...paragraph,replacement:"Revised paragraph"}
+ ]);
+ compare(original,result.bytes,result.changedParts);
+ const after=await officeTextTargets(result.bytes,"docx");
+ assert.ok(after.some(target=>target.text==="Revised heading"));
+ assert.ok(after.some(target=>target.text==="Revised paragraph"));
+});

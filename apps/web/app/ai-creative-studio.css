@@ -60,3 +60,13 @@
 html[data-noata-motion="reduce"] .noata-artifact-inline,html[data-noata-motion="off"] .noata-artifact-inline{animation:none}
 
 .noata-creative-instruction select{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}.noata-revision-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.noata-revision-compare section{min-width:0;border:1px solid var(--line);border-radius:12px;padding:12px}.noata-revision-compare pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:420px;overflow:auto;font:inherit;font-size:12px;line-height:1.7}.noata-revision-context{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:9px;margin-bottom:8px;color:var(--ink);background:var(--surface-soft);font-size:12px}.noata-revision-context span{flex:1;min-width:0;overflow-wrap:anywhere}.noata-revision-context button{background:transparent;color:var(--ink);border:0;padding:5px;cursor:pointer}@media(max-width:640px){.noata-revision-compare{grid-template-columns:1fr}}
+/* Multi-step Office revisions stay visibly staged and removable before save. */
+.noata-office-edit-queue{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.noata-office-edit-queue ul{display:grid;gap:8px;list-style:none;padding:0;margin:0}
+.noata-office-edit-queue li{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-top:8px;border-top:1px solid var(--line)}
+.noata-office-edit-queue li>span{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.noata-office-edit-queue small{font-size:12px;line-height:1.5;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.noata-office-edit-queue button,.noata-office-edit-queue-controls>button{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px}
+.noata-office-edit-queue-controls{display:grid;gap:9px}
+.noata-office-edit-queue-controls>button{background:var(--accent-soft);font-weight:700}
+.noata-office-edit-queue button:focus-visible,.noata-office-edit-queue-controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}

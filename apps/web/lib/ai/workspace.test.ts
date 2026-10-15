@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   parseStreamFrames,
+  SSEFrameDecoder,
   validateAttachment,
   safeHref,
   safeStorageLink,
@@ -18,6 +19,24 @@ test("SSE parser preserves incomplete events and accepts CRLF", () => {
   assert.deepEqual(b.data, ['{"done":true}']);
   assert.equal(b.rest, "");
 });
+test("SSE decoder preserves split Arabic UTF-8 and drains a final un-delimited frame", () => {
+  const bytes = new TextEncoder().encode('data: {"content":"أهلا"}');
+  const firstArabicByte = bytes.findIndex((byte) => byte >= 0xd8 && byte <= 0xdf);
+  assert.ok(firstArabicByte > 0);
+
+  const decoder = new SSEFrameDecoder();
+  assert.deepEqual(decoder.push(bytes.subarray(0, firstArabicByte + 1)), []);
+  assert.deepEqual(decoder.push(bytes.subarray(firstArabicByte + 1)), []);
+  assert.deepEqual(decoder.finish(), ['{"content":"أهلا"}']);
+});
+
+test("SSE parser joins multi-line data fields as one event", () => {
+  const parsed = parseStreamFrames('data: {"done":\ndata: true}\n\n');
+  assert.equal(parsed.data.length, 1);
+  assert.equal(JSON.parse(parsed.data[0]).done, true);
+  assert.equal(parsed.rest, "");
+});
+
 test("uploads reject zero bytes, oversized files, and active formats", () => {
   assert.ok(
     validateAttachment({ name: "x.svg", type: "image/svg+xml", size: 400 }),

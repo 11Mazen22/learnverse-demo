@@ -60,7 +60,7 @@ import {
   AI_FUNCTION,
   titleFrom,
   validateAttachment,
-  parseStreamFrames,
+  SSEFrameDecoder,
   friendlyError,
   aiResponseFailure,
   safeStorageLink,
@@ -631,66 +631,87 @@ export function useAIWorkspace() {
         research:validatedResearch(data.research),routeNote:data.routeNote,timings:data.timings,
       };
     }
-    const reader = response.body!.getReader(),
-      decoder = new TextDecoder();
-    let buffer = "",
-      content = "",
+    if (!response.body) throw Error("Empty response stream");
+    const reader = response.body.getReader();
+    const frameDecoder = new SSEFrameDecoder();
+    let content = "",
       used = model,
-      done = false,finishReason="stop",incomplete=false;
-    let research:Research|undefined,timings:ChatPart["timings"],routeNote:string|undefined;
-    let latestPending:string|undefined,lastPublishedAt=0,publishTimer:ReturnType<typeof setTimeout>|null=null;
-    const publishPending=(value:string)=>{
-      latestPending=value;
-      const now=Date.now(),remaining=40-(now-lastPublishedAt);
-      if(remaining<=0){
-        if(publishTimer){clearTimeout(publishTimer);publishTimer=null;}
-        if(sessionScope.current.isCurrent(token))setPendingText(value);
-        lastPublishedAt=now;
-      }else if(!publishTimer){
-        publishTimer=setTimeout(()=>{
-          publishTimer=null;
-          if(latestPending!==undefined&&sessionScope.current.isCurrent(token))setPendingText(latestPending);
-          lastPublishedAt=Date.now();
-        },remaining);
+      done = false,
+      finishReason = "stop",
+      incomplete = false;
+    let research: Research | undefined,
+      timings: ChatPart["timings"],
+      routeNote: string | undefined;
+    let latestPending: string | undefined,
+      lastPublishedAt = 0,
+      publishTimer: ReturnType<typeof setTimeout> | null = null;
+    const publishPending = (value: string) => {
+      latestPending = value;
+      const now = Date.now(), remaining = 40 - (now - lastPublishedAt);
+      if (remaining <= 0) {
+        if (publishTimer) { clearTimeout(publishTimer); publishTimer = null; }
+        if (sessionScope.current.isCurrent(token)) setPendingText(value);
+        lastPublishedAt = now;
+      } else if (!publishTimer) {
+        publishTimer = setTimeout(() => {
+          publishTimer = null;
+          if (latestPending !== undefined && sessionScope.current.isCurrent(token)) {
+            setPendingText(latestPending);
+          }
+          lastPublishedAt = Date.now();
+        }, remaining);
       }
     };
-    const flushPending=()=>{
-      if(publishTimer){clearTimeout(publishTimer);publishTimer=null;}
-      if(latestPending!==undefined&&sessionScope.current.isCurrent(token))setPendingText(latestPending);
-      latestPending=undefined;
-      lastPublishedAt=Date.now();
+    const flushPending = () => {
+      if (publishTimer) { clearTimeout(publishTimer); publishTimer = null; }
+      if (latestPending !== undefined && sessionScope.current.isCurrent(token)) {
+        setPendingText(latestPending);
+      }
+      latestPending = undefined;
+      lastPublishedAt = Date.now();
+    };
+    const consumeFrame = (frame: string) => {
+      const event = JSON.parse(frame) as Record<string, unknown>;
+      if (typeof event.error === "string" && event.error) throw Error(event.error);
+      if (event.research) research = validatedResearch(event.research);
+      if (event.routeNote === "sadiq_2_unavailable_sadiq_1") {
+        routeNote = event.routeNote;
+        setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم صادق لهذا الرد.", "Sadiq 2 is not enabled; Auto is using Sadiq for this answer."));
+      }
+      if (event.status === "searching") setNotice(t("بنبحث عن مصادر موثوقة…", "Searching for reliable sources…"));
+      if (event.status === "organizing") setNotice(t("بنراجع تنظيم الرد وتوثيق المصادر…", "Refining the answer and source citations…"));
+      if (event.status === "reviewing") setNotice(t("بنراجع المقاطع المسترجعة…", "Reviewing retrieved excerpts…"));
+      if (event.status === "preparing") {
+        setNotice(research?.status === "complete"
+          ? t("بنجهّز الرد من المصادر…", "Preparing an answer from the sources…")
+          : t("البحث المباشر غير متاح؛ المعلومات الحالية لم يتم التحقق منها.", "Live research is unavailable; current information has not been verified."));
+      }
+      if (typeof event.content === "string") {
+        if (!content && event.content) setNotice("");
+        if (event.content.length > 500000) throw Error("Response too large");
+        content = event.content;
+        const combined = prefix ? prefix + "\n\n" + content : content;
+        streamed.current = { content: combined, model: typeof event.model === "string" ? event.model : used };
+        publishPending(combined);
+      }
+      if (typeof event.model === "string" && event.model) used = event.model;
+      if (event.done === true) {
+        done = true;
+        finishReason = typeof event.finishReason === "string" ? event.finishReason : "stop";
+        incomplete = event.incomplete === true;
+        timings = event.timings as ChatPart["timings"];
+      }
     };
     try {
       for (;;) {
         const part = await reader.read();
         assertSession(token);
         if (part.done) break;
-        buffer += decoder.decode(part.value, { stream: true });
-        if (buffer.length > 1024 * 1024) throw Error("Stream frame too large");
-        const parsed = parseStreamFrames(buffer);
-        buffer = parsed.rest;
-        for (const frame of parsed.data) {
-          const event = JSON.parse(frame);
-          if (event.error) throw Error(event.error);
-          if(event.research)research=validatedResearch(event.research);
-          if(event.routeNote==="sadiq_2_unavailable_sadiq_1"){routeNote=event.routeNote;setNotice(t("صادق 2 غير مفعّل؛ الوضع التلقائي يستخدم صادق لهذا الرد.","Sadiq 2 is not enabled; Auto is using Sadiq for this answer."));}
-          if(event.status==="searching")setNotice(t("بنبحث عن مصادر موثوقة…","Searching for reliable sources…"));
-          if(event.status==="organizing")setNotice(t("بنراجع تنظيم الرد وتوثيق المصادر…","Refining the answer and source citations…"));
-          if(event.status==="reviewing")setNotice(t("بنراجع المقاطع المسترجعة…","Reviewing retrieved excerpts…"));
-          if(event.status==="preparing")setNotice(research?.status==="complete"?t("بنجهّز الرد من المصادر…","Preparing an answer from the sources…"):t("البحث المباشر غير متاح؛ المعلومات الحالية لم يتم التحقق منها.","Live research is unavailable; current information has not been verified."));
-          if (typeof event.content === "string") {
-            if (!content && event.content) setNotice("");
-            if (event.content.length > 500000)
-              throw Error("Response too large");
-            content = event.content;
-             const combined=prefix?prefix+"\n\n"+content:content;
-             streamed.current = { content:combined, model: event.model || used };
-             publishPending(combined);
-          }
-          if (event.model) used = event.model;
-          if (event.done) { done = true; finishReason=event.finishReason??"stop";incomplete=event.incomplete===true;timings=event.timings; }
-        }
+        for (const frame of frameDecoder.push(part.value)) consumeFrame(frame);
       }
+      // Do not discard final decoder bytes or a last SSE frame if the provider
+      // closes without sending its optional terminating blank line.
+      for (const frame of frameDecoder.finish()) consumeFrame(frame);
     } finally {
       flushPending();
       await reader.cancel().catch(() => {});
