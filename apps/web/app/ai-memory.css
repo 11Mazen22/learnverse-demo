@@ -26,3 +26,8 @@
 .noata-memory-list li div{display:flex;gap:7px;justify-content:flex-end;margin-top:8px}
 .noata-memory-error{color:#bd334b!important}
 @media(prefers-reduced-motion:reduce){.noata-memory-panel button{transition:none}}
+
+.noata-memory-list-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.noata-memory-list-actions button{white-space:nowrap}
+.noata-memory-list-actions button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:420px){.noata-memory-list-title{align-items:flex-start;flex-direction:column}.noata-memory-list-actions{width:100%;justify-content:flex-start}}
