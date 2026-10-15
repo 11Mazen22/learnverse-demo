@@ -22,6 +22,35 @@ test("the final answer stream survives split SSE frames and emits exact cumulati
  assert.deepEqual(seen,["## Final","## Final answer"]);
  assert.deepEqual(final,{content:"## Final answer",finishReason:"stop"});
 });
+test("buffered provider responses require bounded string content before emission or persistence",async()=>{
+ const invalid=[null, {unexpected:"object"}, "x".repeat(500_001)];
+ for(const content of invalid){
+  const persisted:{result:unknown;status?:string}[]=[];
+  const stream=createFanarStream({
+   model:"Fanar",clean,request:async()=>new Response(JSON.stringify({choices:[{message:{content}}]}),{headers:{"content-type":"application/json"}}),
+   persist:async(result,status)=>{persisted.push({result,status});}
+  });
+  const frames=parseStreamFrames(await new Response(stream).text()).data.map(frame=>JSON.parse(frame));
+  assert.equal(frames.some(frame=>typeof frame.content==="string"),false);
+  assert.equal(frames.at(-1).error,"PROVIDER_STREAM_INTERRUPTED");
+  assert.deepEqual(persisted,[{result:null,status:"failed"}]);
+ }
+});
+
+test("a valid buffered provider response produces one bounded completed answer",async()=>{
+ let saved:any;
+ const stream=createFanarStream({
+  model:"Fanar",clean,
+  request:async()=>new Response(JSON.stringify({choices:[{message:{content:"Buffered but valid answer"},finish_reason:"stop"}]}),{headers:{"content-type":"application/json"}}),
+  persist:async(result)=>{saved=result;}
+ });
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(frame=>JSON.parse(frame));
+ assert.equal(saved.content,"Buffered but valid answer");
+ assert.equal(frames.some(frame=>frame.content==="Buffered but valid answer"),true);
+ assert.equal(frames.at(-1).done,true);
+ assert.equal(frames.at(-1).incomplete,false);
+});
+
 test("the browser receives ready and partial text before upstream generation finishes",async()=>{
   const provider = upstream(); let completed = false;
   const stream = createFanarStream({model:"Fanar",clean,request:async()=>provider.response,persist:async()=>{completed=true}});

@@ -88,8 +88,13 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
         if (!response.headers.get("content-type")?.includes("text/event-stream")) {
           delivery = "buffered";
           const data = await response.json();
-          output = data?.choices?.[0]?.message?.content ?? "";
-          finishReason = data?.choices?.[0]?.finish_reason ?? "stop";
+          const candidate = data?.choices?.[0]?.message?.content;
+          if (typeof candidate !== "string" || candidate.length > 500_000) {
+            throw Error("Invalid buffered provider response");
+          }
+          output = candidate;
+          const candidateFinishReason = data?.choices?.[0]?.finish_reason;
+          finishReason = typeof candidateFinishReason === "string" ? candidateFinishReason : "stop";
           finished = true;
           if(output&&!options.deferContentUntilReview)firstContentMs=Date.now()-started;
           if(!options.deferContentUntilReview)emit({ content: options.clean(output), model: options.model, delivery });
