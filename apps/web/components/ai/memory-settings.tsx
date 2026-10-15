@@ -2,8 +2,9 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
+import {serializeMemoryExport} from "@/lib/ai/memory-export";
 
-type MemoryRow={id:string;user_id:string;content:string;updated_at:string};
+type MemoryRow={id:string;user_id:string;content:string;created_at:string;updated_at:string};
 type Props={owner:string|null;open:boolean;temporary:boolean};
 export function NoataMemorySettings({owner,open,temporary}:Props){
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);
@@ -20,7 +21,7 @@ export function NoataMemorySettings({owner,open,temporary}:Props){
    try{
     const [consent,memories]=await Promise.all([
      supabase.from("ai_memory_consent").select("enabled").eq("user_id",owner).maybeSingle(),
-     supabase.from("ai_user_memories").select("id,user_id,content,updated_at").eq("user_id",owner).order("updated_at",{ascending:false}).limit(50)
+     supabase.from("ai_user_memories").select("id,user_id,content,created_at,updated_at").eq("user_id",owner).order("updated_at",{ascending:false}).limit(50)
     ]);
     if(!active||ownerRef.current!==owner)return;
     if(consent.error)throw consent.error;
@@ -55,11 +56,11 @@ export function NoataMemorySettings({owner,open,temporary}:Props){
   if(!editing&&items.length>=50){setError(t("وصلت للحد الحالي (٥٠ ذاكرة). احذف واحدة أولًا.","You reached the current 50-memory limit. Delete one first."));return;}
   await run(async()=>{
    if(editing){
-    const {data,error}=await supabase.from("ai_user_memories").update({content,updated_at:new Date().toISOString()}).eq("id",editing).eq("user_id",owner).select("id,user_id,content,updated_at").single();
+    const {data,error}=await supabase.from("ai_user_memories").update({content,updated_at:new Date().toISOString()}).eq("id",editing).eq("user_id",owner).select("id,user_id,content,created_at,updated_at").single();
     if(error)throw error;
     if(ownerRef.current===owner)setItems(old=>old.map(item=>item.id===editing?data:item));
    }else{
-    const {data,error}=await supabase.from("ai_user_memories").insert({user_id:owner,content,source:"manual"}).select("id,user_id,content,updated_at").single();
+    const {data,error}=await supabase.from("ai_user_memories").insert({user_id:owner,content,source:"manual"}).select("id,user_id,content,created_at,updated_at").single();
     if(error)throw error;
     if(ownerRef.current===owner)setItems(old=>[data,...old]);
    }
@@ -84,6 +85,22 @@ export function NoataMemorySettings({owner,open,temporary}:Props){
    if(ownerRef.current===owner){setItems([]);setNotice(t("تم حذف كل الذكريات المحفوظة.","All saved memories deleted."));}
   });
  }
+ async function exportMemories(){
+  if(!owner||loading||busy||items.length===0)return;
+  try{
+   const exportedAt=new Date().toISOString();
+   const contents=serializeMemoryExport(items,enabled,exportedAt);
+   const url=URL.createObjectURL(new Blob([contents],{type:"application/json;charset=utf-8"}));
+   const link=document.createElement("a");
+   link.href=url;
+   link.download="noata-memory-"+exportedAt.slice(0,10)+".json";
+   document.body.append(link);link.click();link.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),15000);
+   setError("");setNotice(t("تم تنزيل نسخة JSON من ذكرياتك المحفوظة.","Downloaded a JSON export of your saved memories."));
+  }catch{
+   setError(t("تعذّر تجهيز ملف التصدير. لم يتم تغيير ذكرياتك.","Could not prepare the export file. Your memories were not changed."));
+  }
+ }
  return <section className="noata-memory-panel" aria-label={t("الذاكرة","Memory")}>
   <h3>{t("الذاكرة والتحكم في الخصوصية","Memory and privacy controls")}</h3>
   <p className="noata-memory-note">{t("الذاكرة اختيارية. عند تفعيلها، يمكن لـ Noata استخدام الذكريات المعتمدة للإجابات، وقراءة آخر سؤال في محادثة سابقة عند سؤالك عنها صراحةً. المحادثات المؤقتة مستبعدة.","Memory is optional. When enabled, Noata may use your approved notes in answers and retrieve your last question from an earlier non-temporary chat when you explicitly ask. Temporary chats remain excluded.")}</p>
@@ -106,7 +123,10 @@ export function NoataMemorySettings({owner,open,temporary}:Props){
      </div>
     </form>
     <div className="noata-memory-list-title"><strong>{t("الذكريات المحفوظة","Saved memories")} ({items.length})</strong>
-     {items.length>0&&<button type="button" className="danger" disabled={busy} onClick={()=>void clearAll()}>{t("حذف الكل","Delete all")}</button>}
+     <div className="noata-memory-list-actions">
+      {items.length>0&&<button type="button" className="noata-memory-export" disabled={busy||loading} onClick={exportMemories}>{t("تنزيل نسخة JSON","Export JSON")}</button>}
+      {items.length>0&&<button type="button" className="danger" disabled={busy} onClick={()=>void clearAll()}>{t("حذف الكل","Delete all")}</button>}
+     </div>
     </div>
     {items.length===0?<p className="noata-memory-note">{t("لا توجد ذكريات محفوظة بعد.","No saved memories yet.")}</p>:
      <ul className="noata-memory-list">{items.map(item=><li key={item.id}><p dir="auto">{item.content}</p><div>
