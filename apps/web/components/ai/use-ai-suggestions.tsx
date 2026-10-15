@@ -3,6 +3,7 @@ import {useEffect,useMemo,useState} from "react";
 import {createClient} from "@/lib/supabase/client";
 import {AI_FUNCTION,type Conversation,type Message} from "@/lib/ai/workspace";
 import {SUGGESTION_CACHE_MS,validateSuggestionResult,welcomeDefaults,type AISuggestion,type SuggestionLocale,type SuggestionKind} from "../../../../supabase/functions/noata-ai/suggestions.ts";
+import {scopedSuggestions,suggestionScopeKey,type ScopedSuggestions} from "@/lib/ai/suggestion-scope";
 
 type Options={
  userId:string|null;locale:SuggestionLocale;welcomeVisible:boolean;welcomeEpoch:number;
@@ -30,8 +31,8 @@ function storeCache(key:string,signature:string,suggestions:AISuggestion[]){
 export function useAISuggestions({userId,locale,welcomeVisible,welcomeEpoch,conversations,messages,busy,temporary}:Options){
  const supabase=useMemo(()=>createClient(),[]);
  const [preference,setPreference]=useState<{owner:string;enabled:boolean}>({owner:"",enabled:false});
- const [welcome,setWelcome]=useState<AISuggestion[]>(()=>welcomeDefaults(locale));
- const [followups,setFollowups]=useState<AISuggestion[]>([]);
+ const [welcomeState,setWelcomeState]=useState<ScopedSuggestions<AISuggestion>|null>(null);
+ const [followupState,setFollowupState]=useState<ScopedSuggestions<AISuggestion>|null>(null);
  const personalized=Boolean(userId&&preference.owner===userId&&preference.enabled&&!temporary);
  const preferenceReady=!userId||preference.owner===userId;
  const recentSignature=conversations.slice(0,6).map(c=>c.id+":"+c.title+":"+c.updated_at).join("|");
@@ -41,6 +42,11 @@ export function useAISuggestions({userId,locale,welcomeVisible,welcomeEpoch,conv
  const assistantId=!busy&&lastAssistant?.role==="assistant"&&lastAssistant.status==="complete" ? lastAssistant.id:"";
  const answer=assistantId?lastAssistant?.content??"":"";
  const question=assistantId?lastUser?.content??"":"";
+ const welcomeScope=suggestionScopeKey({owner:userId,locale,temporary,personalized,signature,epoch:welcomeEpoch});
+ const welcome=scopedSuggestions(welcomeState,welcomeScope,welcomeDefaults(locale));
+ const followupSignature=fingerprint(JSON.stringify([assistantId,question,answer]));
+ const followupScope=suggestionScopeKey({owner:userId,locale,temporary,personalized:false,signature:followupSignature});
+ const followups=scopedSuggestions(followupState,followupScope,[]);
 
  useEffect(()=>{
   if(!userId){setPreference({owner:"",enabled:false});return;}
@@ -55,11 +61,11 @@ export function useAISuggestions({userId,locale,welcomeVisible,welcomeEpoch,conv
  }
  useEffect(()=>{
   let active=true;
-  setWelcome(welcomeDefaults(locale));
+  setWelcomeState({scope:welcomeScope,items:welcomeDefaults(locale)});
   if(!welcomeVisible||!userId||!preferenceReady)return;
   const cacheKey=prefix+":welcome:"+userId+":"+locale+":"+(personalized?"yes":"no");
   const cached=readCache(cacheKey,signature);
-  if(cached.length===4){setWelcome(cached);return;}
+  if(cached.length===4){setWelcomeState({scope:welcomeScope,items:cached});return;}
   const controller=new AbortController();
   void (async()=>{
    try{
@@ -69,14 +75,14 @@ export function useAISuggestions({userId,locale,welcomeVisible,welcomeEpoch,conv
     });
     if(error||!active)return;
     const valid=validateSuggestionResult(data,"welcome");
-    if(valid.length===4){setWelcome(valid);storeCache(cacheKey,signature,valid);}
+    if(valid.length===4){setWelcomeState({scope:welcomeScope,items:valid});storeCache(cacheKey,signature,valid);}
    }catch{/* Preserve four instant local actions when the AI provider is unavailable. */}
   })();
   return ()=>{active=false;controller.abort();};
- },[locale,userId,preferenceReady,welcomeVisible,welcomeEpoch,personalized,temporary,signature,supabase]);
+ },[locale,userId,preferenceReady,welcomeVisible,welcomeEpoch,personalized,temporary,signature,welcomeScope,supabase]);
  useEffect(()=>{
   let active=true;
-  setFollowups([]);
+  setFollowupState({scope:followupScope,items:[]});
   if(!userId||!assistantId||!question||!answer||temporary)return;
   const controller=new AbortController();
   void (async()=>{
@@ -87,11 +93,11 @@ export function useAISuggestions({userId,locale,welcomeVisible,welcomeEpoch,conv
     });
     if(error||!active)return;
     const valid=validateSuggestionResult(data,"followup");
-    if(valid.length>=3)setFollowups(valid);
+    if(valid.length>=3)setFollowupState({scope:followupScope,items:valid});
    }catch{/* No fabricated follow-up suggestions on provider failure. */}
   })();
   return ()=>{active=false;controller.abort();};
- },[userId,assistantId,question,answer,locale,temporary,supabase]);
+ },[userId,assistantId,question,answer,locale,temporary,followupScope,supabase]);
  return {welcome,followups,personalized,changePersonalized};
 }
 export function SuggestedActions({kind,locale,items,disabled,onChoose}:{
