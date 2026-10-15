@@ -54,7 +54,7 @@ test("a valid buffered provider response produces one bounded completed answer",
 test("the answer-review reader rejects a stream that ends without an explicit completion signal",async()=>{
  const provider=upstream();
  const response=readFanarTextResponse(provider.response,()=>{});
- provider.write('data: {"choices":[{"delta":{"content":"Looks complete, but is truncated"}}]}\\r\\n\\r\\n');
+ provider.write('data: {"choices":[{"delta":{"content":"Looks complete, but is truncated"}}]}\r\n\r\n');
  provider.close();
  await assert.rejects(response,/ended before completion/);
 });
@@ -63,7 +63,7 @@ test("the answer-review reader rejects provider output truncated by token limit 
  for(const finishReason of ["length","content_filter"]){
   const provider=upstream();
   const response=readFanarTextResponse(provider.response,()=>{});
-  provider.write(`data: {"choices":[{"delta":{"content":"Partial review"},"finish_reason":"${finishReason}"}]}\\r\\n\\r\\n`);
+  provider.write(`data: {"choices":[{"delta":{"content":"Partial review"},"finish_reason":"${finishReason}"}]}\r\n\r\n`);
   provider.close();
   await assert.rejects(response,/ended before completion/);
  }
@@ -72,12 +72,12 @@ test("the answer-review reader rejects provider output truncated by token limit 
 test("the answer-review reader accepts an explicit final finish reason or DONE marker",async()=>{
  const withFinish=upstream();
  const finished=readFanarTextResponse(withFinish.response,()=>{});
- withFinish.write('data: {"choices":[{"delta":{"content":"Final review"},"finish_reason":"stop"}]}\\r\\n\\r\\n');
+ withFinish.write('data: {"choices":[{"delta":{"content":"Final review"},"finish_reason":"stop"}]}\r\n\r\n');
  withFinish.close();
  assert.deepEqual(await finished,{content:"Final review",finishReason:"stop"});
  const withDone=upstream();
  const done=readFanarTextResponse(withDone.response,()=>{});
- withDone.write('data: {"choices":[{"delta":{"content":"Final review via DONE"}}]}\\r\\n\\r\\ndata: [DONE]\\r\\n\\r\\n');
+ withDone.write('data: {"choices":[{"delta":{"content":"Final review via DONE"}}]}\r\n\r\ndata: [DONE]\r\n\r\n');
  withDone.close();
  assert.deepEqual(await done,{content:"Final review via DONE",finishReason:"stop"});
 });
