@@ -1,5 +1,10 @@
 /** Real conversational memory commands. Never extract memories implicitly. */
 export type MemoryWrite = {kind:"save";content:string}|{kind:"ask"}|{kind:"none"};
+
+/** Temporary chats must never create or retrieve long-term personal memory. */
+export function persistentMemoryAllowed(temporary:boolean):boolean {
+ return temporary===false;
+}
 export function conversationalMemoryIntent(message:string):MemoryWrite{
  const input=message.normalize("NFKC").trim();
  if(!input||input.length>1600)return{kind:"none"};
