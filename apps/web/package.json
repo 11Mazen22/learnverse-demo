@@ -15,7 +15,7 @@
     "katex": "0.19.0",
     "next": "16.4.1",
     "pdfjs-dist": "5.4.394",
-    "puppeteer-core": "24.40.0",
+    "puppeteer-core": "25.13.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-markdown": "^10.1.0",
@@ -35,7 +35,7 @@
     "pdf-lib": "1.17.1"
   },
   "devDependencies": {
-    "@puppeteer/browsers": "2.13.0",
+    "@puppeteer/browsers": "3.2.4",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "24.19.1",
     "@types/react": "19.3.0",
