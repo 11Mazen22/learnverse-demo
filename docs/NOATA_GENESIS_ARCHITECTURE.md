@@ -10,11 +10,15 @@ The existing authenticated Supabase Edge Function remains the AI entry point. It
 
 Source records carry stable request-local IDs, actual URLs, derived domains, bounded excerpts, retrieval time and publication date only when provided. Query receipts identify actual returned source IDs. Persisted input is reconstructed through an allowlist rather than spreading arbitrary fields into model/UI context. Citation checks reject unknown IDs and unretrieved URL destinations. This is syntactic provenance plus model review, not a proof of semantic entailment or absence of contradictions.
 
+When one request asks for several file formats, the first answer supplies shared content. Each additional format is generated from that answer with a bounded conversion prompt that opts out of another web search and forbids adding facts, values, citations or URLs. This avoids duplicate search quota use and keeps requested outputs aligned; the initial validated research record still supplies citations to each export.
+
 Wikipedia remains an explicitly labelled optional background path for non-current, non-official, non-source-specific requests. It cannot satisfy an official/current research request.
 
 ## Artifact paths
 
 Existing PDF/DOCX/XLSX/PPTX generation, private artifact rows, storage paths, version lineage and per-format compensation remain. Actual research references now enter PPTX reference slides and XLSX reference worksheets as well as PDF/DOCX. Eight-sheet workbooks cannot append a ninth reference sheet; their evidence remains in the conversation. This limit is not full export provenance acceptance.
+
+Multi-format deliverables beyond the first are reformatted from the shared answer rather than rerunning the original request. Workbook conversions must use only existing values and fail honestly when they cannot produce a useful table without inventing data.
 
 `office-preservation.ts` adds original-package edits for DOCX paragraphs, PPTX paragraphs, and XLSX inline strings/numeric cells. It keeps untouched compressed local ZIP records exactly, rewrites only the selected XML part and updates central-directory offsets/CRCs. Numeric changes also request full workbook recalculation. It never extracts paths to disk, executes macros, fetches relationships or accepts model-authored XML.
 

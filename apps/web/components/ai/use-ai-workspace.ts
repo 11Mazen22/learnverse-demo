@@ -40,6 +40,7 @@ import {needsSemanticPlan,validateSemanticPlan} from "../../../../supabase/funct
 import type {ArtifactIntent} from "@/lib/ai/artifact-intent";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import { artifactContent,detectArtifactIntents,checkArtifactContent } from "@/lib/ai/artifact-intent";
+import {artifactDerivativeHistory} from "@/lib/ai/artifact-derivative";
 import {documentWithResearch} from "@/lib/ai/research-document";
 import {readDocumentSource,storedDocumentSource,requestedDocumentPresentation,type DocumentPresentation} from "@/lib/ai/document-presentation";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
@@ -1090,17 +1091,20 @@ export function useAIWorkspace() {
           setNotice(t("بنجهّز ملف","Preparing file")+" "+(fileIndex+1)+" / "+requestedFiles.length+" · "+currentIntent.kind.toUpperCase());
           try{
           let currentContent=result.content,currentResearch=result.research;
-          if(fileIndex>0&&!currentIntent.usePrevious){
-            let next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind,editingSource?.scope?.level);
+          if(fileIndex>0){
+            const sourceContent=artifactContent(currentIntent,responseText(result.content),responseText(prior));
+            const now=new Date().toISOString();
+            const derivativeHistory=artifactDerivativeHistory(history,sourceContent,currentIntent.kind,conversationId,"artifact-"+assistant!.id+"-"+fileIndex,now);
+            let next=await chat(derivativeHistory,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind,editingSource?.scope?.level);
             assertSession(token);setPendingText("");
             const nextText=responseText(next.content);
             const sourceIssue=checkArtifactContent(currentIntent.kind,nextText);
             if(!next.incomplete&&(sourceIssue||isArtifactRefusal(nextText)||isNonDeliverableDraft(nextText))){
-              next=await chat(history,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind,editingSource?.scope?.level);
+              next=await chat(derivativeHistory,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind,editingSource?.scope?.level);
               assertSession(token);setPendingText("");
             }
             if(!canDeliverArtifactTurn(next)||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
-            currentContent=next.content;currentResearch=next.research??result.research;
+            currentContent=next.content;currentResearch=next.research??(currentIntent.usePrevious?validatedResearch(priorForFile?.metadata?.research):result.research);
           }
           let source = documentWithResearch(
             artifactContent(currentIntent,responseText(currentContent),responseText(prior)),
