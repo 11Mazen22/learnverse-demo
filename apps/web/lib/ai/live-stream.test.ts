@@ -81,6 +81,27 @@ test("the answer-review reader accepts an explicit final finish reason or DONE m
  withDone.close();
  assert.deepEqual(await done,{content:"Final review via DONE",finishReason:"stop"});
 });
+test("the answer-review JSON fallback rejects truncation, empty content and non-final reasons",async()=>{
+ for(const finishReason of ["length","content_filter","tool_calls"]){
+  const seen:string[]=[];
+  const response=Response.json({choices:[{message:{content:"Partial review"},finish_reason:finishReason}]});
+  await assert.rejects(readFanarTextResponse(response,text=>seen.push(text)),/incomplete answer review/);
+  assert.deepEqual(seen,[]);
+ }
+ for(const content of ["","   "]){
+  const seen:string[]=[];
+  const response=Response.json({choices:[{message:{content},finish_reason:"stop"}]});
+  await assert.rejects(readFanarTextResponse(response,text=>seen.push(text)),/incomplete answer review/);
+  assert.deepEqual(seen,[]);
+ }
+});
+
+test("the answer-review JSON fallback accepts a valid completed answer",async()=>{
+ const seen:string[]=[];
+ const response=Response.json({choices:[{message:{content:"Completed JSON review"},finish_reason:"stop"}]});
+ assert.deepEqual(await readFanarTextResponse(response,text=>seen.push(text)),{content:"Completed JSON review",finishReason:"stop"});
+ assert.deepEqual(seen,["Completed JSON review"]);
+});
 test("the browser receives ready and partial text before upstream generation finishes",async()=>{
   const provider = upstream(); let completed = false;
   const stream = createFanarStream({model:"Fanar",clean,request:async()=>provider.response,persist:async()=>{completed=true}});
