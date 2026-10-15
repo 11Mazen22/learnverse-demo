@@ -49,6 +49,9 @@ export async function readFanarTextResponse(response:Response,onContent:(content
       if(finished)break;
       if(part.done){if(buffer.trim())consume(buffer);break;}
     }
+    if(!finished||finishReason==="length"||finishReason==="content_filter"||!content.trim()){
+      throw Error("Answer review stream ended before completion");
+    }
     return {content,finishReason};
   }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
 }
