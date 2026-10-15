@@ -385,7 +385,9 @@ async function verifyDocuments(){
       await waitFor(async()=>await evaluate('!document.querySelector(".noata-office-editor button").disabled'),"targeted revision download enabled");
       // Capture the actual Blob handed to the download, rather than accepting a success label.
       await evaluate(`(()=>{const create=URL.createObjectURL;window.__officeDownload=null;URL.createObjectURL=function(blob){window.__officeDownload=blob;return create.call(this,blob);};})()`);
-      await evaluate('document.querySelector(".noata-office-editor button").click()');
+      await evaluate('document.querySelector(".noata-office-edit-queue-controls > button").click()');
+      await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-office-edit-queue li").length===1'),"staged DOCX text change");
+      await evaluate('document.querySelector(".noata-office-edit-queue-controls .noata-creative-buttons button:first-child").click()');
       await waitFor(async()=>await evaluate('window.__officeDownload instanceof Blob'),"real targeted DOCX download bytes");
       const downloaded=await evaluate('(async()=>({size:window.__officeDownload.size,bytes:Array.from(new Uint8Array(await window.__officeDownload.arrayBuffer()))}))()');
       invariant(downloaded.size>500,"Targeted revision is a real nonempty Office package");
