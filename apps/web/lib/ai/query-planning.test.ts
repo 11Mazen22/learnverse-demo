@@ -59,3 +59,17 @@ test("Research instructions are removed while the actual public topic is retaine
  const result=explicitResearchQuery(request,searchPlan(request));assert.equal(result?.query,"photosynthesis");
  const planned=plannedResearchQuery('{"query":"photosynthesis using reliable sources","needsClarification":false}',searchPlan(request));assert.equal(planned?.query,"photosynthesis");
 });
+
+test("common search phrasings reduce to the real topic for provider fallback",()=>{
+ const cases=[
+  ["Search for chocolate, then create a PDF","chocolate"],
+  ["Can you look up the Ministry of Education, then make a PDF","the Ministry of Education"],
+  ["Find information about cocoa production, then make a report","cocoa production"],
+  ["Check online for the latest Ministry of Education updates","the latest Ministry of Education updates"],
+ ] as const;
+ for(const [request,expected] of cases){
+  const base=searchPlan(request);
+  assert.equal(base.needed,true,request);
+  assert.equal(explicitResearchQuery(request,base)?.query,expected,request);
+ }
+});

@@ -48,12 +48,12 @@ function PdfPage({file,page,onPages}:{file:Blob;page:number;onPages:(n:number)=>
  return <div className="noata-creative-pdf">{error&&<p role="alert">{error}</p>}
   <canvas ref={canvas} role="img" aria-label={t("صفحة PDF","PDF page")+" "+page}/></div>;
 }
-export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPrepareEdit,onRevisionSaved,inline=false}:{
+export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPrepareEdit,onRevisionSaved,inline=false,initialMode="preview"}:{
  file:CreatedArtifact|null;
  localSource?:{name:string;localId?:string;documentId?:string;format:"pdf"|"docx"|"xlsx"|"pptx"|"text"}|null;
  owner:string|null;onClose:()=>void;onAskAI?:(prompt:string,source?:LibrarySource)=>void;
  onRevisionSaved?:()=>void;
- inline?:boolean;onPrepareEdit?:(prompt:string,source?:LibrarySource)=>void;
+ inline?:boolean;onPrepareEdit?:(prompt:string,source?:LibrarySource)=>void;initialMode?:"preview"|"edit"|"pages";
 }){
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);
  const [loaded,setLoaded]=useState<Blob|null>(null),[inspection,setInspection]=useState<StudioInspection|null>(null);
@@ -72,7 +72,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const activeFormat=file?.format??(localSource?.format==="text"?"docx":localSource?.format);
  const activeName=file?.filename??localSource?.name??"Noata document";
  useEffect(()=>{
-  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setMode("preview");setOriginalText("");setInstruction("");setSectionStart("whole");
+  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setMode(initialMode);setOriginalText("");setInstruction("");setSectionStart("whole");
   setOutputFormat(activeFormat??"pdf");setStyle("classic");setFont("noata");
   if(!file&&!localSource)return;
   void(async()=>{
@@ -120,7 +120,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    }catch(e){if(live)setError(e instanceof Error?e.message:"File preview unavailable");}
   })();
   return()=>{live=false;};
- },[file?.id,localSource?.localId,localSource?.documentId,owner,supabase,locale]);
+ },[file?.id,localSource?.localId,localSource?.documentId,owner,supabase,locale,initialMode]);
  const mime:Record<Format,string>={pdf:"application/pdf",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation"};
  async function buildRevision(kind:Format):Promise<Uint8Array>{

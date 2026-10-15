@@ -14,3 +14,8 @@ test("A filename without terminal punctuation does not duplicate the same openin
  assert.equal(withoutDuplicateDocumentTitle("## What is Photosynthesis?\n\nFacts","What is Photosynthesis"),"Facts");
  assert.equal(withoutDuplicateDocumentTitle("## Is it safe?\nFacts","Different topic"),"## Is it safe?\nFacts");
 });
+
+test("opening titles match Arabic punctuation and diacritics and remove consecutive copies",()=>{
+ const text="# تاريخ الشوكولاتة: رِحْلة عبر الزَّمَن\n\n## تاريخ الشوكولاتة رحلة عبر الزمن\n\n## المقدمة\nFacts";
+ assert.equal(withoutDuplicateDocumentTitle(text,"تاريخ الشوكولاتة رحلة عبر الزمن.pdf"),"## المقدمة\nFacts");
+});

@@ -37,8 +37,9 @@ export const RESEARCH_PLANNING_PROMPT="Return ONLY JSON with exactly query (stri
 export function explicitResearchQuery(request:string,base:SearchPlan):SearchPlan|null{
  if(!base.needed||privateText(request)||base.reason==="private"||base.reason==="opt_out")return null;
  const first=request.normalize("NFKC").split(/\bthen\s+(?:make|create|generate|prepare|export)|[,.;]\s*(?:then|use|clearly|create|make)|ثم\s+(?:اعمل|أنشئ|جهز)/i)[0].trim();
- let query=first.replace(/^(?:(?:now|please|can you|could you)\s+)*(?:search|browse|research|look up|find sources|verify sources)\s+(?:the\s+web\s+)?(?:for\s+)?/i,"")
+ let query=first.replace(/^(?:(?:now|please|can you|could you|would you|help me)\s+)*(?:search|browse|research|look up|look for|look into|find(?: out)?|check(?: online| the web)?|verify)\s+(?:(?:the\s+)?web\s+)?(?:for\s+)?/i,"")
   .replace(/^(?:ابحث|دور|بحث)\s+(?:عن|على|في)?\s*/,"")
+  .replace(/^(?:(?:reliable|official|background|Wikipedia)\s+)*(?:information|details|sources?|results)\s+(?:about|on|for)\s+/i,"")
   .replace(/^(?:wikipedia\s+)?(?:background\s+)?sources\s+(?:on|about|for)\s+/i,"");
  if(query===first&&base.reason!=="freshness")return null;
  query=conciseResearchSubject(query).replace(/\s+(?:with|include)\s+(?:sources|citations|references).*$/i,"").trim().replace(/[,;:.!?؟]+$/u,"").trim();

@@ -31,13 +31,13 @@ test("bounded sequential research retains sources and truthful partial failure",
  assert.deepEqual(result.queries?.map(q=>q.status),["complete","failed"]);
  assert.match(researchContext(result),/partial evidence/);assert.equal(validatedResearch(result)?.partial,true);
 });
-test("deep requests default to one call; unknown provider and disabled config never call",async()=>{
+test("deep requests use bounded follow-up searches; unknown provider and disabled config never call",async()=>{
  let calls=0;const fetcher:typeof fetch=async()=>{calls++;return Response.json(payload());};
- await runResearch(searchPlan("Deep research Mars"),{...options,fetcher});assert.equal(calls,1);
+ const deep=await runResearch(searchPlan("Deep research Mars"),{...options,fetcher});assert.equal(calls,3);assert.equal(deep.queries?.length,3);
  for(const config of [{provider:"other"},{enabled:false},{key:""}]){
   const result=await runResearch(searchPlan("Research Mars"),{...options,...config,fetcher});assert.equal(result.status,"unavailable");
  }
- assert.equal(calls,1);
+ assert.equal(calls,3);
 });
 test("quota rejection does not call a provider and cancellation is never a success",async()=>{
  let calls=0;
@@ -70,3 +70,4 @@ test("a valid numeric citation cannot legitimize an invented Markdown destinatio
  assert.equal(answerReviewIssue("Research Mars","Retrieved mission evidence [1].",research),null);
  assert.deepEqual(citationClaims("Claim [1].\n\nAnother claim [1] [2].").map(c=>c.sourceIds),[[1],[1,2]]);
 });
+

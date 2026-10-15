@@ -30,6 +30,23 @@ test("research uses the fixed provider endpoint, real lifecycle events and bound
  assert.equal(research.status,"complete");assert.deepEqual(events,["searching","reviewing"]);assert.equal(research.sources[0].domain,"science.nasa.gov");
 });
 
+test("deep research runs three bounded passes and combines distinct evidence",async()=>{
+ const providerQueries:string[]=[];
+ const research=await runResearch(searchPlan("Deep research on Mars using multiple sources"),{
+  key:"test-only",enabled:true,signal:new AbortController().signal,
+  fetcher:async(_url,options)=>{
+   const query=String(JSON.parse(String(options?.body)).q);providerQueries.push(query);
+   const topic=providerQueries.length;
+   return Response.json({grounding:{generic:[{url:`https://science.nasa.gov/mars/${topic}/`,title:`Finding ${topic}`,snippets:[`Distinct evidence ${topic}`]}]}});
+  }
+ });
+ assert.equal(providerQueries.length,3);
+ assert.match(providerQueries[1],/primary evidence findings/);
+ assert.match(providerQueries[2],/limitations conflicting evidence/);
+ assert.equal(research.status,"complete");
+ assert.equal(research.sources.length,3);
+});
+
 test("research activity preserves recorded stages and exact search text",async()=>{
  const result=await runResearch(searchPlan("Research orbital mechanics"),{
   key:"test",enabled:true,signal:new AbortController().signal,
