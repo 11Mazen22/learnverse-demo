@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import {createClient} from "@/lib/supabase/client";
-import {MAX_OFFICE_TEXT_EDITS,mergeOfficeTextEdits,officeTextTargets,queueOfficeTextEdit,reviseOfficeText,type OfficeFormat,type OfficeTextEdit,type OfficeTextTarget} from "@/lib/ai/office-preservation";
+import {MAX_OFFICE_TEXT_EDITS,mergeOfficeTextEdits,officeReplacementProblem,officeTextTargets,queueOfficeTextEdit,reviseOfficeText,type OfficeFormat,type OfficeTextEdit,type OfficeTextTarget} from "@/lib/ai/office-preservation";
 import {artifactFilename} from "@/lib/ai/artifact-filename";
 import {inspectOfficeArtifact} from "@/lib/ai/studio-file-inspect";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
@@ -25,6 +25,8 @@ export function OfficeTextEditor({source,format,name,owner,parentId,documentId,o
  },[source,format,owner,locale]);
  async function deliver(save:boolean){
   const planned=mergeOfficeTextEdits(queuedEdits,targets[selected],replacement);if(lock.current||!planned.length)return;if(planned.length>MAX_OFFICE_TEXT_EDITS){setError(t("يمكنك تطبيق 30 تعديلًا كحد أقصى في كل نسخة.","A revision can contain at most 30 changes."));return;}
+  const invalidEdit=planned.find(edit=>officeReplacementProblem(edit,edit.replacement));
+  if(invalidEdit){setError(invalidEdit.valueType==="number"?t("أدخل رقمًا صالحًا للخلية الرقمية.","Enter a valid number for this numeric cell."):t("استخدم نصًا من سطر واحد دون علامات جدولة أو فواصل أسطر. يمكنك تعديل فقرة أخرى لإضافة نص منفصل.","Use a single line without tabs or line breaks. Edit another paragraph to add separate text."));return;}
   lock.current=true;setBusy(true);setError("");setStatus("");
   const ticket=identity.current,epoch=generation.current,active=()=>identity.current===ticket&&generation.current===epoch;let path="",uploaded=false,recorded=false;
   try{
@@ -56,6 +58,7 @@ export function OfficeTextEditor({source,format,name,owner,parentId,documentId,o
  }
  const targetLabel=(target:OfficeTextTarget)=>{const number=target.part.match(/(?:slide|sheet)(\d+)/)?.[1]??"";const location=format==="pptx"?t("شريحة ","Slide ")+number:format==="xlsx"?t("ورقة ","Sheet ")+number:t("فقرة","Paragraph");return location+" · "+(target.index+1);};
  const activeTarget=targets[selected];
+ const replacementProblem=officeReplacementProblem(activeTarget,replacement);
  const hasChanges=queuedEdits.length>0||Boolean(activeTarget&&replacement!==activeTarget.text);
  return <section className="noata-creative-editor noata-office-editor" aria-label={t("تعديل محدد يحافظ على الملف","Targeted edit preserving the file")}>
   <p>{t("اختر فقرة أو خلية وعدّلها داخل الملف الأصلي. نحافظ على الأجزاء الأخرى، ومنها الصور والتنسيقات والشرائح والصيغ.","Choose a paragraph or cell to revise inside the original package. Other parts, including images, styles, slides and formulas, are retained.")}</p>
@@ -65,14 +68,15 @@ export function OfficeTextEditor({source,format,name,owner,parentId,documentId,o
   {targets.length>0&&<>
    <label>{t("الفقرة أو الخلية","Paragraph or cell")}<select disabled={busy} value={selected} onChange={e=>{const i=Number(e.target.value),target=targets[i];setSelected(i);setReplacement(queuedEdits.find(edit=>edit.part===target.part&&edit.index===target.index)?.replacement??target.text);setStatus("");}}>{targets.map((target,i)=><option key={target.part+":"+target.index} value={i}>{targetLabel(target)} · {target.text.slice(0,70)}</option>)}</select></label>
    <label>{t("النص الأصلي","Original text")}<textarea readOnly dir="auto" rows={2} value={targets[selected]?.text??""}/></label>
-   <label>{t("النص البديل","Replacement text")}<textarea disabled={busy} dir="auto" rows={3} maxLength={5000} value={replacement} onChange={e=>{setReplacement(e.target.value);setStatus("");}}/></label>
+   <label>{t("النص البديل","Replacement text")}<textarea disabled={busy} aria-invalid={Boolean(replacementProblem)} dir="auto" rows={3} maxLength={5000} value={replacement} onChange={e=>{setReplacement(e.target.value);setStatus("");setError("");}}/></label>
+   {replacementProblem&&<p role="alert" className="noata-creative-error">{replacementProblem==="number"?t("أدخل رقمًا صالحًا للخلية الرقمية.","Enter a valid number for this numeric cell."):replacementProblem==="too_long"?t("يجب ألا يتجاوز النص البديل 5000 حرف.","Replacement text must be 5,000 characters or fewer."):replacementProblem==="control_characters"?t("التعديل المحدد يقبل سطرًا واحدًا دون علامات جدولة. استخدم فقرة أخرى للنص المنفصل.","Targeted replacement accepts one line without tabs. Use another paragraph for separate text."):t("قيمة النص غير صالحة.","The replacement text is invalid.")}</p>}
    {queuedEdits.length>0&&<div className="noata-office-edit-queue">
     <p role="status">{t("تم تجهيز "+queuedEdits.length+" تعديلات لتطبيقها معًا.",queuedEdits.length+" changes queued for one revision.")}</p>
     <ul>{queuedEdits.map(edit=><li key={edit.part+":"+edit.index}><span><strong>{targetLabel(edit)}</strong><small dir="auto">{edit.replacement||t("نص فارغ","(empty text)")}</small></span><button type="button" disabled={busy} onClick={()=>{setQueuedEdits(current=>current.filter(item=>item.part!==edit.part||item.index!==edit.index));if(activeTarget?.part===edit.part&&activeTarget.index===edit.index)setReplacement(activeTarget.text);setStatus("");}}>{t("إزالة","Remove")}</button></li>)}</ul>
    </div>}
    <div className="noata-office-edit-queue-controls">
-    <button type="button" disabled={busy||!activeTarget||replacement===activeTarget.text} onClick={()=>{if(!activeTarget)return;const exists=queuedEdits.some(edit=>edit.part===activeTarget.part&&edit.index===activeTarget.index);if(!exists&&queuedEdits.length>=MAX_OFFICE_TEXT_EDITS){setStatus(t("وصلت إلى الحد الأقصى وهو 30 تعديلًا للنسخة الواحدة.","This revision already has the maximum of 30 changes."));return;}setQueuedEdits(current=>queueOfficeTextEdit(current,activeTarget,replacement));setStatus(exists?t("تم تحديث التعديل في القائمة.","Updated the queued change."):t("تمت إضافة التعديل إلى القائمة؛ يمكنك اختيار فقرة أو خلية أخرى.","Change queued. You can select another paragraph or cell."));}}>{queuedEdits.some(edit=>edit.part===activeTarget?.part&&edit.index===activeTarget?.index)?t("تحديث التعديل في القائمة","Update queued change"):t("إضافة التعديل إلى القائمة","Queue this change")}</button>
-    <div className="noata-creative-buttons"><button type="button" disabled={busy||!hasChanges} onClick={()=>void deliver(false)}>{t("تنزيل النسخة المعدّلة","Download edited copy")}</button><button type="button" disabled={busy||!owner||!hasChanges} onClick={()=>void deliver(true)}>{t("حفظ نسخة معدّلة","Save edited copy")}</button></div>
+    <button type="button" disabled={busy||!activeTarget||replacement===activeTarget.text||Boolean(replacementProblem)} onClick={()=>{if(!activeTarget||replacementProblem)return;const exists=queuedEdits.some(edit=>edit.part===activeTarget.part&&edit.index===activeTarget.index);if(!exists&&queuedEdits.length>=MAX_OFFICE_TEXT_EDITS){setStatus(t("وصلت إلى الحد الأقصى وهو 30 تعديلًا للنسخة الواحدة.","This revision already has the maximum of 30 changes."));return;}setQueuedEdits(current=>queueOfficeTextEdit(current,activeTarget,replacement));setStatus(exists?t("تم تحديث التعديل في القائمة.","Updated the queued change."):t("تمت إضافة التعديل إلى القائمة؛ يمكنك اختيار فقرة أو خلية أخرى.","Change queued. You can select another paragraph or cell."));}}>{queuedEdits.some(edit=>edit.part===activeTarget?.part&&edit.index===activeTarget?.index)?t("تحديث التعديل في القائمة","Update queued change"):t("إضافة التعديل إلى القائمة","Queue this change")}</button>
+    <div className="noata-creative-buttons"><button type="button" disabled={busy||!hasChanges||Boolean(replacementProblem)} onClick={()=>void deliver(false)}>{t("تنزيل النسخة المعدّلة","Download edited copy")}</button><button type="button" disabled={busy||!owner||!hasChanges||Boolean(replacementProblem)} onClick={()=>void deliver(true)}>{t("حفظ نسخة معدّلة","Save edited copy")}</button></div>
    </div>
   </>}
   {!targets.length&&!error&&<p role="status">{ready?t("لا توجد فقرات أو خلايا تدعم التعديل المحدد في هذا الملف.","This file has no paragraphs or cells supported by targeted editing."):t("نفحص الفقرات والخلايا القابلة للتعديل…","Inspecting editable paragraphs and cells…")}</p>}
