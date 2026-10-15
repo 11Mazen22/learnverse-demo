@@ -5,6 +5,25 @@
 export type OfficeFormat="docx"|"pptx"|"xlsx";
 export type OfficeTextTarget={part:string;index:number;text:string;kind:"paragraph"|"cell"};
 export type OfficeTextEdit=OfficeTextTarget & {replacement:string};
+export const MAX_OFFICE_TEXT_EDITS=30;
+const officeEditKey=(item:OfficeTextTarget)=>item.part+"|"+item.index;
+/** Add or update one staged edit without creating duplicate edits for a target. */
+export function queueOfficeTextEdit(queued:readonly OfficeTextEdit[],target:OfficeTextTarget,replacement:string):OfficeTextEdit[]{
+ if(replacement===target.text)return [...queued];
+ const next=queued.map(edit=>({...edit}));
+ const index=next.findIndex(edit=>officeEditKey(edit)===officeEditKey(target));
+ const value:OfficeTextEdit={...target,replacement};
+ if(index>=0)next[index]=value;
+ else if(next.length<MAX_OFFICE_TEXT_EDITS)next.push(value);
+ return next;
+}
+/** Merge staged edits with the active field; the active field wins for its target. */
+export function mergeOfficeTextEdits(queued:readonly OfficeTextEdit[],target:OfficeTextTarget|undefined,replacement:string):OfficeTextEdit[]{
+ const unique=new Map<string,OfficeTextEdit>();
+ for(const edit of queued)unique.set(officeEditKey(edit),{...edit});
+ if(target&&replacement!==target.text)unique.set(officeEditKey(target),{...target,replacement});
+ return [...unique.values()];
+}
 type Entry={path:string;flags:number;method:number;size:number;expanded:number;crc:number;offset:number;data:number;end:number;central:Uint8Array};
 type Archive={bytes:Uint8Array;entries:Entry[];footer:Uint8Array};
 const MAX_FILE=12*1024*1024,MAX_PART=2*1024*1024;
@@ -93,7 +112,7 @@ export async function officeTextTargets(bytes:Uint8Array,format:OfficeFormat):Pr
  return targets;
 }
 export async function reviseOfficeText(bytes:Uint8Array,format:OfficeFormat,edits:readonly OfficeTextEdit[]):Promise<{bytes:Uint8Array;changedParts:string[]}> {
- if(edits.length<1||edits.length>30)throw Error("office_edit_limit");
+ if(edits.length<1||edits.length>MAX_OFFICE_TEXT_EDITS)throw Error("office_edit_limit");
  const a=archive(bytes),permitted=new Set(editableParts(a,format).map(e=>e.path)),changed=new Map<string,Uint8Array>();let numericChange=false;
  for(const path of new Set(edits.map(e=>e.part))){
   if(!permitted.has(path))throw Error("office_edit_scope");

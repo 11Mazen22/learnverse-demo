@@ -31,8 +31,8 @@ export const RichMessage=memo(function RichMessage({ content, research, streamin
         </figure>:block.type==="insight"||block.type==="example"?<aside key={blockIndex} className={"noata-literary-note "+(block.type==="example"?"is-example":"is-insight")}>
           <strong>{block.type==="example"?t("مثال توضيحي","Example"):t("فكرة مهمة","Key insight")}</strong><p dir="auto">{block.text}</p>
         </aside>:<ReactMarkdown key={blockIndex}
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: false }]]}
+        remarkPlugins={streaming ? [remarkGfm] : [remarkGfm, remarkMath]}
+        rehypePlugins={streaming ? [] : [rehypeKatex, [rehypeHighlight, { detect: false }]]}
         components={{
           a: ({ href, children }) => evidence&&!citationDestination(href,evidence)?<span>{children}</span>:(
             <a href={href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">

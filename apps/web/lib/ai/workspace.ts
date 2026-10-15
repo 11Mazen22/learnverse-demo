@@ -154,19 +154,59 @@ export function safeHref(href: string | null) {
     return "/notifications";
   }
 }
-export function parseStreamFrames(buffer: string) {
+export function parseStreamFrames(buffer: string, final = false) {
+  // Normalize CRLF only after chunks have been decoded so a CRLF split across
+  // network reads is handled consistently.
   const normalized = buffer.replace(/\r\n/g, "\n");
   const blocks = normalized.split("\n\n");
-  const rest = blocks.pop() ?? "";
-  const data = blocks
-    .flatMap((block) =>
-      block
-        .split("\n")
-        .filter((line) => line.startsWith("data:"))
-        .map((line) => line.slice(5).trim()),
-    )
-    .filter(Boolean);
-  return { data, rest };
+  const remainder = blocks.pop() ?? "";
+  const complete = final
+    ? [...blocks, ...(remainder ? [remainder] : [])]
+    : blocks;
+  const data = complete.flatMap((block) => {
+    // SSE permits multiple data lines in a single event. Joining with a newline
+    // preserves the protocol instead of accidentally treating lines as events.
+    const lines = block
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).replace(/^ /, ""));
+    return lines.length ? [lines.join("\n")] : [];
+  }).filter(Boolean);
+  return { data, rest: final ? "" : remainder };
+}
+
+/** Incrementally decodes UTF-8 bytes and SSE events, including a final frame
+ * whose terminating blank line was lost when a connection closed. */
+export class SSEFrameDecoder {
+  private readonly decoder = new TextDecoder();
+  private buffer = "";
+  private readonly maxBufferLength: number;
+
+  constructor(maxBufferLength = 1024 * 1024) {
+    this.maxBufferLength = maxBufferLength;
+  }
+
+  push(bytes: Uint8Array): string[] {
+    this.buffer += this.decoder.decode(bytes, { stream: true });
+    if (this.buffer.length > this.maxBufferLength) {
+      throw Error("Stream frame too large");
+    }
+    const parsed = parseStreamFrames(this.buffer);
+    this.buffer = parsed.rest;
+    return parsed.data;
+  }
+
+  finish(): string[] {
+    // Flush any bytes held by TextDecoder when the last network chunk ended
+    // inside a multi-byte character, then accept a final un-delimited frame.
+    this.buffer += this.decoder.decode();
+    if (this.buffer.length > this.maxBufferLength) {
+      throw Error("Stream frame too large");
+    }
+    const parsed = parseStreamFrames(this.buffer, true);
+    this.buffer = "";
+    return parsed.data;
+  }
 }
 /** Translate a provider HTTP failure into a stable, non-sensitive UI error. */
 export function aiResponseFailure(status: number, body: unknown): string {
