@@ -7,7 +7,7 @@ import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
 import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./semantic-plan.ts";
-import { createFanarStream } from "./streaming.ts";
+import { createFanarStream,readFanarTextResponse } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,searchNeedsTopic,runResearch,researchContext,type Research} from "./research.ts";
@@ -104,7 +104,7 @@ function unavailableResearchContent(responseLanguage:"ar"|"en"){return responseL
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
-  const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??1),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
+  const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
   // Real limited Wikipedia references, never represented as current news.
   await claim(userId,"web_search");
@@ -123,17 +123,21 @@ async function reviewCompletedAnswer(input:{
         await claim(input.userId,input.model);
         const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
           method:"POST",headers:{Authorization:"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
-          body:JSON.stringify({model:input.model,stream:false,max_tokens:6000,temperature:0.1,messages:[
+          body:JSON.stringify({model:input.model,stream:true,max_tokens:6000,temperature:0.1,messages:[
             {role:"system",content:answerReviewInstruction(reason,input.language,input.request)+"\n"+fileDeliveryInstruction(input.format,input.language,input.sectionLevel)},
             {role:"user",content:JSON.stringify({request:input.request,previousDraft:input.content.slice(0,16000),...(input.research?{retrievedEvidence:researchContext(input.research)}:{})})}
           ]}),signal:AbortSignal.any([input.signal,AbortSignal.timeout(45000)])
         });
-        if(!reviewed.ok)return fallback();
-        const data=await reviewed.json(),candidate=clean(data?.choices?.[0]?.message?.content??"");
-        const issue=answerReviewIssue(input.request,candidate,input.research,input.sectionLevel?"pptx":input.format);
-        if(data?.choices?.[0]?.finish_reason==="length"||issue){console.info("noata_answer_review_rejected",JSON.stringify({issue,finishReason:data?.choices?.[0]?.finish_reason??null,words:candidate.match(/[\p{L}\p{N}]+/gu)?.length??0,sections:candidate.match(/^#{1,3}\s+\S/gm)?.length??0}));return fallback();}
-        return candidate;
-      }catch{input.signal.throwIfAborted();return fallback();}
+        if(!reviewed.ok||!reviewed.body)return fallback();
+        const reviewOutput=await readFanarTextResponse(reviewed,candidate=>input.emit?.({content:clean(candidate),model:input.model,delivery:"streamed"}));
+        const candidateText=clean(reviewOutput.content),finishReason=reviewOutput.finishReason;
+        const issue=answerReviewIssue(input.request,candidateText,input.research,input.sectionLevel?"pptx":input.format);
+        if(finishReason==="length"||!candidateText||issue){
+          console.info("noata_answer_review_rejected",JSON.stringify({issue,finishReason:finishReason||null,words:candidateText.match(/[\p{L}\p{N}]+/gu)?.length??0,sections:candidateText.match(/^#{1,3}\s+\S/gm)?.length??0}));
+          const safe=fallback();if(safe)input.emit?.({content:clean(safe),model:input.model,delivery:"streamed"});return safe;
+        }
+        return candidateText;
+      }catch{input.signal.throwIfAborted();const safe=fallback();if(safe)input.emit?.({content:clean(safe),model:input.model,delivery:"streamed"});return safe;}
 
 }
 function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="",artifactFormat?:unknown,sectionLevel?:number) {
@@ -144,6 +148,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
   const providerBody=specialized?{model,messages:(body.messages as {role:string}[]).filter(m=>m.role!=="system"),stream:false}:{...body,stream:true};
   return new Response(createFanarStream({
     model, clean,routeNote,
+    deferContentUntilReview:!specialized&&Boolean(userId)&&(plan?.needed===true||answerReviewReason(actualRequest,"",undefined,artifactFormat)!==null),
     unavailableContent:()=>unavailableResearchContent(responseLanguage),
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);

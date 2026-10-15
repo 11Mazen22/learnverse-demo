@@ -9,10 +9,49 @@ type Options = {
   windowMs?: number;
   heartbeatMs?: number;
   routeNote?:string;
+  /** Hide a provisional draft when a final review pass will write the visible answer. */
+  deferContentUntilReview?:boolean;
   unavailableContent?: (research:Research)=>string;
   prepare?: (signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<Research|undefined>;
   review?: (result:StreamResult,signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<string|undefined>;
 };
+/** Read a Fanar/OpenAI-compatible response and forward cumulative final-answer text. */
+export async function readFanarTextResponse(response:Response,onContent:(content:string)=>void):Promise<{content:string;finishReason:string}>{
+  if(!response.ok||!response.body)throw Error("Answer review response unavailable");
+  if(!response.headers.get("content-type")?.includes("text/event-stream")){
+    const data=await response.json(),content=data?.choices?.[0]?.message?.content;
+    if(typeof content!=="string"||content.length>500000)throw Error("Invalid answer review response");
+    onContent(content);
+    return {content,finishReason:typeof data?.choices?.[0]?.finish_reason==="string"?data.choices[0].finish_reason:"stop"};
+  }
+  const reader=response.body.getReader(),decoder=new TextDecoder();
+  let buffer="",content="",finishReason="stop",finished=false;
+  const consume=(block:string)=>{
+    const raw=block.split("\n").filter(line=>line.startsWith("data:")).map(line=>line.slice(5).trimStart()).join("\n").trim();
+    if(!raw)return;
+    if(raw==="[DONE]"){finished=true;return;}
+    const data=JSON.parse(raw);
+    if(data.error)throw Error("Answer review stream failed");
+    const choice=data.choices?.[0];
+    if(typeof choice?.delta?.content==="string"){
+      content+=choice.delta.content;
+      if(content.length>500000)throw Error("Answer review size limit");
+      onContent(content);
+    }
+    if(typeof choice?.finish_reason==="string"){finishReason=choice.finish_reason;finished=true;}
+  };
+  try{
+    while(true){
+      const part=await reader.read();
+      buffer+=(part.done?decoder.decode():decoder.decode(part.value,{stream:true})).replace(/\r\n?/g,"\n");
+      let end:number;
+      while((end=buffer.indexOf("\n\n"))>=0){consume(buffer.slice(0,end));buffer=buffer.slice(end+2);}
+      if(finished)break;
+      if(part.done){if(buffer.trim())consume(buffer);break;}
+    }
+    return {content,finishReason};
+  }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+}
 /** Return headers and a ready frame before waiting for upstream inference. */
 export function createFanarStream(options: Options): ReadableStream<Uint8Array> {
   const abort = new AbortController();
@@ -52,8 +91,8 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
           output = data?.choices?.[0]?.message?.content ?? "";
           finishReason = data?.choices?.[0]?.finish_reason ?? "stop";
           finished = true;
-          if(output)firstContentMs=Date.now()-started;
-          emit({ content: options.clean(output), model: options.model, delivery });
+          if(output&&!options.deferContentUntilReview)firstContentMs=Date.now()-started;
+          if(!options.deferContentUntilReview)emit({ content: options.clean(output), model: options.model, delivery });
         } else {
           reader = response.body.getReader();
           const frame = (block: string) => {
@@ -65,9 +104,9 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
             const choice = data.choices?.[0];
             if (typeof choice?.delta?.content === "string") {
               output += choice.delta.content;
-              if(firstContentMs===null&&options.clean(output))firstContentMs=Date.now()-started;
+              if(!options.deferContentUntilReview&&firstContentMs===null&&options.clean(output))firstContentMs=Date.now()-started;
               if (output.length > 500_000) throw Error("Response size limit");
-              emit({ content: options.clean(output), model: options.model, delivery });
+              if(!options.deferContentUntilReview)emit({ content: options.clean(output), model: options.model, delivery });
             }
             if (choice?.finish_reason) { finishReason = choice.finish_reason; finished = true; }
           };
@@ -90,8 +129,26 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
         // final frame replaces the streamed draft; no second assistant row is made.
         if(finishReason!=="length"&&options.review){
           await reader?.cancel().catch(()=>{});reader?.releaseLock();reader=undefined;
-          const revised=await options.review(result(false),abort.signal,emit);
-          if(typeof revised==="string"&&revised.trim()&&revised.length<=500000){output=revised;emit({content:options.clean(output),model:usedModel,delivery});}
+          const draft=result(false);
+          if(options.deferContentUntilReview)output="";
+          let reviewContentEmitted=false;
+          const reviewEmit=(data:unknown)=>{
+            if(data&&typeof data==="object"&&typeof (data as {content?:unknown}).content==="string"){
+              reviewContentEmitted=true;
+              delivery="streamed";
+              if(firstContentMs===null&&options.clean(String((data as {content:string}).content)))firstContentMs=Date.now()-started;
+            }
+            emit(data);
+          };
+          const revised=await options.review(draft,abort.signal,reviewEmit);
+          if(typeof revised==="string"&&revised.trim()&&revised.length<=500000){
+            output=revised;
+            if(!reviewContentEmitted)emit({content:options.clean(output),model:usedModel,delivery});
+          }else if(options.deferContentUntilReview&&!reviewContentEmitted){
+            output=draft.content;
+            emit({content:options.clean(output),model:usedModel,delivery});
+            if(firstContentMs===null)firstContentMs=Date.now()-started;
+          }
         }
         const complete = result(finishReason === "length");
         await options.persist(complete);

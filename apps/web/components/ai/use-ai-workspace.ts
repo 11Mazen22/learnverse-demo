@@ -638,6 +638,28 @@ export function useAIWorkspace() {
       used = model,
       done = false,finishReason="stop",incomplete=false;
     let research:Research|undefined,timings:ChatPart["timings"],routeNote:string|undefined;
+    let latestPending:string|undefined,lastPublishedAt=0,publishTimer:ReturnType<typeof setTimeout>|null=null;
+    const publishPending=(value:string)=>{
+      latestPending=value;
+      const now=Date.now(),remaining=40-(now-lastPublishedAt);
+      if(remaining<=0){
+        if(publishTimer){clearTimeout(publishTimer);publishTimer=null;}
+        if(sessionScope.current.isCurrent(token))setPendingText(value);
+        lastPublishedAt=now;
+      }else if(!publishTimer){
+        publishTimer=setTimeout(()=>{
+          publishTimer=null;
+          if(latestPending!==undefined&&sessionScope.current.isCurrent(token))setPendingText(latestPending);
+          lastPublishedAt=Date.now();
+        },remaining);
+      }
+    };
+    const flushPending=()=>{
+      if(publishTimer){clearTimeout(publishTimer);publishTimer=null;}
+      if(latestPending!==undefined&&sessionScope.current.isCurrent(token))setPendingText(latestPending);
+      latestPending=undefined;
+      lastPublishedAt=Date.now();
+    };
     try {
       for (;;) {
         const part = await reader.read();
@@ -663,13 +685,14 @@ export function useAIWorkspace() {
             content = event.content;
              const combined=prefix?prefix+"\n\n"+content:content;
              streamed.current = { content:combined, model: event.model || used };
-             setPendingText(combined);
+             publishPending(combined);
           }
           if (event.model) used = event.model;
           if (event.done) { done = true; finishReason=event.finishReason??"stop";incomplete=event.incomplete===true;timings=event.timings; }
         }
       }
     } finally {
+      flushPending();
       await reader.cancel().catch(() => {});
       reader.releaseLock();
     }

@@ -15,7 +15,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);
  const [projects,setProjects]=useState<Project[]>([]),[artifacts,setArtifacts]=useState<Artifact[]>([]);
  const [uploads,setUploads]=useState<Upload[]>([]),[revision,setRevision]=useState(0);
- const [editing,setEditing]=useState<CreatedArtifact|null>(null),[original,setOriginal]=useState<{name:string;documentId:string;format:"pdf"|"docx"|"xlsx"|"pptx"|"text"}|null>(null);
+ const [editing,setEditing]=useState<CreatedArtifact|null>(null),[original,setOriginal]=useState<{name:string;documentId:string;format:"pdf"|"docx"|"xlsx"|"pptx"|"text";initialMode:"preview"|"edit"|"pages"}|null>(null);
  const [media,setMedia]=useState<{url:string;item:Upload}|null>(null);
  useEffect(()=>()=>{if(media)URL.revokeObjectURL(media.url);},[media]);
  const [query,setQuery]=useState(""),[serverQuery,setServerQuery]=useState(""),[page,setPage]=useState(0),[hasMore,setHasMore]=useState(false);
@@ -162,7 +162,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
   if(item.kind==="media"){void retrieve(item,"preview");setEditing(null);setOriginal(null);return;}
   const ext=item.name.split(".").at(-1)?.toLowerCase();
   setEditing(null);setMedia(null);
-  setOriginal({name:item.name,documentId:item.id,format:["pdf","docx","xlsx","pptx"].includes(ext??"")?ext as "pdf"|"docx"|"xlsx"|"pptx":"text"});
+  setOriginal({name:item.name,documentId:item.id,format:["pdf","docx","xlsx","pptx"].includes(ext??"")?ext as "pdf"|"docx"|"xlsx"|"pptx":"text",initialMode:ext==="pdf"?"pages":"preview"});
  }
  async function organize(item:Artifact,project:string){
   if(!owner||busy)return;setBusy(true);setError("");
@@ -180,7 +180,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
    {previewing?<>
     <div className="noata-library-preview-heading"><button type="button" onClick={closePreview}>{t("العودة إلى المكتبة","Back to library")}</button><h4 ref={previewHeading} tabIndex={-1} dir="auto">{editing?.filename??original?.name??media?.item.name}</h4></div>
    {media&&<section className="noata-library-media" aria-label={t("معاينة المرفق","Upload preview")}><strong dir="auto">{media.item.name}</strong>{media.item.mime_type.startsWith("image/")?<NoataImageStudio url={media.url} name={media.item.name} sourceId={media.item.id} owner={owner} onSaved={()=>{setPage(0);setRevision(n=>n+1);}} onUse={onUseUpload}/>:<audio src={media.url} controls/>}<button type="button" onClick={()=>setMedia(null)}>{t("إغلاق المعاينة","Close preview")}</button></section>}
-   {(editing||original)&&<NoataCreativeStudio inline file={editing} localSource={original} owner={owner} onClose={closePreview} onPrepareEdit={onPrepareEdit} onRevisionSaved={()=>{setPage(0);setRevision(n=>n+1);}}/>}
+   {(editing||original)&&<NoataCreativeStudio inline file={editing} localSource={original} initialMode={original?.initialMode??(editing?.format==="pdf"?"pages":"preview")} owner={owner} onClose={closePreview} onPrepareEdit={onPrepareEdit} onRevisionSaved={()=>{setPage(0);setRevision(n=>n+1);}}/>}
    </>:<>
    <form className="noata-library-create" onSubmit={e=>{e.preventDefault();void createProject();}}>
     <label htmlFor="noata-project-name">{t("مشروع جديد","New project")}</label>

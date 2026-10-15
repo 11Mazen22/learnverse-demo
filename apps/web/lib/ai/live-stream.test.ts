@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createFanarStream } from "../../../../supabase/functions/noata-ai/streaming.ts";
+import { createFanarStream,readFanarTextResponse } from "../../../../supabase/functions/noata-ai/streaming.ts";
 import { resolveAutoRoute, requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
 import { parseStreamFrames } from "./workspace.ts";
 
@@ -12,6 +12,16 @@ function upstream() {
     write(value:string){controller.enqueue(encoder.encode(value))},close(){controller.close()} };
 }
 const clean = (value:string)=>value.trim();
+test("the final answer stream survives split SSE frames and emits exact cumulative text",async()=>{
+ const provider=upstream(),seen:string[]=[];
+ const response=readFanarTextResponse(provider.response,text=>seen.push(text));
+ provider.write('data: {"choices":[{"delta":{"content":"## Fi');
+ provider.write('nal"}}]}\r\n\r\ndata: {"choices":[{"delta":{"content":" answer"},"finish_reason":"stop"}]}\r\n\r\n');
+ provider.close();
+ const final=await response;
+ assert.deepEqual(seen,["## Final","## Final answer"]);
+ assert.deepEqual(final,{content:"## Final answer",finishReason:"stop"});
+});
 test("the browser receives ready and partial text before upstream generation finishes",async()=>{
   const provider = upstream(); let completed = false;
   const stream = createFanarStream({model:"Fanar",clean,request:async()=>provider.response,persist:async()=>{completed=true}});
@@ -84,6 +94,28 @@ test("One completed-draft review replaces the content in the same stream and per
  const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
  assert.equal(calls,1);assert.equal(saved.content,"## Reviewed answer\nSource-backed content [1].");
  assert.equal(frames.filter(x=>x.done).length,1);assert.ok(frames.some(x=>x.status==="organizing"));
+});
+test("review-required requests stream only the final writer's cumulative content",async()=>{
+ const stream=createFanarStream({model:"Fanar",clean,deferContentUntilReview:true,
+  request:async()=>Response.json({choices:[{message:{content:"Provisional draft must stay hidden."},finish_reason:"stop"}]}),
+  review:async(_,__,emit)=>{emit({status:"organizing"});emit({content:"## Final"});emit({content:"## Final answer"});return "## Final answer";},
+  persist:async()=>{}});
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(frame=>JSON.parse(frame));
+ const content=frames.filter(frame=>typeof frame.content==="string").map(frame=>frame.content);
+ assert.ok(content.length>=2);
+ assert.ok(content.every(text=>!text.includes("Provisional draft")));
+ assert.equal(content[0],"## Final");
+ assert.equal(content.at(-1),"## Final answer");
+ assert.equal(frames.at(-1).done,true);
+});
+test("a deferred request with no applicable review restores its original answer",async()=>{
+ let saved:any;
+ const stream=createFanarStream({model:"Fanar",clean,deferContentUntilReview:true,
+  request:async()=>Response.json({choices:[{message:{content:"Original answer"},finish_reason:"stop"}]}),
+  review:async()=>undefined,persist:async(result)=>{saved=result;}});
+ const frames=parseStreamFrames(await new Response(stream).text()).data.map(frame=>JSON.parse(frame));
+ assert.equal(saved.content,"Original answer");
+ assert.equal(frames.at(-1).content,"Original answer");
 });
 test("A truncated provider draft is preserved for continuation without a quality rewrite",async()=>{
  let calls=0;

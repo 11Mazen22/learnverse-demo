@@ -7,9 +7,15 @@ export function normalizedDocumentSource(text:string):string {
   .replace(/^\[\s*([^\n]*\\(?:text|mathrm|frac|sqrt|rightarrow|xrightarrow|sum|int|begin)\b[^\n]*)\s*\]\s*$/gm,(_,math)=>"\n$$\n"+math.trim()+"\n$$\n")
  ).join("");
 }
-/** The separate PDF cover already displays a matching first Markdown title. */
+/** Remove opening Markdown headings already shown in the generated PDF cover. */
 export function withoutDuplicateDocumentTitle(text:string,title:string):string{
- const key=(value:string)=>value.replace(/\.(pdf|docx)$/i,"").replace(/[*_\x60]/g,"").normalize("NFKC").replace(/\s+/g," ").trim().replace(/[.!?؟。]+$/u,"").toLocaleLowerCase();
- const first=text.match(/^\s*#{1,2}\s+([^\n]+)(?:\n|$)/);
- return first&&key(first[1])===key(title)?text.slice(first[0].length).trimStart():text;
+ const key=(value:string)=>value.replace(/\.(pdf|docx|pptx|xlsx)$/i,"").replace(/[*_\x60]/g,"")
+  .normalize("NFKD").replace(/[\p{M}\u0640]/gu,"").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim();
+ const documentTitle=key(title);let remaining=text;
+ while(documentTitle){
+  const first=remaining.match(/^\s*#{1,2}\s+([^\n]+)(?:\n|$)/);
+  if(!first||key(first[1])!==documentTitle)break;
+  remaining=remaining.slice(first[0].length).trimStart();
+ }
+ return remaining;
 }

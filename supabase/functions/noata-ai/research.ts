@@ -24,7 +24,7 @@ export function searchPlan(text:string):SearchPlan {
   // Keep the actual query visible in the research activity for auditability.
   if(/^(?:(?:ok(?:ay)?[,:]?\s*)?(?:please\s+)?(?:search|browse|look up|research|find sources)\s+(?:the\s+web\s+)?(?:for\s+)?(?:anything|something|whatever)(?:\s+(?:interesting|random))?[.!?]*|(?:ابحث|دور)\s+(?:عن\s+)?(?:أي\s+حاجة|اي\s+حاجه|أي\s+شيء))[.!؟]*$/i.test(query))
     return {needed:true,reason:"explicit",query:"solar system planets",fresh:false};
-  if(/\b(search|browse|look up|research|find sources|verify sources)\b|ابحث|بحث (?:عن|على)|مصادر|تحقق من/i.test(query))return plan("explicit",true,fresh);
+  if(/\b(search|browse|look up|look for|look into|research|find (?:sources|information|out)|check (?:online|the web)|verify sources)\b|ابحث|دور|بحث (?:عن|على)|مصادر|تحقق من/i.test(query))return plan("explicit",true,fresh);
   if(fresh)return plan("freshness",true,true);
   if(/https:\/\/|\b(citations?|cite|official documentation|published (?:paper|study))\b|استشهد|توثيق|دراسة منشورة/i.test(query))return plan("source",true);
   return plan("none");
@@ -72,7 +72,7 @@ export async function runResearch(plan:SearchPlan,options:SearchProviderOptions 
   active++;
   const sources:ResearchSource[]=[];
   try{
-    for(const query of researchQueries(plan.query,plan.scope,options.maxQueries??1)){
+    for(const query of researchQueries(plan.query,plan.scope,options.maxQueries??3)){
       options.signal.throwIfAborted();
       record("searching");options.onStatus?.("searching");
       try{

@@ -15,6 +15,14 @@ test("PDF export preserves Arabic, tables, lists and mixed-direction mathematica
   for(const marker of ['dir="rtl"','<h2>','<table>','<ol>','<math','العربية مع English']) assert.ok(html.includes(marker),marker);
   assert.ok(html.includes("table-header-group"));
 });
+test("PDF export does not repeat a generated Arabic title as the opening heading",async()=>{
+  const title="تاريخ الشوكولاتة: رحلة عبر الزمن";
+  const html=await documentHtml(`# ${title}\n\n## المقدمة\nتروي هذه الوثيقة قصة الشوكولاتة عبر الزمن.`,title,{arabic:"",latin:""});
+  const body=html.split("<main>")[1]?.split("</main>")[0]??"";
+  assert.equal((body.match(/تاريخ الشوكولاتة/g)??[]).length,0);
+  assert.equal((body.match(/<h1/g)??[]).length,0);
+  assert.equal((body.match(/<h2/g)??[]).length,1);
+});
 test("PDF exporter excludes raw HTML, hostile links and remote resources",async()=>{
   const html=await documentHtml('<script>alert(1)</script>\n\n[click](javascript:alert(1))\n\n![secret](https://internal.invalid/secret)',"<img onerror='x'>",{arabic:"",latin:""});
   assert.ok(!html.includes('<script>'));
