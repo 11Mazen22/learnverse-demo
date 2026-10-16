@@ -452,3 +452,154 @@
   .mushaf .noata-quran-seal-ring{stroke:CanvasText}
   .mushaf .noata-quran-verse-digits{color:CanvasText}
 }
+
+/* ── Quick listening + persistent playback: a companion to the Mushaf ── */
+.mushaf .mushaf-quick-listening{
+  display:grid;
+  gap:13px;
+  margin:14px clamp(12px,2vw,20px) 20px;
+  padding:clamp(14px,2vw,20px);
+  border:1px solid var(--mushaf-edge);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 100% 0,color-mix(in srgb,var(--accent) 5%,transparent),transparent 45%),
+    var(--surface);
+  box-shadow:0 7px 24px color-mix(in srgb,var(--ink) 3%,transparent);
+}
+.mushaf .mushaf-quick-listening-intro{
+  display:flex;align-items:center;gap:11px;min-width:0;
+}
+.mushaf .mushaf-quick-listening-icon{
+  display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;
+  border:1px solid var(--mushaf-edge);border-radius:12px;
+  background:var(--mushaf-glow);color:var(--accent);
+}
+.mushaf .mushaf-quick-listening-intro>div{display:grid;gap:4px;min-width:0}
+.mushaf .mushaf-quick-listening-intro strong{font-size:13px;font-weight:780;color:var(--ink)}
+.mushaf .mushaf-quick-listening-intro>div>span{font-size:11px;line-height:1.8;color:var(--muted)}
+.mushaf .mushaf-quick-listening-controls{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;gap:10px;min-width:0;
+}
+.mushaf .mushaf-quick-listening-controls>.mushaf-reciters{min-width:0;border-radius:13px;border-color:var(--mushaf-edge)}
+.mushaf .mushaf-quick-listening-controls .mushaf-reciters summary{
+  min-height:62px;padding:8px 13px;gap:10px;
+}
+.mushaf .mushaf-quick-listening-controls .mushaf-reciter-avatar{width:40px;height:40px;flex:0 0 40px;border-radius:12px}
+.mushaf .mushaf-quick-listening-controls .mushaf-reciter-summary strong{font-size:12px}
+.mushaf .mushaf-quick-play{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:62px;min-width:190px;padding:11px 17px;
+  border:1px solid var(--accent);border-radius:13px;
+  background:var(--accent);color:var(--surface);
+  box-shadow:0 5px 14px color-mix(in srgb,var(--accent) 16%,transparent);
+  font-size:12px;font-weight:780;white-space:nowrap;
+  transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease;
+}
+.mushaf .mushaf-quick-play:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 19px color-mix(in srgb,var(--accent) 22%,transparent)}
+.mushaf .mushaf-quick-play:disabled{opacity:.55;cursor:not-allowed}
+.mushaf .mushaf-quick-play:focus-visible,.mushaf .mushaf-audio-dock :is(button,a,input):focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.mushaf .mushaf-quick-listening-note{margin:0;font-size:10px;line-height:1.7;color:var(--muted)}
+.mushaf .mushaf-quick-listening[ id="mushaf-reciter-selector"]{scroll-margin-top:30px}
+.mushaf .mushaf-listening-studio{scroll-margin-top:26px}
+.mushaf .mushaf-audio-active{padding-bottom:135px}
+
+/* This dock controls the same audio engine and audio element as the full player;
+   it is not a second stream, so playback never restarts when the reader scrolls. */
+.mushaf .mushaf-audio-dock{
+  position:fixed;z-index:1200;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%);
+  display:grid;grid-template-columns:minmax(0,1.05fr) minmax(180px,1fr) 44px 42px 42px;
+  align-items:center;gap:11px;
+  width:min(1120px,calc(100vw - 28px));min-width:0;
+  padding:11px 13px;
+  border:1px solid color-mix(in srgb,var(--accent) 23%,var(--line));
+  border-radius:19px;
+  background:color-mix(in srgb,var(--surface) 91%,transparent);
+  color:var(--ink);
+  box-shadow:0 12px 40px color-mix(in srgb,var(--ink) 15%,transparent);
+  -webkit-backdrop-filter:blur(22px) saturate(1.3);
+  backdrop-filter:blur(22px) saturate(1.3);
+  animation:mushaf-reveal .2s ease both;
+}
+.mushaf .mushaf-audio-dock-track{display:flex;align-items:center;gap:10px;min-width:0}
+.mushaf .mushaf-audio-dock-emblem{
+  display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;
+  border-radius:12px;background:var(--mushaf-glow);border:1px solid var(--mushaf-edge);color:var(--accent);
+}
+.mushaf .mushaf-audio-dock-track>div{display:grid;gap:3px;min-width:0}
+.mushaf .mushaf-audio-dock-track small{font-size:9px;color:var(--accent);font-weight:760}
+.mushaf .mushaf-audio-dock-track strong{font-size:12px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mushaf .mushaf-audio-dock-track>div>span{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mushaf .mushaf-audio-dock-seek{display:grid;gap:5px;min-width:0}
+.mushaf .mushaf-audio-dock-seek input{
+  appearance:none;width:100%;height:5px;margin:5px 0 3px;
+  border-radius:99px;accent-color:var(--accent);cursor:pointer;
+}
+.mushaf .mushaf-audio-dock-seek input:disabled{opacity:.45;cursor:not-allowed}
+.mushaf .mushaf-audio-dock-seek>div{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.mushaf .mushaf-audio-dock-seek time{font-size:9px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mushaf .mushaf-audio-dock-status{font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.mushaf .mushaf-audio-dock :is(.mushaf-audio-dock-play,.mushaf-audio-dock-action){
+  display:grid;place-items:center;align-self:center;
+  width:42px;min-width:42px;height:42px;min-height:42px;padding:0;
+  border:1px solid var(--line);border-radius:13px;
+  background:var(--surface);color:var(--ink);text-decoration:none;
+  transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+.mushaf .mushaf-audio-dock .mushaf-audio-dock-play{
+  width:44px;min-width:44px;height:44px;min-height:44px;
+  background:var(--accent);border-color:var(--accent);color:var(--surface);
+}
+.mushaf .mushaf-audio-dock :is(.mushaf-audio-dock-play,.mushaf-audio-dock-action):hover:not(:disabled){border-color:var(--mushaf-edge);background:var(--mushaf-glow);color:var(--accent)}
+.mushaf .mushaf-audio-dock .mushaf-audio-dock-play:hover:not(:disabled){background:var(--accent);color:var(--surface);transform:scale(1.035)}
+.mushaf .mushaf-audio-dock button:disabled{opacity:.5;cursor:not-allowed}
+.mushaf .mushaf-audio-dock[data-status="error"]{border-color:color-mix(in srgb,#b45309 45%,var(--line))}
+.mushaf .mushaf-audio-dock[data-status="error"] .mushaf-audio-dock-status{color:#b45309}
+
+/* Focus mode uses the viewport rather than the standard app's narrow content column. */
+.noata-shell:has(.mushaf-focused){display:block;width:100%;min-height:100dvh}
+.noata-shell:has(.mushaf-focused)>.noata-sidebar,
+.noata-shell:has(.mushaf-focused)>.mobile-nav,
+.noata-shell:has(.mushaf-focused)>.noata-main>.shell-topbar,
+.noata-shell:has(.mushaf-focused)>.noata-main>.page-footer{display:none!important}
+.noata-shell:has(.mushaf-focused)>.noata-main{
+  display:block;width:100%;min-width:0;min-height:100dvh;margin:0;padding:0;
+}
+.noata-shell:has(.mushaf-focused) .page-content{width:100%;max-width:none;min-width:0;margin:0;padding:0}
+.mushaf.aura-quran.mushaf-focused{
+  width:100%;max-width:1200px;min-width:0;margin-inline:auto;padding:clamp(14px,3vw,36px);
+  display:flex;flex-direction:column;align-items:stretch;gap:clamp(16px,2.2vw,28px);
+}
+.mushaf-focused .mushaf-workspace{display:grid;grid-template-columns:minmax(0,1fr);width:100%;max-width:1080px;min-width:0;margin-inline:auto}
+.mushaf-focused .mushaf-main,.mushaf-focused .mushaf-reading{width:100%;min-width:0;max-width:none}
+@media(max-width:760px){
+  .mushaf .mushaf-quick-listening-controls{grid-template-columns:minmax(0,1fr)}
+  .mushaf .mushaf-quick-play{min-width:0;width:100%;min-height:48px}
+  .mushaf .mushaf-audio-dock{
+    grid-template-columns:minmax(0,1fr) 44px 42px;
+    gap:8px;width:calc(100vw - 20px);padding:9px 10px;border-radius:16px;
+  }
+  .mushaf .mushaf-audio-dock-track{grid-column:1;grid-row:1}
+  .mushaf .mushaf-audio-dock-play{grid-column:2;grid-row:1}
+  .mushaf .mushaf-audio-dock-actions{grid-column:3;grid-row:1}
+  .mushaf .mushaf-audio-dock-seek{grid-column:1/-1;grid-row:2}
+  .mushaf .mushaf-audio-dock-action:last-child{display:none}
+  .mushaf .mushaf-audio-dock-track strong{font-size:11px}
+  .mushaf .mushaf-audio-dock-status{font-size:8px}
+  .mushaf .mushaf-audio-active{padding-bottom:130px}
+  .mushaf.aura-quran.mushaf-focused{padding:10px;gap:14px}
+}
+@media(max-width:420px){
+  .mushaf .mushaf-audio-dock{width:calc(100vw - 12px);bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+  .mushaf .mushaf-audio-dock-emblem{width:32px;height:32px;flex-basis:32px}
+  .mushaf .mushaf-audio-dock :is(.mushaf-audio-dock-play,.mushaf-audio-dock-action){width:38px;min-width:38px;height:38px;min-height:38px}
+  .mushaf .mushaf-audio-dock .mushaf-audio-dock-play{width:40px;min-width:40px;height:40px;min-height:40px}
+}
+@media(prefers-reduced-motion:reduce){
+  .mushaf .mushaf-quick-play,.mushaf .mushaf-audio-dock,.mushaf .mushaf-audio-dock :is(button,a){transition:none;animation:none}
+}
+@media(forced-colors:active){
+  .mushaf .mushaf-quick-listening,.mushaf .mushaf-audio-dock{background:Canvas;border:1px solid CanvasText;box-shadow:none}
+  .mushaf .mushaf-quick-play,.mushaf .mushaf-audio-dock .mushaf-audio-dock-play{background:Highlight;color:HighlightText;border:1px solid Highlight}
+  .mushaf .mushaf-audio-dock :is(button,a){border:1px solid ButtonText;color:ButtonText}
+}
