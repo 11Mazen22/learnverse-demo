@@ -6,7 +6,7 @@ This is the concise 48-section readiness index. For stable atomic IDs and source
 
 | Section | Requirement group | Status | Current evidence / next action |
 |---|---|---|---|
-| R01 | Inspect the actual project before coding | IN_PROGRESS | Current production master is b41888a and the public health endpoint reports that exact revision. Full repository and 48-section acceptance remain open. |
+| R01 | Inspect the actual project before coding | IN_PROGRESS | Current production master is c2111eb286dd44d5382b960fd3e5a0dd4524b848 and public /health reports that exact revision. Full repository and 48-section acceptance remain open. |
 | R02 | Create a capability audit | IN_PROGRESS | Typed capability registry and guarded integrations exist; Fanar and Brave live success still requires authorized staging verification. |
 | R03 | Create a new flagship AI experience | IN_PROGRESS | The Noata AI workspace and design language exist in production; the requested flagship redesign is not fully accepted against the master specification. |
 | R04 | Design a unified Noata AI experience | IN_PROGRESS | A unified chat workspace combines model selection, files, research and settings; full cross-surface UX acceptance remains open. |
@@ -50,7 +50,7 @@ This is the concise 48-section readiness index. For stable atomic IDs and source
 | R42 | Make the interface lightweight and responsive | IN_PROGRESS | Real-browser RTL/responsive checks pass at existing 320/390/1440 widths; the full 375/768/1024 matrix and low-end profiling remain open. |
 | R43 | Execute in verified milestones | IN_PROGRESS | Changes are isolated into reviewable PRs with exact-head gates; the full Renaissance milestone plan is not complete. |
 | R44 | Required functional test scenarios | IN_PROGRESS | Modern, legacy, authorization, Office/PDF, browser and stream regressions exist; all required end-to-end scenarios are not yet covered. |
-| R45 | Required verification | IN_PROGRESS | Production b41888a passed live HTTP/RTL/security smoke; recent PRs passed CI/browser gates, while authorized Fanar/Brave end-to-end tests remain open. |
+| R45 | Required verification | IN_PROGRESS | Production c2111eb286dd44d5382b960fd3e5a0dd4524b848 passed live HTTP/RTL/security smoke; PR #30 page-order validation passed exact-head CI #1302 and is deployed; authorized Fanar/Brave end-to-end tests remain open. |
 | R46 | Preserve the existing release restrictions | IN_PROGRESS | Renaissance PR #3 remains subject to the existing promotion restriction; no Supabase plan upgrade, production migration or secret change is part of these fixes. |
 | R47 | Final acceptance conditions | NOT_STARTED | The master-spec definition of done is not met while provider, interaction, file-editing and authenticated E2E requirements remain unverified. |
 | R48 | Produce actual implementation results | IN_PROGRESS | Multiple fixes are merged and deployed, but results are intentionally not described as full Renaissance 2.0 completion. |
