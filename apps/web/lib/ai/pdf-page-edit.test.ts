@@ -6,12 +6,76 @@ import {mkdtemp,writeFile,readFile,rm} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {revisePdfPages,pdfPageOrder} from "./pdf-page-edit.ts";
+import {extractPdfDocument} from "./pdf-ingest.ts";
 async function fixture(){
  const doc=await PDFDocument.create();doc.setTitle("Original metadata");doc.setAuthor("Fixture author");
  const font=await doc.embedFont(StandardFonts.Helvetica);
  for(let i=1;i<=3;i++){const page=doc.addPage([300+i*10,400+i*10]);page.drawText("Original page "+i,{x:30,y:200,font,size:20});page.drawRectangle({x:30,y:40,width:70+i*10,height:30});}
  return doc.save({useObjectStreams:false});
 }
+async function scannedFixture(directory:string){
+ const sourceBytes=await fixture(),sourcePath=join(directory,"scan-source.pdf");
+ await writeFile(sourcePath,sourceBytes);
+ const source=await PDFDocument.load(sourceBytes,{updateMetadata:false}),scanned=await PDFDocument.create();
+ scanned.setTitle("Image-only scanned fixture");
+ for(let i=1;i<=source.getPageCount();i++){
+  const prefix=join(directory,"scan-"+i);
+  execFileSync("pdftoppm",["-f",String(i),"-l",String(i),"-singlefile","-scale-to","600","-png",sourcePath,prefix]);
+  const image=await scanned.embedPng(await readFile(prefix+".png"));
+  const size=source.getPage(i-1).getSize(),page=scanned.addPage([size.width,size.height]);
+  page.drawImage(image,{x:0,y:0,width:size.width,height:size.height});
+ }
+ return scanned.save({useObjectStreams:false});
+}
+function ensurePdfJsNodeShim(){
+ if("DOMMatrix" in globalThis)return;
+ Object.defineProperty(globalThis,"DOMMatrix",{
+  configurable:true,
+  value:class DOMMatrix {
+   a=1;b=0;c=0;d=1;e=0;f=0;
+   constructor(_values?:unknown){}
+   multiplySelf(){return this;}
+   preMultiplySelf(){return this;}
+   translateSelf(){return this;}
+   scaleSelf(){return this;}
+   invertSelf(){return this;}
+  }
+ });
+}
+test("image-only scanned PDFs are detected as scanned and remain intact through reorder/rotation",async()=>{
+ const directory=await mkdtemp(join(tmpdir(),"noata-scanned-pdf-"));
+ try{
+  ensurePdfJsNodeShim();
+  const bytes=await scannedFixture(directory),original=bytes.slice();
+  await assert.rejects(
+   extractPdfDocument({name:"scanned.pdf",type:"application/pdf",size:bytes.length,arrayBuffer:async()=>Uint8Array.from(bytes).buffer}),
+   /OCR غير متاح حاليًا/,
+   "image-only scans must disclose that OCR is not available rather than invent selectable text",
+  );
+  const before=await PDFDocument.load(bytes,{updateMetadata:false});
+  const output=await revisePdfPages(bytes,{order:[3,1,2],rotatePage:2,rotation:90});
+  assert.deepEqual(bytes,original,"the source scan must remain unchanged");
+  const after=await PDFDocument.load(output,{updateMetadata:false});
+  assert.equal(after.getPageCount(),3);
+  for(const [position,sourcePage] of [3,1,2].entries()){
+   const a=before.getPage(sourcePage-1),b=after.getPage(position);
+   assert.deepEqual(b.getSize(),a.getSize());
+   assert.equal(b.node.get(PDFName.of("Contents"))?.toString(),a.node.get(PDFName.of("Contents"))?.toString());
+   assert.equal(b.node.get(PDFName.of("Resources"))?.toString(),a.node.get(PDFName.of("Resources"))?.toString());
+   assert.equal(b.getRotation().angle,sourcePage===2?90:0);
+  }
+  const originalScan=join(directory,"original-scan.pdf"),editedScan=join(directory,"edited-scan.pdf");
+  await writeFile(originalScan,bytes);await writeFile(editedScan,output);
+  execFileSync("pdftoppm",["-f","3","-singlefile","-scale-to","600","-png",originalScan,join(directory,"before")]);
+  execFileSync("pdftoppm",["-f","1","-singlefile","-scale-to","600","-png",editedScan,join(directory,"after")]);
+  assert.deepEqual(await readFile(join(directory,"before.png")),await readFile(join(directory,"after.png")),"reordered scanned page pixels must remain identical");
+  await assert.rejects(
+   extractPdfDocument({name:"revised-scan.pdf",type:"application/pdf",size:output.length,arrayBuffer:async()=>Uint8Array.from(output).buffer}),
+   /OCR غير متاح حاليًا/,
+   "revised image-only scans must continue to disclose the OCR limitation",
+  );
+ }finally{await rm(directory,{recursive:true,force:true});}
+});
 test("PDF reordering/rotation retains original content streams, page resources, sizes and metadata",async()=>{
  const bytes=await fixture(),original=bytes.slice(),before=await PDFDocument.load(bytes,{updateMetadata:false});
  const output=await revisePdfPages(bytes,{order:[3,1,2],rotatePage:2,rotation:90});
