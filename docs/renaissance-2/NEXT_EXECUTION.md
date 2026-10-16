@@ -1,8 +1,8 @@
 # Renaissance 2.0 — Next Execution
 
-## Current production release
+## Verified production snapshot (2026-10-16, before this evidence-only PR)
 
-- **Web production revision:** `0acc764361be456f3ee53b2138cab319cf24ef99` at [noata.enterpriseworkhub.online](https://noata.enterpriseworkhub.online).
+- **Web revision observed during this snapshot:** `0acc764361be456f3ee53b2138cab319cf24ef99` at [noata.enterpriseworkhub.online](https://noata.enterpriseworkhub.online).
 - **Live AI backend:** Supabase Edge Function `noata-ai-v2`, ACTIVE version **10**, with `verify_jwt=true`. Its production bundle hash is `9de6a245650addf6cd8c04b3c5cd6acadc1e02f080b9ff2eb4c024e082a6ea3e`, identical to staging version 41.
 - **Source parity:** all 23 files in the deployed `noata-ai-v2` bundle match the tracked `supabase/functions/noata-ai/` source. The capability registry is aligned; inpainting/background removal are declared planned, while PDF native page edits and targeted Office edits have distinct capability IDs.
 - **Verified web smoke:** `/health` returned HTTP 200 and reported the exact revision; `/ai`, `/login`, `/signup`, `/quran`, `/privacy` and `/terms` returned HTTP 200. Arabic pages contain `lang="ar" dir="rtl"`; `X-Content-Type-Options: nosniff` and `X-Frame-Options: DENY` are present.
