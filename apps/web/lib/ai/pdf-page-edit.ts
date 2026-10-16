@@ -2,13 +2,10 @@
  * A full permutation is required: this is not redaction, splitting or deletion.
  */
 import {PDFDocument,PDFDict,PDFArray,PDFStream,PDFName,degrees} from "pdf-lib";
+import {parsePdfPageOrder} from "./pdf-page-order.ts";
 export type PdfPagePlan={order:number[];rotatePage?:number;rotation?:0|90|180|270};
 export function pdfPageOrder(text:string,count:number):number[]{
- if(text.length>1200||!Number.isInteger(count)||count<1||count>200)throw Error("pdf_page_order_invalid");
- const parts=text.trim().split(/[,،\s]+/).filter(Boolean);
- const order=parts.map(x=>/^\d+$/.test(x)?Number(x):NaN);
- if(order.length!==count||new Set(order).size!==count||order.some(n=>!Number.isInteger(n)||n<1||n>count))throw Error("pdf_page_order_invalid");
- return order;
+ return parsePdfPageOrder(text,count);
 }
 async function load(bytes:Uint8Array){
  if(bytes.length<20||bytes.length>12*1024*1024||new TextDecoder().decode(bytes.subarray(0,5))!=="%PDF-")throw Error("pdf_source_invalid");
