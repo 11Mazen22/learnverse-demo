@@ -17,7 +17,7 @@ The initial status on each atomic row is deliberately conservative: it inherits 
 
 | Section | Requirement group | Status | Current evidence / next action |
 |---|---|---|---|
-| R01 | Inspect the actual project before coding | IN_PROGRESS | Current production master is 0acc764361be456f3ee53b2138cab319cf24ef99 and public /health reports that exact revision. Full repository and 48-section acceptance remain open. |
+| R01 | Inspect the actual project before coding | IN_PROGRESS | The baseline revision 0acc764361be456f3ee53b2138cab319cf24ef99 matched public /health at snapshot time; this documentation-only release can advance the deployment SHA. Full repository and 48-section acceptance remain open. |
 | R02 | Create a capability audit | IN_PROGRESS | Typed capability registry and guarded integrations exist; Fanar and Brave live success still requires authorized staging verification. |
 | R03 | Create a new flagship AI experience | IN_PROGRESS | The Noata AI workspace and design language exist in production; the requested flagship redesign is not fully accepted against the master specification. |
 | R04 | Design a unified Noata AI experience | IN_PROGRESS | A unified chat workspace combines model selection, files, research and settings; full cross-surface UX acceptance remains open. |
@@ -957,12 +957,12 @@ Stable IDs use `Rxx.yyy`. The source line is from the supplied master specificat
 | R44.015 | 2551 | O. Motion — Test entry, exit, interruption, rapid clicking, resizing, reduced motion, and low-performance devices. No broken transitions or layout jumps. | IN_PROGRESS | Modern, legacy, authorization, Office/PDF, browser and stream regressions exist; all required end-to-end scenarios are not yet covered. |
 | R44.016 | 2557 | P. Security — Test user isolation, unauthorized project access, search injection, file abuse, unsafe links, and resource limits. | IN_PROGRESS | Modern, legacy, authorization, Office/PDF, browser and stream regressions exist; all required end-to-end scenarios are not yet covered. |
 | R44.017 | 2561 | Q. Recovery — Simulate unavailable AI providers, failed search, failed artifact rendering, cancelled generation, account switching, and network loss. Verify accurate errors and safe recovery. | IN_PROGRESS | Modern, legacy, authorization, Office/PDF, browser and stream regressions exist; all required end-to-end scenarios are not yet covered. |
-| R45.001 | 2573 | TypeScript typechecks. | IN_PROGRESS | Noata CI #1312 passed TypeScript typecheck on the preceding production-fix PR; current documentation-only PR typecheck is still running. Overall acceptance remains open. |
-| R45.002 | 2574 | Production builds. | IN_PROGRESS | Noata CI #1312 passed the production build on the preceding production-fix PR. Overall acceptance remains open for the broader feature set. |
-| R45.003 | 2575 | Unit tests. | IN_PROGRESS | Noata CI #1312 passed its modern and legacy suites on the preceding production-fix PR. Full feature-specific coverage remains open. |
+| R45.001 | 2573 | TypeScript typechecks. | VERIFIED | CI #1312 exact-head TypeScript typecheck passed on the tested source snapshot. The broader feature acceptance matrix remains open. |
+| R45.002 | 2574 | Production builds. | VERIFIED | CI #1312 exact-head production build completed successfully on the tested source snapshot. |
+| R45.003 | 2575 | Unit tests. | VERIFIED | CI #1312 exact-head modern and legacy test suites completed successfully; feature-specific gaps remain tracked separately. |
 | R45.004 | 2576 | Integration tests. | IN_PROGRESS | DB authorization and real artifact fixtures passed in CI; authenticated live-provider and two-account end-to-end integration remains unverified. |
 | R45.005 | 2577 | API contract tests. | IN_PROGRESS | Deno typecheck and bounded SSE/JSON regression suites passed; a separate complete API-contract matrix remains open. |
-| R45.006 | 2578 | Database authorization tests. | IN_PROGRESS | Database authorization/RLS regressions passed in CI #1312; all-role authenticated staging acceptance remains open. |
+| R45.006 | 2578 | Database authorization tests. | VERIFIED | CI #1312 database authorization/RLS regressions passed; this does not close the separate two-account authenticated end-to-end matrix. |
 | R45.007 | 2579 | Search-provider integration tests. | IN_PROGRESS | Search adapter is bounded and source-normalization checks exist; no authorized live Brave result/metadata request was made, so live integration remains unverified. |
 | R45.008 | 2580 | File-format validation tests. | IN_PROGRESS | Arabic PDF/DOCX fixtures, native PDF page operations and targeted document tests passed; complete DOCX/XLSX/PPTX/PDF fidelity matrix remains open. |
 | R45.009 | 2581 | Browser end-to-end tests. | IN_PROGRESS | Public-route, RTL and responsive browser smoke passed; authenticated cross-account/locale/temporary-chat flows remain unverified without a disposable staging identity. |
@@ -1036,7 +1036,7 @@ Stable IDs use `Rxx.yyy`. The source line is from the supplied master specificat
 
 ## Release evidence and remaining acceptance
 
-- **Latest production web revision:** `0acc764361be456f3ee53b2138cab319cf24ef99`; live `/health` matches it.
+- **Web revision observed during the smoke snapshot:** `0acc764361be456f3ee53b2138cab319cf24ef99`; live `/health` matches it.
 - **Production Edge Function:** `noata-ai-v2` ACTIVE version 10, `verify_jwt=true`, bundle hash `9de6a245650addf6cd8c04b3c5cd6acadc1e02f080b9ff2eb4c024e082a6ea3e`. Staging version 41 has the same hash; all 23 deployed files match tracked source.
 - **Latest CI/browser evidence:** PR #32 head CI #1312 passed the 33-step `verify` job and 15-step tooltip/browser job; production route smoke is green.
 - **Verified code slices:** dependency hardening, streamed-response guards and single typing caret, suggestion state isolation, temporary-memory read/display/write/export isolation, Office preflight, PDF page-order/rotation validation, and explicit capability boundaries.
