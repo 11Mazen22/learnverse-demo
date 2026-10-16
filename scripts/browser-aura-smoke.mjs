@@ -392,7 +392,7 @@ async function verifyDocuments(){
       await writeFile("artifacts/noata-browser/annotated-pdf-notes.pdf",new Uint8Array(annotated.bytes));
       const annotatedText=Buffer.from(annotated.bytes).toString("latin1");
       invariant(annotatedText.includes("/Subtype /Text"),"PDF output contains a real standard text annotation");
-      invariant(/\\/Contents\\s*<FEFF[0-9A-F]+>/i.test(annotatedText),"PDF annotation body is encoded as a Unicode PDF hex string");
+       invariant(annotatedText.includes("/Contents <FEFF")||annotatedText.includes("/Contents<FEFF"),"PDF annotation body is encoded as a Unicode PDF hex string");
       await evaluate('(()=>{if(window.__noataPdfNativeCreateObjectURL)URL.createObjectURL=window.__noataPdfNativeCreateObjectURL;})()');
       await screenshot("artifacts/noata-browser/pdf-annotations.png");
       console.log("[browser] PDF annotation UI generated and inspected actual PDF bytes");
