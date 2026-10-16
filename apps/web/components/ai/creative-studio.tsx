@@ -113,11 +113,21 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     let view:StudioInspection;
     if(activeFormat==="pdf"){
      const {extractPdfDocument}=await import("@/lib/ai/pdf-ingest");
-     const parsed=await extractPdfDocument(new File([loadedFile],activeName,{type:"application/pdf"}));
-     if(live){setPageCount(parsed.totalPages);setPageOrder(Array.from({length:parsed.totalPages},(_,i)=>i+1).join(", "));}
-     view={pages:parsed.pages.map(p=>({title:"Page "+p.page,lines:p.text.split("\n").filter(Boolean)})),
+     try{
+      const parsed=await extractPdfDocument(new File([loadedFile],activeName,{type:"application/pdf"}));
+      if(live){setPageCount(parsed.totalPages);setPageOrder(Array.from({length:parsed.totalPages},(_,i)=>i+1).join(", "));}
+      view={pages:parsed.pages.map(p=>({title:"Page "+p.page,lines:p.text.split("\n").filter(Boolean)})),
        editableText:parsed.pages.map(p=>"# Page "+p.page+"\n"+p.text).join("\n\n"),
        partial:parsed.truncated||parsed.scannedPages.length>0};
+     }catch(pdfError){
+      if(!(pdfError instanceof Error)||!pdfError.message.includes("OCR غير متاح حاليًا"))throw pdfError;
+      const {PDFDocument}=await import("pdf-lib");
+      const nativePdf=await PDFDocument.load(new Uint8Array(await loadedFile.arrayBuffer()),{updateMetadata:false});
+      const totalPages=nativePdf.getPageCount();
+      if(totalPages<1||totalPages>300)throw Error("PDF page count exceeds safe limits");
+      if(live){setPageCount(totalPages);setPageOrder(Array.from({length:totalPages},(_,i)=>i+1).join(", "));}
+      view={pages:Array.from({length:totalPages},(_,i)=>({title:"Page "+(i+1),lines:[]})),editableText:"",partial:true};
+     }
     }else if(localSource?.format==="text"){
       const text=await loadedFile.text();
       view={pages:[{title:activeName,lines:text.slice(0,150000).split("\n")}],editableText:text.slice(0,150000),partial:text.length>150000};
@@ -209,8 +219,23 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    let revisionText=draft;
    if(mode==="pages"||mode==="annotate"){
     const {extractPdfDocument}=await import("@/lib/ai/pdf-ingest");
-    const parsed=await extractPdfDocument(new File([Uint8Array.from(bytes)],filename,{type:"application/pdf"}));
-    revisionText=parsed.pages.map(p=>"# Page "+p.page+"\n"+p.text).join("\n\n");
+    const {nativePdfRevisionRecord,pdfRevisionExtractionNotice}=await import("@/lib/ai/pdf-revision-source");
+    let nativeRecord:string;
+    if(mode==="pages"){
+     const {pdfPageOrder}=await import("@/lib/ai/pdf-page-edit");
+     nativeRecord=nativePdfRevisionRecord({mode:"pages",pageCount,order:pdfPageOrder(pageOrder,pageCount),rotatePage,rotation:rotation as 0|90|180|270});
+    }else{
+     nativeRecord=nativePdfRevisionRecord({mode:"annotate",pageCount,notes:pdfNotes});
+    }
+    try{
+     const parsed=await extractPdfDocument(new File([Uint8Array.from(bytes)],filename,{type:"application/pdf"}));
+     revisionText=parsed.pages.map(p=>"# Page "+p.page+"\n"+p.text).join("\n\n")+"\n\n"+nativeRecord;
+     const extractionNotice=pdfRevisionExtractionNotice(parsed);
+     if(extractionNotice)revisionText+="\n\n"+extractionNotice;
+    }catch(extractionError){
+     if(!(extractionError instanceof Error)||!extractionError.message.includes("OCR غير متاح حاليًا"))throw extractionError;
+     revisionText=nativeRecord;
+    }
     if(mode==="annotate")revisionText+="\n\n# PDF annotations\n"+pdfNotes.map(note=>"- Page "+note.page+" ("+note.position+"): "+note.text).join("\n");
     if(operation.current!==ticket)throw Error("Operation cancelled");
    }
@@ -264,6 +289,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    {loaded&&mode==="targeted"&&(activeFormat==="docx"||activeFormat==="pptx"||activeFormat==="xlsx")&&<OfficeTextEditor source={loaded} format={activeFormat} name={activeName} owner={owner} parentId={file?.id} documentId={localSource?.documentId} onSaved={onRevisionSaved}/>}
    {loaded&&mode==="pages"&&<section className="noata-creative-editor noata-office-editor" aria-label={t("تعديل صفحات PDF","Edit PDF pages")}>
     <p>{t("غيّر ترتيب الصفحات أو دوّر صفحة مع الحفاظ على محتواها الأصلي. اكتب رقم كل صفحة مرة واحدة. هذه العملية لا تحذف معلومات ولا تخفيها.","Reorder pages or rotate a page while retaining its original content. Enter each page number exactly once. This operation does not delete or redact information.")}</p>
+     {inspection.partial&&<p role="status" className="noata-memory-note">{t("قد يحتوي الملف صفحات ممسوحة ضوئيًا أو يكون استخراج النص جزئيًا. لا يتوفر OCR هنا؛ سيجري ترتيب الصفحات أو تدويرها مباشرةً مع الحفاظ على محتواها الأصلي.","This PDF may contain scanned pages or partial text extraction. OCR is unavailable here; pages will be reordered or rotated directly while preserving their original content.")}</p>}
     <p className="noata-pdf-page-count">{t("عدد صفحات الملف الأصلي:","Original PDF page count:")} <strong>{pageCount}</strong></p>
     <label>{t("ترتيب الصفحات","Page order")}<input dir="ltr" aria-invalid={Boolean(pageOrder.trim())&&!pageOrderValid} aria-describedby="noata-pdf-order-hint" maxLength={1200} value={pageOrder} onChange={e=>setPageOrder(e.target.value)} disabled={busy} placeholder="3, 1, 2"/></label>
     <p id="noata-pdf-order-hint" className={Boolean(pageOrder.trim())&&!pageOrderValid?"noata-creative-error":"noata-memory-note"} role={Boolean(pageOrder.trim())&&!pageOrderValid?"alert":"note"}>{pageCount>200?t("تدعم هذه المساحة ترتيب ملفات PDF حتى 200 صفحة فقط. الملف الأصلي لم يتغير.","This workspace supports PDF page reordering up to 200 pages. The original file remains unchanged."):<>{t("أدخل كل رقم صفحة من 1 إلى ","Enter every page number from 1 to ")}{pageCount}{t(" مرة واحدة، دون تكرار أو صفحات ناقصة."," exactly once, with no duplicates or omitted pages.")}</>}</p>
@@ -274,6 +300,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    </section>}
    {loaded&&inspection&&mode==="annotate"&&activeFormat==="pdf"&&<section className="noata-creative-editor noata-office-editor noata-pdf-annotations" aria-label={t("إضافة ملاحظات إلى PDF","Add annotations to PDF")}>
     <p>{t("أضف تعليقات لاصقة إلى صفحات PDF مع الحفاظ على النص والتخطيط الأصليين. هذه ملاحظات وليست استبدالًا للنص أو إخفاءً للمحتوى، ويمكن فتحها في قارئات PDF المتوافقة.","Add sticky-note comments to PDF pages while preserving the original text and layout. These notes are not text replacement or redaction, and can be opened in compatible PDF readers.")}</p>
+     {inspection.partial&&<p role="status" className="noata-memory-note">{t("قد يحتوي الملف صفحات ممسوحة ضوئيًا أو يكون استخراج النص جزئيًا. لا يتوفر OCR هنا؛ ستُضاف الملاحظات إلى ملف PDF الأصلي دون إعادة بناء صفحاته.","This PDF may contain scanned pages or partial text extraction. OCR is unavailable here; notes will be added to the original PDF without rebuilding its pages.")}</p>}
     <p className="noata-pdf-page-count">{t("عدد الصفحات:","Page count:")} <strong>{pageCount}</strong> · {t("الملاحظات في هذه النسخة:","Notes in this revision:")} <strong>{pdfNotes.length}/20</strong></p>
     <label>{t("صفحة الملاحظة","Note page")}<input type="number" min={1} max={pageCount} value={notePage} disabled={busy} onChange={e=>setNotePage(Number(e.target.value))}/></label>
     <label>{t("موضع أيقونة الملاحظة","Note marker position")}<select value={notePosition} disabled={busy} onChange={e=>setNotePosition(e.target.value as PdfNotePosition)}>
