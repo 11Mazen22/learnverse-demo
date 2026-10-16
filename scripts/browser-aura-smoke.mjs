@@ -377,6 +377,27 @@ async function verifyDocuments(){
     }
     invariant(await evaluate('!!document.querySelector(".noata-download-original")'),"Unmodified original file has an explicit download action: "+name);
     await screenshot("artifacts/noata-browser/document-"+name.replaceAll(".","-")+".png");
+    if(name==="arabic-longform.pdf"){
+      await evaluate('Array.from(document.querySelectorAll(".noata-creative-tabs button")).find(b=>b.textContent.includes("ملاحظات PDF")||b.textContent.includes("PDF notes"))?.click()');
+      await waitFor(async()=>await evaluate('!!document.querySelector(".noata-pdf-annotations textarea")'),"PDF annotation workspace");
+      await evaluate('(()=>{const el=document.querySelector(".noata-pdf-annotations textarea");const set=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,"value").set;set.call(el,"ملاحظة اختبار PDF من المتصفح");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
+      await evaluate('document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").click()');
+      await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-pdf-annotation-queue li").length===1'),"Arabic PDF note staged");
+      invariant(await evaluate('document.querySelector(".noata-pdf-annotation-queue li p")?.textContent==="ملاحظة اختبار PDF من المتصفح"),"PDF note queue keeps Arabic text");
+      await evaluate('(()=>{const native=URL.createObjectURL;window.__noataPdfNativeCreateObjectURL=native;window.__noataPdfAnnotationDownload=null;URL.createObjectURL=function(blob){window.__noataPdfAnnotationDownload=blob;return native.call(this,blob);};})()');
+      await evaluate('Array.from(document.querySelectorAll(".noata-pdf-annotations > .noata-creative-buttons button")).find(b=>b.textContent.includes("PDF بالملاحظات")||b.textContent.includes("annotated PDF"))?.click()');
+      await waitFor(async()=>await evaluate('window.__noataPdfAnnotationDownload instanceof Blob&&window.__noataPdfAnnotationDownload.size>500'),"generated annotated PDF bytes");
+      const annotated=await evaluate('(async()=>({size:window.__noataPdfAnnotationDownload.size,bytes:Array.from(new Uint8Array(await window.__noataPdfAnnotationDownload.arrayBuffer()))}))()');
+      invariant(annotated.size>500,"Annotated PDF download is a real nonempty PDF package");
+      await writeFile("artifacts/noata-browser/annotated-pdf-notes.pdf",new Uint8Array(annotated.bytes));
+      const annotatedText=Buffer.from(annotated.bytes).toString("latin1");
+      invariant(annotatedText.includes("/Subtype /Text"),"PDF output contains a real standard text annotation");
+      invariant(/\\/Contents\\s*<FEFF[0-9A-F]+>/i.test(annotatedText),"PDF annotation body is encoded as a Unicode PDF hex string");
+      await evaluate('(()=>{if(window.__noataPdfNativeCreateObjectURL)URL.createObjectURL=window.__noataPdfNativeCreateObjectURL;})()');
+      await screenshot("artifacts/noata-browser/pdf-annotations.png");
+      console.log("[browser] PDF annotation UI generated and inspected actual PDF bytes");
+    }
+
     if(name==="arabic-longform.docx"){
       await evaluate('Array.from(document.querySelectorAll(".noata-creative-tabs button")).find(b=>b.textContent.includes("تعديل محدد")).click()');
       await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-office-editor select option").length>2'),"original-package paragraphs loaded");
