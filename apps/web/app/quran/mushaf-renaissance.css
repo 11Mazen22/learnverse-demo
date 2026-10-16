@@ -501,7 +501,7 @@
 .mushaf .mushaf-quick-listening-note{margin:0;font-size:10px;line-height:1.7;color:var(--muted)}
 .mushaf .mushaf-quick-listening[ id="mushaf-reciter-selector"]{scroll-margin-top:30px}
 .mushaf .mushaf-listening-studio{scroll-margin-top:26px}
-.mushaf .mushaf-audio-active{padding-bottom:135px}
+.mushaf.mushaf-audio-active{padding-bottom:135px}
 
 /* This dock controls the same audio engine and audio element as the full player;
    it is not a second stream, so playback never restarts when the reader scrolls. */
@@ -581,12 +581,11 @@
   }
   .mushaf .mushaf-audio-dock-track{grid-column:1;grid-row:1}
   .mushaf .mushaf-audio-dock-play{grid-column:2;grid-row:1}
-  .mushaf .mushaf-audio-dock-actions{grid-column:3;grid-row:1}
   .mushaf .mushaf-audio-dock-seek{grid-column:1/-1;grid-row:2}
   .mushaf .mushaf-audio-dock-action:last-child{display:none}
   .mushaf .mushaf-audio-dock-track strong{font-size:11px}
   .mushaf .mushaf-audio-dock-status{font-size:8px}
-  .mushaf .mushaf-audio-active{padding-bottom:130px}
+  .mushaf.mushaf-audio-active{padding-bottom:130px}
   .mushaf.aura-quran.mushaf-focused{padding:10px;gap:14px}
 }
 @media(max-width:420px){
