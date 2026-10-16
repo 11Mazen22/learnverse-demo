@@ -17,11 +17,15 @@ test("partial extraction requires explicit acknowledgement before reconstruction
 
 test("native PDF page operations and targeted Office edits do not require extracted full-document text",()=>{
  assert.equal(revisionRequiresExtractedDraft("pages"),false);
+ assert.equal(revisionRequiresExtractedDraft("annotate"),false);
  assert.equal(requiresPartialExtractionAcknowledgement(true,"pages"),false);
  assert.equal(canCreateExtractedRevision(true,false,"pages"),true);
  assert.equal(revisionRequiresExtractedDraft("targeted"),false);
  assert.equal(requiresPartialExtractionAcknowledgement(true,"targeted"),false);
  assert.equal(canCreateExtractedRevision(true,false,"targeted"),true);
+ assert.equal(revisionRequiresExtractedDraft("annotate"),false);
+ assert.equal(requiresPartialExtractionAcknowledgement(true,"annotate"),false);
+ assert.equal(canCreateExtractedRevision(true,false,"annotate"),true);
 });
 
 test("text-backed revisions continue to require an extracted draft while native page revisions do not",()=>{

@@ -70,3 +70,15 @@ html[data-noata-motion="reduce"] .noata-artifact-inline,html[data-noata-motion="
 .noata-office-edit-queue-controls{display:grid;gap:9px}
 .noata-office-edit-queue-controls>button{background:var(--accent-soft);font-weight:700}
 .noata-office-edit-queue button:focus-visible,.noata-office-edit-queue-controls button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* PDF sticky-note annotations are a separate revision mode, not text reconstruction. */
+.noata-pdf-annotations{gap:12px}
+.noata-pdf-annotation-queue{display:grid;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.noata-pdf-annotation-queue ol{display:grid;gap:8px;margin:0;padding-inline-start:24px}
+.noata-pdf-annotation-queue li{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:9px}
+.noata-pdf-annotation-queue li>div{display:grid;gap:5px;min-width:0}
+.noata-pdf-annotation-queue li p{margin:0;color:var(--ink);font-size:13px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.noata-pdf-annotation-queue li button{flex:0 0 auto;border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--surface-soft);color:var(--ink);font:inherit;font-size:12px}
+.noata-pdf-annotation-queue button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.noata-pdf-annotation-page{max-height:400px}
+@media(max-width:420px){.noata-pdf-annotation-queue li{gap:6px}.noata-pdf-annotation-queue li button{padding:6px}}
