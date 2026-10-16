@@ -7,6 +7,10 @@ test("capabilities are unique, have explicit permissions and do not promise unsu
  const list=getCapabilityAvailability({fanar:false,brave:false,memorySchema:false});
  assert.equal(list.find(x=>x.id==="chat")?.status,"unavailable");
  assert.equal(list.find(x=>x.id==="artifact.xlsx")?.status,"local");
+ assert.equal(list.find(x=>x.id==="document.pdf.page_edit")?.status,"local");
+ assert.equal(list.find(x=>x.id==="document.office.targeted_edit")?.status,"local");
+ assert.equal(list.find(x=>x.id==="image.inpaint")?.status,"planned");
+ assert.equal(list.find(x=>x.id==="image.background_remove")?.status,"planned");
  assert.equal(list.find(x=>x.id==="artifact.pptx")?.status,"local");
  assert.equal(list.find(x=>x.id==="memory.recall")?.status,"unavailable");
  assert.equal(getCapabilityAvailability({fanar:true,brave:true,memorySchema:true}).find(x=>x.id==="research.search")?.status,"configured");
@@ -25,6 +29,10 @@ test("Capability prompt lists real application operations without pretending con
  assert.match(enabled,/PDF, DOCX, XLSX, and PPTX/);
  assert.match(enabled,/credential configured/);
  assert.match(enabled,/not yet preserved/);
+ assert.match(enabled,/native page reorder and rotation only/);
+ assert.match(enabled,/Arbitrary PDF text or layout replacement is NOT implemented/);
+ assert.match(enabled,/targeted single-paragraph or single-cell edits/);
+ assert.match(enabled,/Generative image inpainting and background removal are NOT implemented/);
  const disabled=capabilitySystemContext({fanar:false,brave:false,memorySchema:false});
  assert.match(disabled,/NOT configured/);
  assert.match(disabled,/provider unavailable/);

@@ -1,5 +1,5 @@
 /** Noata AI capability contracts, provider configuration != live verification. */
-export type CapabilityId="chat"|"research.search"|"text.translate"|"image.generate"|"voice.transcribe"|"voice.speak"|"document.pdf"|"document.docx"|"memory.recall"|"artifact.xlsx"|"artifact.pptx"|"projects.manage";
+export type CapabilityId="chat"|"research.search"|"text.translate"|"image.generate"|"image.inpaint"|"image.background_remove"|"voice.transcribe"|"voice.speak"|"document.pdf"|"document.docx"|"document.pdf.page_edit"|"document.office.targeted_edit"|"memory.recall"|"artifact.xlsx"|"artifact.pptx"|"projects.manage";
 export type CapabilityStatus="configured"|"unavailable"|"planned"|"local";
 export type CapabilityDefinition={id:CapabilityId;category:"conversation"|"research"|"creative"|"documents"|"voice"|"personalization"|"workspace";provider:"fanar"|"brave"|"local"|"none";requiresAuth:boolean;sideEffects:boolean};
 export const CAPABILITIES:readonly CapabilityDefinition[]=[
@@ -7,10 +7,14 @@ export const CAPABILITIES:readonly CapabilityDefinition[]=[
  {id:"research.search",category:"research",provider:"brave",requiresAuth:true,sideEffects:false},
  {id:"text.translate",category:"conversation",provider:"fanar",requiresAuth:true,sideEffects:false},
  {id:"image.generate",category:"creative",provider:"fanar",requiresAuth:true,sideEffects:true},
+ {id:"image.inpaint",category:"creative",provider:"none",requiresAuth:true,sideEffects:true},
+ {id:"image.background_remove",category:"creative",provider:"none",requiresAuth:true,sideEffects:true},
  {id:"voice.transcribe",category:"voice",provider:"fanar",requiresAuth:true,sideEffects:false},
  {id:"voice.speak",category:"voice",provider:"fanar",requiresAuth:true,sideEffects:true},
  {id:"document.pdf",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
  {id:"document.docx",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
+ {id:"document.pdf.page_edit",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
+ {id:"document.office.targeted_edit",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
  {id:"memory.recall",category:"personalization",provider:"local",requiresAuth:true,sideEffects:false},
  {id:"artifact.xlsx",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
  {id:"artifact.pptx",category:"documents",provider:"local",requiresAuth:true,sideEffects:true},
@@ -59,7 +63,9 @@ export function capabilitySystemContext(env:{fanar:boolean;brave:boolean;memoryS
  "The chat application supports PDF, DOCX, XLSX, and PPTX generation from complete, useful answer content. File cards are evidence ONLY after validation and persistence succeed. It also has a Creative Studio to preview saved PDF pages and Office file content, edit drafts, ask for improvements, export revisions, and save new owner-scoped files. Some complex Office visuals and layout fidelity are not yet preserved on editing.",
  "Never claim that a file was generated, attached, downloaded or stored from model text alone; wait for the application receipt. Do not ask for another confirmation when the request clearly specifies the deliverable, unless an essential detail is actually missing.",
  "Image generation: "+(available("image.generate")?"provider credential configured; an explicit single raster image prompt may execute, but success depends on the actual provider response.":"provider unavailable; do not claim an image was created.")+
-  " Image editing, guaranteed transparency, vector SVG and multiple independent image generations are NOT verified features.",
+  " Generative image inpainting and background removal are NOT implemented. Basic image generation does not prove an edit succeeded. Guaranteed transparency, vector SVG and multiple independent image generations are also NOT verified features.",
+ "PDF editing boundary: built-in edits are native page reorder and rotation only. Arbitrary PDF text or layout replacement is NOT implemented. Text reconstruction from partial/scanned extraction may omit content; require acknowledgement before creating a separate reconstruction.",
+ "Office editing boundary: targeted single-paragraph or single-cell edits are available only for supported OOXML structures. Complex visuals, layouts and unsupported package features may not be preserved; never imply a universal Word/Excel/PowerPoint editor.",
  "Web research: "+(available("research.search")?"Brave provider is configured; only validated returned sources are live evidence.":"Brave live web provider is NOT configured. Wikipedia snippets may supply encyclopedic background but must not be represented as current web research.")+
   " Do not invent source links, search activity, dates or verified external pages.",
  "Speech and voice: "+(available("voice.transcribe")?"provider key configured; actual audio operations are independently authenticated.":"live provider unavailable; do not imply speech recognition succeeded."),
