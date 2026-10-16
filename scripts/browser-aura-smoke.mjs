@@ -380,7 +380,8 @@ async function verifyDocuments(){
     if(name==="arabic-longform.pdf"){
       await evaluate('Array.from(document.querySelectorAll(".noata-creative-tabs button")).find(b=>b.textContent.includes("ملاحظات PDF")||b.textContent.includes("PDF notes"))?.click()');
       await waitFor(async()=>await evaluate('!!document.querySelector(".noata-pdf-annotations textarea")'),"PDF annotation workspace");
-      await evaluate('(()=>{const el=document.querySelector(".noata-pdf-annotations textarea");const set=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,"value").set;set.call(el,"ملاحظة اختبار PDF من المتصفح");el.dispatchEvent(new Event("input",{bubbles:true}));})()');
+      await evaluate('document.querySelector(".noata-pdf-annotations textarea").focus()');
+      await command("Input.insertText",{text:"ملاحظة اختبار PDF من المتصفح"});
       await evaluate('document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").click()');
       await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-pdf-annotation-queue li").length===1'),"Arabic PDF note staged");
       await waitFor(async()=>await evaluate('!document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").disabled'),"PDF note can be queued");
