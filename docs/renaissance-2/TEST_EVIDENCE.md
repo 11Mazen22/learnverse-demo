@@ -1,8 +1,8 @@
 # Renaissance 2.0 — Test and Release Evidence
 
-## Current production
+## Production verification snapshot (2026-10-16, before this evidence-only PR)
 
-- **Web revision:** `0acc764361be456f3ee53b2138cab319cf24ef99` at [noata.enterpriseworkhub.online](https://noata.enterpriseworkhub.online).
+- **Web revision observed during smoke:** `0acc764361be456f3ee53b2138cab319cf24ef99` at [noata.enterpriseworkhub.online](https://noata.enterpriseworkhub.online).
 - **Health/version:** `/health` returned HTTP 200 and reported the exact revision.
 - **Route smoke:** `/ai`, `/login`, `/signup`, `/quran`, `/privacy` and `/terms` all returned HTTP 200.
 - **Markup/security:** Arabic app routes contained RTL markup; `X-Content-Type-Options: nosniff` and `X-Frame-Options: DENY` were present.
@@ -33,7 +33,7 @@ The following Noata CI runs completed successfully on their respective PR heads:
 | #30 | #1302 | Validate complete PDF page order and rotation before export |
 | #32 | #1312 | Prevent temporary chats from reading/displaying/exporting or mutating saved memories |
 
-For PR #32, both the 33-step `verify` job and 15-step intentional-tooltip/browser job completed successfully. The exact-head preview's seven key routes returned HTTP 200 before merge. Production Vercel deployment for `0acc764361be456f3ee53b2138cab319cf24ef99` is READY.
+For PR #32, both the 33-step `verify` job and 15-step intentional-tooltip/browser job completed successfully. The exact-head preview's seven key routes returned HTTP 200 before merge. The verified baseline deployment was READY during the route smoke; this evidence-only PR will create a later deployment SHA.
 
 ## Document/export evidence
 
