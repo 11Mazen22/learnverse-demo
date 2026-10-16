@@ -382,9 +382,9 @@ async function verifyDocuments(){
       await waitFor(async()=>await evaluate('!!document.querySelector(".noata-pdf-annotations textarea")'),"PDF annotation workspace");
       await evaluate('document.querySelector(".noata-pdf-annotations textarea").focus()');
       await command("Input.insertText",{text:"ملاحظة اختبار PDF من المتصفح"});
+      await waitFor(async()=>await evaluate('!document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").disabled'),"PDF note can be queued");
       await evaluate('document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").click()');
       await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-pdf-annotation-queue li").length===1'),"Arabic PDF note staged");
-      await waitFor(async()=>await evaluate('!document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").disabled'),"PDF note can be queued");
       invariant(await evaluate('document.querySelector(".noata-pdf-annotation-queue li p")?.textContent.includes("ملاحظة اختبار PDF من المتصفح")'),"PDF note queue keeps Arabic text");
       await evaluate('(()=>{const native=URL.createObjectURL;window.__noataPdfNativeCreateObjectURL=native;window.__noataPdfAnnotationDownload=null;URL.createObjectURL=function(blob){window.__noataPdfAnnotationDownload=blob;return native.call(this,blob);};})()');
       await evaluate('Array.from(document.querySelectorAll(".noata-pdf-annotations > .noata-creative-buttons button")).find(b=>b.textContent.includes("PDF بالملاحظات")||b.textContent.includes("annotated PDF"))?.click()');
