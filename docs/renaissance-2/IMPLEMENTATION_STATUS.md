@@ -1,8 +1,8 @@
 # Renaissance 2.0 — Implementation Status
 
-## Current production baseline
+## Verified baseline snapshot (2026-10-16, before this evidence-only PR)
 
-- **Web production master:** `0acc764361be456f3ee53b2138cab319cf24ef99`.
+- **Web revision observed during this snapshot:** `0acc764361be456f3ee53b2138cab319cf24ef99`.
 - **AI Edge Function:** `noata-ai-v2` ACTIVE version 10; JWT verification remains enabled; bundle hash `9de6a245650addf6cd8c04b3c5cd6acadc1e02f080b9ff2eb4c024e082a6ea3e` matches staging version 41.
 - The deployed Edge Function contains 23 files matching the tracked `supabase/functions/noata-ai/` source. This release corrects capability-registry drift without changing provider settings, schema or secrets.
 - Noata is operational for the verified HTTP routes, but this is a **partial implementation of the broader Renaissance 2.0 specification**, not a declaration that every requested feature is complete.
