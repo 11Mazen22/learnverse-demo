@@ -439,7 +439,9 @@ async function verifyDocuments(){
     await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"document modal Escape");
     invariant(true,"Document preview keyboard close");
   }
-  await navigate('/ai');
+  const pathAfterDocument=await evaluate("location.pathname");
+  if(pathAfterDocument!=="/ai")await navigate("/ai");
+  invariant(await evaluate("location.pathname")==="/ai","Document preview returns to the original AI route without a redundant reload");
   await waitFor(async()=>await evaluate('!!document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item")'),"image fixture hydration");
   const dom=await command('DOM.getDocument');
   const input=await command('DOM.querySelector',{nodeId:dom.root.nodeId,selector:'input[type=file]'});
