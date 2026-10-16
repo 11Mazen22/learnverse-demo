@@ -1,5 +1,14 @@
 # Renaissance 2.0 — Provider and Feature Readiness
 
+## Live deployment parity snapshot (2026-10-16)
+
+- Web production revision: `0acc764361be456f3ee53b2138cab319cf24ef99`.
+- Production Edge Function `noata-ai-v2`: ACTIVE version 10; `verify_jwt=true`; bundle hash `9de6a245650addf6cd8c04b3c5cd6acadc1e02f080b9ff2eb4c024e082a6ea3e`.
+- Staging `noata-ai-v2`: ACTIVE version 41 with the same bundle hash.
+- All 23 files in the deployed function match tracked source in `supabase/functions/noata-ai/`. The synchronized registry explicitly marks `image.inpaint` and `image.background_remove` as planned, `document.pdf.page_edit` as local native page operations, and `document.office.targeted_edit` as a limited local operation.
+- Code/source parity does **not** prove credential readiness or successful provider inference. No authenticated readiness action or paid-provider request was made; real Fanar/Brave/STT/TTS acceptance remains open.
+
+
 | Capability | Code integration | Current accepted state |
 |---|---|---|
 | Fanar chat / response review | Server-side Edge Function, SSE and JSON fallback, bounded content, completion validation | **Live provider E2E unverified**; authorized staging request required |
