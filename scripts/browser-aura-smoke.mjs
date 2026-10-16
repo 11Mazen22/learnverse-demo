@@ -443,15 +443,28 @@ async function verifyDocuments(){
   if(pathAfterDocument!=="/ai")await navigate("/ai");
   invariant(await evaluate("location.pathname")==="/ai","Document preview returns to the original AI route without a redundant reload");
   await waitFor(async()=>await evaluate('!!document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item")'),"image fixture hydration");
-  const dom=await command('DOM.getDocument');
-  const input=await command('DOM.querySelector',{nodeId:dom.root.nodeId,selector:'input[type=file]'});
-  await command('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[resolve('artifacts/noata-documents/arabic-layout.png')]});
+  // The last preview fixture remains staged when the dialog closes; clear it with the actual remove controls before testing a fresh batch.
+  for(let clear=0;clear<8;clear++){
+    const stagedCount=await evaluate('document.querySelectorAll(".aura-document-chip").length');
+    if(!stagedCount)break;
+    await evaluate('document.querySelector(".aura-document-chip button:not(.aura-pending-preview)")?.click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-document-chip").length<'+stagedCount),"clear previous staged document "+(clear+1));
+  }
+  invariant(await evaluate('document.querySelectorAll(".aura-document-chip").length===0'),"Previous preview source is removed before the independent attachment test");
+  let dom=await command("DOM.getDocument");
+  let input=await command("DOM.querySelector",{nodeId:dom.root.nodeId,selector:'input[type=file]'});
+  invariant(Boolean(input.nodeId),"Composer file picker exists after preview cleanup");
+  await command("DOM.setFileInputFiles",{nodeId:input.nodeId,files:[resolve("artifacts/noata-documents/arabic-layout.png")]});
   await waitFor(async()=>await evaluate('document.querySelector(".owui-attachment img")?.naturalWidth===794'),"actual PNG preview");
-  invariant(true,'Image preview loads the actual raster fixture');
-  await screenshot('artifacts/noata-browser/document-image-png.png');
+  invariant(true,"Image preview loads the actual raster fixture");
+  await screenshot("artifacts/noata-browser/document-image-png.png");
   await evaluate('document.querySelector(".owui-attachment button").click()');
-  invariant(await evaluate('!document.querySelector(".owui-attachment")'),'Image attachment removal');
-  await command('DOM.setFileInputFiles',{nodeId:input.nodeId,files:['source.txt','source.md','source.csv','source.json'].map(n=>resolve('artifacts/noata-documents/'+n))});
+  invariant(await evaluate('!document.querySelector(".owui-attachment")'),"Image attachment removal");
+  // File input node IDs can go stale after React state changes; query a fresh live node for the next selection.
+  dom=await command("DOM.getDocument");
+  input=await command("DOM.querySelector",{nodeId:dom.root.nodeId,selector:'input[type=file]'});
+  invariant(Boolean(input.nodeId),"Composer file picker is reacquired after image removal");
+  await command("DOM.setFileInputFiles",{nodeId:input.nodeId,files:["source.txt","source.md","source.csv","source.json"].map(n=>resolve("artifacts/noata-documents/"+n))});
   await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-document-chip").length===4'),"four source composer tray");
   invariant(true,'Four actual files are staged independently');
   const result=await evaluate(`fetch('/api/documents/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:'fixture'})}).then(r=>r.status)`);
