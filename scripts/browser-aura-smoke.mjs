@@ -380,8 +380,7 @@ async function verifyDocuments(){
     if(name==="arabic-longform.pdf"){
       await evaluate('Array.from(document.querySelectorAll(".noata-creative-tabs button")).find(b=>b.textContent.includes("ملاحظات PDF")||b.textContent.includes("PDF notes"))?.click()');
       await waitFor(async()=>await evaluate('!!document.querySelector(".noata-pdf-annotations textarea")'),"PDF annotation workspace");
-      await evaluate('document.querySelector(".noata-pdf-annotations textarea").focus()');
-      await command("Input.insertText",{text:"ملاحظة اختبار PDF من المتصفح"});
+      await evaluate(`(()=>{const el=document.querySelector('.noata-pdf-annotations textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'ملاحظة اختبار PDF من المتصفح');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
       await waitFor(async()=>await evaluate('!document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").disabled'),"PDF note can be queued");
       await evaluate('document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").click()');
       await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-pdf-annotation-queue li").length===1'),"Arabic PDF note staged");
@@ -491,11 +490,11 @@ async function main() {
   if(appFailure)throw appFailure;
   if(!appReady)throw Error('Next production server did not become ready');
   // Check initial HTML before JavaScript: returning English users must not see Arabic hydration copy.
-  for(const [locale,direction,label] of [["en","ltr","Skip to content"],["ar","rtl","\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u062d\u062a\u0648\u0649"]]){
+  for(const [locale,direction,label] of [["en","ltr","Skip to content"],["ar","rtl","انتقل إلى المحتوى"]]){
     const response=await fetch(base+"/help",{headers:{cookie:"noata_locale="+locale},signal:AbortSignal.timeout(15000)});
     const html=await response.text();
-    invariant(response.ok && new RegExp("<html[^>]*lang=\\\""+locale+"\\\"").test(html) && new RegExp("<html[^>]*dir=\\\""+direction+"\\\"").test(html),"Initial server language and direction "+locale);
-    invariant(new RegExp("class=\\\"skip-link\\\"[^>]*>"+label+"<").test(html),"Initial translated skip link "+locale);
+    invariant(response.ok && new RegExp("<html[^>]*lang=\""+locale+"\"").test(html) && new RegExp("<html[^>]*dir=\""+direction+"\"").test(html),"Initial server language and direction "+locale);
+    invariant(new RegExp("class=\"skip-link\"[^>]*>"+label+"<").test(html),"Initial translated skip link "+locale);
   }
   browser=await launchQaBrowser({executablePath:binary,artifactsDir:"artifacts/noata-browser"});
   socket=browser.socket;
