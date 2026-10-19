@@ -11,6 +11,8 @@
 
 **Not full completion:** authenticated provider integrations and cross-account workflows remain unverified because no authorized disposable staging credentials were available in this execution.
 
+**2026-10-19 update:** production database reconciliation completed with a verified logical backup and an ordered migration apply (respiratory curriculum, then grading integrity), post-verified against live counts and advisors — see `PRODUCTION_RECONCILIATION_20261019.md`. Remaining before release: Vercel preview verification and promotion, live provider credentials (AI/voice/OAuth/SMTP) and authenticated staging E2E, in addition to the gates below.
+
 ## Next gates (in order)
 
 1. Use explicitly authorized disposable staging accounts to test account switching, locale switching, temporary chats, disabled personalization, memory consent/CRUD/export and suggestion clicks. Verify visible state and server-side ownership.
