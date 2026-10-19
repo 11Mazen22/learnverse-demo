@@ -7,15 +7,15 @@ export function serializeCsv(
 ): string {
   const escapeCell = (value: CsvCell): string => {
     let text = value == null ? "" : String(value);
-    if (typeof value === "string" && /^[\\s]*[=+\\-@]/u.test(text)) {
+    if (typeof value === "string" && /^[\s]*[=+\-@]/u.test(text)) {
       text = `'${text}`;
     }
-    if (/[",\\r\\n]/u.test(text)) return `"${text.replace(/"/gu, '""')}"`;
+    if (/[",\r\n]/u.test(text)) return `"${text.replace(/"/gu, '""')}"`;
     return text;
   };
-  return `\\uFEFF${[headers, ...rows]
+  return `\uFEFF${[headers, ...rows]
     .map((row) => row.map(escapeCell).join(","))
-    .join("\\r\\n")}\\r\\n`;
+    .join("\r\n")}\r\n`;
 }
 
 /** Download a CSV file from an explicit user interaction in a browser. */
