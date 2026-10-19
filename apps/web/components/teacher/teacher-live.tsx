@@ -249,6 +249,15 @@ export function TeacherLive() {
     });
   }
   async function gradeSubmission(row: Submission) {
+    if (!row.submitted_at) {
+      setStatus(
+        t(
+          "لا يمكن تقييم واجب لم يُسلَّم بعد. سيظهر للتقييم بعد تسليم الطالب.",
+          "You cannot grade an assignment that has not been submitted yet.",
+        ),
+      );
+      return;
+    }
     const raw = grades[row.id] ?? (row.score == null ? "" : String(row.score)),
       score = Number(raw);
     if (!raw.trim() || !Number.isFinite(score) || score < 0 || score > 100) {
@@ -290,7 +299,8 @@ export function TeacherLive() {
       assignments.find((item) => item.id === submission.assignment_id)?.title ?? "",
     ],
   ).filter((submission) => {
-    if (gradingFilter === "pending") return submission.score == null;
+    if (gradingFilter === "pending")
+      return Boolean(submission.submitted_at) && submission.score == null;
     if (gradingFilter === "graded") return submission.score != null;
     return true;
   });
@@ -389,7 +399,7 @@ export function TeacherLive() {
           <span>{t("التسليمات","Submissions")}</span>
           <strong>{submissions.length}</strong>
           <small>
-            {submissions.filter((x) => x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</small>
+            {submissions.filter((x) => x.submitted_at && x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</small>
         </article>
       </section>
 
@@ -797,7 +807,7 @@ export function TeacherLive() {
           <div className="panel-head">
             <h2>{t("التسليمات والتقييم","Submissions and grading")}</h2>
             <span className="pill">
-              {submissions.filter((x) => x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</span>
+              {submissions.filter((x) => x.submitted_at && x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</span>
           </div>
           <nav className="filter-bar" aria-label={t("تصفية التسليمات", "Submission filters")} style={{ marginBottom: 14 }}>
             {([
@@ -881,6 +891,15 @@ export function TeacherLive() {
                       value={
                         grades[s.id] ?? (s.score == null ? "" : String(s.score))
                       }
+                      disabled={busy || !s.submitted_at}
+                      title={
+                        s.submitted_at
+                          ? undefined
+                          : t(
+                              "لا يمكن التقييم قبل تسليم الطالب.",
+                              "Grading is unavailable before the student submits.",
+                            )
+                      }
                       onChange={(e) =>
                         setGrades((g) => ({ ...g, [s.id]: e.target.value }))
                       }
@@ -898,7 +917,7 @@ export function TeacherLive() {
                     />
                     <button
                       className="btn"
-                      disabled={busy}
+                      disabled={busy || !s.submitted_at}
                       onClick={() => void gradeSubmission(s)}
                       style={{
                         background: "var(--accent)",

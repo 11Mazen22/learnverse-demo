@@ -395,7 +395,6 @@ export function AdminLive() {
     users: profiles.length,
   };
   const filterLocale = locale === "en" ? "en" : "ar";
-  const contentNeedle = contentSearch.trim().toLocaleLowerCase(filterLocale);
   const visibleQuestions = filterStaffSearch(
     questions, contentSearch, filterLocale,
     (question) => [question.prompt_ar, question.prompt_en, question.review_status, question.publication_status, question.question_type],
@@ -753,7 +752,7 @@ export function AdminLive() {
                             minHeight: 38,
                             padding: "0 10px",
                           }}
-                        >{t("إعادة للمراجعة","Return for review")}</button>
+                        >{t("إعادة إلى المسودة","Return to draft")}</button>
                       )}
                       {action && (
                         <button
