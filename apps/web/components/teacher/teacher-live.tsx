@@ -7,6 +7,7 @@ import { boundedRead } from "@/lib/supabase/use-verified-account";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import { filterStaffSearch } from "@/lib/dashboard/staff-search";
+import { downloadCsv } from "@/lib/dashboard/csv-export";
 
 type ClassRow = {
   id: string;
@@ -520,6 +521,23 @@ export function TeacherLive() {
                 aria-label={t("البحث في الواجبات","Search assignments")}
               />
             </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!visibleAssignments.length}
+              onClick={() => {
+                const started = downloadCsv(
+                  "noata-assignments.csv",
+                  [t("الصف","Class"), t("العنوان","Title"), t("التعليمات","Instructions"), t("موعد التسليم","Due date"), t("الحالة","Status")],
+                  visibleAssignments.map((assignment) => [
+                    classes.find((item) => item.id === assignment.class_id)?.name ?? "",
+                    assignment.title, assignment.instructions, assignment.due_at ?? "",
+                    assignment.published_at ? t("منشور","Published") : t("مسودة","Draft"),
+                  ]),
+                );
+                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+              }}
+            >{t("تصدير CSV", "Export CSV")}</button>
           </div>
           <div className="quest-list">
             {visibleAssignments.map((a) => (
@@ -578,6 +596,24 @@ export function TeacherLive() {
                 aria-label={t("البحث في التسليمات","Search submissions")}
               />
             </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!visibleSubmissions.length}
+              onClick={() => {
+                const started = downloadCsv(
+                  "noata-submissions.csv",
+                  [t("الطالب","Student"), t("الواجب","Assignment"), t("وقت التسليم","Submitted at"), t("الدرجة","Score")],
+                  visibleSubmissions.map((submission) => [
+                    profiles.get(submission.student_id) ?? t("طالب","Student"),
+                    assignments.find((item) => item.id === submission.assignment_id)?.title ?? "",
+                    submission.submitted_at ?? "",
+                    submission.score ?? "",
+                  ]),
+                );
+                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+              }}
+            >{t("تصدير CSV", "Export CSV")}</button>
           </div>
           <div className="quest-list">
             {visibleSubmissions.map((s) => {
