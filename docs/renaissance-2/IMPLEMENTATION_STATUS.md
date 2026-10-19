@@ -37,3 +37,8 @@
 ## Release boundaries
 
 No Supabase plan upgrade, paid provider activation, production secret rotation or schema migration is implied. Run provider checks only with explicitly authorized disposable staging identities. Keep the separately restricted Renaissance PR #3 restricted until approval.
+
+## Production database state (2026-10-19)
+
+- Owner-authorized reconciliation applied and verified: the respiratory curriculum pathway (unit 3 of `demo-science-v1`: 7 lessons, 3 skills, 48 questions + 48 keys) and the submission grading-integrity migration (CHECK constraint plus tightened `submissions scoped update` policy). Backup/restore drill and post-apply verification: `PRODUCTION_RECONCILIATION_20261019.md`.
+- Production content totals: units 3, lessons 9, skills 5, questions 67 (66 `published_demo` visible to anon/authenticated; one pre-existing `draft` hidden by RLS), question keys 67 (not readable outside staff/service role). RLS enabled on 38/38 public tables; security advisors unchanged.

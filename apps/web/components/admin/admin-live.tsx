@@ -10,6 +10,8 @@ import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
 import { CurriculumManager } from "@/components/admin/curriculum-manager";
+import { filterStaffSearch, paginateStaffItems } from "@/lib/dashboard/staff-search";
+import { downloadCsv } from "@/lib/dashboard/csv-export";
 
 type Question = {
   id: string;
@@ -55,6 +57,12 @@ export function AdminLive() {
   const [loading, setLoading] = useState(true),
     [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
+  const [contentSearch, setContentSearch] = useState("");
+  const [contentStatusFilter, setContentStatusFilter] = useState<"all" | "draft" | "review" | "published">("all");
+  const [contentPage, setContentPage] = useState(0);
+  const [classSearch, setClassSearch] = useState("");
+  const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher" | "admin">("all");
+  const [accountPage, setAccountPage] = useState(0);
 
   const [promptAr, setPromptAr] = useState("");
   const [promptEn, setPromptEn] = useState("");
@@ -386,10 +394,32 @@ export function AdminLive() {
     ).length,
     users: profiles.length,
   };
+  const filterLocale = locale === "en" ? "en" : "ar";
+  const visibleQuestions = filterStaffSearch(
+    questions, contentSearch, filterLocale,
+    (question) => [question.prompt_ar, question.prompt_en, question.review_status, question.publication_status, question.question_type],
+  ).filter((question) => {
+    if (contentStatusFilter === "draft") return question.review_status === "draft";
+    if (contentStatusFilter === "review") return question.review_status === "in_review";
+    if (contentStatusFilter === "published") {
+      return question.publication_status === "published" || question.publication_status === "published_demo";
+    }
+    return true;
+  });
+  const visibleClasses = filterStaffSearch(
+    classes, classSearch, filterLocale,
+    (classRow) => [classRow.name, classRow.grade_label, classRow.academic_year, classRow.slug],
+  );
+  const visibleProfiles = filterStaffSearch(
+    profiles, search, filterLocale,
+    (profile) => [profile.display_name, profile.role],
+  ).filter((profile) => accountRoleFilter === "all" || profile.role === accountRoleFilter);
+  const questionPage = paginateStaffItems(visibleQuestions, contentPage, 30);
+  const profilePage = paginateStaffItems(visibleProfiles, accountPage, 25);
 
   if (account.error || loadError)
     return (
-      <section className="aura-load-error" role="alert">
+      <section className="noata-staff-studio noata-admin-studio aura-load-error" role="alert">
         <h2>{account.error || loadError}</h2>
         <button
           type="button"
@@ -402,13 +432,13 @@ export function AdminLive() {
     );
   if (account.loading || loading)
     return (
-      <section className="aura-loading-state" role="status">
+      <section className="noata-staff-studio noata-admin-studio aura-loading-state" role="status">
         <span />
         <h2>{t("بنجهّز مساحة إدارة Noata…","Loading Noata administration…")}</h2>
       </section>
     );
   return (
-    <>
+    <div className="noata-staff-studio noata-admin-studio">
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("إدارة المحتوى والمجتمع","Manage content and community")}</div>
@@ -440,12 +470,14 @@ export function AdminLive() {
         </article>
       </section>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+      <div className="noata-admin-tabs" style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
         {(
           ["content", "curriculum", "users", "classes", "operations"] as const
         ).map((x) => (
           <button
             key={x}
+            type="button"
+            aria-pressed={tab === x}
             onClick={() => setTab(x)}
             className="btn"
             style={{
@@ -623,14 +655,62 @@ export function AdminLive() {
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">
               <h2>{t("قائمة المحتوى","Content list")}</h2>
-              <span className="pill">{questions.length} {locale==="en"?(questions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
+              <span className="pill">{visibleQuestions.length} / {questions.length} {locale==="en"?(visibleQuestions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
             </div>
+            <div className="noata-staff-list-tools">
+              <label className="noata-staff-search">
+                <span>{t("البحث في المحتوى","Search content")}</span>
+                <input
+                  className="search"
+                  type="search"
+                  value={contentSearch}
+                  onChange={(event) => {
+                    setContentSearch(event.target.value);
+                    setContentPage(0);
+                  }}
+                  placeholder={t("نص السؤال أو حالة المحتوى","Question text or content status")}
+                  aria-label={t("البحث في المحتوى","Search content")}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn"
+                disabled={!visibleQuestions.length}
+                onClick={() => {
+                  const started = downloadCsv(
+                    "noata-content.csv",
+                    [t("السؤال بالعربية", "Question (Arabic)"), t("السؤال بالإنجليزية", "Question (English)"), t("النوع", "Type"), t("حالة المراجعة", "Review status"), t("حالة النشر", "Publication status")],
+                    visibleQuestions.map((question) => [question.prompt_ar, question.prompt_en, question.question_type, question.review_status, question.publication_status]),
+                  );
+                  if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                }}
+              >{t("تصدير CSV", "Export CSV")}</button>
+            </div>
+            <nav className="filter-bar" aria-label={t("تصفية المحتوى", "Content filters")} style={{ marginBottom: 14 }}>
+              {([
+                ["all", t("الكل", "All")],
+                ["draft", t("المسودات", "Drafts")],
+                ["review", t("قيد المراجعة", "In review")],
+                ["published", t("المنشور", "Published")],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="filter-chip"
+                  aria-pressed={contentStatusFilter === value}
+                  onClick={() => {
+                    setContentStatusFilter(value);
+                    setContentPage(0);
+                  }}
+                >{label}</button>
+              ))}
+            </nav>
             <div className="quest-list">
-              {questions.slice(0, 30).map((q, i) => {
+              {questionPage.items.map((q, i) => {
                 const action = actionFor(q);
                 return (
                   <div className="quest" key={q.id}>
-                    <div className="quest-icon">{i + 1}</div>
+                    <div className="quest-icon">{questionPage.start + i}</div>
                     <div>
                       <h3>{locale==="en"?q.prompt_en:q.prompt_ar}</h3>
                       <p>
@@ -672,7 +752,7 @@ export function AdminLive() {
                             minHeight: 38,
                             padding: "0 10px",
                           }}
-                        >{t("إعادة للمراجعة","Return for review")}</button>
+                        >{t("إعادة إلى المسودة","Return to draft")}</button>
                       )}
                       {action && (
                         <button
@@ -693,6 +773,21 @@ export function AdminLive() {
                   </div>
                 );
               })}
+              {!visibleQuestions.length && (
+                <div className="noata-staff-empty">{contentSearch.trim() || contentStatusFilter !== "all"
+                  ? t("لا توجد نتائج مطابقة للبحث والتصفية.","No content matches the current search and filters.")
+                  : t("لا يوجد محتوى لعرضه بعد.","There is no content to display yet.")}</div>
+              )}
+              {visibleQuestions.length > 0 && (
+                <nav className="noata-staff-pagination" aria-label={t("صفحات المحتوى", "Content pages")}>
+                  <span>{t("النتائج", "Results")} {questionPage.start}–{questionPage.end} {t("من", "of")} {questionPage.total}</span>
+                  <div>
+                    <button type="button" className="btn" disabled={questionPage.page === 0} onClick={() => setContentPage(questionPage.page - 1)}>{t("السابق", "Previous")}</button>
+                    <span aria-live="polite">{questionPage.page + 1} / {questionPage.pageCount}</span>
+                    <button type="button" className="btn" disabled={questionPage.page + 1 >= questionPage.pageCount} onClick={() => setContentPage(questionPage.page + 1)}>{t("التالي", "Next")}</button>
+                  </div>
+                </nav>
+              )}
             </div>
           </section>
         </>
@@ -707,22 +802,56 @@ export function AdminLive() {
             <h2>{t("الحسابات والصلاحيات","Accounts and permissions")}</h2>
             <span className="pill">{t("صلاحيات الحساب","Account permissions")}</span>
           </div>
-          <input
-            className="search"
-            placeholder={t("ابحث بالاسم أو الدور…","Search by name or role…")}
-            aria-label={t("ابحث بالاسم أو الدور…","Search by name or role…")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ marginBottom: 16 }}
-          />
+          <nav className="filter-bar" aria-label={t("تصفية الحسابات حسب الدور", "Filter accounts by role")} style={{ marginBottom: 14 }}>
+            {([
+              ["all", t("كل الأدوار", "All roles")],
+              ["student", t("الطلاب", "Students")],
+              ["teacher", t("المعلمون", "Teachers")],
+              ["admin", t("الإدارة", "Administrators")],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="filter-chip"
+                aria-pressed={accountRoleFilter === value}
+                onClick={() => {
+                  setAccountRoleFilter(value);
+                  setAccountPage(0);
+                }}
+              >{label}</button>
+            ))}
+          </nav>
+          <div className="noata-staff-list-tools">
+            <label className="noata-staff-search">
+              <span>{t("البحث في الحسابات", "Search accounts")}</span>
+              <input
+                className="search"
+                type="search"
+                placeholder={t("ابحث بالاسم أو الدور…","Search by name or role…")}
+                aria-label={t("ابحث بالاسم أو الدور…","Search by name or role…")}
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setAccountPage(0);
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!visibleProfiles.length}
+              onClick={() => {
+                const started = downloadCsv(
+                  "noata-accounts.csv",
+                  [t("الاسم","Display name"), t("الدور","Role"), "XP", t("العملات","Coins")],
+                  visibleProfiles.map((profile) => [profile.display_name, profile.role, profile.xp, profile.coins]),
+                );
+                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+              }}
+            >{t("تصدير CSV", "Export CSV")}</button>
+          </div>
           <div className="quest-list">
-            {profiles
-              .filter((p) =>
-                (p.display_name + " " + p.role)
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((p) => (
+            {profilePage.items.map((p) => (
                 <div className="quest" key={p.id}>
                   <div className="quest-icon">
                     {p.display_name?.slice(0, 1).toUpperCase() || "U"}
@@ -748,6 +877,21 @@ export function AdminLive() {
                   </select>
                 </div>
               ))}
+            {!visibleProfiles.length && (
+              <div className="noata-staff-empty">{search.trim() || accountRoleFilter !== "all"
+                ? t("لا توجد حسابات تطابق البحث والتصفية الحالية.","No accounts match the current search and filter.")
+                : t("لا توجد حسابات متاحة للعرض.","No accounts are available to display.")}</div>
+            )}
+            {visibleProfiles.length > 0 && (
+              <nav className="noata-staff-pagination" aria-label={t("صفحات الحسابات", "Account pages")}>
+                <span>{t("النتائج", "Results")} {profilePage.start}–{profilePage.end} {t("من", "of")} {profilePage.total}</span>
+                <div>
+                  <button type="button" className="btn" disabled={profilePage.page === 0} onClick={() => setAccountPage(profilePage.page - 1)}>{t("السابق", "Previous")}</button>
+                  <span aria-live="polite">{profilePage.page + 1} / {profilePage.pageCount}</span>
+                  <button type="button" className="btn" disabled={profilePage.page + 1 >= profilePage.pageCount} onClick={() => setAccountPage(profilePage.page + 1)}>{t("التالي", "Next")}</button>
+                </div>
+              </nav>
+            )}
           </div>
         </section>
       )}
@@ -838,8 +982,39 @@ export function AdminLive() {
             </aside>
           </section>
 
-          <section style={{ display: "grid", gap: 14, marginTop: 18 }}>
-            {classes.map((c) => {
+          <div className="noata-staff-list-tools" style={{ marginTop: 18 }}>
+            <label className="noata-staff-search">
+              <span>{t("البحث في الصفوف","Search classes")}</span>
+              <input
+                className="search"
+                type="search"
+                value={classSearch}
+                onChange={(event) => setClassSearch(event.target.value)}
+                placeholder={t("اسم الصف أو المرحلة أو السنة","Class, grade or academic year")}
+                aria-label={t("البحث في الصفوف","Search classes")}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!visibleClasses.length}
+              onClick={() => {
+                const started = downloadCsv(
+                  "noata-classes.csv",
+                  [t("اسم الصف","Class name"), t("المرحلة","Grade"), t("السنة الدراسية","Academic year"), t("عدد الطلاب","Students"), t("عدد المعلمين","Teachers"), t("نشط","Active")],
+                  visibleClasses.map((classRow) => [
+                    classRow.name, classRow.grade_label, classRow.academic_year,
+                    memberships.filter((item) => item.class_id === classRow.id).length,
+                    teacherAccess.filter((item) => item.class_id === classRow.id).length,
+                    classRow.active ? t("نعم","Yes") : t("لا","No"),
+                  ]),
+                );
+                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+              }}
+            >{t("تصدير CSV", "Export CSV")}</button>
+          </div>
+          <section style={{ display: "grid", gap: 14, marginTop: 0 }}>
+            {visibleClasses.map((c) => {
               const students = memberships.filter((x) => x.class_id === c.id);
               const teachers = teacherAccess.filter((x) => x.class_id === c.id);
               return (
@@ -925,9 +1100,14 @@ export function AdminLive() {
                 </article>
               );
             })}
+            {!visibleClasses.length && (
+              <div className="noata-staff-empty">{classSearch.trim()
+                ? t("لا توجد صفوف مطابقة للبحث.","No classes match your search.")
+                : t("لم تُنشأ صفوف بعد.","No classes have been created yet.")}</div>
+            )}
           </section>
         </>
       )}
-    </>
+    </div>
   );
 }

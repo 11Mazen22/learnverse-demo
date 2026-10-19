@@ -156,6 +156,15 @@ select qa.denied($s$insert into public.assignment_submissions(assignment_id,stud
 select qa.denied($s$insert into public.assignment_submissions(assignment_id,student_id) values('20000000-0000-0000-0000-000000000002',auth.uid())$s$,'draft assignment submission denied');
 select qa.denied($s$insert into public.assignment_submissions(assignment_id,student_id) values('20000000-0000-0000-0000-000000000003',auth.uid())$s$,'foreign class submission denied');
 insert into public.assignment_submissions(assignment_id,student_id,submitted_at) values('20000000-0000-0000-0000-000000000001',auth.uid(),now());
+-- A draft submission row (no submitted_at) must never be gradable. Clients can no
+-- longer create such a row, so the privileged fixture owner inserts it for a
+-- different student of the same assignment class; the assigned teacher below
+-- then sees two rows and can grade only the submitted one.
+reset role;
+insert into public.assignment_submissions(assignment_id,student_id) values('20000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000002');
+select qa.artifact_constraint_denied($s$update public.assignment_submissions set score=55 where submitted_at is null$s$,'database refuses a score without a submission','23514');
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
 select qa.denied($s$update public.assignment_submissions set assignment_id='20000000-0000-0000-0000-000000000003' where student_id=auth.uid()$s$,'submission cannot move to foreign assignment');
 select qa.denied($s$update public.assignment_submissions set score=100 where student_id=auth.uid()$s$,'student cannot update own grade');
 select qa.denied($s$select public.complete_lesson('29ea460d-92fc-570b-942a-c80fe012be22',100)$s$,'unearned lesson completion denied');
@@ -210,14 +219,15 @@ select qa.check((select count(*)=0 from public.profiles where id='00000000-0000-
 with changed as(update public.assignment_submissions set score=100 returning id)
 select qa.check((select count(*)=0 from changed),'unrelated teacher cannot grade');
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000003';
-select qa.check((select count(*)=1 from public.assignment_submissions),'assigned teacher can read submission');
+select qa.check((select count(*)=2 from public.assignment_submissions),'assigned teacher can read submissions');
+select qa.artifact_constraint_denied($s$update public.assignment_submissions set score=55 where submitted_at is null$s$,'assigned teacher cannot grade unsubmitted submission','42501');
 select qa.check((select count(*)>0 from public.attempts),'assigned teacher can read learning attempts');
 select qa.denied($s$update public.questions set publication_status='published' where id='92286df0-8362-52fa-9f3c-233111d9e388'$s$,'teacher cannot bypass publish RPC using table update');
 select qa.denied($s$select public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','publish')$s$,'teacher cannot publish via RPC','Admin access required to publish');
-with changed as(update public.assignment_submissions set score=83 returning id)
+with changed as(update public.assignment_submissions set score=83 where submitted_at is not null returning id)
 select qa.check((select count(*)=1 from changed),'assigned teacher can grade');
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
-with changed as(update public.assignment_submissions set metadata='{"overwrite":true}' returning id)
+with changed as(update public.assignment_submissions set metadata='{"overwrite":true}' where score is not null returning id)
 select qa.check((select count(*)=0 from changed),'graded submission cannot be overwritten by student');
 select qa.check((select count(*)=1 from public.notifications where type='grade'),'student receives grade notification');
 select public.submit_attempt('33fddc1b-daaa-582f-87a5-71b6ce7eb904','{"value":"5"}',false,'qa-boss-one',false);

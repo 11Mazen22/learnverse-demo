@@ -892,8 +892,16 @@ kbd {
   padding: 12px;
   border-radius: 12px;
 }
-.command-results a:hover {
+.command-results a:hover,
+.command-results a[aria-selected="true"] {
   background: var(--accent-soft);
+  outline: none;
+}
+.command-empty {
+  padding: 18px 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  text-align: center;
 }
 .command-results a span {
   flex: 1;

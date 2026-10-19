@@ -1,7 +1,8 @@
 "use client";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { UserMenu } from "@/components/auth/user-menu";
 import { ThemeControl } from "@/components/preferences/theme-control";
 import { LocaleControl } from "@/components/preferences/locale-control";
@@ -13,6 +14,7 @@ import { ContextualCoach } from "@/components/ai/contextual-coach";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, hasSeenFeature, markFeatureSeen } from "@/lib/feature-seen";
 import { localized, useLocale } from "@/lib/i18n/locale";
+import { matchesStaffSearch } from "@/lib/dashboard/staff-search";
 
 type Route = [ar: string, en: string, href: string, icon: string, arDescription: string, enDescription: string];
 const navGroups: { titleAr: string; titleEn: string; routes: Route[] }[] = [
@@ -59,6 +61,9 @@ export function AppShell({
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeResult, setActiveResult] = useState(0);
+  const resultRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const router = useRouter();
   const locale = useLocale();
   const t = (ar: string, en: string) => localized(locale, ar, en);
   const pageLabel = routes.find((route) => route[2] === active)?.[locale === "en" ? 1 : 0] ??
@@ -81,6 +86,34 @@ export function AppShell({
     if (href === "/ai") markFeatureSeen("ai", AI_INTRO_VERSION, account.user?.id ?? null);
     setMenu(false);
   }
+  const searchResults = useMemo(
+    () =>
+      routes.filter((route) =>
+        matchesStaffSearch(
+          query,
+          [route[0], route[1], route[4], route[5]],
+          locale,
+        ),
+      ),
+    [locale, query],
+  );
+  function closeSearch() {
+    setSearch(false);
+    setQuery("");
+    setActiveResult(0);
+  }
+  function openSearchResult(href: string) {
+    openRoute(href);
+    closeSearch();
+    if (href !== active) router.push(href);
+  }
+  useEffect(() => {
+    setActiveResult(0);
+  }, [query]);
+  useEffect(() => {
+    if (!search) return;
+    resultRefs.current[activeResult]?.scrollIntoView({ block: "nearest" });
+  }, [activeResult, search, searchResults.length]);
   useEffect(() => {
     function key(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -227,32 +260,90 @@ export function AppShell({
       </Dialog>
       <Dialog
         open={search}
-        onClose={() => setSearch(false)}
+        onClose={closeSearch}
         title={t("رايح فين النهارده؟", "Where would you like to go?")}
       >
         <input
           className="search command-input"
           autoFocus
+          role="combobox"
+          aria-expanded="true"
+          aria-autocomplete="list"
+          aria-controls="noata-command-results"
+          aria-activedescendant={
+            searchResults[activeResult]
+              ? `noata-command-option-${activeResult}`
+              : undefined
+          }
           aria-label={t("ابحث عن صفحة", "Search pages")}
           placeholder={t("ابحث عن صفحة أو أداة…", "Search for a page or tool…")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              if (!searchResults.length) return;
+              const direction = event.key === "ArrowDown" ? 1 : -1;
+              setActiveResult(
+                (current) =>
+                  (current + direction + searchResults.length) %
+                  searchResults.length,
+              );
+            } else if (event.key === "Home") {
+              event.preventDefault();
+              setActiveResult(0);
+            } else if (event.key === "End") {
+              event.preventDefault();
+              setActiveResult(Math.max(0, searchResults.length - 1));
+            } else if (event.key === "Enter") {
+              const result = searchResults[activeResult];
+              if (!result) return;
+              event.preventDefault();
+              openSearchResult(result[2]);
+            }
+          }}
         />
-        <div className="command-results">
-          {routes
-            .filter((r) =>
-              r.join(" ").toLowerCase().includes(query.toLowerCase()),
-            )
-            .map(([labelAr, labelEn, href, icon, descriptionAr, descriptionEn]) => (
-              <Link href={href} key={href} onClick={() => { openRoute(href); setSearch(false); }}>
-                <Icon name={icon} />
-                <span>
-                  <b>{t(labelAr, labelEn)}</b>
-                  <small>{t(descriptionAr, descriptionEn)}</small>
-                </span>
-                <Icon name="arrow" size={16} />
-              </Link>
-            ))}
+        <div id="noata-command-results">
+          {searchResults.length ? (
+            <div
+              className="command-results"
+              role="listbox"
+              aria-label={t("الصفحات المتاحة", "Available pages")}
+            >
+              {searchResults.map(([labelAr, labelEn, href, icon, descriptionAr, descriptionEn], index) => (
+                <Link
+                  href={href}
+                  key={href}
+                  id={`noata-command-option-${index}`}
+                  role="option"
+                  aria-selected={index === activeResult}
+                  tabIndex={-1}
+                  ref={(node) => {
+                    resultRefs.current[index] = node;
+                  }}
+                  onMouseEnter={() => setActiveResult(index)}
+                  onClick={() => {
+                    openRoute(href);
+                    closeSearch();
+                  }}
+                >
+                  <Icon name={icon} />
+                  <span>
+                    <b>{t(labelAr, labelEn)}</b>
+                    <small>{t(descriptionAr, descriptionEn)}</small>
+                  </span>
+                  <Icon name="arrow" size={16} />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="command-results command-empty" role="status">
+              {t(
+                "لا توجد صفحة تطابق هذا البحث. جرّب كلمة أخرى.",
+                "No page matches that search. Try another word.",
+              )}
+            </p>
+          )}
         </div>
       </Dialog>
     </div>

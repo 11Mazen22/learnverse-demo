@@ -29,6 +29,7 @@ import "./ai-library.css";
 import "./auth-renaissance.css";
 import "./ai-reading-renaissance.css";
 import "./tooltip-system.css";
+import "./staff-studio.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";
