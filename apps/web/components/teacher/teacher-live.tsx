@@ -267,7 +267,7 @@ export function TeacherLive() {
       </section>
     );
   return (
-    <>
+    <div className="noata-staff-studio noata-teacher-studio">
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("صفوفك وخطوات طلابك","Your classes and student progress")}</div>
@@ -598,6 +598,6 @@ export function TeacherLive() {
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }
