@@ -63,3 +63,26 @@ test("Detailed background retrieves an actual bounded article without redirectin
  }});
  assert.equal(articleReads,1);assert.equal(result.status,"complete");assert.ok(result.sources[0].excerpt.length>2000);assert.ok(result.sources[0].excerpt.length<=10000);assert.match(result.sources[0].excerpt,/Chloroplasts/);
 });
+
+test("Arabic background accepts a title-matched subject and rejects unrelated short matches",()=>{
+ const query="الحياة اليومية والمدن الرئيسية خلال الدولة العباسية";
+ assert.equal(relevantBackgroundSource(query,{title:"الدولة العباسية",excerpt:"دولة إسلامية سابقة"}),true);
+ assert.equal(relevantBackgroundSource(query,{title:"جيهان السادات",excerpt:"النساء في الحياة العامة والتعليم"}),false);
+ assert.equal(relevantBackgroundSource("مشهد يومي بغداد عصر ذهبي إسلامي: أسواق علماء الفنون المناظرات",{title:"الأندلس",excerpt:"إقليم وحضارة إسلامية قامت في أوروبا الغربية، وردت فيه بغداد وعلماء"}),false);
+});
+
+test("Every Wikipedia request carries an identifying User-Agent",async()=>{
+ const requests:{url:string;headers:Headers}[]=[];
+ const fetcher:typeof fetch=async(url,options)=>{
+  requests.push({url:String(url),headers:new Headers(options?.headers)});
+  const address=new URL(String(url));
+  if(address.pathname==="/w/api.php")return Response.json({query:{pages:[]}});
+  if(address.pathname.includes("/summary/"))return Response.json({});
+  return Response.json({pages:[{key:"Photosynthesis",title:"Photosynthesis",excerpt:"Photosynthesis converts light energy."}]});
+ };
+ await searchEncyclopedia(searchPlan("search photosynthesis"),{signal:new AbortController().signal,fetcher});
+ assert.ok(requests.some(request=>request.url.includes("/search/page")));
+ assert.ok(requests.some(request=>request.url.includes("/page/summary/")));
+ assert.ok(requests.some(request=>request.url.includes("/w/api.php")));
+ for(const request of requests)assert.match(request.headers.get("user-agent")??"",/^NoataAI\/1\.0 /);
+});

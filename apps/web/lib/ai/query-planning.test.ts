@@ -1,5 +1,5 @@
 import test from "node:test";import assert from "node:assert/strict";
-import {researchPlanningInput,plannedResearchQuery,refersToConversation} from "../../../../supabase/functions/noata-ai/query-planning.ts";
+import {researchPlanningInput,plannedResearchQuery,refersToConversation,researchClarificationRequired} from "../../../../supabase/functions/noata-ai/query-planning.ts";
 import {searchPlan} from "../../../../supabase/functions/noata-ai/research.ts";
 test("Observed 'search all this' refers to the actual earlier subject",()=>{
  const request="Now can you search for all of this to be sure these are corrected data?";
@@ -72,4 +72,12 @@ test("common search phrasings reduce to the real topic for provider fallback",()
   assert.equal(base.needed,true,request);
   assert.equal(explicitResearchQuery(request,base)?.query,expected,request);
  }
+});
+
+test("A substantive Arabic research request is never replaced by a generic clarification",()=>{
+ const request="تخيل أنك تعيش في زمن العباسي، كيف كانت الحياة؟ ما هي الأماكن التي كنت تزورها وماذا كان يحدث فيها؟ شارح لي عن أهمية هذه المدينة التاريخية، و ابحث لتأكد عن ذلك";
+ assert.equal(searchPlan(request).needed,true);
+ assert.equal(researchClarificationRequired(request),false);
+ assert.equal(researchClarificationRequired("search this"),true);
+ assert.equal(researchClarificationRequired("ابحث عن ذلك"),true);
 });

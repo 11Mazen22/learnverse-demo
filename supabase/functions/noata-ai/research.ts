@@ -67,6 +67,8 @@ export async function runResearch(plan:SearchPlan,options:SearchProviderOptions 
   });
   options.signal.throwIfAborted();
   if(!plan.needed||["private","opt_out"].includes(plan.reason))return result("unavailable","not_requested");
+  // A failed planner must never turn an empty subject into a billed query.
+  if(!plan.query.trim())return result("unavailable","unresolved_query");
   if(!searchProviderConfigured(options))return result("unavailable","not_configured");
   if(active>=2||Date.now()<circuitUntil)return result("unavailable","temporarily_busy");
   active++;

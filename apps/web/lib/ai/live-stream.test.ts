@@ -161,10 +161,13 @@ test("specialist access denial is sanitized without exposing the provider body",
  const text=await new Response(stream).text();assert.match(text,/PROVIDER_MODEL_ACCESS_DENIED/);assert.ok(!text.includes("secret-test-only"));assert.ok(!text.includes("Additional authorization"));
 });
 
-test("failed retrieval cannot invoke a provider to invent current research",async()=>{
- let invoked=false,saved:any;const stream=createFanarStream({model:"Fanar",clean,prepare:async()=>({version:1,status:"unavailable",sources:[],elapsedMs:0}),unavailableContent:()=>"Live research is unavailable.",request:async()=>{invoked=true;return Response.json({});},persist:async(result)=>{saved=result;}});
+test("unavailable retrieval still answers from general background and preserves the limitation state",async()=>{
+ let invoked=false,saved:any;
+ const stream=createFanarStream({model:"Fanar",clean,prepare:async()=>({version:1,status:"unavailable",reason:"not_configured",sources:[],elapsedMs:0}),
+  request:async()=>{invoked=true;return Response.json({choices:[{message:{content:"General background only; live verification was unavailable."},finish_reason:"stop"}]});},
+  persist:async(result)=>{saved=result;}});
  const frames=parseStreamFrames(await new Response(stream).text()).data.map(x=>JSON.parse(x));
- assert.equal(invoked,false);assert.equal(saved.model,"Noata");assert.equal(saved.finishReason,"research_unavailable");assert.equal(saved.research.status,"unavailable");assert.equal(frames.at(-1).done,true);
+ assert.equal(invoked,true);assert.equal(saved.finishReason,"stop");assert.equal(saved.content,"General background only; live verification was unavailable.");assert.equal(saved.research.status,"unavailable");assert.equal(saved.research.reason,"not_configured");assert.equal(frames.at(-1).done,true);
 });
 
 test("One completed-draft review replaces the content in the same stream and persisted row",async()=>{
