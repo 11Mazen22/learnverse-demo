@@ -10,7 +10,7 @@ export type SearchPlan = {needed:boolean; reason:"explicit"|"freshness"|"source"
 export type ResearchSource = {id:number; title:string; url:string; domain:string; excerpt:string; published?:string; retrievedAt:string};
 export type ResearchStage="searching"|"reviewing"|"complete"|"unavailable"|"failed";
 export type ResearchActivity={stage:ResearchStage;at:string;resultCount?:number};
-export type Research = {version:1; status:"complete"|"unavailable"|"failed"; reason?:string; sources:ResearchSource[]; elapsedMs:number; query?:string; activity?:ResearchActivity[]; provider?:"brave"; partial?:boolean; queries?:{query:string;status:"complete"|"failed";sourceIds:number[]}[]};
+export type Research = {version:1; status:"complete"|"unavailable"|"failed"; reason?:string; sources:ResearchSource[]; elapsedMs:number; query?:string; activity?:ResearchActivity[]; provider?:"brave"; partial?:boolean; queries?:{query:string;status:"complete"|"failed";sourceIds:number[]}[]; currentRequired?:boolean};
 export function searchPlan(text:string):SearchPlan {
   const query=text.normalize("NFKC").replace(/[\x00-\x1f\x7f]/g," ").replace(/\s+/g," ").trim().split(" ").slice(0,75).join(" ").slice(0,600);
   const plan=(reason:SearchPlan["reason"],needed=false,fresh=false):SearchPlan=>({needed,reason,query,fresh,scope:researchScope(query)});
@@ -28,6 +28,10 @@ export function searchPlan(text:string):SearchPlan {
   if(fresh)return plan("freshness",true,true);
   if(/https:\/\/|\b(citations?|cite|official documentation|published (?:paper|study))\b|استشهد|توثيق|دراسة منشورة/i.test(query))return plan("source",true);
   return plan("none");
+}
+/** True when an answer would be misleading without live/current or requested-source evidence. */
+export function researchRequiresCurrent(plan:SearchPlan):boolean{
+ return plan.fresh||plan.reason==="freshness"||plan.reason==="source"||Boolean(plan.scope?.official)||Boolean(plan.scope?.domains.length);
 }
 /** We only request Brave's fixed endpoint; source URLs are links, never fetch targets. */
 export function publicSourceUrl(value:unknown):string|null {
@@ -62,6 +66,7 @@ export async function runResearch(plan:SearchPlan,options:SearchProviderOptions 
   const record=(stage:ResearchStage)=>activity.push({stage,at:new Date().toISOString()});
   const result=(status:Research["status"],reason?:string,sources:ResearchSource[]=[]):Research=>({
     version:1,status,...(reason?{reason}:{}),sources,elapsedMs:Date.now()-started,query:plan.query.slice(0,600),
+    ...(researchRequiresCurrent(plan)?{currentRequired:true}:{}),
     ...(queries.length?{provider:"brave" as const,queries,partial:queries.some(q=>q.status==="failed")}:{}),
     activity:[...activity,{stage:status,at:new Date().toISOString(),...(status==="complete"?{resultCount:sources.length}:{})}]
   });
@@ -132,5 +137,5 @@ export function validatedResearch(value:unknown):Research|undefined {
   const activity=Array.isArray(data.activity)?data.activity.slice(0,7).filter(x=>x&&allowed.has(x.stage)&&typeof x.at==="string"&&Number.isFinite(Date.parse(x.at))).map(x=>({stage:x.stage,at:x.at,...(Number.isInteger(x.resultCount)&&Number(x.resultCount)>=0&&Number(x.resultCount)<=5?{resultCount:x.resultCount}:{})})):undefined;
   const queries=Array.isArray(data.queries)?data.queries.slice(0,3).filter(q=>q&&typeof q.query==="string"&&["complete","failed"].includes(q.status)&&Array.isArray(q.sourceIds)).map(q=>({query:plain(q.query,600),status:q.status,sourceIds:q.sourceIds.filter(id=>seenIds.has(id)).slice(0,5)})):undefined;
   return {version:1,status:data.status,sources:data.status==="complete"?sources:[],elapsedMs:Number.isFinite(data.elapsedMs)?Math.max(0,Math.min(60000,data.elapsedMs)):0,
-    ...(reason?{reason}:{}),...(query?{query}:{}),...(activity?{activity}:{}),...(queries?{queries,partial:queries.some(q=>q.status==="failed")}:{}),...(data.provider==="brave"?{provider:"brave" as const}:{})};
+    ...(reason?{reason}:{}),...(query?{query}:{}),...(data.currentRequired===true?{currentRequired:true}:{}),...(activity?{activity}:{}),...(queries?{queries,partial:queries.some(q=>q.status==="failed")}:{}),...(data.provider==="brave"?{provider:"brave" as const}:{})};
 }

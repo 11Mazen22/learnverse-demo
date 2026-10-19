@@ -40,3 +40,8 @@ export function canCreateArtifactFromAnswer(reply:string,previous:string,usePrev
 export function canDeliverArtifactTurn(result:{finishReason?:string;incomplete?:boolean;capabilityProbe?:boolean}):boolean{
  return !result.incomplete&&!result.capabilityProbe&&!["clarification","memory_result","research_unavailable"].includes(result.finishReason??"");
 }
+/** Block exports only when the request genuinely required live/current or official evidence.
+ * General/historical background may still become a clearly-caveated document. */
+export function artifactResearchBlocked(research?:{status?:string;currentRequired?:boolean}):boolean{
+ return Boolean(research&&research.status!=="complete"&&research.currentRequired===true);
+}

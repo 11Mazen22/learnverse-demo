@@ -10,7 +10,7 @@ import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./se
 import { createFanarStream,readFanarTextResponse } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
-import {searchPlan,searchNeedsTopic,runResearch,researchContext,type Research} from "./research.ts";
+import {searchPlan,searchNeedsTopic,runResearch,researchContext,researchRequiresCurrent,type Research} from "./research.ts";
 import {encyclopediaFallbackAllowed} from "./research-policy.ts";
 import {searchProviderConfigured} from "./search-provider.ts";
 import {searchEncyclopedia} from "./encyclopedia.ts";
@@ -103,7 +103,7 @@ function clean(text: string) {
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
   // An unresolved plan must not reach Brave (empty query) or spend a quota claim.
-  if(!plan.query.trim())return {version:1,status:"unavailable",reason:"unresolved_query",sources:[],elapsedMs:0};
+  if(!plan.query.trim())return {version:1,status:"unavailable",reason:"unresolved_query",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
   const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
@@ -111,7 +111,7 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   await claim(userId,"web_search");
   const background=await searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})});
   return background.status==="complete"?background:broad;
- }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
+ }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};}
 }
 async function reviewCompletedAnswer(input:{
  request:string;content:string;research?:Research;format?:unknown;language:"ar"|"en";model:string;userId:string;signal:AbortSignal;sectionLevel?:number;emit?:(data:unknown)=>void;

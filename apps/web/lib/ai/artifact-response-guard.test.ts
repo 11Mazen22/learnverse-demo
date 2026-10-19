@@ -28,7 +28,7 @@ test("Direct-creation refusals are detected without mistaking plural follow-ups 
  assert.equal(isArtifactRefusal("I cannot directly create a PDF document."),true);
 });
 
-import {canDeliverArtifactTurn} from "./artifact-response-guard.ts";
+import {canDeliverArtifactTurn,artifactResearchBlocked} from "./artifact-response-guard.ts";
 import {isNonDeliverableDraft} from "./delivery-quality.ts";
 test("The observed research clarification must never reach an artifact engine",()=>{
  assert.equal(canDeliverArtifactTurn({finishReason:"clarification"}),false);
@@ -36,4 +36,12 @@ test("The observed research clarification must never reach an artifact engine",(
  assert.equal(canDeliverArtifactTurn({finishReason:"stop",capabilityProbe:true}),false);
  assert.equal(canDeliverArtifactTurn({finishReason:"stop"}),true);
  assert.equal(isNonDeliverableDraft("Which public topic or claim should I verify? I could not resolve the subject."),true);
+});
+test("Only current or official research gaps block document export",()=>{
+ assert.equal(artifactResearchBlocked({status:"unavailable",currentRequired:true}),true);
+ assert.equal(artifactResearchBlocked({status:"failed",currentRequired:true}),true);
+ assert.equal(artifactResearchBlocked({status:"unavailable"}),false);
+ assert.equal(artifactResearchBlocked({status:"unavailable",currentRequired:false}),false);
+ assert.equal(artifactResearchBlocked({status:"complete",currentRequired:true}),false);
+ assert.equal(artifactResearchBlocked(undefined),false);
 });

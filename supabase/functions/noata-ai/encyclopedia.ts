@@ -3,7 +3,7 @@
  * All snippets are untrusted context and must be cited with their source URLs.
  */
 import {conciseResearchSubject} from "./query-planning.ts";
-import type {SearchPlan,Research,ResearchSource,ResearchActivity} from "./research.ts";
+import {researchRequiresCurrent,type SearchPlan,type Research,type ResearchSource,type ResearchActivity} from "./research.ts";
 const API="https://en.wikipedia.org/w/rest.php/v1/search/page";
 const AR_API="https://ar.wikipedia.org/w/rest.php/v1/search/page";
 // Wikimedia rejects clients without an identifying User-Agent (HTTP 429/HTML),
@@ -67,7 +67,7 @@ export async function searchEncyclopedia(plan:SearchPlan,opts:{
 }):Promise<Research>{
  const started=Date.now(),stamp=()=>new Date().toISOString(),activity:ResearchActivity[]=[];
  const result=(status:Research["status"],reason:string,sources:ResearchSource[]=[]):Research=>({
-  version:1,status,reason,query:plan.query,sources,elapsedMs:Date.now()-started,
+  version:1,status,reason,query:plan.query,sources,elapsedMs:Date.now()-started,...(researchRequiresCurrent(plan)?{currentRequired:true}:{}),
   activity:[...activity,{stage:status,at:stamp(),...(status==="complete"?{resultCount:sources.length}:{})}]
  });
  // Never imply a fresh/current/official source search was completed using Wikipedia.
