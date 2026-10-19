@@ -696,8 +696,8 @@ export function TeacherLive() {
               );
             })}
             {!visibleSubmissions.length && (
-              <div className="noata-staff-empty">{submissionSearch.trim()
-                ? t("لا توجد نتائج مطابقة للبحث.","No submissions match your search.")
+              <div className="noata-staff-empty">{submissionSearch.trim() || gradingFilter !== "all"
+                ? t("لا توجد تسليمات تطابق البحث والتصفية الحالية.","No submissions match the current search and filter.")
                 : t("لا توجد تسليمات بعد.","No submissions yet.")}</div>
             )}
           </div>
