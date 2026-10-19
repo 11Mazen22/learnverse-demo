@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { filterStaffSearch, matchesStaffSearch } from "./staff-search.ts";
+import { filterStaffSearch, matchesStaffSearch, paginateStaffItems } from "./staff-search.ts";
 
 test("blank or whitespace-only search returns every record", () => {
   const rows = [{ title: "Algebra" }, { title: "Biology" }];
