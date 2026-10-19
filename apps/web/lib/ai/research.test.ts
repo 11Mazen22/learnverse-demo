@@ -21,6 +21,20 @@ test("missing search configuration performs no external request and cannot fabri
  const research=await runResearch(searchPlan("Latest Mars news"),{key:"",enabled:false,signal:new AbortController().signal,fetcher:async()=>{calls++;throw Error("must not run");}});
  assert.equal(calls,0);assert.equal(research.status,"unavailable");assert.deepEqual(research.sources,[]);assert.match(researchContext(research),/Do not invent/);
 });
+test("an unresolved research plan never sends an empty query to the provider",async()=>{
+ let calls=0;
+ const research=await runResearch({...searchPlan("Research Mars"),query:""},{key:"test",enabled:true,signal:new AbortController().signal,fetcher:async()=>{calls++;throw Error("must not run");}});
+ assert.equal(calls,0);assert.equal(research.status,"unavailable");assert.equal(research.reason,"unresolved_query");
+});
+test("research records when live or official evidence was required",async()=>{
+ const options={key:"",enabled:false,signal:new AbortController().signal,fetcher:async()=>{throw Error("must not run")}};
+ const fresh=await runResearch(searchPlan("Latest Mars news"),options);
+ assert.equal(fresh.status,"unavailable");assert.equal(fresh.currentRequired,true);
+ const general=await runResearch(searchPlan("Research Mars"),options);
+ assert.equal(general.status,"unavailable");assert.equal(general.currentRequired,undefined);
+ const validated=validatedResearch({version:1,status:"unavailable",reason:"not_configured",sources:[],elapsedMs:1,currentRequired:true});
+ assert.equal(validated?.currentRequired,true);
+});
 test("research uses the fixed provider endpoint, real lifecycle events and bounded evidence",async()=>{
  const events:string[]=[];
  const research=await runResearch(searchPlan("Research Mars"),{key:"test-only",enabled:true,signal:new AbortController().signal,onStatus:status=>events.push(status),fetcher:async(url,options)=>{

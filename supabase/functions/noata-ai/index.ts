@@ -1,7 +1,7 @@
 import {resolveGraphFollowup,graphRecoveryReply} from "./graph-delivery.ts";
 import {specialistRequest,specialistReply} from "./specialists.ts";
 import {requestWithContextRecovery} from "./context-recovery.ts";
-import {researchPlanningInput,plannedResearchQuery,refersToConversation,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
+import {researchPlanningInput,plannedResearchQuery,researchClarificationRequired,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerReviewReason,answerReviewIssue,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
@@ -10,7 +10,7 @@ import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./se
 import { createFanarStream,readFanarTextResponse } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
-import {searchPlan,searchNeedsTopic,runResearch,researchContext,type Research} from "./research.ts";
+import {searchPlan,searchNeedsTopic,runResearch,researchContext,researchRequiresCurrent,type Research} from "./research.ts";
 import {encyclopediaFallbackAllowed} from "./research-policy.ts";
 import {searchProviderConfigured} from "./search-provider.ts";
 import {searchEncyclopedia} from "./encyclopedia.ts";
@@ -100,9 +100,10 @@ function clean(text: string) {
     .trim());
 }
 
-function unavailableResearchContent(responseLanguage:"ar"|"en"){return responseLanguage==="en"?"Live web research is unavailable for this request. I cannot verify the latest information or provide retrieved citations. Paste a source excerpt for me to explain, or ask for general background that does not require current information.":"\u0627\u0644\u0628\u062d\u062b \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d \u0644\u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628. \u0644\u0627 \u0623\u0633\u062a\u0637\u064a\u0639 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0623\u062d\u062f\u062b \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0623\u0648 \u062a\u0642\u062f\u064a\u0645 \u0645\u0635\u0627\u062f\u0631 \u0645\u0633\u062a\u0631\u062c\u0639\u0629. \u0627\u0644\u0635\u0642 \u0645\u0642\u062a\u0637\u0641\u064b\u0627 \u0645\u0646 \u0645\u0635\u062f\u0631 \u0644\u0623\u0634\u0631\u062d\u0647\u060c \u0623\u0648 \u0627\u0637\u0644\u0628 \u0634\u0631\u062d\u064b\u0627 \u0639\u0627\u0645\u064b\u0627 \u0644\u0627 \u064a\u062a\u0637\u0644\u0628 \u0645\u0639\u0644\u0648\u0645\u0627\u062a \u062d\u062f\u064a\u062b\u0629.";}
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
+  // An unresolved plan must not reach Brave (empty query) or spend a quota claim.
+  if(!plan.query.trim())return {version:1,status:"unavailable",reason:"unresolved_query",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
   const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
@@ -110,7 +111,7 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   await claim(userId,"web_search");
   const background=await searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})});
   return background.status==="complete"?background:broad;
- }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0};}
+ }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};}
 }
 async function reviewCompletedAnswer(input:{
  request:string;content:string;research?:Research;format?:unknown;language:"ar"|"en";model:string;userId:string;signal:AbortSignal;sectionLevel?:number;emit?:(data:unknown)=>void;
@@ -149,13 +150,14 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
   return new Response(createFanarStream({
     model, clean,routeNote,
     deferContentUntilReview:!specialized&&Boolean(userId)&&(plan?.needed===true||answerReviewReason(actualRequest,"",undefined,artifactFormat)!==null),
-    unavailableContent:()=>unavailableResearchContent(responseLanguage),
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);
       const messages=providerBody.messages as {role:string;content:unknown}[];
       const evidence={role:"user",content:researchContext(research)};protectedMessages.push(evidence);
       messages.splice(Math.max(0,messages.length-1),0,evidence);
-      if(!specialized&&messages[0]?.role==="system")messages[0].content=String(messages[0].content??"")+ "\nApplication evidence status for THIS request: sources were retrieved. Use the excerpts that follow. Do not say Noata cannot access sources. Limited background cannot verify current claims.";
+      if(!specialized&&messages[0]?.role==="system")messages[0].content=String(messages[0].content??"")+(research.status==="complete"
+        ?"\nApplication evidence status for THIS request: sources were retrieved. Use the excerpts that follow. Do not say Noata cannot access sources. Limited background cannot verify current claims."
+        :"\nApplication evidence status for THIS request: live research was NOT available. Never claim a search, current verification, citations or URLs; answer only with stable general background and state the limitation.");
       return research;
     }:undefined,
     review: !specialized&&userId?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,sectionLevel,emit}):undefined,
@@ -643,9 +645,12 @@ async function handleChat(
     planned??=explicitResearchQuery(latestText,lookupPlan);
     planned??=contextualResearchQuery(context,lookupPlan);
     if(planned)lookupPlan=planned;
-    else return json({kind:"chat",model:"Noata",
+    else if(researchClarificationRequired(latestText)) return json({kind:"chat",model:"Noata",
       content:latestLanguage==="English"?"Which public topic or claim should I verify? I couldn't reliably resolve the subject from this conversation.":"أي موضوع عام أو معلومة تحب أتحقق منها؟ لم أتمكن من تحديد المقصود بدقة من سياق المحادثة.",
       finishReason:"clarification",incomplete:false,quota});
+    // A substantive request keeps its answer. The empty query becomes an
+    // explicit unresolved-research caveat instead of a generic clarification.
+    else lookupPlan={...lookupPlan,query:""};
   }
   const sectionLevel=typeof payload.revisionSectionLevel==="number"&&Number.isInteger(payload.revisionSectionLevel)&&payload.revisionSectionLevel>=1&&payload.revisionSectionLevel<=3?payload.revisionSectionLevel:undefined;
   const delivery=fileDeliveryInstruction(payload.artifactFormat,latestLanguage==="English"?"en":"ar",sectionLevel);
@@ -668,9 +673,15 @@ async function handleChat(
     return streamFanar(body, model, receipt,lookupPlan,userId,routeNote,latestLanguage==="English"?"en":"ar",graphAwareRequest,payload.artifactFormat,sectionLevel);
   const plan=lookupPlan;
   const research=plan.needed?await prepareResearchForRequest(plan,userId,AbortSignal.timeout(15000)):undefined;
-  if(research&&research.status!=="complete")return json({kind:"chat",model:"Noata",content:unavailableResearchContent(latestLanguage==="English"?"en":"ar"),research,finishReason:"research_unavailable",incomplete:false,quota});
   const protectedChatMessages:{role:string;content:unknown}[]=[];
-  if(research){const evidence={role:"user",content:researchContext(research)};protectedChatMessages.push(evidence);messages.splice(Math.max(0,messages.length-1),0,evidence);messages[0].content+="\nSources were retrieved for THIS request. Use their excerpts; do not deny source access. Do not claim snippets verify unstated facts.";}
+  if(research){
+    const evidence={role:"user",content:researchContext(research)};
+    protectedChatMessages.push(evidence);
+    messages.splice(Math.max(0,messages.length-1),0,evidence);
+    messages[0].content+=research.status==="complete"
+      ?"\nSources were retrieved for THIS request. Use their excerpts; do not deny source access. Do not claim snippets verify unstated facts."
+      :"\nLive research was NOT available for THIS request. Never claim a search, current verification, citations or URLs; answer only with stable general background and state the limitation.";
+  }
   let data: any;
   if (model === "Fanar-C-1-8.7B" && payload.enable_thinking === true) {
     data = await c1Thinking(messages,protectedChatMessages);

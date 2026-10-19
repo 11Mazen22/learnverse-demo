@@ -11,7 +11,6 @@ type Options = {
   routeNote?:string;
   /** Hide a provisional draft when a final review pass will write the visible answer. */
   deferContentUntilReview?:boolean;
-  unavailableContent?: (research:Research)=>string;
   prepare?: (signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<Research|undefined>;
   review?: (result:StreamResult,signal:AbortSignal,emit:(data:unknown)=>void)=>Promise<string|undefined>;
 };
@@ -77,10 +76,8 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
         emit({ ready: true, model: options.model,routeNote:options.routeNote });
         research=await options.prepare?.(abort.signal,emit);
         if(research)emit({research,status:"preparing"});
-        if(research && research.status!=="complete" && options.unavailableContent){
-          output=options.unavailableContent(research);usedModel="Noata";delivery="buffered";finished=true;finishReason="research_unavailable";firstContentMs=Date.now()-started;
-          emit({content:output,model:usedModel,delivery});
-        } else {
+        // Unavailable research is a stated limitation, not a refusal: the
+        // provider still answers from general background without claiming a search.
         const response = await options.request(abort.signal,emit);
         if (!response.ok || !response.body) {
           // Interpret provider failures without logging response bodies, prompts or keys.
@@ -132,7 +129,6 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
              if (finished) break;
             if (part.done) { if (buffer.trim()) frame(buffer); break; }
           }
-        }
         }
         if (cancelled) return;
         if (!finished || !options.clean(output)) throw Error("Interrupted or empty response");

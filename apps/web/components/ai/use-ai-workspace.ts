@@ -48,7 +48,7 @@ import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality
 import {confirmedFileIntent} from "@/lib/ai/artifact-followup";
 import { createConversationalArtifact, type ArtifactDriver } from "@/lib/ai/artifact-runner";
 import { findActualLineChart,retainChartSource } from "@/lib/ai/artifact-chart";
-import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,canDeliverArtifactTurn,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
+import {safeArtifactReplyOnCapabilityQuestion,directArtifactAbilityAnswer,canCreateArtifactFromAnswer,canDeliverArtifactTurn,artifactResearchBlocked,isArtifactRefusal} from "@/lib/ai/artifact-response-guard";
 import { responseText } from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {
   isSupportedDocument,
@@ -1045,7 +1045,7 @@ export function useAIWorkspace() {
         );
       }
       assertSession(token);
-      let researchBlocked=Boolean(result.research&&result.research.status!=="complete");
+      let researchBlocked=artifactResearchBlocked(result.research);
       // Retry a proposed outline once to obtain ACTUAL requested document content.
       // This never stores the synthetic retry instruction in conversation history.
       if(requestedFile&&!convertPrevious&&!researchBlocked&&canDeliverArtifactTurn(result)&&(isNonDeliverableDraft(responseText(result.content))||isArtifactRefusal(responseText(result.content)))){
@@ -1057,7 +1057,7 @@ export function useAIWorkspace() {
              &&!isArtifactRefusal(responseText(repaired.content)))result=repaired;
         }catch{ /* Preserve response and never pretend that a real file was created. */ }
       }
-      researchBlocked=Boolean(result.research&&result.research.status!=="complete");
+      researchBlocked=artifactResearchBlocked(result.research);
       // Correct contradictory provider capability refusals BEFORE persisting.
       // A plain capability question never triggers an empty/refusal PDF.
       if (mode==="send" && !tool && !result.incomplete)
@@ -1147,7 +1147,7 @@ export function useAIWorkspace() {
               next=await chat(derivativeHistory,token,controller.signal,undefined,requestLanguage(text,locale),currentIntent.kind,editingSource?.scope?.level);
               assertSession(token);setPendingText("");
             }
-            if(!canDeliverArtifactTurn(next)||next.research&&next.research.status!=="complete")throw Error("unfinished_content");
+            if(!canDeliverArtifactTurn(next)||artifactResearchBlocked(next.research))throw Error("unfinished_content");
             currentContent=next.content;currentResearch=next.research??(currentIntent.usePrevious?validatedResearch(priorForFile?.metadata?.research):result.research);
           }
           let source = documentWithResearch(
