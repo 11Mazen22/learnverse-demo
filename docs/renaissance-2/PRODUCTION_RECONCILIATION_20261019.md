@@ -58,3 +58,10 @@ Versions are apply-time timestamps; the ledger order above is the required apply
 - PR #37 remains Draft; no production deployment or domain change was made as part of this work.
 - No credentials were added to the repository; the database credential used for the backup is stored outside the repository and should be rotated because it was shared in chat once.
 - No Supabase plan change, paid provider activation or unrelated environment was used.
+
+## Reproducing the backup (operator procedure)
+
+1. Use a PostgreSQL client at least matching the server major version (17.x here); the portable EDB Windows binaries work without Docker.
+2. Run `pg_dump --format=custom --no-owner --no-privileges --dbname "<session-pooler-URI>" --file noata-production-<stamp>.dump` against the IPv4 shared session pooler. Keep the connection string out of the repository and shell history.
+3. Verify before trusting the archive: `pg_restore --list` must parse with no errors; record the SHA-256; restore into a throwaway cluster and compare `count(*)` per `public` table against production.
+4. Retain the dump and its hash outside the repository; keep a second off-machine copy.
