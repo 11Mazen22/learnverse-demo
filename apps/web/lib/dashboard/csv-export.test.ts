@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { serializeCsv } from "./csv-export.ts";
+import { csvDownloadFilename, downloadCsv, serializeCsv } from "./csv-export.ts";
 
 test("CSV exports preserve Arabic text and provide a UTF-8 BOM for spreadsheet compatibility", () => {
   const csv = serializeCsv(["Question", "Status"], [["الجهاز التنفسي", "منشور"]]);
@@ -27,4 +27,59 @@ test("CSV neutralizes formula-like text without changing numeric values", () => 
 
 test("CSV always emits the header and stable CRLF line endings", () => {
   assert.equal(serializeCsv(["A", "B"], [[1, 2], [3, 4]]), "\uFEFFA,B\r\n1,2\r\n3,4\r\n");
+});
+
+test("CSV download filenames stay safe and never become empty", () => {
+  assert.equal(csvDownloadFilename("noata-students.csv"), "noata-students.csv");
+  assert.equal(csvDownloadFilename("report 2026/10"), "report-2026-10.csv");
+  assert.equal(csvDownloadFilename("تقرير الطلاب"), "noata-export.csv");
+  assert.equal(csvDownloadFilename(""), "noata-export.csv");
+  assert.equal(csvDownloadFilename("..."), "noata-export.csv");
+});
+
+test("CSV download removes the temporary link and revokes its object URL after the click", async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const createObjectURL = URL.createObjectURL;
+  const revokeObjectURL = URL.revokeObjectURL;
+  const clicks: string[] = [];
+  let appended = false;
+  let removed = false;
+  const link = {
+    href: "",
+    download: "",
+    hidden: false,
+    click() {
+      clicks.push(this.download);
+    },
+    remove() {
+      removed = true;
+    },
+  };
+  let revoked = "";
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: {
+      createElement: () => link,
+      body: { appendChild: () => { appended = true; } },
+    },
+  });
+  URL.createObjectURL = () => "blob:noata-test";
+  URL.revokeObjectURL = (url: string) => {
+    revoked = url;
+  };
+  try {
+    assert.equal(downloadCsv("تقرير الطلاب", ["A"], [["مرحبا"]]), true);
+    assert.equal(link.download, "noata-export.csv");
+    assert.equal(appended, true);
+    assert.deepEqual(clicks, ["noata-export.csv"]);
+    assert.equal(removed, true);
+    assert.equal(revoked, "");
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    assert.equal(revoked, "blob:noata-test");
+  } finally {
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+    if (descriptor) Object.defineProperty(globalThis, "document", descriptor);
+    else Reflect.deleteProperty(globalThis, "document");
+  }
 });

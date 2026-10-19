@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { filterStaffSearch, matchesStaffSearch, paginateStaffItems, summarizeStudentProgress } from "./staff-search.ts";
+import {
+  filterStaffSearch,
+  matchesStaffSearch,
+  normalizeStaffSearchText,
+  paginateStaffItems,
+  summarizeStudentProgress,
+} from "./staff-search.ts";
 
 test("blank or whitespace-only search returns every record", () => {
   const rows = [{ title: "Algebra" }, { title: "Biology" }];
@@ -26,6 +32,39 @@ test("search can match across a row's joined fields without changing source valu
   const result = filterStaffSearch(rows, "mona ali respiratory", "en", (row) => [row.student, row.assignment]);
   assert.deepEqual(result, [rows[0]]);
   assert.equal(rows[0].student, "Mona Ali");
+});
+
+test("search terms can appear in any order and all must match", () => {
+  const rows = [
+    { student: "Mona Ali", assignment: "Respiratory System" },
+    { student: "Mona Ali", assignment: "Algebra" },
+    { student: "Omar", assignment: "Respiratory System" },
+  ];
+  assert.deepEqual(
+    filterStaffSearch(rows, "respiratory mona", "en", (row) => [row.student, row.assignment]),
+    [rows[0]],
+  );
+  assert.deepEqual(
+    filterStaffSearch(rows, "respiratory omar", "en", (row) => [row.student, row.assignment]),
+    [rows[2]],
+  );
+});
+
+test("Arabic search folds diacritics, hamza forms, ta marbuta, tatweel and digits", () => {
+  assert.equal(normalizeStaffSearchText("الْجِهَازُ التَّنَفُسِيُّ"), "الجهاز التنفسي");
+  assert.equal(normalizeStaffSearchText("أحمد"), normalizeStaffSearchText("احمد"));
+  assert.equal(normalizeStaffSearchText("مدرسة"), normalizeStaffSearchText("مدرسه"));
+  assert.equal(normalizeStaffSearchText("مـــدرس"), normalizeStaffSearchText("مدرس"));
+  assert.equal(normalizeStaffSearchText("الدرس ١٢٣"), "الدرس 123");
+  assert.equal(normalizeStaffSearchText("الدرس ۱۲۳"), "الدرس 123");
+  assert.equal(matchesStaffSearch("الجهاز", ["الْجِهَازُ التَّنَفُسِيُّ"], "ar"), true);
+  assert.equal(matchesStaffSearch("احمد", ["أَحْمَد"], "ar"), true);
+});
+
+test("search ignores zero-width bidi controls and Latin accents", () => {
+  assert.equal(normalizeStaffSearchText("\u200Fمدرسة\u200E"), normalizeStaffSearchText("مدرسه"));
+  assert.equal(matchesStaffSearch("cafe", ["Café Noata"], "en"), true);
+  assert.equal(matchesStaffSearch("café", ["Cafe Noata"], "en"), true);
 });
 
 test("locale selection is explicit and non-English locales use the Arabic search locale", () => {
