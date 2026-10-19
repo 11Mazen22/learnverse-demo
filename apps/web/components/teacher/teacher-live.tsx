@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { boundedRead } from "@/lib/supabase/use-verified-account";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
+import { filterStaffSearch } from "@/lib/dashboard/staff-search";
 
 type ClassRow = {
   id: string;
@@ -248,19 +249,21 @@ export function TeacherLive() {
 
   const membershipCount = new Set(submissions.map((x) => x.student_id)).size;
   const searchLocale = locale === "en" ? "en" : "ar";
-  const assignmentNeedle = assignmentSearch.trim().toLocaleLowerCase(searchLocale);
-  const visibleAssignments = assignments.filter((assignment) => {
-    const className = classes.find((item) => item.id === assignment.class_id)?.name ?? "";
-    const haystack = `${assignment.title} ${assignment.instructions} ${className}`;
-    return !assignmentNeedle || haystack.toLocaleLowerCase(searchLocale).includes(assignmentNeedle);
-  });
-  const submissionNeedle = submissionSearch.trim().toLocaleLowerCase(searchLocale);
-  const visibleSubmissions = submissions.filter((submission) => {
-    const studentName = profiles.get(submission.student_id) ?? t("طالب", "Student");
-    const assignmentName = assignments.find((item) => item.id === submission.assignment_id)?.title ?? "";
-    const haystack = `${studentName} ${assignmentName}`;
-    return !submissionNeedle || haystack.toLocaleLowerCase(searchLocale).includes(submissionNeedle);
-  });
+  const visibleAssignments = filterStaffSearch(
+    assignments, assignmentSearch, searchLocale,
+    (assignment) => [
+      assignment.title,
+      assignment.instructions,
+      classes.find((item) => item.id === assignment.class_id)?.name ?? "",
+    ],
+  );
+  const visibleSubmissions = filterStaffSearch(
+    submissions, submissionSearch, searchLocale,
+    (submission) => [
+      profiles.get(submission.student_id) ?? t("طالب", "Student"),
+      assignments.find((item) => item.id === submission.assignment_id)?.title ?? "",
+    ],
+  );
 
   if (account.error || loadError)
     return (
