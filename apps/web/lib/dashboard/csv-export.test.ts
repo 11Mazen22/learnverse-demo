@@ -17,7 +17,7 @@ test("CSV quotes commas, embedded quotes and multiline cells correctly", () => {
 });
 
 test("CSV neutralizes formula-like text without changing numeric values", () => {
-  const csv = serializeCsv(["Name", "Score"], [["=HYPERLINK(\"https://example.invalid\")", "+SUM(A1:A2)", "@command", "-not a grade"], [-4, 92]]);
+  const csv = serializeCsv(["A", "B", "C", "D"], [["=HYPERLINK(\"https://example.invalid\")", "+SUM(A1:A2)", "@command", "-not a grade"], [-4, 92, "", ""]]);
   assert.ok(csv.includes("'=HYPERLINK"));
   assert.ok(csv.includes("'+SUM"));
   assert.ok(csv.includes("'@command"));

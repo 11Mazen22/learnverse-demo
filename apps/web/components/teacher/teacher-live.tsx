@@ -55,6 +55,7 @@ export function TeacherLive() {
   const [grades, setGrades] = useState<Record<string, string>>({});
   const [view, setView] = useState("overview");
   const [assignmentSearch, setAssignmentSearch] = useState("");
+  const [assignmentStatusFilter, setAssignmentStatusFilter] = useState<"all" | "draft" | "published">("all");
   const [submissionSearch, setSubmissionSearch] = useState("");
   const [gradingFilter, setGradingFilter] = useState<"all" | "pending" | "graded">("pending");
 
@@ -258,7 +259,11 @@ export function TeacherLive() {
       assignment.instructions,
       classes.find((item) => item.id === assignment.class_id)?.name ?? "",
     ],
-  );
+  ).filter((assignment) => {
+    if (assignmentStatusFilter === "draft") return !assignment.published_at;
+    if (assignmentStatusFilter === "published") return Boolean(assignment.published_at);
+    return true;
+  });
   const visibleSubmissions = filterStaffSearch(
     submissions, submissionSearch, searchLocale,
     (submission) => [
@@ -514,6 +519,21 @@ export function TeacherLive() {
             <h2>{t("الواجبات","Assignments")}</h2>
             <span className="pill">{visibleAssignments.length} / {assignments.length} {t("واجب","assignments")}</span>
           </div>
+          <nav className="filter-bar" aria-label={t("تصفية الواجبات", "Assignment filters")} style={{ marginBottom: 14 }}>
+            {([
+              ["all", t("كل الواجبات", "All assignments")],
+              ["draft", t("المسودات", "Drafts")],
+              ["published", t("المنشورة", "Published")],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="filter-chip"
+                aria-pressed={assignmentStatusFilter === value}
+                onClick={() => setAssignmentStatusFilter(value)}
+              >{label}</button>
+            ))}
+          </nav>
           <div className="noata-staff-list-tools">
             <label className="noata-staff-search">
               <span>{t("البحث في الواجبات","Search assignments")}</span>

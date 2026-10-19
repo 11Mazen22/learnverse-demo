@@ -60,6 +60,7 @@ export function AdminLive() {
   const [contentSearch, setContentSearch] = useState("");
   const [contentStatusFilter, setContentStatusFilter] = useState<"all" | "draft" | "review" | "published">("all");
   const [classSearch, setClassSearch] = useState("");
+  const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher" | "admin">("all");
 
   const [promptAr, setPromptAr] = useState("");
   const [promptEn, setPromptEn] = useState("");
@@ -411,7 +412,7 @@ export function AdminLive() {
   const visibleProfiles = filterStaffSearch(
     profiles, search, filterLocale,
     (profile) => [profile.display_name, profile.role],
-  );
+  ).filter((profile) => accountRoleFilter === "all" || profile.role === accountRoleFilter);
 
   if (account.error || loadError)
     return (
@@ -472,6 +473,8 @@ export function AdminLive() {
         ).map((x) => (
           <button
             key={x}
+            type="button"
+            aria-pressed={tab === x}
             onClick={() => setTab(x)}
             className="btn"
             style={{
@@ -783,6 +786,22 @@ export function AdminLive() {
             <h2>{t("الحسابات والصلاحيات","Accounts and permissions")}</h2>
             <span className="pill">{t("صلاحيات الحساب","Account permissions")}</span>
           </div>
+          <nav className="filter-bar" aria-label={t("تصفية الحسابات حسب الدور", "Filter accounts by role")} style={{ marginBottom: 14 }}>
+            {([
+              ["all", t("كل الأدوار", "All roles")],
+              ["student", t("الطلاب", "Students")],
+              ["teacher", t("المعلمون", "Teachers")],
+              ["admin", t("الإدارة", "Administrators")],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="filter-chip"
+                aria-pressed={accountRoleFilter === value}
+                onClick={() => setAccountRoleFilter(value)}
+              >{label}</button>
+            ))}
+          </nav>
           <div className="noata-staff-list-tools">
             <label className="noata-staff-search">
               <span>{t("البحث في الحسابات", "Search accounts")}</span>
