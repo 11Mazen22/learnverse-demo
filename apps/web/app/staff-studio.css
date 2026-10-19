@@ -1,0 +1,346 @@
+/* Noata Staff Experience — unified visual refinement for the real staff workspaces. */
+.noata-staff-studio {
+  --staff-radius-xl: 24px;
+  --staff-radius-lg: 18px;
+  --staff-radius-md: 13px;
+  --staff-shadow: 0 16px 44px color-mix(in srgb, var(--ink) 6%, transparent);
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  color: var(--ink);
+}
+.noata-staff-studio :where(*, *::before, *::after) { box-sizing: border-box; }
+.noata-staff-studio .topbar {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 132px;
+  margin: 0 !important;
+  padding: clamp(22px, 3.4vw, 34px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--staff-radius-xl);
+  background:
+    radial-gradient(ellipse at 94% 0%, color-mix(in srgb, var(--accent) 17%, transparent) 0, transparent 46%),
+    linear-gradient(125deg, var(--surface), color-mix(in srgb, var(--surface-soft) 70%, var(--surface)));
+  box-shadow: var(--staff-shadow);
+}
+.noata-staff-studio .topbar::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -64px;
+  inset-inline-end: 7%;
+  width: 190px;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--accent) 19%, transparent);
+  border-radius: 44% 56% 61% 39% / 45% 41% 59% 55%;
+  transform: rotate(-18deg);
+  box-shadow: 0 0 0 18px color-mix(in srgb, var(--accent) 3%, transparent), 0 0 0 38px color-mix(in srgb, var(--accent) 2%, transparent);
+  pointer-events: none;
+}
+.noata-staff-studio .topbar > div { min-width: 0; }
+.noata-staff-studio .topbar .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .79rem;
+  font-weight: 800;
+  letter-spacing: .025em;
+}
+.noata-staff-studio .topbar .eyebrow::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 13%, transparent);
+}
+.noata-staff-studio .topbar h1 {
+  max-width: 24ch;
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  line-height: 1.28;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.noata-staff-studio .topbar > .pill {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  padding: 9px 13px;
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  color: var(--ink);
+  font-weight: 750;
+  white-space: normal;
+}
+.noata-staff-studio .grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.noata-staff-studio .metric-card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  min-height: 132px;
+  padding: 19px 20px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--staff-radius-lg);
+  background: var(--surface);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--ink) 3%, transparent);
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.noata-staff-studio .metric-card::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 18px;
+  inset-inline-end: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--accent);
+  opacity: .48;
+  transform: rotate(45deg);
+}
+.noata-staff-studio .metric-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.noata-staff-studio .metric-card > span {
+  max-width: calc(100% - 12px);
+  color: var(--muted);
+  font-size: .84rem;
+  font-weight: 720;
+  line-height: 1.55;
+}
+.noata-staff-studio .metric-card > strong {
+  font-size: clamp(1.8rem, 3vw, 2.3rem);
+  line-height: 1.05;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+}
+.noata-staff-studio .metric-card > small {
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.55;
+}
+.noata-staff-studio .panel {
+  min-width: 0;
+  padding: clamp(17px, 2.1vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: var(--staff-radius-xl);
+  background: var(--surface);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+.noata-staff-studio .panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin-bottom: 18px;
+}
+.noata-staff-studio .panel-head h2,
+.noata-staff-studio .panel > h2 {
+  margin: 0;
+  font-size: clamp(1rem, 1.7vw, 1.2rem);
+  font-weight: 820;
+  letter-spacing: -.02em;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+.noata-staff-studio .pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 27px;
+  max-width: 100%;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: .74rem;
+  font-weight: 760;
+  line-height: 1.35;
+}
+.noata-staff-studio .btn {
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 760;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.noata-staff-studio .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 13px color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.noata-staff-studio .btn:disabled { cursor: not-allowed; opacity: .58; }
+.noata-staff-studio :where(button, input, textarea, select, a, [tabindex]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 3px;
+}
+.noata-staff-studio :where(.search, .model-select, input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: .92rem;
+  line-height: 1.5;
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+.noata-staff-studio :where(.search, .model-select, input:not([type="checkbox"]):not([type="radio"]), textarea, select):focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.noata-staff-studio textarea.search,
+.noata-staff-studio textarea { min-height: 94px; padding: 12px 13px; resize: vertical; }
+.noata-staff-studio input.search,
+.noata-staff-studio input:not([type="checkbox"]):not([type="radio"]),
+.noata-staff-studio .model-select { min-height: 42px; padding: 8px 12px; }
+.noata-staff-studio form { min-width: 0; }
+.noata-staff-studio form label { display: grid; gap: 6px; min-width: 0; color: var(--ink); font-weight: 700; }
+.noata-staff-studio form label > small { color: var(--muted); font-size: .79rem; font-weight: 740; line-height: 1.5; }
+.noata-staff-studio .content-grid { align-items: start; gap: 16px; }
+.noata-staff-studio .quest-list { display: grid; gap: 9px; min-width: 0; }
+.noata-staff-studio .quest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--staff-radius-md);
+  background: color-mix(in srgb, var(--surface-soft) 56%, var(--surface));
+  transition: border-color .16s ease, background .16s ease;
+}
+.noata-staff-studio .quest:hover {
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+  background: var(--surface);
+}
+.noata-staff-studio .quest > div:nth-child(2) { flex: 1 1 180px; min-width: 0; }
+.noata-staff-studio .quest h3 { margin: 0 0 3px; font-size: .91rem; font-weight: 780; line-height: 1.55; overflow-wrap: anywhere; }
+.noata-staff-studio .quest p { margin: 3px 0 0; color: var(--muted); font-size: .79rem; line-height: 1.6; overflow-wrap: anywhere; }
+.noata-staff-studio .quest-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, var(--line));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--accent);
+  font-size: .84rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.noata-staff-studio .quest > div:last-child { max-width: 100%; }
+.noata-staff-studio .filter-bar,
+.noata-staff-studio .noata-admin-tabs {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 6px !important;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface-soft);
+}
+.noata-staff-studio .filter-chip,
+.noata-staff-studio .noata-admin-tabs button {
+  min-height: 40px;
+  padding: 9px 15px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 760;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.noata-staff-studio .filter-chip[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.noata-staff-studio .filter-chip:hover,
+.noata-staff-studio .noata-admin-tabs button:hover { color: var(--accent); }
+.noata-admin-studio .noata-admin-tabs { margin-top: 0 !important; }
+.noata-admin-studio > .grid-4 + .noata-admin-tabs { margin-top: 0; }
+.noata-staff-studio .aura-staff-status {
+  padding: 12px 15px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  color: var(--ink);
+  line-height: 1.6;
+}
+.noata-staff-studio :where(.aura-load-error, .aura-loading-state) {
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--staff-radius-xl);
+  background: var(--surface);
+  box-shadow: var(--staff-shadow);
+}
+.noata-staff-studio .aura-load-error button {
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 760;
+}
+@media (max-width: 980px) {
+  .noata-staff-studio .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .noata-staff-studio .topbar { min-height: 0; }
+}
+@media (max-width: 620px) {
+  .noata-staff-studio { gap: 14px; }
+  .noata-staff-studio .topbar { align-items: flex-start; padding: 20px 17px; border-radius: 20px; }
+  .noata-staff-studio .topbar h1 { font-size: 1.48rem; }
+  .noata-staff-studio .topbar > .pill { margin-top: 2px; }
+  .noata-staff-studio .grid-4 { gap: 9px; }
+  .noata-staff-studio .metric-card { min-height: 116px; padding: 15px 13px; border-radius: 15px; gap: 7px; }
+  .noata-staff-studio .metric-card > span { font-size: .77rem; }
+  .noata-staff-studio .metric-card > strong { font-size: 1.7rem; }
+  .noata-staff-studio .panel { padding: 15px; border-radius: 19px; }
+  .noata-staff-studio .panel-head { align-items: flex-start; }
+  .noata-staff-studio .filter-bar,
+  .noata-staff-studio .noata-admin-tabs { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  .noata-staff-studio .filter-chip,
+  .noata-staff-studio .noata-admin-tabs button { flex: 0 0 auto; }
+  .noata-staff-studio .quest { align-items: flex-start; padding: 11px; }
+  .noata-staff-studio .quest > div:last-child { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .noata-staff-studio :where(*, *::before, *::after) { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
