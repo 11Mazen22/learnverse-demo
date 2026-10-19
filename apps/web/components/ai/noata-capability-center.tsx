@@ -10,6 +10,7 @@ const names:Partial<Record<CapabilityId,{en:string;ar:string}>>={
  "voice.transcribe":{en:"Speech to text",ar:"تحويل الصوت لنص"}, "voice.speak":{en:"Text to speech",ar:"تحويل النص لصوت"},
  "document.pdf":{en:"PDF export",ar:"تصدير PDF"}, "document.docx":{en:"Word export",ar:"تصدير Word"},
  "document.pdf.page_edit":{en:"PDF page reorder / rotation",ar:"إعادة ترتيب أو تدوير صفحات PDF"},
+ "document.pdf.annotate":{en:"PDF sticky-note annotations",ar:"إضافة ملاحظات إلى PDF"},
  "document.office.targeted_edit":{en:"Targeted Office text / cell edits",ar:"تعديلات نصوص وخلايا Office المحددة"},
  "image.inpaint":{en:"Generative inpainting",ar:"ملء توليدي للصورة"},
  "image.background_remove":{en:"Background removal",ar:"إزالة الخلفية"},

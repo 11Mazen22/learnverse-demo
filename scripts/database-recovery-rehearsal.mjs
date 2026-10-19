@@ -15,7 +15,9 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
  try {
   const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort();
   const before=files.filter(f=>f<'20261008150000'), delta=files.filter(f=>f>='20261008150000');
-  assert.equal(before.length,18);assert.equal(delta.length,15);
+  assert.equal(before.length,18);
+  assert.ok(delta.includes('20261017175911_respiratory_system_learning_pathway.sql'));
+  assert.equal(delta.length,16); // Includes the already-applied staging migration source recovered under its original ledger version.
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
@@ -46,7 +48,38 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
     GROUP BY table_schema,table_name) t;`));
   const ident=s=>'"'+s.replaceAll('"','""')+'"';
   const fingerprint=db=>columns.map(t=>({table:t.schema+'.'+t.name,value:query(db,`SELECT count(*)||':'||md5(coalesce(string_agg(row_to_json(s)::text,E'\\n' ORDER BY row_to_json(s)::text),'')) FROM (SELECT ${t.columns.map(ident).join(',')} FROM ${ident(t.schema)}.${ident(t.name)}${t.schema==='storage'&&t.name==='buckets'?" WHERE id NOT IN ('noata-ai-artifacts','noata-documents')":''}) s;`)}));
-  const original=fingerprint(baseline);
+  const rowSnapshots=db=>columns.map(t=>({
+    table:t.schema+'.'+t.name,
+    rows:JSON.parse(query(db,`SELECT coalesce(json_agg(row_to_json(s)::text ORDER BY row_to_json(s)::text),'[]'::json)::text FROM (SELECT ${t.columns.map(ident).join(',')} FROM ${ident(t.schema)}.${ident(t.name)}${t.schema==='storage'&&t.name==='buckets'?" WHERE id NOT IN ('noata-ai-artifacts','noata-documents')":''}) s;`))
+   }));
+   const canonicalJson=value=>{
+    if(Array.isArray(value))return '['+value.map(canonicalJson).join(',')+']';
+    if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(key=>JSON.stringify(key)+':'+canonicalJson(value[key])).join(',')+'}';
+    return JSON.stringify(value);
+   };
+   const assertOriginalRowsPreserved=(before,after,allowedQuestionUpdates)=>{
+    const afterRowsByTable=new Map(after.map(entry=>[entry.table,entry.rows.map(row=>JSON.parse(row))]));
+    for(const entry of before){
+     const current=afterRowsByTable.get(entry.table)??[];
+     const consume=expected=>{
+      const marker=canonicalJson(expected);
+      const index=current.findIndex(row=>canonicalJson(row)===marker);
+      if(index<0)return false;
+      current.splice(index,1);return true;
+     };
+     for(const rowText of entry.rows){
+      const prior=JSON.parse(rowText);
+      if(consume(prior))continue;
+      if(entry.table==='public.questions'&&allowedQuestionUpdates.has(canonicalJson(prior))){
+       if(consume({...prior,publication_status:'published_demo'}))continue;
+      }
+      throw Error('A pre-existing row changed or disappeared in '+entry.table);
+     }
+    }
+   };
+   const original=fingerprint(baseline);
+   const originalRows=rowSnapshots(baseline);
+   const allowedQuestionStatusRows=new Set(JSON.parse(query(baseline,"SELECT coalesce(json_agg(row_to_json(q)::text ORDER BY row_to_json(q)::text),'[]'::json)::text FROM public.questions q JOIN public.lessons l ON l.id=q.lesson_id WHERE l.slug='motion-basics' AND q.position=1 AND q.variant_of IS NULL AND q.publication_status='retired';")).map(row=>canonicalJson(JSON.parse(row))));
   const dump=pgDump(['-d',baseline,'--format=plain','--no-owner']);
   const backup=directory+'/source-fixture-backup.sql';
   await writeFile(backup,dump);
@@ -71,7 +104,17 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   assert.equal(schemaFingerprint(restored),originalSchema);assert.deepEqual(fingerprint(restored),original);
   pass('Injected migration failure rolls back all fixture deltas and preserves original rows/privileges');
   query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nCOMMIT;');
-  assert.deepEqual(fingerprint(restored),original);pass('Current fixture deltas preserve every preexisting fixture row and original column');
+  const curriculumTables=new Set(['public.lessons','public.question_keys','public.questions','public.skills','public.units']);
+   const withoutCurriculum=rows=>rows.filter(row=>!curriculumTables.has(row.table));
+   assert.deepEqual(withoutCurriculum(fingerprint(restored)),withoutCurriculum(original));
+   assertOriginalRowsPreserved(originalRows,rowSnapshots(restored),allowedQuestionStatusRows);
+   assert.equal(query(restored,`SELECT count(*) FROM public.skills s JOIN public.courses c ON c.id=s.course_id WHERE c.slug='demo-science-v1' AND s.slug IN ('respiratory-airway-anatomy','alveolar-gas-exchange','breathing-mechanics-and-health');`),'3');
+   assert.equal(query(restored,`SELECT count(*) FROM public.units u JOIN public.courses c ON c.id=u.course_id WHERE c.slug='demo-science-v1' AND u.position=3 AND u.title_en='The Respiratory System and Gas Exchange';`),'1');
+   assert.equal(query(restored,`SELECT count(*) FROM public.lessons l JOIN public.units u ON u.id=l.unit_id JOIN public.courses c ON c.id=u.course_id WHERE c.slug='demo-science-v1' AND u.position=3 AND u.title_en='The Respiratory System and Gas Exchange';`),'7');
+   assert.equal(query(restored,`SELECT count(*) FROM public.questions WHERE metadata->>'pathway'='respiratory-system-v1';`),'48');
+   assert.equal(query(restored,`SELECT count(*) FROM public.question_keys k JOIN public.questions q ON q.id=k.question_id WHERE q.metadata->>'pathway'='respiratory-system-v1';`),'48');
+   pass('Respiratory curriculum seed is complete: 3 skills, 1 unit, 7 lessons, 48 questions and 48 answer keys');
+   pass('Every pre-existing fixture row remains intact except the explicit retired-to-published-demo repair; unrelated table fingerprints remain unchanged');
   assert.equal(query(restored,`SELECT xp||':'||coins||':'||gems FROM public.profiles WHERE id='00000000-0000-0000-0000-000000000020';`),'500:750:0');
   assert.equal(query(restored,`SELECT count(*) FROM public.ledger WHERE currency='GEM';`),'0');
   pass('XP=500 and Coins=750 unchanged; zero Gems and no retroactive rewards');

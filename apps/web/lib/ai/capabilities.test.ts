@@ -8,6 +8,7 @@ test("capabilities are unique, have explicit permissions and do not promise unsu
  assert.equal(list.find(x=>x.id==="chat")?.status,"unavailable");
  assert.equal(list.find(x=>x.id==="artifact.xlsx")?.status,"local");
  assert.equal(list.find(x=>x.id==="document.pdf.page_edit")?.status,"local");
+ assert.equal(list.find(x=>x.id==="document.pdf.annotate")?.status,"local");
  assert.equal(list.find(x=>x.id==="document.office.targeted_edit")?.status,"local");
  assert.equal(list.find(x=>x.id==="image.inpaint")?.status,"planned");
  assert.equal(list.find(x=>x.id==="image.background_remove")?.status,"planned");
@@ -29,7 +30,8 @@ test("Capability prompt lists real application operations without pretending con
  assert.match(enabled,/PDF, DOCX, XLSX, and PPTX/);
  assert.match(enabled,/credential configured/);
  assert.match(enabled,/not yet preserved/);
- assert.match(enabled,/native page reorder and rotation only/);
+ assert.match(enabled,/native page reorder\/rotation and portable page-level sticky-note annotations/);
+ assert.match(enabled,/Annotation is not text replacement or redaction/);
  assert.match(enabled,/Arbitrary PDF text or layout replacement is NOT implemented/);
  assert.match(enabled,/targeted single-paragraph or single-cell edits/);
  assert.match(enabled,/Generative image inpainting and background removal are NOT implemented/);

@@ -377,6 +377,30 @@ async function verifyDocuments(){
     }
     invariant(await evaluate('!!document.querySelector(".noata-download-original")'),"Unmodified original file has an explicit download action: "+name);
     await screenshot("artifacts/noata-browser/document-"+name.replaceAll(".","-")+".png");
+    if(name==="arabic-longform.pdf"){
+      await evaluate('Array.from(document.querySelectorAll(".noata-creative-tabs button")).find(b=>b.textContent.includes("ملاحظات PDF")||b.textContent.includes("PDF notes"))?.click()');
+      await waitFor(async()=>await evaluate('!!document.querySelector(".noata-pdf-annotations textarea")'),"PDF annotation workspace");
+      await evaluate(`(()=>{const el=document.querySelector('.noata-pdf-annotations textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'ملاحظة اختبار PDF من المتصفح');el.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+      await waitFor(async()=>await evaluate('!document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").disabled'),"PDF note can be queued");
+      await evaluate('document.querySelector(".noata-pdf-annotations .noata-creative-buttons button:first-child").click()');
+      await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-pdf-annotation-queue li").length===1'),"Arabic PDF note staged");
+      invariant(await evaluate('document.querySelector(".noata-pdf-annotation-queue li p")?.textContent.includes("ملاحظة اختبار PDF من المتصفح")'),"PDF note queue keeps Arabic text");
+      await evaluate('(()=>{const native=URL.createObjectURL;window.__noataPdfNativeCreateObjectURL=native;window.__noataPdfAnnotationDownload=null;URL.createObjectURL=function(blob){window.__noataPdfAnnotationDownload=blob;return native.call(this,blob);};})()');
+      await evaluate('Array.from(document.querySelectorAll(".noata-pdf-annotations > .noata-creative-buttons button")).find(b=>b.textContent.includes("PDF بالملاحظات")||b.textContent.includes("annotated PDF"))?.click()');
+      await waitFor(async()=>await evaluate('window.__noataPdfAnnotationDownload instanceof Blob&&window.__noataPdfAnnotationDownload.size>500'),"generated annotated PDF bytes");
+      const annotated=await evaluate('(async()=>{const bytes=new Uint8Array(await window.__noataPdfAnnotationDownload.arrayBuffer());let binary="";for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));return{size:bytes.length,base64:btoa(binary)}})()');
+       invariant(annotated.size>500,"Annotated PDF download is a real nonempty PDF package");
+       const annotatedBytes=Buffer.from(annotated.base64,"base64");
+       invariant(annotatedBytes.length===annotated.size,"Annotated PDF bytes transfer without truncation");
+       await writeFile("artifacts/noata-browser/annotated-pdf-notes.pdf",annotatedBytes);
+       const annotatedText=annotatedBytes.toString("latin1");
+      invariant(annotatedText.includes("/Subtype /Text"),"PDF output contains a real standard text annotation");
+       invariant(annotatedText.includes("/Contents <FEFF")||annotatedText.includes("/Contents<FEFF"),"PDF annotation body is encoded as a Unicode PDF hex string");
+      await evaluate('(()=>{if(window.__noataPdfNativeCreateObjectURL)URL.createObjectURL=window.__noataPdfNativeCreateObjectURL;})()');
+      await screenshot("artifacts/noata-browser/pdf-annotations.png");
+      console.log("[browser] PDF annotation UI generated and inspected actual PDF bytes");
+    }
+
     if(name==="arabic-longform.docx"){
       await evaluate('Array.from(document.querySelectorAll(".noata-creative-tabs button")).find(b=>b.textContent.includes("تعديل محدد")).click()');
       await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-office-editor select option").length>2'),"original-package paragraphs loaded");
@@ -389,11 +413,13 @@ async function verifyDocuments(){
       await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-office-edit-queue li").length===1'),"staged DOCX text change");
       await evaluate('document.querySelector(".noata-office-edit-queue-controls .noata-creative-buttons button:first-child").click()');
       await waitFor(async()=>await evaluate('window.__officeDownload instanceof Blob'),"real targeted DOCX download bytes");
-      const downloaded=await evaluate('(async()=>({size:window.__officeDownload.size,bytes:Array.from(new Uint8Array(await window.__officeDownload.arrayBuffer()))}))()');
-      invariant(downloaded.size>500,"Targeted revision is a real nonempty Office package");
-      await writeFile("artifacts/noata-browser/targeted-docx.docx",new Uint8Array(downloaded.bytes));
-      const {officeTextTargets}=await import("../apps/web/lib/ai/office-preservation.ts");
-      const reopened=await officeTextTargets(new Uint8Array(downloaded.bytes),"docx");
+       const downloaded=await evaluate('(async()=>{const bytes=new Uint8Array(await window.__officeDownload.arrayBuffer());let binary="";for(let i=0;i<bytes.length;i+=32768)binary+=String.fromCharCode(...bytes.subarray(i,i+32768));return{size:bytes.length,base64:btoa(binary)}})()');
+       invariant(downloaded.size>500,"Targeted revision is a real nonempty Office package");
+       const downloadedBytes=Buffer.from(downloaded.base64,"base64");
+       invariant(downloadedBytes.length===downloaded.size,"DOCX bytes transfer without truncation");
+       await writeFile("artifacts/noata-browser/targeted-docx.docx",downloadedBytes);
+       const {officeTextTargets}=await import("../apps/web/lib/ai/office-preservation.ts");
+       const reopened=await officeTextTargets(downloadedBytes,"docx");
       invariant(reopened.some(p=>p.text==="عنوان مُعدّل · Revised heading"),"Downloaded DOCX reopens with the exact replacement");
       invariant(reopened.some(p=>p.text.includes("English reference 38")),"Untouched final DOCX section is retained");
       invariant(await evaluate('document.querySelector(".noata-office-edit-queue-controls .noata-creative-buttons button:last-child").disabled'),"Guest cannot save an owner-scoped revision");
@@ -412,17 +438,32 @@ async function verifyDocuments(){
     await waitFor(async()=>await evaluate('!document.querySelector("dialog[open]")'),"document modal Escape");
     invariant(true,"Document preview keyboard close");
   }
-  await navigate('/ai');
+  const pathAfterDocument=await evaluate("location.pathname");
+  if(pathAfterDocument!=="/ai")await navigate("/ai");
+  invariant(await evaluate("location.pathname")==="/ai","Document preview returns to the original AI route without a redundant reload");
   await waitFor(async()=>await evaluate('!!document.querySelector(".noata-suggested-actions.welcome .noata-suggested-item")'),"image fixture hydration");
-  const dom=await command('DOM.getDocument');
-  const input=await command('DOM.querySelector',{nodeId:dom.root.nodeId,selector:'input[type=file]'});
-  await command('DOM.setFileInputFiles',{nodeId:input.nodeId,files:[resolve('artifacts/noata-documents/arabic-layout.png')]});
+  // The last preview fixture remains staged when the dialog closes; clear it with the actual remove controls before testing a fresh batch.
+  for(let clear=0;clear<8;clear++){
+    const stagedCount=await evaluate('document.querySelectorAll(".aura-document-chip").length');
+    if(!stagedCount)break;
+    await evaluate('document.querySelector(".aura-document-chip button:not(.aura-pending-preview)")?.click()');
+    await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-document-chip").length<'+stagedCount),"clear previous staged document "+(clear+1));
+  }
+  invariant(await evaluate('document.querySelectorAll(".aura-document-chip").length===0'),"Previous preview source is removed before the independent attachment test");
+  let dom=await command("DOM.getDocument");
+  let input=await command("DOM.querySelector",{nodeId:dom.root.nodeId,selector:'input[type=file]'});
+  invariant(Boolean(input.nodeId),"Composer file picker exists after preview cleanup");
+  await command("DOM.setFileInputFiles",{nodeId:input.nodeId,files:[resolve("artifacts/noata-documents/arabic-layout.png")]});
   await waitFor(async()=>await evaluate('document.querySelector(".owui-attachment img")?.naturalWidth===794'),"actual PNG preview");
-  invariant(true,'Image preview loads the actual raster fixture');
-  await screenshot('artifacts/noata-browser/document-image-png.png');
+  invariant(true,"Image preview loads the actual raster fixture");
+  await screenshot("artifacts/noata-browser/document-image-png.png");
   await evaluate('document.querySelector(".owui-attachment button").click()');
-  invariant(await evaluate('!document.querySelector(".owui-attachment")'),'Image attachment removal');
-  await command('DOM.setFileInputFiles',{nodeId:input.nodeId,files:['source.txt','source.md','source.csv','source.json'].map(n=>resolve('artifacts/noata-documents/'+n))});
+  invariant(await evaluate('!document.querySelector(".owui-attachment")'),"Image attachment removal");
+  // File input node IDs can go stale after React state changes; query a fresh live node for the next selection.
+  dom=await command("DOM.getDocument");
+  input=await command("DOM.querySelector",{nodeId:dom.root.nodeId,selector:'input[type=file]'});
+  invariant(Boolean(input.nodeId),"Composer file picker is reacquired after image removal");
+  await command("DOM.setFileInputFiles",{nodeId:input.nodeId,files:["source.txt","source.md","source.csv","source.json"].map(n=>resolve("artifacts/noata-documents/"+n))});
   await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-document-chip").length===4'),"four source composer tray");
   invariant(true,'Four actual files are staged independently');
   const result=await evaluate(`fetch('/api/documents/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:'fixture'})}).then(r=>r.status)`);
@@ -449,11 +490,11 @@ async function main() {
   if(appFailure)throw appFailure;
   if(!appReady)throw Error('Next production server did not become ready');
   // Check initial HTML before JavaScript: returning English users must not see Arabic hydration copy.
-  for(const [locale,direction,label] of [["en","ltr","Skip to content"],["ar","rtl","\u0627\u0646\u062a\u0642\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u062d\u062a\u0648\u0649"]]){
+  for(const [locale,direction,label] of [["en","ltr","Skip to content"],["ar","rtl","انتقل إلى المحتوى"]]){
     const response=await fetch(base+"/help",{headers:{cookie:"noata_locale="+locale},signal:AbortSignal.timeout(15000)});
     const html=await response.text();
-    invariant(response.ok && new RegExp("<html[^>]*lang=\\\""+locale+"\\\"").test(html) && new RegExp("<html[^>]*dir=\\\""+direction+"\\\"").test(html),"Initial server language and direction "+locale);
-    invariant(new RegExp("class=\\\"skip-link\\\"[^>]*>"+label+"<").test(html),"Initial translated skip link "+locale);
+    invariant(response.ok && new RegExp("<html[^>]*lang=\""+locale+"\"").test(html) && new RegExp("<html[^>]*dir=\""+direction+"\"").test(html),"Initial server language and direction "+locale);
+    invariant(new RegExp("class=\"skip-link\"[^>]*>"+label+"<").test(html),"Initial translated skip link "+locale);
   }
   browser=await launchQaBrowser({executablePath:binary,artifactsDir:"artifacts/noata-browser"});
   socket=browser.socket;

@@ -7,7 +7,7 @@ export type PdfPagePlan={order:number[];rotatePage?:number;rotation?:0|90|180|27
 export function pdfPageOrder(text:string,count:number):number[]{
  return parsePdfPageOrder(text,count);
 }
-async function load(bytes:Uint8Array){
+export async function loadSafePdfForRevision(bytes:Uint8Array){
  if(bytes.length<20||bytes.length>12*1024*1024||new TextDecoder().decode(bytes.subarray(0,5))!=="%PDF-")throw Error("pdf_source_invalid");
  const doc=await PDFDocument.load(Uint8Array.from(bytes),{updateMetadata:false,throwOnInvalidObject:true});
  if(doc.isEncrypted||doc.getPageCount()>200||doc.context.enumerateIndirectObjects().length>30000)throw Error("pdf_edit_unsupported");
@@ -27,7 +27,7 @@ async function load(bytes:Uint8Array){
 }
 export async function revisePdfPages(bytes:Uint8Array,plan:PdfPagePlan):Promise<Uint8Array>{
  if(!Array.isArray(plan.order))throw Error("pdf_page_order_invalid");
- const doc=await load(bytes),count=doc.getPageCount(),pages=doc.getPages();
+ const doc=await loadSafePdfForRevision(bytes),count=doc.getPageCount(),pages=doc.getPages();
  const order=pdfPageOrder(plan.order.join(","),count);
  const rotation=plan.rotation??0;
  if(![0,90,180,270].includes(rotation)||rotation&&(!Number.isInteger(plan.rotatePage)||Number(plan.rotatePage)<1||Number(plan.rotatePage)>count))throw Error("pdf_rotation_invalid");
