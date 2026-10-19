@@ -223,7 +223,10 @@
 .noata-staff-studio .content-grid { align-items: start; gap: 16px; }
 .noata-staff-studio .noata-staff-list-tools {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   min-width: 0;
   margin: -4px 0 13px;
 }
