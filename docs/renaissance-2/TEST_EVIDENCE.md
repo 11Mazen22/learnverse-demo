@@ -48,3 +48,8 @@ No authorized live Fanar generation, Brave result/metadata call, authenticated a
 ## Release safety
 
 Do not upgrade Supabase plans, alter production secrets, run production data mutations for QA, or trigger paid provider probes. Do not merge/promote the separately restricted Renaissance PR #3 without its required approval.
+
+## Production reconciliation evidence (2026-10-19)
+
+- CI run `39308483048` (`verify` and intentional-tooltip jobs) completed green at revision `c00bd940a5e72e0e40ac7f3e8ef81427132659bd`.
+- Production backup `noata-production-20261019-221808.dump` (SHA-256 `c51133d737def6a744c8469da9cc4fc7430d586a2179b732ee46ad1ceace684e`) restored cleanly into a throwaway PostgreSQL 17.7 cluster with exact row-count parity across all 38 public tables; migrations `respiratory_system_learning_pathway` then `submission_grading_integrity` were applied in order and verified (curriculum counts 67 questions / 67 keys, constraint present, update policy guarded, 0 invalid grades, RLS 38/38, advisor parity). Full record: `PRODUCTION_RECONCILIATION_20261019.md`.
