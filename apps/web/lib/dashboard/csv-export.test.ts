@@ -4,16 +4,16 @@ import { serializeCsv } from "./csv-export.ts";
 
 test("CSV exports preserve Arabic text and provide a UTF-8 BOM for spreadsheet compatibility", () => {
   const csv = serializeCsv(["Question", "Status"], [["الجهاز التنفسي", "منشور"]]);
-  assert.ok(csv.startsWith("\\uFEFF"));
+  assert.ok(csv.startsWith("\uFEFF"));
   assert.match(csv, /الجهاز التنفسي/);
   assert.match(csv, /منشور/);
-  assert.ok(csv.endsWith("\\r\\n"));
+  assert.ok(csv.endsWith("\r\n"));
 });
 
 test("CSV quotes commas, embedded quotes and multiline cells correctly", () => {
-  const csv = serializeCsv(["Name", "Notes"], [['A, "B"', "first line\\nsecond line"]]);
+  const csv = serializeCsv(["Name", "Notes"], [['A, "B"', "first line\nsecond line"]]);
   assert.ok(csv.includes('"A, ""B"""'));
-  assert.ok(csv.includes('"first line\\nsecond line"'));
+  assert.ok(csv.includes('"first line\nsecond line"'));
 });
 
 test("CSV neutralizes formula-like text without changing numeric values", () => {
@@ -26,5 +26,5 @@ test("CSV neutralizes formula-like text without changing numeric values", () => 
 });
 
 test("CSV always emits the header and stable CRLF line endings", () => {
-  assert.equal(serializeCsv(["A", "B"], [[1, 2], [3, 4]]), "\\uFEFFA,B\\r\\n1,2\\r\\n3,4\\r\\n");
+  assert.equal(serializeCsv(["A", "B"], [[1, 2], [3, 4]]), "\uFEFFA,B\r\n1,2\r\n3,4\r\n");
 });
