@@ -6,7 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { boundedRead } from "@/lib/supabase/use-verified-account";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
-import { filterStaffSearch } from "@/lib/dashboard/staff-search";
+import { filterStaffSearch, paginateStaffItems } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
 
 type ClassRow = {
@@ -56,8 +56,10 @@ export function TeacherLive() {
   const [view, setView] = useState("overview");
   const [assignmentSearch, setAssignmentSearch] = useState("");
   const [assignmentStatusFilter, setAssignmentStatusFilter] = useState<"all" | "draft" | "published">("all");
+  const [assignmentPage, setAssignmentPage] = useState(0);
   const [submissionSearch, setSubmissionSearch] = useState("");
   const [gradingFilter, setGradingFilter] = useState<"all" | "pending" | "graded">("pending");
+  const [gradingPage, setGradingPage] = useState(0);
 
   useUnsavedWork(
     Boolean(
@@ -275,6 +277,8 @@ export function TeacherLive() {
     if (gradingFilter === "graded") return submission.score != null;
     return true;
   });
+  const assignmentPageData = paginateStaffItems(visibleAssignments, assignmentPage, 20);
+  const gradingPageData = paginateStaffItems(visibleSubmissions, gradingPage, 20);
 
   if (account.error || loadError)
     return (
@@ -530,7 +534,10 @@ export function TeacherLive() {
                 type="button"
                 className="filter-chip"
                 aria-pressed={assignmentStatusFilter === value}
-                onClick={() => setAssignmentStatusFilter(value)}
+                onClick={() => {
+                  setAssignmentStatusFilter(value);
+                  setAssignmentPage(0);
+                }}
               >{label}</button>
             ))}
           </nav>
@@ -541,7 +548,10 @@ export function TeacherLive() {
                 className="search"
                 type="search"
                 value={assignmentSearch}
-                onChange={(event) => setAssignmentSearch(event.target.value)}
+                onChange={(event) => {
+                  setAssignmentSearch(event.target.value);
+                  setAssignmentPage(0);
+                }}
                 placeholder={t("اسم الواجب أو الصف","Assignment or class name")}
                 aria-label={t("البحث في الواجبات","Search assignments")}
               />
@@ -565,7 +575,7 @@ export function TeacherLive() {
             >{t("تصدير CSV", "Export CSV")}</button>
           </div>
           <div className="quest-list">
-            {visibleAssignments.map((a) => (
+            {assignmentPageData.items.map((a) => (
               <div className="quest" key={a.id}>
                 <div className="quest-icon">{a.published_at ? "✓" : "D"}</div>
                 <div>
@@ -594,9 +604,19 @@ export function TeacherLive() {
               </div>
             ))}
             {!visibleAssignments.length && (
-              <div className="noata-staff-empty">{assignmentSearch.trim()
-                ? t("لا توجد نتائج مطابقة للبحث.","No assignments match your search.")
+              <div className="noata-staff-empty">{assignmentSearch.trim() || assignmentStatusFilter !== "all"
+                ? t("لا توجد واجبات تطابق البحث والتصفية الحالية.","No assignments match the current search and filter.")
                 : t("لا توجد واجبات بعد.","No assignments yet.")}</div>
+            )}
+            {visibleAssignments.length > 0 && (
+              <nav className="noata-staff-pagination" aria-label={t("صفحات الواجبات", "Assignment pages")}>
+                <span>{t("النتائج", "Results")} {assignmentPageData.start}–{assignmentPageData.end} {t("من", "of")} {assignmentPageData.total}</span>
+                <div>
+                  <button type="button" className="btn" disabled={assignmentPageData.page === 0} onClick={() => setAssignmentPage(assignmentPageData.page - 1)}>{t("السابق", "Previous")}</button>
+                  <span aria-live="polite">{assignmentPageData.page + 1} / {assignmentPageData.pageCount}</span>
+                  <button type="button" className="btn" disabled={assignmentPageData.page + 1 >= assignmentPageData.pageCount} onClick={() => setAssignmentPage(assignmentPageData.page + 1)}>{t("التالي", "Next")}</button>
+                </div>
+              </nav>
             )}
           </div>
         </section>
@@ -620,7 +640,10 @@ export function TeacherLive() {
                 type="button"
                 className="filter-chip"
                 aria-pressed={gradingFilter === value}
-                onClick={() => setGradingFilter(value)}
+                onClick={() => {
+                  setGradingFilter(value);
+                  setGradingPage(0);
+                }}
               >{label}</button>
             ))}
           </nav>
@@ -631,7 +654,10 @@ export function TeacherLive() {
                 className="search"
                 type="search"
                 value={submissionSearch}
-                onChange={(event) => setSubmissionSearch(event.target.value)}
+                onChange={(event) => {
+                  setSubmissionSearch(event.target.value);
+                  setGradingPage(0);
+                }}
                 placeholder={t("اسم الطالب أو الواجب","Student or assignment")}
                 aria-label={t("البحث في التسليمات","Search submissions")}
               />
@@ -656,7 +682,7 @@ export function TeacherLive() {
             >{t("تصدير CSV", "Export CSV")}</button>
           </div>
           <div className="quest-list">
-            {visibleSubmissions.map((s) => {
+            {gradingPageData.items.map((s) => {
               const assignment = assignments.find(
                 (a) => a.id === s.assignment_id,
               );
@@ -719,6 +745,16 @@ export function TeacherLive() {
               <div className="noata-staff-empty">{submissionSearch.trim() || gradingFilter !== "all"
                 ? t("لا توجد تسليمات تطابق البحث والتصفية الحالية.","No submissions match the current search and filter.")
                 : t("لا توجد تسليمات بعد.","No submissions yet.")}</div>
+            )}
+            {visibleSubmissions.length > 0 && (
+              <nav className="noata-staff-pagination" aria-label={t("صفحات التسليمات", "Submission pages")}>
+                <span>{t("النتائج", "Results")} {gradingPageData.start}–{gradingPageData.end} {t("من", "of")} {gradingPageData.total}</span>
+                <div>
+                  <button type="button" className="btn" disabled={gradingPageData.page === 0} onClick={() => setGradingPage(gradingPageData.page - 1)}>{t("السابق", "Previous")}</button>
+                  <span aria-live="polite">{gradingPageData.page + 1} / {gradingPageData.pageCount}</span>
+                  <button type="button" className="btn" disabled={gradingPageData.page + 1 >= gradingPageData.pageCount} onClick={() => setGradingPage(gradingPageData.page + 1)}>{t("التالي", "Next")}</button>
+                </div>
+              </nav>
             )}
           </div>
         </section>

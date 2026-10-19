@@ -377,3 +377,34 @@
   font-size: .78rem;
   line-height: 1.65;
 }
+
+.noata-staff-studio .noata-staff-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+.noata-staff-studio .noata-staff-pagination > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.noata-staff-studio .noata-staff-pagination > div > span {
+  min-width: 5ch;
+  text-align: center;
+  color: var(--ink);
+  font-weight: 750;
+}
+@media (max-width: 620px) {
+  .noata-staff-studio .noata-staff-pagination { align-items: stretch; flex-direction: column; }
+  .noata-staff-studio .noata-staff-pagination > div { justify-content: space-between; }
+}

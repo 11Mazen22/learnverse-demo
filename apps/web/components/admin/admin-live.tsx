@@ -10,7 +10,7 @@ import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
 import { CurriculumManager } from "@/components/admin/curriculum-manager";
-import { filterStaffSearch } from "@/lib/dashboard/staff-search";
+import { filterStaffSearch, paginateStaffItems } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
 
 type Question = {
@@ -59,8 +59,10 @@ export function AdminLive() {
   const [search, setSearch] = useState("");
   const [contentSearch, setContentSearch] = useState("");
   const [contentStatusFilter, setContentStatusFilter] = useState<"all" | "draft" | "review" | "published">("all");
+  const [contentPage, setContentPage] = useState(0);
   const [classSearch, setClassSearch] = useState("");
   const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher" | "admin">("all");
+  const [accountPage, setAccountPage] = useState(0);
 
   const [promptAr, setPromptAr] = useState("");
   const [promptEn, setPromptEn] = useState("");
@@ -413,6 +415,8 @@ export function AdminLive() {
     profiles, search, filterLocale,
     (profile) => [profile.display_name, profile.role],
   ).filter((profile) => accountRoleFilter === "all" || profile.role === accountRoleFilter);
+  const questionPage = paginateStaffItems(visibleQuestions, contentPage, 30);
+  const profilePage = paginateStaffItems(visibleProfiles, accountPage, 25);
 
   if (account.error || loadError)
     return (
@@ -661,7 +665,10 @@ export function AdminLive() {
                   className="search"
                   type="search"
                   value={contentSearch}
-                  onChange={(event) => setContentSearch(event.target.value)}
+                  onChange={(event) => {
+                    setContentSearch(event.target.value);
+                    setContentPage(0);
+                  }}
                   placeholder={t("نص السؤال أو حالة المحتوى","Question text or content status")}
                   aria-label={t("البحث في المحتوى","Search content")}
                 />
@@ -692,16 +699,19 @@ export function AdminLive() {
                   type="button"
                   className="filter-chip"
                   aria-pressed={contentStatusFilter === value}
-                  onClick={() => setContentStatusFilter(value)}
+                  onClick={() => {
+                    setContentStatusFilter(value);
+                    setContentPage(0);
+                  }}
                 >{label}</button>
               ))}
             </nav>
             <div className="quest-list">
-              {visibleQuestions.slice(0, 30).map((q, i) => {
+              {questionPage.items.map((q, i) => {
                 const action = actionFor(q);
                 return (
                   <div className="quest" key={q.id}>
-                    <div className="quest-icon">{i + 1}</div>
+                    <div className="quest-icon">{questionPage.start + i}</div>
                     <div>
                       <h3>{locale==="en"?q.prompt_en:q.prompt_ar}</h3>
                       <p>
@@ -769,8 +779,15 @@ export function AdminLive() {
                   ? t("لا توجد نتائج مطابقة للبحث والتصفية.","No content matches the current search and filters.")
                   : t("لا يوجد محتوى لعرضه بعد.","There is no content to display yet.")}</div>
               )}
-              {visibleQuestions.length > 30 && (
-                <p className="noata-staff-list-note">{t("نعرض أول ٣٠ نتيجة. أضف كلمات للبحث لتضييق القائمة.","Showing the first 30 results. Search to narrow the list.")}</p>
+              {visibleQuestions.length > 0 && (
+                <nav className="noata-staff-pagination" aria-label={t("صفحات المحتوى", "Content pages")}>
+                  <span>{t("النتائج", "Results")} {questionPage.start}–{questionPage.end} {t("من", "of")} {questionPage.total}</span>
+                  <div>
+                    <button type="button" className="btn" disabled={questionPage.page === 0} onClick={() => setContentPage(questionPage.page - 1)}>{t("السابق", "Previous")}</button>
+                    <span aria-live="polite">{questionPage.page + 1} / {questionPage.pageCount}</span>
+                    <button type="button" className="btn" disabled={questionPage.page + 1 >= questionPage.pageCount} onClick={() => setContentPage(questionPage.page + 1)}>{t("التالي", "Next")}</button>
+                  </div>
+                </nav>
               )}
             </div>
           </section>
@@ -798,7 +815,10 @@ export function AdminLive() {
                 type="button"
                 className="filter-chip"
                 aria-pressed={accountRoleFilter === value}
-                onClick={() => setAccountRoleFilter(value)}
+                onClick={() => {
+                  setAccountRoleFilter(value);
+                  setAccountPage(0);
+                }}
               >{label}</button>
             ))}
           </nav>
@@ -811,7 +831,10 @@ export function AdminLive() {
                 placeholder={t("ابحث بالاسم أو الدور…","Search by name or role…")}
                 aria-label={t("ابحث بالاسم أو الدور…","Search by name or role…")}
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setAccountPage(0);
+                }}
               />
             </label>
             <button
@@ -829,7 +852,7 @@ export function AdminLive() {
             >{t("تصدير CSV", "Export CSV")}</button>
           </div>
           <div className="quest-list">
-            {visibleProfiles.map((p) => (
+            {profilePage.items.map((p) => (
                 <div className="quest" key={p.id}>
                   <div className="quest-icon">
                     {p.display_name?.slice(0, 1).toUpperCase() || "U"}
@@ -856,9 +879,19 @@ export function AdminLive() {
                 </div>
               ))}
             {!visibleProfiles.length && (
-              <div className="noata-staff-empty">{search.trim()
-                ? t("لا توجد حسابات مطابقة للبحث.","No accounts match your search.")
+              <div className="noata-staff-empty">{search.trim() || accountRoleFilter !== "all"
+                ? t("لا توجد حسابات تطابق البحث والتصفية الحالية.","No accounts match the current search and filter.")
                 : t("لا توجد حسابات متاحة للعرض.","No accounts are available to display.")}</div>
+            )}
+            {visibleProfiles.length > 0 && (
+              <nav className="noata-staff-pagination" aria-label={t("صفحات الحسابات", "Account pages")}>
+                <span>{t("النتائج", "Results")} {profilePage.start}–{profilePage.end} {t("من", "of")} {profilePage.total}</span>
+                <div>
+                  <button type="button" className="btn" disabled={profilePage.page === 0} onClick={() => setAccountPage(profilePage.page - 1)}>{t("السابق", "Previous")}</button>
+                  <span aria-live="polite">{profilePage.page + 1} / {profilePage.pageCount}</span>
+                  <button type="button" className="btn" disabled={profilePage.page + 1 >= profilePage.pageCount} onClick={() => setAccountPage(profilePage.page + 1)}>{t("التالي", "Next")}</button>
+                </div>
+              </nav>
             )}
           </div>
         </section>
