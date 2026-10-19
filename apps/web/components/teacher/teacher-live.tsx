@@ -52,6 +52,8 @@ export function TeacherLive() {
   const [publishNow, setPublishNow] = useState(true);
   const [grades, setGrades] = useState<Record<string, string>>({});
   const [view, setView] = useState("overview");
+  const [assignmentSearch, setAssignmentSearch] = useState("");
+  const [submissionSearch, setSubmissionSearch] = useState("");
 
   useUnsavedWork(
     Boolean(
@@ -245,6 +247,20 @@ export function TeacherLive() {
   }
 
   const membershipCount = new Set(submissions.map((x) => x.student_id)).size;
+  const searchLocale = locale === "en" ? "en" : "ar";
+  const assignmentNeedle = assignmentSearch.trim().toLocaleLowerCase(searchLocale);
+  const visibleAssignments = assignments.filter((assignment) => {
+    const className = classes.find((item) => item.id === assignment.class_id)?.name ?? "";
+    const haystack = `${assignment.title} ${assignment.instructions} ${className}`;
+    return !assignmentNeedle || haystack.toLocaleLowerCase(searchLocale).includes(assignmentNeedle);
+  });
+  const submissionNeedle = submissionSearch.trim().toLocaleLowerCase(searchLocale);
+  const visibleSubmissions = submissions.filter((submission) => {
+    const studentName = profiles.get(submission.student_id) ?? t("طالب", "Student");
+    const assignmentName = assignments.find((item) => item.id === submission.assignment_id)?.title ?? "";
+    const haystack = `${studentName} ${assignmentName}`;
+    return !submissionNeedle || haystack.toLocaleLowerCase(searchLocale).includes(submissionNeedle);
+  });
 
   if (account.error || loadError)
     return (
@@ -487,10 +503,23 @@ export function TeacherLive() {
         <section className="panel" style={{ marginTop: 18 }}>
           <div className="panel-head">
             <h2>{t("الواجبات","Assignments")}</h2>
-            <span className="pill">{t("المسودات والمنشور","Drafts and published assignments")}</span>
+            <span className="pill">{visibleAssignments.length} / {assignments.length} {t("واجب","assignments")}</span>
+          </div>
+          <div className="noata-staff-list-tools">
+            <label className="noata-staff-search">
+              <span>{t("البحث في الواجبات","Search assignments")}</span>
+              <input
+                className="search"
+                type="search"
+                value={assignmentSearch}
+                onChange={(event) => setAssignmentSearch(event.target.value)}
+                placeholder={t("اسم الواجب أو الصف","Assignment or class name")}
+                aria-label={t("البحث في الواجبات","Search assignments")}
+              />
+            </label>
           </div>
           <div className="quest-list">
-            {assignments.map((a) => (
+            {visibleAssignments.map((a) => (
               <div className="quest" key={a.id}>
                 <div className="quest-icon">{a.published_at ? "✓" : "D"}</div>
                 <div>
@@ -518,8 +547,10 @@ export function TeacherLive() {
                 )}
               </div>
             ))}
-            {!assignments.length && (
-              <div style={{ padding: 18, color: "var(--muted)" }}>{t("لا توجد واجبات بعد.","No assignments yet.")}</div>
+            {!visibleAssignments.length && (
+              <div className="noata-staff-empty">{assignmentSearch.trim()
+                ? t("لا توجد نتائج مطابقة للبحث.","No assignments match your search.")
+                : t("لا توجد واجبات بعد.","No assignments yet.")}</div>
             )}
           </div>
         </section>
@@ -532,8 +563,21 @@ export function TeacherLive() {
             <span className="pill">
               {submissions.filter((x) => x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</span>
           </div>
+          <div className="noata-staff-list-tools">
+            <label className="noata-staff-search">
+              <span>{t("البحث في التسليمات","Search submissions")}</span>
+              <input
+                className="search"
+                type="search"
+                value={submissionSearch}
+                onChange={(event) => setSubmissionSearch(event.target.value)}
+                placeholder={t("اسم الطالب أو الواجب","Student or assignment")}
+                aria-label={t("البحث في التسليمات","Search submissions")}
+              />
+            </label>
+          </div>
           <div className="quest-list">
-            {submissions.map((s) => {
+            {visibleSubmissions.map((s) => {
               const assignment = assignments.find(
                 (a) => a.id === s.assignment_id,
               );
@@ -592,8 +636,10 @@ export function TeacherLive() {
                 </div>
               );
             })}
-            {!submissions.length && (
-              <div style={{ padding: 18, color: "var(--muted)" }}>{t("لا توجد تسليمات بعد.","No submissions yet.")}</div>
+            {!visibleSubmissions.length && (
+              <div className="noata-staff-empty">{submissionSearch.trim()
+                ? t("لا توجد نتائج مطابقة للبحث.","No submissions match your search.")
+                : t("لا توجد تسليمات بعد.","No submissions yet.")}</div>
             )}
           </div>
         </section>
