@@ -56,6 +56,7 @@ export function TeacherLive() {
   const [view, setView] = useState("overview");
   const [assignmentSearch, setAssignmentSearch] = useState("");
   const [submissionSearch, setSubmissionSearch] = useState("");
+  const [gradingFilter, setGradingFilter] = useState<"all" | "pending" | "graded">("pending");
 
   useUnsavedWork(
     Boolean(
@@ -264,7 +265,11 @@ export function TeacherLive() {
       profiles.get(submission.student_id) ?? t("طالب", "Student"),
       assignments.find((item) => item.id === submission.assignment_id)?.title ?? "",
     ],
-  );
+  ).filter((submission) => {
+    if (gradingFilter === "pending") return submission.score == null;
+    if (gradingFilter === "graded") return submission.score != null;
+    return true;
+  });
 
   if (account.error || loadError)
     return (
@@ -584,6 +589,21 @@ export function TeacherLive() {
             <span className="pill">
               {submissions.filter((x) => x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</span>
           </div>
+          <nav className="filter-bar" aria-label={t("تصفية التسليمات", "Submission filters")} style={{ marginBottom: 14 }}>
+            {([
+              ["pending", t("بانتظار التقييم", "Needs grading")],
+              ["graded", t("تم تقييمها", "Graded")],
+              ["all", t("كل التسليمات", "All submissions")],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className="filter-chip"
+                aria-pressed={gradingFilter === value}
+                onClick={() => setGradingFilter(value)}
+              >{label}</button>
+            ))}
+          </nav>
           <div className="noata-staff-list-tools">
             <label className="noata-staff-search">
               <span>{t("البحث في التسليمات","Search submissions")}</span>
