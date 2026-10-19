@@ -15,7 +15,9 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
  try {
   const files=(await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort();
   const before=files.filter(f=>f<'20261008150000'), delta=files.filter(f=>f>='20261008150000');
-  assert.equal(before.length,18);assert.equal(delta.length,15);
+  assert.equal(before.length,18);
+  assert.ok(delta.includes('20261017175911_respiratory_system_learning_pathway.sql'));
+  assert.equal(delta.length,16); // Includes the already-applied staging migration source recovered under its original ledger version.
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
