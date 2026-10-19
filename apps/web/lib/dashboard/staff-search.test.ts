@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { filterStaffSearch, matchesStaffSearch, paginateStaffItems } from "./staff-search.ts";
+import { filterStaffSearch, matchesStaffSearch, paginateStaffItems, summarizeStudentProgress } from "./staff-search.ts";
 
 test("blank or whitespace-only search returns every record", () => {
   const rows = [{ title: "Algebra" }, { title: "Biology" }];
@@ -63,4 +63,22 @@ test("pagination handles empty lists and safe page sizes", () => {
   const result = paginateStaffItems([1, 2, 3], 0, Number.NaN);
   assert.equal(result.pageCount, 1);
   assert.deepEqual(result.items, [1, 2, 3]);
+});
+
+test("student progress summary uses only recorded lesson rows and the latest timestamp", () => {
+  const summary = summarizeStudentProgress([
+    { completed_at: "2026-10-18T09:00:00Z", best_score: 80, updated_at: "2026-10-18T09:00:00Z" },
+    { completed_at: null, best_score: 60, updated_at: "2026-10-19T10:00:00Z" },
+    { completed_at: "2026-10-17T12:00:00Z", best_score: 100, updated_at: "2026-10-17T12:00:00Z" },
+  ]);
+  assert.equal(summary.trackedLessons, 3);
+  assert.equal(summary.completedLessons, 2);
+  assert.equal(summary.averageBestScore, 80);
+  assert.equal(summary.lastUpdated, "2026-10-19T10:00:00Z");
+});
+
+test("student progress summary does not invent averages or activity when no rows exist", () => {
+  assert.deepEqual(summarizeStudentProgress([]), {
+    trackedLessons: 0, completedLessons: 0, averageBestScore: null, lastUpdated: null,
+  });
 });

@@ -61,3 +61,38 @@ export function paginateStaffItems<T>(
     end,
   };
 }
+
+export interface StudentProgressEntry {
+  completed_at: string | null;
+  best_score: number;
+  updated_at: string;
+}
+
+export interface StudentProgressSummary {
+  trackedLessons: number;
+  completedLessons: number;
+  averageBestScore: number | null;
+  lastUpdated: string | null;
+}
+
+export function summarizeStudentProgress(
+  entries: readonly StudentProgressEntry[],
+): StudentProgressSummary {
+  const validScores = entries
+    .map((entry) => entry.best_score)
+    .filter((score) => Number.isFinite(score));
+  const lastUpdated = entries.reduce<string | null>((latest, entry) => {
+    if (!entry.updated_at || !Number.isFinite(Date.parse(entry.updated_at))) return latest;
+    return latest === null || Date.parse(entry.updated_at) > Date.parse(latest)
+      ? entry.updated_at
+      : latest;
+  }, null);
+  return {
+    trackedLessons: entries.length,
+    completedLessons: entries.filter((entry) => entry.completed_at !== null).length,
+    averageBestScore: validScores.length
+      ? Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length)
+      : null,
+    lastUpdated,
+  };
+}

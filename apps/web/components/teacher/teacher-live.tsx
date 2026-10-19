@@ -6,7 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { boundedRead } from "@/lib/supabase/use-verified-account";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
-import { filterStaffSearch, paginateStaffItems } from "@/lib/dashboard/staff-search";
+import { filterStaffSearch, paginateStaffItems, summarizeStudentProgress } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
 
 type ClassRow = {
@@ -33,6 +33,14 @@ type Submission = {
   score: number | null;
 };
 type Profile = { id: string; display_name: string };
+type ClassMembership = { class_id: string; student_id: string };
+type LessonProgress = {
+  user_id: string;
+  lesson_id: string;
+  completed_at: string | null;
+  best_score: number;
+  updated_at: string;
+};
 
 export function TeacherLive() {
  const t=useTranslation(),locale=useLocale();
@@ -42,6 +50,8 @@ export function TeacherLive() {
   const [loading, setLoading] = useState(true),
     [loadError, setLoadError] = useState("");
   const [classes, setClasses] = useState<ClassRow[]>([]);
+  const [memberships, setMemberships] = useState<ClassMembership[]>([]);
+  const [lessonProgress, setLessonProgress] = useState<LessonProgress[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -60,6 +70,9 @@ export function TeacherLive() {
   const [submissionSearch, setSubmissionSearch] = useState("");
   const [gradingFilter, setGradingFilter] = useState<"all" | "pending" | "graded">("pending");
   const [gradingPage, setGradingPage] = useState(0);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [studentClassFilter, setStudentClassFilter] = useState("all");
+  const [studentPage, setStudentPage] = useState(0);
 
   useUnsavedWork(
     Boolean(
@@ -100,18 +113,22 @@ export function TeacherLive() {
             .select("id,assignment_id,student_id,submitted_at,score")
             .order("submitted_at", { ascending: false }),
           supabase.from("profiles").select("id,display_name"),
+          supabase.from("class_memberships").select("class_id,student_id").order("joined_at", { ascending: false }),
+          supabase.from("lesson_progress").select("user_id,lesson_id,completed_at,best_score,updated_at").order("updated_at", { ascending: false }),
         ]),
       );
       if (token !== account.revision.current) return false;
       const failed = results.find((r) => r.error);
       if (failed) throw failed.error;
-      const [c, a, q, s, p] = results;
+      const [c, a, q, s, p, membershipsResult, progressResult] = results;
       const classRows = (c.data ?? []) as ClassRow[];
       setClasses(classRows);
       if (!classId && classRows[0]) setClassId(classRows[0].id);
       setAssignments((a.data ?? []) as Assignment[]);
       setQuestions((q.data ?? []) as Question[]);
       setSubmissions((s.data ?? []) as Submission[]);
+      setMemberships((membershipsResult.data ?? []) as ClassMembership[]);
+      setLessonProgress((progressResult.data ?? []) as LessonProgress[]);
       setProfiles(
         new Map(
           ((p.data ?? []) as Profile[]).map((x) => [
@@ -279,6 +296,42 @@ export function TeacherLive() {
   });
   const assignmentPageData = paginateStaffItems(visibleAssignments, assignmentPage, 20);
   const gradingPageData = paginateStaffItems(visibleSubmissions, gradingPage, 20);
+  const progressByStudent = useMemo(() => {
+    const grouped = new Map<string, LessonProgress[]>();
+    for (const row of lessonProgress) {
+      const current = grouped.get(row.user_id) ?? [];
+      current.push(row);
+      grouped.set(row.user_id, current);
+    }
+    return grouped;
+  }, [lessonProgress]);
+  const visibleRoster = filterStaffSearch(
+    memberships.filter((member) =>
+      profiles.has(member.student_id) &&
+      classes.some((classRow) => classRow.id === member.class_id) &&
+      (studentClassFilter === "all" || member.class_id === studentClassFilter)
+    ),
+    studentSearch,
+    searchLocale,
+    (member) => {
+      const classRow = classes.find((row) => row.id === member.class_id);
+      return [
+        profiles.get(member.student_id) ?? "",
+        classRow?.name ?? "",
+        classRow?.grade_label ?? "",
+        classRow?.academic_year ?? "",
+      ];
+    },
+  ).sort((left, right) => {
+    const leftName = profiles.get(left.student_id) ?? "";
+    const rightName = profiles.get(right.student_id) ?? "";
+    const nameOrder = leftName.localeCompare(rightName, searchLocale);
+    if (nameOrder !== 0) return nameOrder;
+    const leftClass = classes.find((row) => row.id === left.class_id)?.name ?? "";
+    const rightClass = classes.find((row) => row.id === right.class_id)?.name ?? "";
+    return leftClass.localeCompare(rightClass, searchLocale);
+  });
+  const studentPageData = paginateStaffItems(visibleRoster, studentPage, 20);
 
   if (account.error || loadError)
     return (
@@ -343,6 +396,7 @@ export function TeacherLive() {
       <nav className="filter-bar" aria-label={t("أقسام مساحة المعلم","Teacher workspace sections")}>
         {[
           ["overview", t("نظرة عامة","Overview")],
+          ["students", t("الطلاب وتقدمهم","Students & progress")],
           ["create", t("واجب جديد","New assignment")],
           ["assignments", t("الواجبات","Assignments")],
           ["grading", t("التصحيح","Grading")],
@@ -619,6 +673,122 @@ export function TeacherLive() {
               </nav>
             )}
           </div>
+        </section>
+      )}
+
+
+      {view === "students" && (
+        <section className="panel">
+          <div className="panel-head">
+            <h2>{t("قائمة الطلاب وتقدمهم","Student roster and progress")}</h2>
+            <span className="pill">{visibleRoster.length} {t("سجل طالب/صف","student-class records")}</span>
+          </div>
+          <div className="noata-staff-list-tools">
+            <label className="noata-staff-search">
+              <span>{t("البحث عن طالب أو صف","Search students or classes")}</span>
+              <input
+                className="search"
+                type="search"
+                value={studentSearch}
+                onChange={(event) => {
+                  setStudentSearch(event.target.value);
+                  setStudentPage(0);
+                }}
+                placeholder={t("اسم الطالب أو الصف أو المرحلة","Student, class or grade")}
+                aria-label={t("البحث عن طالب أو صف","Search students or classes")}
+              />
+            </label>
+            <label className="noata-staff-search">
+              <span>{t("تصفية حسب الصف","Filter by class")}</span>
+              <select
+                className="model-select"
+                value={studentClassFilter}
+                onChange={(event) => {
+                  setStudentClassFilter(event.target.value);
+                  setStudentPage(0);
+                }}
+                aria-label={t("تصفية حسب الصف","Filter by class")}
+              >
+                <option value="all">{t("كل صفوفي","All assigned classes")}</option>
+                {classes.map((classRow) => (
+                  <option key={classRow.id} value={classRow.id}>
+                    {classRow.name} · {classRow.grade_label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!visibleRoster.length}
+              onClick={() => {
+                const started = downloadCsv(
+                  "noata-student-progress.csv",
+                  [
+                    t("اسم الطالب","Student"),
+                    t("الصف","Class"),
+                    t("المرحلة","Grade"),
+                    t("الدروس المسجلة","Tracked lessons"),
+                    t("الدروس المكتملة","Completed lessons"),
+                    t("متوسط أفضل الدرجات","Average best score"),
+                    t("آخر تحديث","Last updated"),
+                  ],
+                  visibleRoster.map((member) => {
+                    const classRow = classes.find((row) => row.id === member.class_id);
+                    const summary = summarizeStudentProgress(progressByStudent.get(member.student_id) ?? []);
+                    return [
+                      profiles.get(member.student_id) ?? "",
+                      classRow?.name ?? "",
+                      classRow?.grade_label ?? "",
+                      summary.trackedLessons,
+                      summary.completedLessons,
+                      summary.averageBestScore ?? "",
+                      summary.lastUpdated ?? "",
+                    ];
+                  }),
+                );
+                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+              }}
+            >{t("تصدير تقدم الطلاب CSV","Export student progress CSV")}</button>
+          </div>
+          <div className="quest-list">
+            {studentPageData.items.map((member) => {
+              const classRow = classes.find((row) => row.id === member.class_id);
+              const displayName = profiles.get(member.student_id) ?? t("طالب","Student");
+              const summary = summarizeStudentProgress(progressByStudent.get(member.student_id) ?? []);
+              return (
+                <article className="quest" key={member.class_id + ":" + member.student_id}>
+                  <div className="quest-icon" aria-hidden="true">{displayName.trim().slice(0, 1) || "•"}</div>
+                  <div>
+                    <h3>{displayName}</h3>
+                    <p>{classRow ? classRow.name + " · " + classRow.grade_label + " · " + classRow.academic_year : "—"}</p>
+                    <p>{t("الدروس المكتملة","Completed lessons")}: {summary.completedLessons} / {summary.trackedLessons} {t("مسجل","tracked")}</p>
+                    <p>{summary.averageBestScore === null
+                      ? t("لا توجد درجات مسجلة","No recorded scores")
+                      : t("متوسط أفضل الدرجات","Average best score") + ": " + summary.averageBestScore + "%"}</p>
+                  </div>
+                  <span className="pill">{summary.lastUpdated
+                    ? t("آخر تحديث","Updated") + " " + new Date(summary.lastUpdated).toLocaleDateString(locale === "en" ? "en" : "ar")
+                    : t("لا يوجد نشاط مسجل","No recorded activity")}</span>
+                </article>
+              );
+            })}
+            {!visibleRoster.length && (
+              <div className="noata-staff-empty">{studentSearch.trim() || studentClassFilter !== "all"
+                ? t("لا يوجد طلاب مطابقون للبحث أو الصف المحدد.","No students match this search or class.")
+                : t("لا توجد سجلات طلاب متاحة ضمن صفوفك حتى الآن.","No student roster records are available in your assigned classes yet.")}</div>
+            )}
+          </div>
+          {visibleRoster.length > 0 && (
+            <nav className="noata-staff-pagination" aria-label={t("صفحات الطلاب","Student pages")}>
+              <span>{t("النتائج","Results")} {studentPageData.start}–{studentPageData.end} {t("من","of")} {studentPageData.total}</span>
+              <div>
+                <button type="button" className="btn" disabled={studentPageData.page === 0} onClick={() => setStudentPage(studentPageData.page - 1)}>{t("السابق","Previous")}</button>
+                <span aria-live="polite">{studentPageData.page + 1} / {studentPageData.pageCount}</span>
+                <button type="button" className="btn" disabled={studentPageData.page + 1 >= studentPageData.pageCount} onClick={() => setStudentPage(studentPageData.page + 1)}>{t("التالي","Next")}</button>
+              </div>
+            </nav>
+          )}
         </section>
       )}
 
