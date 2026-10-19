@@ -10,6 +10,7 @@ import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
 import { CurriculumManager } from "@/components/admin/curriculum-manager";
+import { filterStaffSearch } from "@/lib/dashboard/staff-search";
 
 type Question = {
   id: string;
@@ -390,20 +391,18 @@ export function AdminLive() {
   };
   const filterLocale = locale === "en" ? "en" : "ar";
   const contentNeedle = contentSearch.trim().toLocaleLowerCase(filterLocale);
-  const visibleQuestions = questions.filter((question) => {
-    const haystack = `${question.prompt_ar} ${question.prompt_en} ${question.review_status} ${question.publication_status} ${question.question_type}`;
-    return !contentNeedle || haystack.toLocaleLowerCase(filterLocale).includes(contentNeedle);
-  });
-  const classNeedle = classSearch.trim().toLocaleLowerCase(filterLocale);
-  const visibleClasses = classes.filter((classRow) => {
-    const haystack = `${classRow.name} ${classRow.grade_label} ${classRow.academic_year} ${classRow.slug}`;
-    return !classNeedle || haystack.toLocaleLowerCase(filterLocale).includes(classNeedle);
-  });
-  const accountNeedle = search.trim().toLocaleLowerCase(filterLocale);
-  const visibleProfiles = profiles.filter((profile) => {
-    const haystack = `${profile.display_name} ${profile.role}`;
-    return !accountNeedle || haystack.toLocaleLowerCase(filterLocale).includes(accountNeedle);
-  });
+  const visibleQuestions = filterStaffSearch(
+    questions, contentSearch, filterLocale,
+    (question) => [question.prompt_ar, question.prompt_en, question.review_status, question.publication_status, question.question_type],
+  );
+  const visibleClasses = filterStaffSearch(
+    classes, classSearch, filterLocale,
+    (classRow) => [classRow.name, classRow.grade_label, classRow.academic_year, classRow.slug],
+  );
+  const visibleProfiles = filterStaffSearch(
+    profiles, search, filterLocale,
+    (profile) => [profile.display_name, profile.role],
+  );
 
   if (account.error || loadError)
     return (
