@@ -264,7 +264,7 @@ export function TeacherLive() {
 
   if (account.error || loadError)
     return (
-      <section className="aura-load-error" role="alert">
+      <section className="noata-staff-studio noata-teacher-studio aura-load-error" role="alert">
         <h2>{account.error || loadError}</h2>
         <button
           type="button"
@@ -277,7 +277,7 @@ export function TeacherLive() {
     );
   if (account.loading || loading)
     return (
-      <section className="aura-loading-state" role="status">
+      <section className="noata-staff-studio noata-teacher-studio aura-loading-state" role="status">
         <span />
         <h2>{t("بنجهّز مساحة المعلّم…","Loading your teacher workspace…")}</h2>
       </section>
