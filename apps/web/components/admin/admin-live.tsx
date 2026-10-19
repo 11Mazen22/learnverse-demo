@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
 import { CurriculumManager } from "@/components/admin/curriculum-manager";
 import { filterStaffSearch } from "@/lib/dashboard/staff-search";
+import { downloadCsv } from "@/lib/dashboard/csv-export";
 
 type Question = {
   id: string;
@@ -654,6 +655,19 @@ export function AdminLive() {
                   aria-label={t("البحث في المحتوى","Search content")}
                 />
               </label>
+              <button
+                type="button"
+                className="btn"
+                disabled={!visibleQuestions.length}
+                onClick={() => {
+                  const started = downloadCsv(
+                    "noata-content.csv",
+                    [t("السؤال بالعربية", "Question (Arabic)"), t("السؤال بالإنجليزية", "Question (English)"), t("النوع", "Type"), t("حالة المراجعة", "Review status"), t("حالة النشر", "Publication status")],
+                    visibleQuestions.map((question) => [question.prompt_ar, question.prompt_en, question.question_type, question.review_status, question.publication_status]),
+                  );
+                  if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                }}
+              >{t("تصدير CSV", "Export CSV")}</button>
             </div>
             <div className="quest-list">
               {visibleQuestions.slice(0, 30).map((q, i) => {
@@ -745,14 +759,32 @@ export function AdminLive() {
             <h2>{t("الحسابات والصلاحيات","Accounts and permissions")}</h2>
             <span className="pill">{t("صلاحيات الحساب","Account permissions")}</span>
           </div>
-          <input
-            className="search"
-            placeholder={t("ابحث بالاسم أو الدور…","Search by name or role…")}
-            aria-label={t("ابحث بالاسم أو الدور…","Search by name or role…")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ marginBottom: 16 }}
-          />
+          <div className="noata-staff-list-tools">
+            <label className="noata-staff-search">
+              <span>{t("البحث في الحسابات", "Search accounts")}</span>
+              <input
+                className="search"
+                type="search"
+                placeholder={t("ابحث بالاسم أو الدور…","Search by name or role…")}
+                aria-label={t("ابحث بالاسم أو الدور…","Search by name or role…")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!visibleProfiles.length}
+              onClick={() => {
+                const started = downloadCsv(
+                  "noata-accounts.csv",
+                  [t("الاسم","Display name"), t("الدور","Role"), "XP", t("العملات","Coins")],
+                  visibleProfiles.map((profile) => [profile.display_name, profile.role, profile.xp, profile.coins]),
+                );
+                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+              }}
+            >{t("تصدير CSV", "Export CSV")}</button>
+          </div>
           <div className="quest-list">
             {visibleProfiles.map((p) => (
                 <div className="quest" key={p.id}>
@@ -887,6 +919,24 @@ export function AdminLive() {
                 aria-label={t("البحث في الصفوف","Search classes")}
               />
             </label>
+            <button
+              type="button"
+              className="btn"
+              disabled={!visibleClasses.length}
+              onClick={() => {
+                const started = downloadCsv(
+                  "noata-classes.csv",
+                  [t("اسم الصف","Class name"), t("المرحلة","Grade"), t("السنة الدراسية","Academic year"), t("عدد الطلاب","Students"), t("عدد المعلمين","Teachers"), t("نشط","Active")],
+                  visibleClasses.map((classRow) => [
+                    classRow.name, classRow.grade_label, classRow.academic_year,
+                    memberships.filter((item) => item.class_id === classRow.id).length,
+                    teacherAccess.filter((item) => item.class_id === classRow.id).length,
+                    classRow.active ? t("نعم","Yes") : t("لا","No"),
+                  ]),
+                );
+                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+              }}
+            >{t("تصدير CSV", "Export CSV")}</button>
           </div>
           <section style={{ display: "grid", gap: 14, marginTop: 0 }}>
             {visibleClasses.map((c) => {
