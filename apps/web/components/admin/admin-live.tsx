@@ -399,10 +399,15 @@ export function AdminLive() {
     const haystack = `${classRow.name} ${classRow.grade_label} ${classRow.academic_year} ${classRow.slug}`;
     return !classNeedle || haystack.toLocaleLowerCase(filterLocale).includes(classNeedle);
   });
+  const accountNeedle = search.trim().toLocaleLowerCase(filterLocale);
+  const visibleProfiles = profiles.filter((profile) => {
+    const haystack = `${profile.display_name} ${profile.role}`;
+    return !accountNeedle || haystack.toLocaleLowerCase(filterLocale).includes(accountNeedle);
+  });
 
   if (account.error || loadError)
     return (
-      <section className="aura-load-error" role="alert">
+      <section className="noata-staff-studio noata-admin-studio aura-load-error" role="alert">
         <h2>{account.error || loadError}</h2>
         <button
           type="button"
@@ -415,7 +420,7 @@ export function AdminLive() {
     );
   if (account.loading || loading)
     return (
-      <section className="aura-loading-state" role="status">
+      <section className="noata-staff-studio noata-admin-studio aura-loading-state" role="status">
         <span />
         <h2>{t("بنجهّز مساحة إدارة Noata…","Loading Noata administration…")}</h2>
       </section>
@@ -636,7 +641,7 @@ export function AdminLive() {
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">
               <h2>{t("قائمة المحتوى","Content list")}</h2>
-              <span className="pill">{visibleQuestions.length} / {questions.length} {locale==="en"?(questions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
+              <span className="pill">{visibleQuestions.length} / {questions.length} {locale==="en"?(visibleQuestions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
             </div>
             <div className="noata-staff-list-tools">
               <label className="noata-staff-search">
@@ -750,13 +755,7 @@ export function AdminLive() {
             style={{ marginBottom: 16 }}
           />
           <div className="quest-list">
-            {profiles
-              .filter((p) =>
-                (p.display_name + " " + p.role)
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((p) => (
+            {visibleProfiles.map((p) => (
                 <div className="quest" key={p.id}>
                   <div className="quest-icon">
                     {p.display_name?.slice(0, 1).toUpperCase() || "U"}
@@ -782,6 +781,11 @@ export function AdminLive() {
                   </select>
                 </div>
               ))}
+            {!visibleProfiles.length && (
+              <div className="noata-staff-empty">{search.trim()
+                ? t("لا توجد حسابات مطابقة للبحث.","No accounts match your search.")
+                : t("لا توجد حسابات متاحة للعرض.","No accounts are available to display.")}</div>
+            )}
           </div>
         </section>
       )}
