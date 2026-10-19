@@ -42,3 +42,8 @@ No Supabase plan upgrade, paid provider activation, production secret rotation o
 
 - Owner-authorized reconciliation applied and verified: the respiratory curriculum pathway (unit 3 of `demo-science-v1`: 7 lessons, 3 skills, 48 questions + 48 keys) and the submission grading-integrity migration (CHECK constraint plus tightened `submissions scoped update` policy). Backup/restore drill and post-apply verification: `PRODUCTION_RECONCILIATION_20261019.md`.
 - Production content totals: units 3, lessons 9, skills 5, questions 67 (66 `published_demo` visible to anon/authenticated; one pre-existing `draft` hidden by RLS), question keys 67 (not readable outside staff/service role). RLS enabled on 38/38 public tables; security advisors unchanged.
+
+## Production web release (2026-10-19)
+
+- PR #37 (merge commit `9ef85d337e4d54698d28af311f9a4043e7b9ce25`) is live. Vercel production deployment `dpl_EnkPN7eLp4Yn7WX858Fdrdqjt3xK` was promoted, and `/health`, public Arabic/English routes and security headers were smoke-checked against `noata.enterpriseworkhub.online`; details in `TEST_EVIDENCE.md`.
+- Not claimed: live provider round-trips and authenticated staging E2E, as listed in `NEXT_EXECUTION.md`.

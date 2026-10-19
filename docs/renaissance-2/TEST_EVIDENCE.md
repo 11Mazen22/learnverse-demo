@@ -53,3 +53,11 @@ Do not upgrade Supabase plans, alter production secrets, run production data mut
 
 - CI run `39308483048` (`verify` and intentional-tooltip jobs) completed green at revision `c00bd940a5e72e0e40ac7f3e8ef81427132659bd`.
 - Production backup `noata-production-20261019-221808.dump` (SHA-256 `c51133d737def6a744c8469da9cc4fc7430d586a2179b732ee46ad1ceace684e`) restored cleanly into a throwaway PostgreSQL 17.7 cluster with exact row-count parity across all 38 public tables; migrations `respiratory_system_learning_pathway` then `submission_grading_integrity` were applied in order and verified (curriculum counts 67 questions / 67 keys, constraint present, update policy guarded, 0 invalid grades, RLS 38/38, advisor parity). Full record: `PRODUCTION_RECONCILIATION_20261019.md`.
+
+## Production release verification (2026-10-19)
+
+- **Release revision:** merge commit `9ef85d337e4d54698d28af311f9a4043e7b9ce25` (PR #37). CI run `39315647563` completed successfully on that revision; the pre-merge head `012e1d9cc9f1d85c0dfc521e958b1056b8dba6f6` had passed run `39312615294`.
+- **Deployment:** Vercel production deployment `dpl_EnkPN7eLp4Yn7WX858Fdrdqjt3xK` (`noata-89g0grmkl-noata.vercel.app`) reached READY and was promoted after the merge build. The promote record reports `noata.enterpriseworkhub.online` as completed; both that domain and `noata.vercel.app` returned the merge revision from `/health`.
+- **Live smoke:** `/`, `/ai`, `/login`, `/signup`, `/quran`, `/privacy`, `/terms` and `/health` returned HTTP 200; `/api/qa-target` returned 404.
+- **Headers/markup:** `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` and `Permissions-Policy` were present; the Arabic home page carried `lang="ar" dir="rtl"`.
+- This evidence-only documentation follow-up changes no application code and is released through the same promote step; the final live revision is recorded in the PR comment.
