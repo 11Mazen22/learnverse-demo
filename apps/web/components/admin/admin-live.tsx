@@ -408,7 +408,7 @@ export function AdminLive() {
       </section>
     );
   return (
-    <>
+    <div className="noata-staff-studio noata-admin-studio">
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("إدارة المحتوى والمجتمع","Manage content and community")}</div>
@@ -440,7 +440,7 @@ export function AdminLive() {
         </article>
       </section>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+      <div className="noata-admin-tabs" style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
         {(
           ["content", "curriculum", "users", "classes", "operations"] as const
         ).map((x) => (
@@ -928,6 +928,6 @@ export function AdminLive() {
           </section>
         </>
       )}
-    </>
+    </div>
   );
 }
