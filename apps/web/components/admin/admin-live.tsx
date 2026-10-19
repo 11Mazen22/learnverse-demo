@@ -55,6 +55,8 @@ export function AdminLive() {
   const [loading, setLoading] = useState(true),
     [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
+  const [contentSearch, setContentSearch] = useState("");
+  const [classSearch, setClassSearch] = useState("");
 
   const [promptAr, setPromptAr] = useState("");
   const [promptEn, setPromptEn] = useState("");
@@ -386,6 +388,17 @@ export function AdminLive() {
     ).length,
     users: profiles.length,
   };
+  const filterLocale = locale === "en" ? "en" : "ar";
+  const contentNeedle = contentSearch.trim().toLocaleLowerCase(filterLocale);
+  const visibleQuestions = questions.filter((question) => {
+    const haystack = `${question.prompt_ar} ${question.prompt_en} ${question.review_status} ${question.publication_status} ${question.question_type}`;
+    return !contentNeedle || haystack.toLocaleLowerCase(filterLocale).includes(contentNeedle);
+  });
+  const classNeedle = classSearch.trim().toLocaleLowerCase(filterLocale);
+  const visibleClasses = classes.filter((classRow) => {
+    const haystack = `${classRow.name} ${classRow.grade_label} ${classRow.academic_year} ${classRow.slug}`;
+    return !classNeedle || haystack.toLocaleLowerCase(filterLocale).includes(classNeedle);
+  });
 
   if (account.error || loadError)
     return (
@@ -623,10 +636,23 @@ export function AdminLive() {
           <section className="panel" style={{ marginTop: 18 }}>
             <div className="panel-head">
               <h2>{t("قائمة المحتوى","Content list")}</h2>
-              <span className="pill">{questions.length} {locale==="en"?(questions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
+              <span className="pill">{visibleQuestions.length} / {questions.length} {locale==="en"?(questions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
+            </div>
+            <div className="noata-staff-list-tools">
+              <label className="noata-staff-search">
+                <span>{t("البحث في المحتوى","Search content")}</span>
+                <input
+                  className="search"
+                  type="search"
+                  value={contentSearch}
+                  onChange={(event) => setContentSearch(event.target.value)}
+                  placeholder={t("نص السؤال أو حالة المحتوى","Question text or content status")}
+                  aria-label={t("البحث في المحتوى","Search content")}
+                />
+              </label>
             </div>
             <div className="quest-list">
-              {questions.slice(0, 30).map((q, i) => {
+              {visibleQuestions.slice(0, 30).map((q, i) => {
                 const action = actionFor(q);
                 return (
                   <div className="quest" key={q.id}>
@@ -693,6 +719,14 @@ export function AdminLive() {
                   </div>
                 );
               })}
+              {!visibleQuestions.length && (
+                <div className="noata-staff-empty">{contentSearch.trim()
+                  ? t("لا توجد نتائج مطابقة للبحث.","No content matches your search.")
+                  : t("لا يوجد محتوى لعرضه بعد.","There is no content to display yet.")}</div>
+              )}
+              {visibleQuestions.length > 30 && (
+                <p className="noata-staff-list-note">{t("نعرض أول ٣٠ نتيجة. أضف كلمات للبحث لتضييق القائمة.","Showing the first 30 results. Search to narrow the list.")}</p>
+              )}
             </div>
           </section>
         </>
@@ -838,8 +872,21 @@ export function AdminLive() {
             </aside>
           </section>
 
-          <section style={{ display: "grid", gap: 14, marginTop: 18 }}>
-            {classes.map((c) => {
+          <div className="noata-staff-list-tools" style={{ marginTop: 18 }}>
+            <label className="noata-staff-search">
+              <span>{t("البحث في الصفوف","Search classes")}</span>
+              <input
+                className="search"
+                type="search"
+                value={classSearch}
+                onChange={(event) => setClassSearch(event.target.value)}
+                placeholder={t("اسم الصف أو المرحلة أو السنة","Class, grade or academic year")}
+                aria-label={t("البحث في الصفوف","Search classes")}
+              />
+            </label>
+          </div>
+          <section style={{ display: "grid", gap: 14, marginTop: 0 }}>
+            {visibleClasses.map((c) => {
               const students = memberships.filter((x) => x.class_id === c.id);
               const teachers = teacherAccess.filter((x) => x.class_id === c.id);
               return (
@@ -925,6 +972,11 @@ export function AdminLive() {
                 </article>
               );
             })}
+            {!visibleClasses.length && (
+              <div className="noata-staff-empty">{classSearch.trim()
+                ? t("لا توجد صفوف مطابقة للبحث.","No classes match your search.")
+                : t("لم تُنشأ صفوف بعد.","No classes have been created yet.")}</div>
+            )}
           </section>
         </>
       )}
