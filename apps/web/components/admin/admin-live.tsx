@@ -58,6 +58,7 @@ export function AdminLive() {
     [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [contentSearch, setContentSearch] = useState("");
+  const [contentStatusFilter, setContentStatusFilter] = useState<"all" | "draft" | "review" | "published">("all");
   const [classSearch, setClassSearch] = useState("");
 
   const [promptAr, setPromptAr] = useState("");
@@ -395,7 +396,14 @@ export function AdminLive() {
   const visibleQuestions = filterStaffSearch(
     questions, contentSearch, filterLocale,
     (question) => [question.prompt_ar, question.prompt_en, question.review_status, question.publication_status, question.question_type],
-  );
+  ).filter((question) => {
+    if (contentStatusFilter === "draft") return question.review_status === "draft";
+    if (contentStatusFilter === "review") return question.review_status === "in_review";
+    if (contentStatusFilter === "published") {
+      return question.publication_status === "published" || question.publication_status === "published_demo";
+    }
+    return true;
+  });
   const visibleClasses = filterStaffSearch(
     classes, classSearch, filterLocale,
     (classRow) => [classRow.name, classRow.grade_label, classRow.academic_year, classRow.slug],
@@ -669,6 +677,22 @@ export function AdminLive() {
                 }}
               >{t("تصدير CSV", "Export CSV")}</button>
             </div>
+            <nav className="filter-bar" aria-label={t("تصفية المحتوى", "Content filters")} style={{ marginBottom: 14 }}>
+              {([
+                ["all", t("الكل", "All")],
+                ["draft", t("المسودات", "Drafts")],
+                ["review", t("قيد المراجعة", "In review")],
+                ["published", t("المنشور", "Published")],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="filter-chip"
+                  aria-pressed={contentStatusFilter === value}
+                  onClick={() => setContentStatusFilter(value)}
+                >{label}</button>
+              ))}
+            </nav>
             <div className="quest-list">
               {visibleQuestions.slice(0, 30).map((q, i) => {
                 const action = actionFor(q);
@@ -738,8 +762,8 @@ export function AdminLive() {
                 );
               })}
               {!visibleQuestions.length && (
-                <div className="noata-staff-empty">{contentSearch.trim()
-                  ? t("لا توجد نتائج مطابقة للبحث.","No content matches your search.")
+                <div className="noata-staff-empty">{contentSearch.trim() || contentStatusFilter !== "all"
+                  ? t("لا توجد نتائج مطابقة للبحث والتصفية.","No content matches the current search and filters.")
                   : t("لا يوجد محتوى لعرضه بعد.","There is no content to display yet.")}</div>
               )}
               {visibleQuestions.length > 30 && (
