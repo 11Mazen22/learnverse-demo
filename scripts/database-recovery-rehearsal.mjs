@@ -79,7 +79,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
    };
    const original=fingerprint(baseline);
    const originalRows=rowSnapshots(baseline);
-   const allowedQuestionStatusRows=new Set(JSON.parse(query(baseline,"SELECT coalesce(json_agg(row_to_json(q)::text ORDER BY row_to_json(q)::text),'[]'::json)::text FROM public.questions q JOIN public.lessons l ON l.id=q.lesson_id WHERE l.slug='motion-basics' AND q.position=1 AND q.variant_of IS NULL AND q.publication_status='retired';")).map(row=>canonicalJson(JSON.parse(row)));
+   const allowedQuestionStatusRows=new Set(JSON.parse(query(baseline,"SELECT coalesce(json_agg(row_to_json(q)::text ORDER BY row_to_json(q)::text),'[]'::json)::text FROM public.questions q JOIN public.lessons l ON l.id=q.lesson_id WHERE l.slug='motion-basics' AND q.position=1 AND q.variant_of IS NULL AND q.publication_status='retired';")).map(row=>canonicalJson(JSON.parse(row))));
   const dump=pgDump(['-d',baseline,'--format=plain','--no-owner']);
   const backup=directory+'/source-fixture-backup.sql';
   await writeFile(backup,dump);
