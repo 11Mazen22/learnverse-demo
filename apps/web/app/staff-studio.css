@@ -367,3 +367,10 @@
 @media (prefers-reduced-motion: reduce) {
   .noata-staff-studio :where(*, *::before, *::after) { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.noata-staff-studio .noata-staff-list-note {
+  margin: 8px 2px 0;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.65;
+}
