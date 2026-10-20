@@ -14,6 +14,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  production-revision:
+    # The live domain is what customers use. A merge that is not promoted to
+    # production leaves the old build in place, so this job waits for the
+    # deployment to reach the live domain and fails loudly if it does not.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify the live production domain serves this commit
+        run: node scripts/verify-production.mjs "${{ github.sha }}"
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
