@@ -1,10 +1,11 @@
 /** Noata AI capability contracts, provider configuration != live verification. */
-export type CapabilityId="chat"|"research.search"|"text.translate"|"image.generate"|"image.inpaint"|"image.background_remove"|"voice.transcribe"|"voice.speak"|"document.pdf"|"document.docx"|"document.pdf.page_edit"|"document.pdf.annotate"|"document.office.targeted_edit"|"memory.recall"|"artifact.xlsx"|"artifact.pptx"|"projects.manage";
+export type CapabilityId="chat"|"research.search"|"research.scholarly"|"text.translate"|"image.generate"|"image.inpaint"|"image.background_remove"|"voice.transcribe"|"voice.speak"|"document.pdf"|"document.docx"|"document.pdf.page_edit"|"document.pdf.annotate"|"document.office.targeted_edit"|"memory.recall"|"artifact.xlsx"|"artifact.pptx"|"projects.manage";
 export type CapabilityStatus="configured"|"unavailable"|"planned"|"local";
-export type CapabilityDefinition={id:CapabilityId;category:"conversation"|"research"|"creative"|"documents"|"voice"|"personalization"|"workspace";provider:"fanar"|"brave"|"local"|"none";requiresAuth:boolean;sideEffects:boolean};
+export type CapabilityDefinition={id:CapabilityId;category:"conversation"|"research"|"creative"|"documents"|"voice"|"personalization"|"workspace";provider:"fanar"|"brave"|"open"|"local"|"none";requiresAuth:boolean;sideEffects:boolean};
 export const CAPABILITIES:readonly CapabilityDefinition[]=[
  {id:"chat",category:"conversation",provider:"fanar",requiresAuth:true,sideEffects:false},
  {id:"research.search",category:"research",provider:"brave",requiresAuth:true,sideEffects:false},
+ {id:"research.scholarly",category:"research",provider:"open",requiresAuth:true,sideEffects:false},
  {id:"text.translate",category:"conversation",provider:"fanar",requiresAuth:true,sideEffects:false},
  {id:"image.generate",category:"creative",provider:"fanar",requiresAuth:true,sideEffects:true},
  {id:"image.inpaint",category:"creative",provider:"none",requiresAuth:true,sideEffects:true},
@@ -24,7 +25,7 @@ export const CAPABILITIES:readonly CapabilityDefinition[]=[
 export type CapabilityAvailability={id:CapabilityId;status:CapabilityStatus;requiresAuth:boolean;sideEffects:boolean};
 export function getCapabilityAvailability(env:{fanar:boolean;brave:boolean;memorySchema:boolean}):CapabilityAvailability[]{
  return CAPABILITIES.map(({id,provider,requiresAuth,sideEffects})=>{
-  let status:CapabilityStatus=provider==="none"?"planned":provider==="local"?"local":
+  let status:CapabilityStatus=provider==="none"?"planned":provider==="local"?"local":provider==="open"?"configured":
     provider==="fanar"?(env.fanar?"configured":"unavailable"):(env.brave?"configured":"unavailable");
   if(id==="memory.recall")status=env.memorySchema?"local":"unavailable";
   return {id,status,requiresAuth,sideEffects};
@@ -67,7 +68,8 @@ export function capabilitySystemContext(env:{fanar:boolean;brave:boolean;memoryS
   " Generative image inpainting and background removal are NOT implemented. Basic image generation does not prove an edit succeeded. Guaranteed transparency, vector SVG and multiple independent image generations are also NOT verified features.",
  "PDF editing boundary: built-in edits include native page reorder/rotation and portable page-level sticky-note annotations that preserve source page text and layout. Annotation is not text replacement or redaction. Arbitrary PDF text or layout replacement is NOT implemented. Text reconstruction from partial/scanned extraction may omit content; require acknowledgement before creating a separate reconstruction.",
  "Office editing boundary: targeted single-paragraph or single-cell edits are available only for supported OOXML structures. Complex visuals, layouts and unsupported package features may not be preserved; never imply a universal Word/Excel/PowerPoint editor.",
- "Web research: "+(available("research.search")?"Brave provider is configured; only validated returned sources are live evidence.":"Brave live web provider is NOT configured. Wikipedia snippets may supply encyclopedic background but must not be represented as current web research.")+
+ "Web research: "+(available("research.search")?"Brave provider is configured; only validated returned sources are live evidence.":"Brave live web provider is NOT configured. Wikipedia snippets and open scholarly records may supply encyclopedic and bibliographic background but must not be represented as current web research.")+
+   " Open scholarly records (Crossref bibliographic metadata: titles, abstracts, DOIs, publication years) are available for non-current research topics; cite them honestly as scholarly records, never as live web pages or breaking news."+
   " Do not invent source links, search activity, dates or verified external pages.",
  "Speech and voice: "+(available("voice.transcribe")?"provider key configured; actual audio operations are independently authenticated.":"live provider unavailable; do not imply speech recognition succeeded."),
  "Memory is optional, owner-scoped and consent-gated. Previous chats may only be accessed through authorized verified retrieval in non-temporary conversations. If context is missing, do not guess a prior user's exact words.",

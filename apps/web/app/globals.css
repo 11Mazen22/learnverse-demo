@@ -2207,6 +2207,36 @@ html[data-reduced-motion="true"] *::after {
   color: var(--muted);
   font-size: 14px;
 }
+.noata-power-strip {
+  width: min(100%, 620px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 10px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+.noata-power-strip li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.noata-power-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
 .owui-suggestions {
   width: min(100%, 620px);
   display: grid;

@@ -6,12 +6,13 @@ import {answerReviewReason,answerReviewIssue,answerReviewInstruction,limitedRese
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
-import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./semantic-plan.ts";
+import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure,deterministicSemanticPlan} from "./semantic-plan.ts";
 import { createFanarStream,readFanarTextResponse } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,searchNeedsTopic,runResearch,researchContext,researchRequiresCurrent,type Research} from "./research.ts";
 import {encyclopediaFallbackAllowed} from "./research-policy.ts";
+import {searchOpenScholarly} from "./open-search.ts";
 import {searchProviderConfigured} from "./search-provider.ts";
 import {searchEncyclopedia} from "./encyclopedia.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
@@ -102,15 +103,30 @@ function clean(text: string) {
 
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
+  const started=Date.now();
   // An unresolved plan must not reach Brave (empty query) or spend a quota claim.
   if(!plan.query.trim())return {version:1,status:"unavailable",reason:"unresolved_query",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
   const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
-  // Real limited Wikipedia references, never represented as current news.
+  // Key-free open providers run together: scholarly records (Crossref) and
+  // encyclopedia background (Wikipedia). Both are background, never live news.
   await claim(userId,"web_search");
-  const background=await searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})});
-  return background.status==="complete"?background:broad;
+  const [scholarly,background]=await Promise.all([
+   searchOpenScholarly(plan,{signal,onStatus:status=>emit?.({status})}),
+   searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})}),
+  ]);
+  const openSources=[...(scholarly.status==="complete"?scholarly.sources:[]),...(background.status==="complete"?background.sources:[])]
+   .filter((source,index,all)=>all.findIndex(other=>other.url===source.url)===index)
+   .slice(0,5).map((source,index)=>({...source,id:index+1}));
+  if(openSources.length){
+   const reason=scholarly.status==="complete"&&background.status==="complete"?"open_mixed":scholarly.status==="complete"?"open_scholarly":"encyclopedia_background";
+   const at=new Date().toISOString();
+   return {version:1,status:"complete",reason,query:plan.query,sources:openSources,elapsedMs:Math.max(0,Date.now()-started),
+    ...(researchRequiresCurrent(plan)?{currentRequired:true}:{}),
+    activity:[{stage:"searching",at},{stage:"reviewing",at},{stage:"complete",at,resultCount:openSources.length}]};
+  }
+  return broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};}
 }
 async function reviewCompletedAnswer(input:{
@@ -723,12 +739,26 @@ async function handlePlan(userId:string,payload:Record<string,unknown>){
  },12000);
  const rawPlan=data?.choices?.[0]?.message?.content;
  const plan=parseSemanticPlan(clean(rawPlan??""));
- if(!plan){
-  const reason=semanticPlanFailure(rawPlan);
-  console.info(JSON.stringify({event:"noata_plan_rejected",reason,finishReason:data?.choices?.[0]?.finish_reason??"unknown",outputCharacters:typeof rawPlan==="string"?rawPlan.length:0}));
-  return json({error:"Invalid planner output",code:"PLAN_INVALID",reason},502);
- }
- return json({kind:"plan",plan,model:"Fanar"});
+ if(plan)return json({kind:"plan",plan,model:"Fanar"});
+ const reason=semanticPlanFailure(rawPlan);
+ console.info(JSON.stringify({event:"noata_plan_rejected",reason,finishReason:data?.choices?.[0]?.finish_reason??"unknown",outputCharacters:typeof rawPlan==="string"?rawPlan.length:0}));
+ // A malformed planner reply must never fail the user's turn. Retry once with
+ // the same bounded request, then fall back to a deterministic local plan.
+ try{
+  const {data:retry}=await fanarJson("/chat/completions",{
+   model:"Fanar",messages:[{role:"system",content:semanticPlanningPrompt(language)+"\nReply with the JSON object only. No prose, no code fence."},
+    {role:"user",content:JSON.stringify({request,context})}],
+   temperature:0,max_tokens:600,stream:false
+  },12000);
+  const retried=parseSemanticPlan(clean(retry?.choices?.[0]?.message?.content??""));
+  if(retried){
+   console.info(JSON.stringify({event:"noata_plan_recovered",stage:"retry"}));
+   return json({kind:"plan",plan:retried,model:"Fanar"});
+  }
+ }catch{/* the deterministic fallback below still applies */}
+ const fallback=deterministicSemanticPlan(request);
+ console.info(JSON.stringify({event:"noata_plan_recovered",stage:"deterministic",kind:fallback.kind}));
+ return json({kind:"plan",plan:fallback,model:"Fanar"});
 }
 
 /** Provider-generated, validated suggestions. Never blocks the primary chat request. */

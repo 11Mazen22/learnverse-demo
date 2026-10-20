@@ -26,6 +26,8 @@ export function documentWithResearch(text:string,research:unknown,language:"ar"|
  });
  const note=data.reason==="encyclopedia_background"
   ?language==="ar"?"مراجع موسوعية عامة من ويكيبيديا؛ لا تتحقق من الأخبار أو المعلومات الحالية.":"Wikipedia background references; they do not verify news or current claims."
+  :data.reason==="open_scholarly"||data.reason==="open_mixed"
+  ?language==="ar"?"سجلات علمية مفتوحة ومراجع موسوعية (معلومات عامة)؛ لا تتحقق من الأخبار أو الأحداث الجارية.":"Open scholarly records and encyclopedic background; they do not verify news or current events."
   :language==="ar"?"المراجع المسترجعة لا تثبت تلقائيًا كل ادعاء في المستند.":"Retrieved sources do not automatically verify every claim in this document.";
  // PDF rendering intentionally removes link actions. Keep every source URL visible as text,
  // including sources already linked inline, so exported citations remain usable offline.

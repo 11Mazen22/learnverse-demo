@@ -63,3 +63,19 @@ export function semanticPlanFailure(raw:unknown):"empty"|"too_large"|"invalid_js
  if(raw.length>4000)return"too_large";
  try{JSON.parse(raw.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,""));return"invalid_schema";}catch{return"invalid_json";}
 }
+
+/** Deterministic safety net used when the model returns unusable JSON.
+ * Never throws and never claims more than the request states: an explicit
+ * deliverable plus an explicit creation verb is required, otherwise chat. */
+export function deterministicSemanticPlan(text:string):SemanticPlan{
+ const q=text.toLowerCase();
+ const formats:PlannedFormat[]=[];
+ if(/\bpdf\b|بي\s*دي\s*اف|بی\s*دی\s*اف/i.test(q))formats.push("pdf");
+ if(/\bdocx\b|\bword\b|وورد/i.test(q))formats.push("docx");
+ if(/\bxlsx\b|\bexcel\b|إكسل|اكسل/i.test(q))formats.push("xlsx");
+ if(/\bpptx\b|\bpowerpoint\b|باوربوينت/i.test(q))formats.push("pptx");
+ const action=/\b(?:make|create|generate|produce|export|build|convert|save|download|write|draft|prepare)\b|اصنع|أنشئ|اعمل|سوّ|سوّي|أنتج|صدّر|حفظ|اكتب|أعِد|جهّز|جهز/i.test(q);
+ if(!formats.length||!action)return{version:1,kind:"chat"};
+ const usePrevious=/previous|above|prior|السابق|أعلاه|اللي فوق|الرد السابق|ذلك/i.test(q);
+ return{version:1,kind:"files",formats:[...new Set(formats)],usePrevious};
+}
