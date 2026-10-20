@@ -157,7 +157,12 @@
  .root :global(.owui-settings-content){max-height:60dvh}
 }
 @media(max-height:650px){
- .root[data-empty="true"] :global(.owui-messages){padding-block:14px}
+ /* Reflow at 200% zoom: keep the composer inside the viewport and let the
+    welcome panel scroll independently instead of pushing the composer below
+    the fold. */
+ .root[data-empty="true"] :global(.owui-main){overflow:hidden}
+ .root[data-empty="true"] :global(.owui-messages){flex:1;min-height:0;overflow-y:auto;margin-top:0;padding-block:14px 12px}
+ .root[data-empty="true"] :global(.owui-composer-wrap){margin-bottom:0;padding-block:8px max(8px,env(safe-area-inset-bottom))}
  .root :global(.owui-welcome-logo),.root :global(.noata-one-eyebrow){display:none}
  .root :global(.owui-welcome h1){font-size:28px}
  .root :global(.owui-welcome > p){margin-top:4px}
