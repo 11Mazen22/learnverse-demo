@@ -66,9 +66,19 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
     async start(controller) {
       const encoder = new TextEncoder(), decoder = new TextDecoder();
       let output = "", buffer = "", finished = false, finishReason = "stop";
+      let lastEmittedLength = 0, lastEmitAt = 0;
       let delivery: "streamed" | "buffered" = "streamed";
       const started=Date.now();let firstContentMs:number|null=null,research:Research|undefined,usedModel=options.model;
       const emit = (data: unknown) => { if (!cancelled) controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)); };
+      // Live typing: the learner reads the answer while it is written. The
+      // emission is throttled so a long answer is not re-cleaned on every token.
+      const emitContent = () => {
+        if (output.length === lastEmittedLength) return;
+        lastEmittedLength = output.length;
+        lastEmitAt = Date.now();
+        if (firstContentMs === null && options.clean(output)) firstContentMs = Date.now() - started;
+        emit({ content: options.clean(output), model: options.model, delivery });
+      };
       const result = (incomplete: boolean): StreamResult => ({ kind: "chat", content: options.clean(output), model: usedModel, finishReason, incomplete, delivery, ...(research?{research}:{}),...(options.routeNote?{routeNote:options.routeNote}:{}),timings:{firstContentMs,totalMs:Date.now()-started} });
       const deadline = setTimeout(() => abort.abort(new DOMException("Generation window elapsed", "TimeoutError")), options.windowMs ?? GENERATION_WINDOW_MS);
       const heartbeat = setInterval(() => emit({ heartbeat: true }), options.heartbeatMs ?? 10_000);
@@ -103,8 +113,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
           const candidateFinishReason = data?.choices?.[0]?.finish_reason;
           finishReason = typeof candidateFinishReason === "string" ? candidateFinishReason : "stop";
           finished = true;
-          if(output&&!options.deferContentUntilReview)firstContentMs=Date.now()-started;
-          if(!options.deferContentUntilReview)emit({ content: options.clean(output), model: options.model, delivery });
+          if(!options.deferContentUntilReview)emitContent();
         } else {
           reader = response.body.getReader();
           const frame = (block: string) => {
@@ -116,9 +125,8 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
             const choice = data.choices?.[0];
             if (typeof choice?.delta?.content === "string") {
               output += choice.delta.content;
-              if(!options.deferContentUntilReview&&firstContentMs===null&&options.clean(output))firstContentMs=Date.now()-started;
               if (output.length > 500_000) throw Error("Response size limit");
-              if(!options.deferContentUntilReview)emit({ content: options.clean(output), model: options.model, delivery });
+              if(!options.deferContentUntilReview&&(output.length-lastEmittedLength>=300||Date.now()-lastEmitAt>=120))emitContent();
             }
             if (choice?.finish_reason) { finishReason = choice.finish_reason; finished = true; }
           };
@@ -136,6 +144,9 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
         }
         if (cancelled) return;
         if (!finished || !options.clean(output)) throw Error("Interrupted or empty response");
+        // Always deliver the final text of the draft, even when the last token
+        // was throttled away.
+        if(!options.deferContentUntilReview)emitContent();
         // One optional bounded review after genuine provider completion. The
         // final frame replaces the streamed draft; no second assistant row is made.
         if(finishReason!=="length"&&options.review){

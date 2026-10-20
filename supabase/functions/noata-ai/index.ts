@@ -1,7 +1,7 @@
 import {resolveGraphFollowup,graphRecoveryReply,graphRequested} from "./graph-delivery.ts";
 import {specialistRequest,specialistReply} from "./specialists.ts";
 import {requestWithContextRecovery} from "./context-recovery.ts";
-import {researchPlanningInput,plannedResearchQuery,researchClarificationRequired,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
+import {researchPlanningInput,plannedResearchQuery,researchClarificationRequired,explicitResearchQuery,fallbackResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerReviewReason,answerReviewIssue,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
@@ -194,7 +194,10 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
   const providerBody=specialized?{model,messages:(body.messages as {role:string}[]).filter(m=>m.role!=="system"),stream:false}:{...body,stream:true};
   return new Response(createFanarStream({
     model, clean,routeNote,
-    deferContentUntilReview:!specialized&&Boolean(userId)&&!designedPdf&&(plan?.needed===true||answerReviewReason(actualRequest,"",undefined,artifactFormat)!==null),
+    // The draft is streamed live while it is written. The bounded review that
+    // follows replaces it with the audited answer, so the learner never waits
+    // for a silent answer to appear all at once.
+    deferContentUntilReview:false,
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);
       const messages=providerBody.messages as {role:string;content:unknown}[];
@@ -202,7 +205,8 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
       messages.splice(Math.max(0,messages.length-1),0,evidence);
       if(!specialized&&messages[0]?.role==="system")messages[0].content=String(messages[0].content??"")+(research.status==="complete"
         ?"\nApplication evidence status for THIS request: sources were retrieved. Use the excerpts that follow. Do not say Noata cannot access sources. Limited background cannot verify current claims."
-        :"\nApplication evidence status for THIS request: live research was NOT available. Never claim a search, current verification, citations or URLs; answer only with stable general background and state the limitation.");
+        
+:"\nApplication evidence status for THIS request: live research was NOT available. Never claim a search, current verification, citations or URLs. Answer the request directly and completely from stable general knowledge. Do not apologise, do not talk about searching or browsing, and do not tell the learner that you cannot look things up unless they asked about current events. If one specific current fact is needed, answer what is stable and mark that part as not verified in a single short sentence.");
       return research;
     }:undefined,
     review: !specialized&&userId&&!designedPdf?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,sectionLevel,emit}):undefined,
@@ -690,6 +694,9 @@ async function handleChat(
       planned=plannedResearchQuery(data?.choices?.[0]?.message?.content,lookupPlan);
     }catch{ /* A failed plan never sends an ambiguous or private query outward. */ }
     planned??=explicitResearchQuery(latestText,lookupPlan);
+    // A substantive request keeps its subject even when nothing could be
+    // isolated from it: the learner asked for a search, so one is run.
+    planned??=fallbackResearchQuery(latestText,lookupPlan);
     planned??=contextualResearchQuery(context,lookupPlan);
     if(planned)lookupPlan=planned;
     else if(researchClarificationRequired(latestText)) return json({kind:"chat",model:"Noata",

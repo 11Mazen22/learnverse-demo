@@ -219,3 +219,32 @@ test("Context recovery produces one real completed streamed reply after a provid
  assert.equal(calls,2);assert.equal(persists,1);assert.equal(saved.incomplete,false);
  assert.match(saved.content,/Actual answer/);assert.equal(frames.filter(x=>x.done).length,1);assert.ok(frames.some(x=>x.status==="context_recovery"));
 });
+
+test("The draft reaches the learner while it is written, before the review finishes",async()=>{
+ let released:()=>void=()=>{};
+ const gate=new Promise<void>(resolve=>{released=resolve;});
+ let reviewStarted=false;
+ const stream=createFanarStream({model:"Fanar",clean,
+  request:async()=>{
+   const body=new ReadableStream({start(controller){
+    controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Streaming now"}}]}\n\n'));
+    controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":" and still writing."},"finish_reason":"stop"}]}\n\n'));
+    controller.close();
+   }});
+   return new Response(body,{headers:{"content-type":"text/event-stream"}});
+  },
+  review:async(_,__,emit)=>{reviewStarted=true;emit({status:"organizing"});await gate;return "## Reviewed";},
+  persist:async()=>{}});
+ const reader=stream.getReader();
+ const decoder=new TextDecoder();
+ let text="";
+ while(!text.includes("Streaming now")){
+  const part=await reader.read();
+  if(part.done)break;
+  text+=decoder.decode(part.value,{stream:true});
+ }
+ assert.ok(text.includes("Streaming now"),"the draft is visible before the review answers");
+ assert.equal(reviewStarted,false,"the review has not answered yet");
+ released();
+ await reader.cancel();
+});

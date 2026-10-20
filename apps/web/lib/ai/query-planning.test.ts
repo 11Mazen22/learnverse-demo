@@ -81,3 +81,19 @@ test("A substantive Arabic research request is never replaced by a generic clari
  assert.equal(researchClarificationRequired("search this"),true);
  assert.equal(researchClarificationRequired("ابحث عن ذلك"),true);
 });
+
+test("A planner answer wrapped in prose or extra keys still resolves the search subject",()=>{
+ const base=searchPlan("ابحث عن الشوكولاتة");
+ assert.equal(plannedResearchQuery('Here is the plan: {"query":"chocolate production","needsClarification":false}',base)?.query,"chocolate production");
+ assert.equal(plannedResearchQuery('{"query":"chocolate","needsClarification":false,"note":"extra"}',base)?.query,"chocolate");
+ assert.equal(plannedResearchQuery('chocolate production',base)?.query,"chocolate production");
+ assert.equal(plannedResearchQuery('{"query":"","needsClarification":true}',base),null);
+});
+
+test("A colloquial Arabic search keeps the topic the learner actually named",()=>{
+ const request="انا قولت المنتجات الرسمى مش الورز ابحث كويس";
+ const base=searchPlan(request);
+ assert.equal(base.needed,true);
+ assert.equal(explicitResearchQuery(request,base)?.query,"المنتجات الرسمى مش الورز");
+ assert.equal(explicitResearchQuery("ابحث كويس",searchPlan("ابحث كويس")),null,"a bare command still asks for a topic");
+});
