@@ -324,8 +324,6 @@
 .mushaf .mushaf-reciters,.mushaf .mushaf-player{border-radius:15px;box-shadow:none}
 .mushaf .mushaf-player{padding:clamp(15px,2.4vw,24px)}
 .mushaf .mushaf-attribution{border-radius:17px;font-size:11px}
-.mushaf-focused .mushaf-workspace{max-width:1150px}
-.mushaf-focused .mushaf-hero{min-height:150px}
 @media(min-width:1400px){
  .mushaf .mushaf-workspace{grid-template-columns:278px minmax(0,1fr)}
 }
@@ -340,6 +338,17 @@
  .mushaf .mushaf-surah-list{max-height:260px}
  .mushaf .mushaf-focus-button,.mushaf .mushaf-listen-link{font-size:11px}
 }
+/* The index column is the only other child of the workspace. When it is not
+   rendered (focused reading) the workspace becomes one centred reading
+   column. Deriving the grid from the DOM keeps the reading pane full width no
+   matter which stylesheet or media query is applied last. */
+.mushaf .mushaf-workspace:not(:has(> .mushaf-side)){
+ grid-template-columns:minmax(0,1fr);
+ max-width:1150px;
+ width:100%;
+ margin-inline:auto;
+}
+.mushaf-focused .mushaf-hero{min-height:150px}
 @media(max-width:560px){
  .mushaf.aura-quran{padding:6px;gap:14px}
  .mushaf .mushaf-hero{min-height:0;padding:23px 18px;border-radius:18px}

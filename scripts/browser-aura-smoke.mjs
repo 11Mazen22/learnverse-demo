@@ -241,6 +241,19 @@ async function verifyQuranControls(){
     await evaluate('document.querySelector(".aura-quran-search")?.requestSubmit()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-search-results button").length>0'),"Quran search matches");
     invariant(await evaluate('document.querySelectorAll(".aura-quran-search-results button").length>0'),"Quran search UI");
+    // Focused reading removes the index column, so the workspace has to become
+    // one full reading column. It must never leave the reading pane squeezed
+    // into the first grid track next to an empty second track.
+    await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
+    const focusBefore=await evaluate('(()=>{const ws=document.querySelector(".mushaf-workspace");const cs=getComputedStyle(ws);return {columns:cs.gridTemplateColumns.trim().split(" ").filter(Boolean).length,side:!!document.querySelector(".mushaf-side")}})()');
+    invariant(focusBefore.side&&focusBefore.columns===2,"Quran index column is present before focused reading");
+    await evaluate('document.querySelector(".mushaf-focus-button").click()');
+    await waitFor(async()=>await evaluate('document.querySelector(".aura-quran")?.classList.contains("mushaf-focused")'),"Focused reading engages");
+    const focusAfter=await evaluate('(()=>{const ws=document.querySelector(".mushaf-workspace");const cs=getComputedStyle(ws);const box=ws.getBoundingClientRect();const main=document.querySelector(".mushaf-main")?.getBoundingClientRect();return {columns:cs.gridTemplateColumns.trim().split(" ").filter(Boolean).length,side:!!document.querySelector(".mushaf-side"),workspace:Math.round(box.width),main:Math.round(main?.width??0),pressed:document.querySelector(".mushaf-focus-button")?.getAttribute("aria-pressed"),scrollWidth:document.documentElement.scrollWidth,innerWidth}})()');
+    invariant(!focusAfter.side&&focusAfter.columns===1&&focusAfter.main>=focusAfter.workspace-4&&focusAfter.pressed==="true"&&focusAfter.scrollWidth<=focusAfter.innerWidth+3,"Focused reading collapses the index into one full reading column");
+    await evaluate('document.querySelector(".mushaf-focus-button").click()');
+    await waitFor(async()=>await evaluate('!document.querySelector(".aura-quran")?.classList.contains("mushaf-focused")'),"Focused reading releases the index column");
+    invariant(await evaluate('!!document.querySelector(".mushaf-side")'),"Quran index column returns after focused reading");
     console.log("[browser] Quran interactions verified with deterministic test-only API fixture");
   } finally {
     await command("Page.removeScriptToEvaluateOnNewDocument",{identifier:install.identifier});

@@ -92,7 +92,9 @@
 .mushaf-player-status{font-size:10px;color:var(--muted);text-align:center;margin:13px 0 0;min-height:20px}
 .mushaf .mushaf-attribution{width:100%;max-width:none;color:var(--muted);font-size:10px;line-height:2;padding:0 5px}.mushaf-attribution>p{margin:0 0 7px}.mushaf-attribution>p:first-child{display:flex;align-items:start;gap:7px}.mushaf-attribution>p>svg{margin-top:3px;color:var(--accent)}.mushaf-attribution>a{display:inline-flex;align-items:center;gap:7px;color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:3px}
 .mushaf-verse-recitation{border:1px solid var(--line);border-radius:18px;padding:18px;background:var(--surface)}.mushaf-verse-recitation-heading{display:flex;align-items:start;gap:10px}.mushaf-verse-recitation-heading>svg{color:var(--accent);margin-top:4px;flex-shrink:0}.mushaf-verse-recitation-heading>div{min-width:0;flex:1}.mushaf-verse-recitation strong{font-size:13px}.mushaf-verse-recitation p{font-size:11px;color:var(--muted);line-height:1.9;margin:6px 0}.mushaf-verse-recitation button{min-width:38px;min-height:38px;background:var(--surface-soft);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:7px}.mushaf-verse-recitation audio{display:block;width:100%;margin-top:12px}.mushaf-verse-recitation-heading>button{display:grid;place-items:center;flex-shrink:0}
-.mushaf-focused .mushaf-workspace{grid-template-columns:minmax(0,1fr);max-width:1020px;width:100%;margin-inline:auto}
+/* Focused reading is defined once, in mushaf-renaissance.css, which loads
+   after this file. Keeping a second copy here only made the two rules fight
+   over the grid columns. */
 @keyframes mushaf-reveal{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 @keyframes mushaf-breathe{50%{opacity:.45}}
 @keyframes mushaf-sound{to{transform:scaleY(.5)}}
