@@ -31,6 +31,12 @@ test("Open scholarly search never claims freshness and never sends an empty quer
  const empty=await searchOpenScholarly({needed:true,fresh:false,reason:"explicit",query:""},{signal:new AbortController().signal,fetcher:fetcher as typeof fetch});
  assert.equal(empty.status,"unavailable");
  assert.equal(calls.length,0);
+ const scoped=await searchOpenScholarly({needed:true,fresh:false,reason:"explicit",query:"معلومات من https://example.com/page",scope:{domains:["example.com"]}},{signal:new AbortController().signal,fetcher:fetcher as typeof fetch});
+ assert.equal(scoped.status,"unavailable");
+ assert.equal(calls.length,0);
+ const official=await searchOpenScholarly({needed:true,fresh:false,reason:"explicit",query:"مصادر رسمية",scope:{official:true}},{signal:new AbortController().signal,fetcher:fetcher as typeof fetch});
+ assert.equal(official.status,"unavailable");
+ assert.equal(calls.length,0);
 });
 test("A malformed planner reply degrades to a deterministic local plan instead of failing",()=>{
  assert.deepEqual(deterministicSemanticPlan("اعمل تقرير PDF كامل لذلك"),{version:1,kind:"files",formats:["pdf"],usePrevious:true});

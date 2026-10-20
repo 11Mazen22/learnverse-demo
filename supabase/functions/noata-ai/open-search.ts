@@ -61,7 +61,7 @@ export function scholarlySources(data:unknown,now=new Date().toISOString()):Rese
  }
  return result;
 }
-export async function searchOpenScholarly(plan:{needed:boolean;fresh:boolean;reason:string;query:string},opts:{
+export async function searchOpenScholarly(plan:{needed:boolean;fresh:boolean;reason:string;query:string;scope?:{domains?:string[];official?:boolean}},opts:{
  signal:AbortSignal;fetcher?:typeof fetch;onStatus?:(status:"searching"|"reviewing")=>void
 }):Promise<Research>{
  const started=Date.now(),stamp=()=>new Date().toISOString(),activity:ResearchActivity[]=[];
@@ -69,11 +69,14 @@ export async function searchOpenScholarly(plan:{needed:boolean;fresh:boolean;rea
   version:1,status,reason,query:plan.query,sources,elapsedMs:Date.now()-started,
   activity:[...activity,{stage:status,at:stamp(),...(status==="complete"?{resultCount:sources.length}:{})}]
  });
- // Bibliographic metadata never verifies breaking news or current claims.
- if(!plan.needed||plan.fresh||plan.reason==="private"||plan.reason==="opt_out")
+ // Bibliographic metadata never verifies breaking news or current claims, and it
+ // never substitutes for an explicitly requested source domain or official source.
+ if(!plan.needed||plan.fresh||plan.reason==="private"||plan.reason==="opt_out"||plan.reason==="source"||plan.scope?.official||plan.scope?.domains?.length)
   return result("unavailable","open_scholarly_not_applicable");
  const query=plan.query.replace(/\s+/g," ").trim().slice(0,300);
  if(query.length<3)return result("unavailable","invalid_open_scholarly_query");
+ // A query carrying a URL or an address is a scoped request, not a topic search.
+ if(/https?:\/\/|[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(query))return result("unavailable","open_scholarly_not_applicable");
  const url=new URL(API);
  url.searchParams.set("query",query);url.searchParams.set("rows","8");
  url.searchParams.set("select","DOI,title,abstract,container-title,publisher,issued,type");
