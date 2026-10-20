@@ -1,7 +1,7 @@
 type Message={role:string;content:unknown};
 type Body=Record<string,unknown>;
 /** A conservative application retry budget, not a claim about a provider's token window. */
-export const RECOVERY_CONTEXT_CHARS=18000;
+export const RECOVERY_CONTEXT_CHARS=20000;
 export function reducedContextRequest(body:Body,protectedMessages:readonly Message[]=[]):Body|null{
  if(!Array.isArray(body.messages)||body.messages.some(m=>typeof m?.content!=="string"))return null;
  const messages=body.messages as Message[],lastUser=messages.findLastIndex(m=>m.role==="user"||m.role==="thinking_user");

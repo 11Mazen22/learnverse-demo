@@ -7,7 +7,7 @@
  * is dropped first, evidence excerpts are shortened next, and the current
  * message is shortened only as a last resort. */
 
-export const MODEL_REQUEST_BUDGET=22000;
+export const MODEL_REQUEST_BUDGET=20000;
 export const MIN_USER_MESSAGE_CHARS=1500;
 export const MIN_EVIDENCE_CHARS=600;
 
@@ -52,14 +52,16 @@ export function fitMessages(
   let trimmed=false;
 
   if(size>budget){
-    // Shorten the retrieved evidence first: it is the largest flexible block
-    // and its structure (ids, titles, links) is kept intact.
-    const evidenceIndexes=[...required].filter(index=>isProtected(list[index]));
-    const flexible=size-[...required]
-      .filter(index=>index!==lastUser)
+    // The current request and the policy are fixed; the retrieved evidence and
+    // the earlier turns are what give way. The evidence is shortened first,
+    // because its structure (ids, titles, links) must stay intact.
+    const fixed=[...required]
+      .filter(index=>index!==lastUser&&!isProtected(list[index]))
       .reduce((total,index)=>total+textOf(list[index]).length,0);
-    const room=Math.max(0,budget-(size-flexible));
-    if(evidenceIndexes.length&&flexible>0){
+    const currentChars=lastUser>=0?textOf(list[lastUser]).length:0;
+    const evidenceIndexes=[...required].filter(index=>isProtected(list[index]));
+    if(evidenceIndexes.length){
+      const room=Math.max(MIN_EVIDENCE_CHARS*evidenceIndexes.length,budget-fixed-currentChars);
       const per=Math.max(MIN_EVIDENCE_CHARS,Math.floor(room/evidenceIndexes.length));
       for(const index of evidenceIndexes){
         const content=textOf(list[index]);

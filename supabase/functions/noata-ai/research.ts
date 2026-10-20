@@ -115,7 +115,7 @@ export async function runResearch(plan:SearchPlan,options:SearchProviderOptions 
 /** The provider rejects oversized request bodies, so the retrieved evidence is
  * budgeted. Every source keeps its id, title and link, and only the excerpts
  * are shortened, so citations still point at the real pages. */
-export const RESEARCH_EVIDENCE_BUDGET=5000;
+export const RESEARCH_EVIDENCE_BUDGET=4000;
 const MIN_EXCERPT_CHARS=160;
 export function budgetedResearchSources(sources:ResearchSource[],budget:number=RESEARCH_EVIDENCE_BUDGET):{sources:ResearchSource[];trimmed:boolean}{
   if(!sources.length)return {sources,trimmed:false};

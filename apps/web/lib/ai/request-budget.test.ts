@@ -57,7 +57,8 @@ test("research context stays inside the evidence budget and admits that excerpts
 });
 
 test("a search request is fitted to the provider budget without losing the current request or the evidence", () => {
-  const system = { role: "system", content: "s".repeat(10000) };
+  // The production system message is about 13.4k characters.
+  const system = { role: "system", content: "s".repeat(13412) };
   const evidence = { role: "user", content: researchContext(liveResearch()) };
   const history = Array.from({ length: 20 }, (_, index) => ({
     role: index % 2 ? "assistant" : "user",
@@ -71,7 +72,7 @@ test("a search request is fitted to the provider budget without losing the curre
   const fitted = body.messages as { role: string; content: unknown }[];
   assert.ok(totalChars(fitted) <= MODEL_REQUEST_BUDGET, `fitted request was ${totalChars(fitted)} characters`);
   assert.equal(fitted.at(-1)?.content, current.content);
-  assert.ok(fitted.some((message) => message.content === evidence.content), "retrieved evidence survives");
+  assert.ok(fitted.some((message) => message.content === evidence.content), "retrieved evidence survives whole");
   assert.ok(fitted.length < messages.length, "older turns are dropped first");
 });
 
