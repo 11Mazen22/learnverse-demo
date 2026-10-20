@@ -108,14 +108,23 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
   const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
-  // Open scholarly metadata (Crossref, key-free) before general encyclopedia background.
+  // Key-free open providers run together: scholarly records (Crossref) and
+  // encyclopedia background (Wikipedia). Both are background, never live news.
   await claim(userId,"web_search");
-  const scholarly=await searchOpenScholarly(plan,{signal,onStatus:status=>emit?.({status})});
-  if(scholarly.status==="complete")return scholarly;
-  // Real limited Wikipedia references, never represented as current news.
-  await claim(userId,"web_search");
-  const background=await searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})});
-  return background.status==="complete"?background:broad;
+  const [scholarly,background]=await Promise.all([
+   searchOpenScholarly(plan,{signal,onStatus:status=>emit?.({status})}),
+   searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})}),
+  ]);
+  const openSources=[...(scholarly.status==="complete"?scholarly.sources:[]),...(background.status==="complete"?background.sources:[])]
+   .filter((source,index,all)=>all.findIndex(other=>other.url===source.url)===index)
+   .slice(0,5).map((source,index)=>({...source,id:index+1}));
+  if(openSources.length){
+   const reason=scholarly.status==="complete"&&background.status==="complete"?"open_mixed":scholarly.status==="complete"?"open_scholarly":"encyclopedia_background";
+   return {version:1,status:"complete",reason,query:plan.query,sources:openSources,elapsedMs:Date.now(),
+    ...(researchRequiresCurrent(plan)?{currentRequired:true}:{}),
+    activity:[...(scholarly.activity??[]),...(background.activity??[])].slice(0,7)};
+  }
+  return broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};}
 }
 async function reviewCompletedAnswer(input:{

@@ -56,7 +56,7 @@ export function limitedResearchSummary(research:Research,language:"ar"|"en"):str
  return heading+"\n\n"+scope+"\n\n"+research.sources.map(s=>"- **"+safe(s.title)+"**: "+safe(s.excerpt)+" ["+s.id+"]").join("\n\n")+"\n\n"+
  (research.reason==="encyclopedia_background"
  ?language==="ar"?"مراجع ويكيبيديا للمعلومات العامة فقط؛ لا تتحقق من الأخبار أو الادعاءات الحالية.":"Wikipedia background excerpts only; they do not verify news or current claims."
-  :research.reason==="open_scholarly"
-  ?language==="ar"?"سجلات علمية مفتوحة عن الموضوع؛ لا تتحقق من الأخبار أو الأحداث الجارية.":"Open scholarly records about the subject; they do not verify news or current events."
+  :research.reason==="open_scholarly"||research.reason==="open_mixed"
+  ?language==="ar"?"سجلات علمية مفتوحة ومراجع موسوعية عن الموضوع؛ لا تتحقق من الأخبار أو الأحداث الجارية.":"Open scholarly records and encyclopedic background about the subject; they do not verify news or current events."
  :language==="ar"?"يمكن متابعة التحقق من الادعاءات المحددة باستخدام مصادر إضافية.":"Specific claims can be checked further against additional sources.");
 }
