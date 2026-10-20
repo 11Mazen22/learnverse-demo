@@ -37,7 +37,7 @@ test("research records when live or official evidence was required",async()=>{
 });
 test("research uses the fixed provider endpoint, real lifecycle events and bounded evidence",async()=>{
  const events:string[]=[];
- const research=await runResearch(searchPlan("Research Mars"),{key:"test-only",enabled:true,signal:new AbortController().signal,onStatus:status=>events.push(status),fetcher:async(url,options)=>{
+ const research=await runResearch(searchPlan("Research Mars"),{provider:"brave",key:"test-only",enabled:true,signal:new AbortController().signal,onStatus:status=>events.push(status),fetcher:async(url,options)=>{
   assert.equal(url,"https://api.search.brave.com/res/v1/llm/context");assert.equal(options?.redirect,"error");assert.equal(JSON.parse(String(options?.body)).maximum_number_of_urls,5);
   return Response.json({grounding:{generic:[{url:"https://science.nasa.gov/mars/",title:"Mars",snippets:["Retrieved text"]}]}});
  }});
@@ -47,7 +47,7 @@ test("research uses the fixed provider endpoint, real lifecycle events and bound
 test("deep research runs three bounded passes and combines distinct evidence",async()=>{
  const providerQueries:string[]=[];
  const research=await runResearch(searchPlan("Deep research on Mars using multiple sources"),{
-  key:"test-only",enabled:true,signal:new AbortController().signal,
+  provider:"brave",key:"test-only",enabled:true,signal:new AbortController().signal,
   fetcher:async(_url,options)=>{
    const query=String(JSON.parse(String(options?.body)).q);providerQueries.push(query);
    const topic=providerQueries.length;
@@ -63,7 +63,7 @@ test("deep research runs three bounded passes and combines distinct evidence",as
 
 test("research activity preserves recorded stages and exact search text",async()=>{
  const result=await runResearch(searchPlan("Research orbital mechanics"),{
-  key:"test",enabled:true,signal:new AbortController().signal,
+  provider:"brave",key:"test",enabled:true,signal:new AbortController().signal,
   fetcher:async()=>Response.json({grounding:{generic:[{url:"https://science.nasa.gov/mars/",title:"Mars",snippets:["Observed facts"]}]}})
  });
  assert.equal(result.status,"complete");

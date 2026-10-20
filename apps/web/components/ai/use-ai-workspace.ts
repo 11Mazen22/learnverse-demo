@@ -32,6 +32,7 @@ import { createAiMessageContext } from "@/lib/ai/context-budget";
 import { continueChat, type ChatPart } from "@/lib/ai/continuation";
 import { requestLanguage } from "../../../../supabase/functions/noata-ai/routing.ts";
 import {validatedResearch,type Research} from "../../../../supabase/functions/noata-ai/research.ts";
+import {parseDesignDocument} from "../../../../supabase/functions/noata-ai/document-design.ts";
 import {CONVERSATION_PAGE_SIZE,mergeConversationPage} from "@/lib/ai/conversation-index";
 import {librarySearchPattern} from "@/lib/ai/library-query";
 import type {LibrarySource} from "@/lib/ai/library-source";
@@ -1156,17 +1157,40 @@ export function useAIWorkspace() {
             currentIntent.usePrevious?priorForFile?.metadata?.research:currentResearch,
             requestLanguage(text,locale),currentIntent.kind,
           );
+          const presentation=requestedDocumentPresentation(text,inheritedPresentation);
           const chartData = currentIntent.kind === "pdf"
             ? findActualLineChart(currentIntent.usePrevious && prior.trim()?prior:currentContent)
             : null;
           if(currentIntent.kind==="pdf")source=retainChartSource(source,currentIntent.usePrevious&&prior.trim()?prior:currentContent);
+          if(currentIntent.kind==="pdf"&&!chartData){
+            // The file is authored by a dedicated design pass, not by copying
+            // the chat reply into a fixed template.
+            let previousDesign="";
+            const sourceArtifactId=editingSource?.artifactId??(currentIntent.usePrevious?priorArtifact?.id:undefined);
+            if(typeof sourceArtifactId==="string"){
+              const {data,error}=await supabase.from("ai_artifacts").select("source_content").eq("id",sourceArtifactId).maybeSingle();
+              assertSession(token);controller.signal.throwIfAborted();
+              if(!error&&typeof data?.source_content==="string")previousDesign=readDocumentSource(data.source_content).text;
+            }
+            const draft=currentIntent.usePrevious&&prior.trim()?prior:source;
+            const language=requestLanguage(text,locale);
+            const authored=await invoke({
+              action:"document",request:text,language,draft,style:presentation.style,
+              ...(previousDesign?{previous:previousDesign}:{}),
+              ...(currentResearch?.status==="complete"?{sources:currentResearch.sources}:priorForFile?.metadata?.research?{sources:(validatedResearch(priorForFile.metadata.research)?.sources??[])}:{}),
+            });
+            if(typeof authored?.document!=="string")throw Error("document_authoring_failed");
+            const parsed=parseDesignDocument(authored.document,titleFrom(text,locale),language);
+            if(parsed.body.length<300)throw Error("document_authoring_failed");
+            source=documentWithResearch(authored.document,currentResearch??priorForFile?.metadata?.research,language,"pdf");
+            setNotice(t("بنجهّز المستند المصمم ونفحصه ونحفظه…","Designing, validating and saving your document…"));
+          }
           if(editingSource){
             const split=text.split(/Verified extracted original document content:|المحتوى الأصلي للملف:/);
             const before=split.slice(1).join("\n");
             if(before&&revisionMayLoseContent(before,source,split[0]))throw Error("revision_content_loss");
             if(editingSource.scope)source=mergeScopedRevision(editingSource.scope,source);
           }
-          const presentation=requestedDocumentPresentation(text,inheritedPresentation);
           const id = crypto.randomUUID();
           const driver:ArtifactDriver = {
             renderPdf: async(text,title,signal) => {
@@ -1621,9 +1645,13 @@ export function useAIWorkspace() {
       setError(t("سجّل الدخول علشان ترفق لقطة شاشة.","Sign in to attach a screenshot."));
       return;
     }
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      setError(t("مشاركة الشاشة غير متاحة في هذا المتصفح. ارفع صورة بدلًا منها.","Screen sharing isn't available in this browser. Upload an image instead."));
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: { frameRate: 15 },
         audio: false,
       });
       capture = stream;
@@ -1632,7 +1660,23 @@ export function useAIWorkspace() {
       video.srcObject = stream;
       video.muted = true;
       video.playsInline = true;
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+        let timer = 0;
+        const finish = (settle: () => void) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          settle();
+        };
+        timer = window.setTimeout(() => finish(() => reject(Error("screen metadata timeout"))), 8000);
+        video.onloadedmetadata = () => finish(resolve);
+        video.onerror = () => finish(() => reject(Error("screen video unavailable")));
+        if (video.readyState >= 1) finish(resolve);
+      });
       await video.play();
+      if (stream.getVideoTracks().some((track) => track.readyState === "ended")) throw new DOMException("Screen sharing ended", "AbortError");
+      if (!video.videoWidth || !video.videoHeight) throw Error("screen capture empty");
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -1655,8 +1699,15 @@ export function useAIWorkspace() {
       composer.current?.focus();
     } catch (e) {
       if (!sessionScope.current.isCurrent(token)) return;
-      if (e instanceof DOMException && e.name === "NotAllowedError") {
+      const name = e instanceof DOMException ? e.name : "";
+      if (name === "NotAllowedError" || name === "AbortError") {
         setNotice(t("تم إلغاء مشاركة الشاشة.","Screen sharing cancelled."));
+      } else if (name === "NotFoundError") {
+        setError(t("لم نجد شاشة متاحة للمشاركة. ارفع صورة بدلًا منها.","No screen was available to share. Upload an image instead."));
+      } else if (name === "NotReadableError") {
+        setError(t("تعذّرت قراءة الشاشة. اقفل تطبيقات التسجيل الأخرى وحاول تاني، أو ارفع صورة.","The screen couldn't be read. Close other capture apps and try again, or upload an image."));
+      } else if (name === "SecurityError") {
+        setError(t("مشاركة الشاشة تحتاج اتصالًا آمنًا. ارفع صورة بدلًا منها.","Screen sharing needs a secure connection. Upload an image instead."));
       } else {
         setError(t("تعذّر التقاط الشاشة. جرّب رفع صورة بدلًا منها.","Could not capture the screen. Try uploading an image."));
       }

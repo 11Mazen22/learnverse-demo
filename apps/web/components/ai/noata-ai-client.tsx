@@ -526,7 +526,7 @@ export function NoataAIClient() {
           )}
 
           {!messages.length && !loading && (
-            <div><NoataWelcome signedIn={signedIn} owner={seenAccount.user?.id??null}/>{error&&<p className="owui-error" role="alert">{error}</p>}</div>
+            <div><NoataWelcome signedIn={signedIn} owner={seenAccount.user?.id??null} onPrompt={prompt=>{setInput(prompt);composer.current?.focus();}}/>{error&&<p className="owui-error" role="alert">{error}</p>}</div>
           )}
 
           <div className="owui-thread">
@@ -868,7 +868,7 @@ export function NoataAIClient() {
                   void send();
                 }
               }}
-              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("ابعت رسالة لـ Noata AI","Message Noata AI")}
+              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("ابعت رسالتك…","Message Noata AI")}
               rows={1}
             />
 

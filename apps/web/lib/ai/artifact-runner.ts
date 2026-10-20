@@ -1,3 +1,4 @@
+import {parseDesignDocument} from "../../../../supabase/functions/noata-ai/document-design.ts";
 import type {DocumentStyle} from "./document-style.ts";
 import {artifactFilename} from "./artifact-filename.ts";
 import {isNonDeliverableDraft} from "./delivery-quality.ts";
@@ -26,12 +27,17 @@ export async function createConversationalArtifact(input:{
  intent:ArtifactIntent;content:string;owner:string;id:string;title:string;signal:AbortSignal;driver:ArtifactDriver;style?:DocumentStyle;
 }):Promise<CreatedArtifact>{
  const {intent,content,owner,id,title,signal,driver}=input;
- const invalid=checkArtifactContent(intent.kind,content);
+ const parsed=intent.kind==="pdf"?parseDesignDocument(content,title):null;
+ // Only an actual designed source replaces the deliverable with its body.
+ // Legacy Markdown PDFs keep their title so an H1-only draft is never empty.
+ const designed=parsed?.designed?parsed:null;
+ const deliverable=designed?designed.body:content;
+ const invalid=checkArtifactContent(intent.kind,deliverable);
  if(invalid)throw Error(invalid);
- if(isNonDeliverableDraft(content)||isArtifactRefusal(content))throw Error("unfinished_content");
+ if(isNonDeliverableDraft(deliverable)||isArtifactRefusal(deliverable))throw Error("unfinished_content");
  if(!/^[0-9a-f-]{36}$/i.test(owner)||!/^[0-9a-f-]{36}$/i.test(id))throw Error("invalid_identity");
  if(signal.aborted)throw Error("cancelled");
- let contentTitle=content.match(/^#{1,3}\s+(.+)$/m)?.[1]??title;
+ let contentTitle=designed?.design.title??deliverable.match(/^#{1,3}\s+(.+)$/m)?.[1]??title;
  if(intent.kind==="xlsx")contentTitle=content.match(/^#{1,3}\s*(?:sheet|worksheet|ورقة|ورقه)\s*:\s*(.+)$/im)?.[1]??contentTitle;
  if(intent.kind==="pptx"){
   const {parseNoataSlides}=await import("./pptx-export.ts");

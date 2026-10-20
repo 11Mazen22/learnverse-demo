@@ -5,7 +5,7 @@ import {hasUnretrievedCitation} from "./citations.ts";
 export type AnswerReviewReason="research_evidence"|"requested_depth"|"requested_chart";
 export function requestedDepth(request:string,format?:unknown):{minimum:number;target:number;sections:number}|null{
  const human=request.split(/Verified extracted original document content:|المحتوى الأصلي للملف:|مصادر الملفات المرفقة/)[0].normalize("NFKC").replace(/[٠-٩۰-۹]/g,c=>String(c.charCodeAt(0)-(c>="۰"?"۰":"٠").charCodeAt(0)));
- if(["xlsx","pptx"].includes(String(format))||/\b(?:short|brief|concise|summary|summarize)\b|باختصار|مختصر/i.test(human))return null;
+ if(["xlsx","pptx","pdf"].includes(String(format))||/\b(?:short|brief|concise|summary|summarize)\b|باختصار|مختصر/i.test(human))return null;
  const explicit=Number((human.match(/\b(\d[\d,]{0,5})\s*(?:words?|كلمة)/i)?.[1]??"").replaceAll(",",""));
  const long=/\b(long|detailed|comprehensive|in.depth|essay|report|talk\s+along)\b|بالتفصيل|شرح طويل|مطوّل|مطول|شامل/i.test(human)
   // A "report" request must produce a full document, not a short chat answer.

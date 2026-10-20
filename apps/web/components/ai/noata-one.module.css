@@ -98,9 +98,10 @@
 .root :global(.owui-welcome > p){font-size:14px;line-height:1.7;color:var(--muted);max-width:50ch;margin:12px auto 0}
 .root :global(.noata-one-signin){display:inline-block;font-size:13px;color:var(--accent);text-decoration:underline;text-underline-offset:4px;margin-top:10px}
 .root[data-empty="true"] :global(.owui-main){overflow:auto}
-.root[data-empty="true"] :global(.owui-messages){flex:none;overflow:visible;margin-top:auto;padding-block:30px 24px}
+.root[data-empty="true"] :global(.owui-messages){flex:none;overflow:visible;margin-top:auto;padding-block:30px 24px;padding-inline:max(22px,calc((100% - 1100px)/2))}
 .root[data-empty="true"] :global(.owui-thread){display:none}
-.root[data-empty="true"] :global(.owui-composer-wrap){margin-bottom:auto;padding-top:0;animation:welcome-in var(--one-panel) var(--one-ease)}
+.root[data-empty="true"] :global(.owui-composer){max-width:1000px}
+.root[data-empty="true"] :global(.owui-composer-wrap){margin-bottom:auto;padding-top:0;padding-inline:max(20px,calc((100% - 1000px)/2));animation:welcome-in var(--one-panel) var(--one-ease)}
 .root :global(.noata-suggested-actions.welcome){max-width:var(--owui-content);margin:18px auto 0}
 .root :global(.noata-suggested-actions.welcome .noata-suggested-grid){grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .root :global(.noata-suggested-actions.welcome .noata-suggested-item){min-height:44px;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:var(--surface-soft);box-shadow:none;font-size:12px;font-weight:500;line-height:1.5;gap:8px;animation:welcome-in var(--one-message) var(--one-ease) both}
@@ -566,3 +567,435 @@
   .root :global(.noata-quran-seal-ring){stroke:CanvasText}
   .root :global(.noata-quran-verse-digits){color:CanvasText}
 }
+
+/* ── Renaissance 2.0: one editorial workspace, not a stack of cards ───────── */
+.root{
+  --r2-paper:color-mix(in srgb,var(--surface) 88%,var(--accent-soft));
+  --r2-glow:color-mix(in srgb,var(--accent) 14%,transparent);
+  --r2-edge:color-mix(in srgb,var(--accent) 18%,var(--line));
+}
+.root :global(.owui-navbar){
+  background:color-mix(in srgb,var(--surface) 88%,transparent);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(18px) saturate(1.15);
+}
+.root :global(.owui-sidebar){
+  background:
+    radial-gradient(120% 70% at 100% 0%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 62%),
+    linear-gradient(180deg,var(--surface-soft),color-mix(in srgb,var(--surface-soft) 58%,var(--surface)));
+}
+.root[data-empty="true"] :global(.owui-main){
+  background:
+    radial-gradient(52% 52% at 84% 18%,var(--r2-glow),transparent 72%),
+    radial-gradient(40% 44% at 8% 76%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 74%),
+    var(--surface);
+}
+.root :global(.owui-composer-wrap){
+  background:linear-gradient(180deg,transparent 0%,var(--surface) 34%,var(--surface) 100%);
+}
+.root :global(.owui-composer){
+  border-color:var(--r2-edge);
+  border-radius:24px;
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--surface) 97%,var(--accent-soft)),var(--surface));
+  box-shadow:
+    0 1px 0 color-mix(in srgb,#fff 55%,transparent) inset,
+    0 20px 55px -34px color-mix(in srgb,var(--ink) 55%,transparent),
+    0 8px 22px -18px var(--r2-glow);
+}
+.root :global(.owui-composer:focus-within){
+  border-color:color-mix(in srgb,var(--accent) 58%,var(--line));
+  box-shadow:
+    0 0 0 4px color-mix(in srgb,var(--accent) 8%,transparent),
+    0 24px 60px -34px color-mix(in srgb,var(--ink) 50%,transparent);
+}
+.root :global(.owui-send){
+  background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 86%,#fff),var(--accent));
+  color:var(--on-accent,#fff);
+  box-shadow:0 8px 18px -10px color-mix(in srgb,var(--accent) 72%,transparent);
+}
+.root :global(.owui-send:disabled){background:var(--surface-soft);color:var(--muted);box-shadow:none;opacity:.72}
+.root :global(.owui-disclaimer){max-width:min(100%,72ch);opacity:.9}
+
+/* Welcome: a composed launch surface with a real working document visual. */
+.root :global(.noata-r2-welcome){
+  display:grid;
+  grid-template-columns:minmax(0,1.06fr) minmax(300px,.94fr);
+  align-items:center;
+  justify-items:stretch;
+  gap:clamp(24px,4vw,68px);
+  width:100%;
+  max-width:1120px;
+  margin:0 auto;
+  padding:18px 4px 10px;
+  text-align:start;
+  animation:welcome-in var(--one-panel) var(--one-ease) both;
+}
+.root :global(.r2-welcome-copy){min-width:0;max-width:600px}
+.root :global(.r2-eyebrow){
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  margin:0 0 18px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.root[dir="rtl"] :global(.r2-eyebrow){letter-spacing:0;text-transform:none}
+.root :global(.r2-eyebrow i){
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent);
+}
+.root :global(.noata-r2-welcome h1){
+  margin:0;
+  max-width:12ch;
+  font-size:clamp(40px,4.4vw,60px);
+  font-weight:720;
+  line-height:1;
+  letter-spacing:-.055em;
+  color:var(--ink);
+}
+.root[dir="rtl"] :global(.noata-r2-welcome h1){
+  max-width:18ch;
+  line-height:1.16;
+  letter-spacing:0;
+  font-weight:730;
+}
+.root :global(.noata-r2-welcome h1 span){
+  color:var(--accent);
+  font-style:normal;
+}
+.root :global(.r2-welcome-copy > p){
+  max-width:48ch;
+  margin:20px 0 0;
+  color:var(--muted);
+  font-size:clamp(13px,1.2vw,15px);
+  line-height:1.9;
+}
+.root :global(.r2-mode-grid){
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+  margin-top:24px;
+}
+.root :global(.r2-mode){
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+  min-height:64px;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:color-mix(in srgb,var(--surface) 84%,transparent);
+  color:var(--ink);
+  font:inherit;
+  text-align:start;
+  cursor:pointer;
+  transition:transform var(--one-fast) var(--one-ease),border-color var(--one-fast),box-shadow var(--one-fast),background var(--one-fast);
+}
+.root :global(.r2-mode:not(:disabled):hover){
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb,var(--accent) 38%,var(--line));
+  background:var(--surface);
+  box-shadow:0 14px 30px -24px color-mix(in srgb,var(--ink) 50%,transparent);
+}
+.root :global(.r2-mode:disabled){opacity:.55;cursor:not-allowed}
+.root :global(.r2-mode-icon){
+  display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;
+  border-radius:11px;
+  color:var(--accent);
+  background:linear-gradient(145deg,var(--accent-soft),color-mix(in srgb,var(--accent-soft) 40%,var(--surface)));
+  border:1px solid color-mix(in srgb,var(--accent) 12%,var(--line));
+}
+.root :global(.r2-mode-copy){display:grid;gap:2px;min-width:0;flex:1}
+.root :global(.r2-mode-copy strong){font-size:12.5px;font-weight:700;line-height:1.35}
+.root :global(.r2-mode-copy small){font-size:10.5px;color:var(--muted);line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+.root :global(.r2-mode > svg){flex:0 0 auto;color:var(--muted);opacity:.5;transition:transform var(--one-fast),opacity var(--one-fast)}
+.root :global(.r2-mode:hover > svg){opacity:1;transform:translateX(-2px)}
+.root[dir="ltr"] :global(.r2-mode) > svg{transform:rotate(180deg)}
+.root[dir="ltr"] :global(.r2-mode:hover) > svg{transform:rotate(180deg) translateX(-2px)}
+.root :global(.r2-power){margin-top:16px}
+.root :global(.noata-power-strip){justify-content:flex-start;flex-wrap:wrap;gap:6px}
+.root :global(.noata-power-strip li){
+  border:1px solid color-mix(in srgb,var(--accent) 12%,var(--line));
+  background:color-mix(in srgb,var(--surface) 76%,transparent);
+  border-radius:999px;
+  padding:5px 9px;
+  font-size:10.5px;
+  color:var(--muted);
+}
+.root :global(.noata-power-dot){background:var(--success)}
+.root :global(.noata-one-signin){margin-top:14px;font-size:12px;font-weight:650}
+
+/* Layered paper composition; every label describes a real capability. */
+.root :global(.r2-welcome-art){
+  position:relative;
+  min-height:460px;
+  isolation:isolate;
+}
+.root :global(.r2-orbit){
+  position:absolute;
+  border:1px solid color-mix(in srgb,var(--accent) 14%,transparent);
+  border-radius:50%;
+  pointer-events:none;
+}
+.root :global(.r2-orbit-a){inset:4% 2% 6% 4%;transform:rotate(-9deg)}
+.root :global(.r2-orbit-b){inset:18% 14% 18% 16%;border-style:dashed;opacity:.7}
+.root :global(.r2-page){
+  position:absolute;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:18px;
+}
+.root :global(.r2-page-back){
+  inset-block-start:9%;inset-inline-start:3%;
+  width:66%;height:76%;
+  padding:26px 24px;
+  background:linear-gradient(155deg,var(--surface-soft),color-mix(in srgb,var(--surface-soft) 55%,var(--surface)));
+  border:1px solid var(--line);
+  transform:rotate(-7deg);
+  box-shadow:0 24px 60px -46px color-mix(in srgb,var(--ink) 60%,transparent);
+  opacity:.86;
+}
+.root :global(.r2-page-kicker){font-size:8px;font-weight:800;letter-spacing:.18em;color:var(--muted)}
+.root :global(.r2-page-back-title){max-width:58%;margin-top:18px;font-size:14px;font-weight:700;color:var(--ink);line-height:1.45}
+.root :global(.r2-page-rule){display:block;width:42px;height:3px;margin:15px 0;border-radius:2px;background:var(--accent)}
+.root :global(.r2-page-back-line){display:block;width:100%;height:5px;margin-top:9px;border-radius:4px;background:color-mix(in srgb,var(--muted) 16%,transparent)}
+.root :global(.r2-page-back-line.short){width:62%}
+.root :global(.r2-page-back-block){
+  display:block;width:100%;height:78px;margin-top:22px;border-radius:12px;
+  background:
+    linear-gradient(135deg,color-mix(in srgb,var(--accent) 8%,transparent),transparent),
+    repeating-linear-gradient(0deg,color-mix(in srgb,var(--muted) 9%,transparent) 0 1px,transparent 1px 14px);
+  border:1px solid color-mix(in srgb,var(--line) 70%,transparent);
+}
+.root :global(.r2-page-front){
+  inset-block-start:11%;inset-inline-end:4%;
+  width:66%;min-height:76%;
+  padding:clamp(18px,2.3vw,28px);
+  color:var(--ink);
+  background:
+    radial-gradient(90% 60% at 100% 0%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 68%),
+    linear-gradient(160deg,var(--surface),var(--r2-paper));
+  border:1px solid color-mix(in srgb,var(--accent) 16%,var(--line));
+  box-shadow:
+    0 1px 0 color-mix(in srgb,#fff 60%,transparent) inset,
+    0 34px 70px -40px color-mix(in srgb,var(--ink) 58%,transparent);
+  transform:rotate(4deg);
+  z-index:2;
+}
+.root :global(.r2-page-front::before){
+  content:"";position:absolute;inset-block-start:0;inset-inline:0;height:5px;
+  background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 30%,transparent));
+}
+.root :global(.r2-page-top){
+  display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:12px;border-bottom:1px solid var(--line);
+  color:var(--muted);font-size:8px;font-weight:750;letter-spacing:.12em;text-transform:uppercase;
+}
+.root :global(.r2-page-top b){font-size:9px;color:var(--accent);letter-spacing:.06em}
+.root :global(.r2-page-front > strong){
+  margin-top:18px;
+  font-size:clamp(18px,2vw,25px);
+  line-height:1.26;
+  letter-spacing:-.035em;
+  font-weight:730;
+}
+.root[dir="rtl"] :global(.r2-page-front > strong){letter-spacing:0;line-height:1.45}
+.root :global(.r2-page-grid){
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;
+  margin-top:22px;padding-block:9px;border-block:1px solid var(--line);
+}
+.root :global(.r2-page-grid span){
+  color:var(--muted);font-size:6.5px;font-weight:800;letter-spacing:.12em;
+}
+.root :global(.r2-page-bars){display:grid;gap:7px;margin-top:18px}
+.root :global(.r2-page-bars i){
+  display:block;height:6px;border-radius:4px;
+  background:color-mix(in srgb,var(--muted) 17%,transparent);
+}
+.root :global(.r2-page-bars i:nth-child(1)){width:92%}
+.root :global(.r2-page-bars i:nth-child(2)){width:73%}
+.root :global(.r2-page-bars i:nth-child(3)){width:84%}
+.root :global(.r2-page-foot){
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:auto;padding-top:16px;
+  color:var(--muted);font-size:8px;font-weight:750;letter-spacing:.1em;
+}
+.root :global(.r2-page-foot span:first-child){
+  padding:3px 7px;border-radius:4px;
+  background:var(--accent-soft);color:var(--accent);
+}
+.root :global(.r2-float){
+  position:absolute;z-index:3;
+  display:inline-flex;align-items:center;gap:6px;
+  width:max-content;max-width:88%;
+  white-space:nowrap;
+  padding:8px 11px;
+  border:1px solid color-mix(in srgb,var(--accent) 16%,var(--line));
+  border-radius:999px;
+  background:color-mix(in srgb,var(--surface) 82%,transparent);
+  color:var(--ink);
+  font-size:10px;font-weight:650;
+  box-shadow:0 12px 30px -22px color-mix(in srgb,var(--ink) 60%,transparent);
+  backdrop-filter:blur(14px);
+}
+.root :global(.r2-float svg){color:var(--accent)}
+.root :global(.r2-float-a){inset-block-start:3%;inset-inline-start:0}
+.root :global(.r2-float-b){inset-block-end:6%;inset-inline-end:1%}
+.root :global(.r2-art-caption){
+  position:absolute;inset-block-end:-4%;inset-inline:0;
+  text-align:center;color:var(--muted);
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+}
+.root[dir="rtl"] :global(.r2-art-caption){letter-spacing:0;text-transform:none}
+
+/* Conversation surfaces: editorial answers, tactile sources, a real file card. */
+.root :global(.owui-message.user .ai-rich-message){
+  border:1px solid color-mix(in srgb,var(--accent) 13%,var(--line));
+  border-radius:19px 19px 5px 19px;
+  background:linear-gradient(135deg,var(--accent-soft),color-mix(in srgb,var(--accent-soft) 38%,var(--surface)));
+  padding:13px 18px;
+}
+.root[dir="rtl"] :global(.owui-message.user .ai-rich-message){border-radius:19px 19px 19px 5px}
+.root :global(.owui-message.assistant > .owui-message-avatar){
+  background:linear-gradient(145deg,var(--surface),var(--accent-soft));
+  border-color:color-mix(in srgb,var(--accent) 18%,var(--line));
+}
+.root :global(.owui-message.assistant .ai-rich-message){
+  font-size:15px;
+  line-height:1.88;
+}
+.root :global(.owui-message.assistant .ai-rich-message :is(h1,h2,h3)){
+  letter-spacing:-.025em;
+  color:var(--ink);
+}
+.root[dir="rtl"] :global(.owui-message.assistant .ai-rich-message :is(h1,h2,h3)){letter-spacing:0}
+.root :global(.noata-research-trace){
+  margin-top:14px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--surface-soft) 72%,var(--surface)),var(--surface));
+  overflow:hidden;
+}
+.root :global(.noata-research-summary){
+  padding:12px 14px;
+  gap:10px;
+  cursor:pointer;
+}
+.root :global(.noata-research-indicator){
+  display:grid;place-items:center;
+  width:32px;height:32px;flex:0 0 32px;
+  border-radius:10px;
+  background:var(--accent-soft);color:var(--accent);
+}
+.root :global(.noata-research-detail){padding:0 14px 14px}
+.root :global(.noata-research-links){display:grid;gap:9px;margin:8px 0 0;padding:0;list-style:none}
+.root :global(.noata-research-links li){
+  min-width:0;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface);
+}
+.root :global(.noata-research-links a){display:flex;align-items:flex-start;gap:9px;font-weight:650;line-height:1.5}
+.root :global(.noata-source-number){
+  display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;
+  border-radius:7px;background:var(--accent-soft);color:var(--accent);
+  font-size:10px;font-weight:800;
+}
+.root :global(.noata-research-links small){display:block;margin:6px 0 0 31px;color:var(--muted);font-size:10px}
+.root :global(.noata-research-links p){margin:7px 0 0 31px;color:var(--muted);font-size:11.5px;line-height:1.65}
+.root :global(.noata-generated-file){
+  position:relative;
+  display:grid;
+  grid-template-columns:74px minmax(0,1fr) auto;
+  gap:7px 14px;
+  align-items:center;
+  margin-top:14px;
+  padding:15px;
+  border:1px solid color-mix(in srgb,var(--accent) 15%,var(--line));
+  border-radius:17px;
+  background:
+    radial-gradient(80% 120% at 100% 0%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 60%),
+    var(--surface);
+  box-shadow:0 18px 46px -38px color-mix(in srgb,var(--ink) 55%,transparent);
+  overflow:hidden;
+}
+.root :global(.noata-generated-file-symbol){
+  position:relative;
+  grid-row:1/span 2;
+  display:grid;place-items:center;
+  align-self:stretch;
+  min-height:94px;
+  width:74px;
+  border-radius:10px;
+  color:var(--accent);
+  background:
+    repeating-linear-gradient(0deg,color-mix(in srgb,var(--muted) 10%,transparent) 0 1px,transparent 1px 12px),
+    linear-gradient(150deg,var(--surface),var(--accent-soft));
+  border:1px solid color-mix(in srgb,var(--accent) 15%,var(--line));
+  box-shadow:0 8px 18px -14px color-mix(in srgb,var(--ink) 60%,transparent);
+}
+.root :global(.noata-generated-file-symbol svg){position:relative;z-index:1;width:30px;height:30px}
+.root :global(.noata-generated-file-symbol::after){
+  content:"";position:absolute;inset-block-start:-1px;inset-inline-end:-1px;
+  width:18px;height:18px;
+  border-block-end:1px solid color-mix(in srgb,var(--accent) 20%,var(--line));
+  border-inline-start:1px solid color-mix(in srgb,var(--accent) 20%,var(--line));
+  background:linear-gradient(225deg,var(--surface) 48%,transparent 49%);
+}
+.root :global(.noata-generated-file-info){grid-column:2;grid-row:1/span 2;align-self:center;min-width:0}
+.root :global(.noata-generated-file-info strong){display:block;font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.root :global(.noata-generated-file-info small){display:block;font-size:10.5px;line-height:1.6;color:var(--muted)}
+.root :global(.noata-generated-file-actions){grid-column:3;grid-row:1/span 2;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px;align-self:center}
+.root :global(.noata-generated-file-actions button){
+  display:inline-flex;align-items:center;gap:6px;
+  min-height:36px;padding:8px 12px;
+  border:1px solid var(--line);border-radius:10px;
+  background:var(--surface-soft);color:var(--ink);
+  font:inherit;font-size:11.5px;font-weight:650;cursor:pointer;
+}
+.root :global(.noata-generated-file-actions button:first-child){
+  background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff);
+}
+.root :global(.noata-generated-file-actions button:disabled){opacity:.55;cursor:wait}
+.root :global(.noata-generated-file > p[role="alert"]){grid-column:2/4;margin:0;font-size:11px;color:var(--danger)}
+.root :global(.noata-generated-file > .noata-artifact-inline){grid-column:1/-1}
+
+@media(max-width:980px){
+  .root :global(.noata-r2-welcome){grid-template-columns:minmax(0,1fr);gap:18px;max-width:720px}
+  .root :global(.r2-welcome-copy){max-width:none}
+  .root :global(.r2-welcome-art){display:none}
+  .root :global(.noata-r2-welcome h1){max-width:16ch}
+}
+@media(max-width:640px){
+  .root :global(.noata-r2-welcome){padding:8px 0 4px}
+  .root :global(.noata-r2-welcome h1){font-size:clamp(34px,10vw,46px);line-height:1.12}
+  .root :global(.r2-welcome-copy > p){margin-top:14px;font-size:12.5px;line-height:1.8}
+  .root :global(.r2-mode-grid){gap:7px;margin-top:18px}
+  .root :global(.r2-mode){min-height:58px;padding:9px;gap:8px}
+  .root :global(.r2-mode-icon){flex-basis:32px;width:32px;height:32px;border-radius:9px}
+  .root :global(.r2-mode-copy strong){font-size:11.5px}
+  .root :global(.r2-mode-copy small){display:none}
+  .root :global(.r2-mode > svg){display:none}
+  .root :global(.noata-generated-file){grid-template-columns:58px minmax(0,1fr);padding:13px;gap:7px 11px}
+  .root :global(.noata-generated-file-symbol){width:58px;min-height:78px}
+  .root :global(.noata-generated-file-info){grid-row:1/span 2;align-self:center}
+  .root :global(.noata-generated-file-actions){grid-column:1/-1;grid-row:3;justify-content:flex-start}
+  .root :global(.noata-generated-file > p[role="alert"]){grid-column:1/-1}
+  .root :global(.noata-research-links small),.root :global(.noata-research-links p){margin-inline-start:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .root :global(.noata-r2-welcome),
+  .root :global(.r2-mode),
+  .root :global(.r2-mode > svg){animation:none!important;transition:none!important}
+  .root :global(.r2-mode:not(:disabled):hover){transform:none}
+}
+html[data-noata-motion="reduce"] .root :global(.r2-mode),
+html[data-noata-motion="off"] .root :global(.r2-mode){transition:none}
