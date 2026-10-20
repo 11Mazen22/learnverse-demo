@@ -132,6 +132,8 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   const search=await resolveSearchOptions(signal);
   // One rate limit covers paid web search and no-key background retrieval.
   const broad=await runResearch(plan,{...search,maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
+  // Retrieval is observable without logging the query, the sources or the key.
+  console.info(JSON.stringify({event:"noata_research_completed",provider:search.provider??"none",status:broad.status,reason:broad.reason??null,sources:broad.sources.length,elapsedMs:broad.elapsedMs}));
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
   // Key-free open providers run together: scholarly records (Crossref) and
   // encyclopedia background (Wikipedia). Both are background, never live news.
