@@ -2224,9 +2224,9 @@ html[data-reduced-motion="true"] *::after {
   min-height: 30px;
   padding: 5px 12px;
   border-radius: 999px;
-  border: 1px solid var(--line, #d9e8f7);
-  background: var(--panel, #f7fbff);
-  color: var(--ink, #16283f);
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
   font-size: 12.5px;
   line-height: 1.5;
 }
@@ -2234,7 +2234,7 @@ html[data-reduced-motion="true"] *::after {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #009aff;
+  background: var(--accent);
   flex: 0 0 auto;
 }
 .owui-suggestions {
