@@ -16,5 +16,5 @@ export function fileDeliveryInstruction(value:unknown,language:"ar"|"en",revisio
  "\n"+(kind==="xlsx"
  ?"Produce ONLY workbook source: # Sheet: Name and a populated Markdown data table. Include # Sheet: Summary with supported SUM, AVERAGE, MIN, MAX or COUNT range formulas when requested. Never invent researched measurements."
  :kind==="pptx"?"Produce ONLY complete slide content. Each slide begins with # Actual title, then 2-4 completed factual bullets under 130 characters each, separated by ---. Include 4-8 slides unless revising an existing deck; then preserve its slides and change only the requested slides. No topic outline or other-format content."
- :"Produce ONLY the complete document with one descriptive # title and well organized substantive sections. Preserve equations and examples from the source.");
+ :"Produce ONLY the complete document with one descriptive # title and well organized substantive sections. Preserve equations and examples from the source.\nFor a full report, write a substantial self-contained document: one '#' title, three to six '##' sections with real detail and concrete examples, and a brief closing summary. Never write 'as discussed above' or refer to the conversation. The document must stand on its own without the chat.");
 }
