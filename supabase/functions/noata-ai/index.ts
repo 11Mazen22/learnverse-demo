@@ -1,4 +1,4 @@
-import {resolveGraphFollowup,graphRecoveryReply} from "./graph-delivery.ts";
+import {resolveGraphFollowup,graphRecoveryReply,graphRequested} from "./graph-delivery.ts";
 import {specialistRequest,specialistReply} from "./specialists.ts";
 import {requestWithContextRecovery} from "./context-recovery.ts";
 import {researchPlanningInput,plannedResearchQuery,researchClarificationRequired,explicitResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
@@ -13,7 +13,10 @@ import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,searchNeedsTopic,runResearch,researchContext,researchRequiresCurrent,type Research} from "./research.ts";
 import {encyclopediaFallbackAllowed} from "./research-policy.ts";
 import {searchOpenScholarly} from "./open-search.ts";
-import {searchProviderConfigured} from "./search-provider.ts";
+import {searchProviderConfigured,searchProviderName,type SearchProviderOptions} from "./search-provider.ts";
+import {parseDesignDocument,serializeDesignDocument,designFromMarkdown,documentThemeForStyle,type DocumentDesign} from "./document-design.ts";
+import {documentAuthorInput,documentAuthorPrompt,documentRepairPrompt,type DocumentAuthorSource} from "./document-author.ts";
+import {readProviderSecret} from "./provider-secrets.ts";
 import {searchEncyclopedia} from "./encyclopedia.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
@@ -101,13 +104,33 @@ function clean(text: string) {
     .trim());
 }
 
+async function resolveSearchOptions(signal:AbortSignal):Promise<SearchProviderOptions>{
+ // Secrets may live in Vault when the deployment token cannot manage function
+ // secrets. Environment values always take precedence.
+ const [langKey,enabledSetting,braveKey,providerSetting]=await Promise.all([
+  readProviderSecret(admin,"LANGSEARCH_API_KEY"),
+  readProviderSecret(admin,"NOATA_SEARCH_ENABLED"),
+  Promise.resolve(Deno.env.get("BRAVE_SEARCH_API_KEY")??""),
+  Promise.resolve(Deno.env.get("NOATA_SEARCH_PROVIDER")??""),
+ ]);
+ const requested=providerSetting.trim();
+ // An explicit but unknown provider must fail closed rather than silently
+ // sending the request to a different search service.
+ if(requested&&!searchProviderName(requested))
+  return {key:"",enabled:false,provider:requested,signal};
+ const provider=searchProviderName(requested)??(langKey?"langsearch":"brave");
+ const key=provider==="langsearch"?langKey:braveKey;
+ const enabled=enabledSetting?enabledSetting==="true":provider==="langsearch"&&!!langKey;
+ return {key,enabled,provider,signal};
+}
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
   const started=Date.now();
   // An unresolved plan must not reach Brave (empty query) or spend a quota claim.
   if(!plan.query.trim())return {version:1,status:"unavailable",reason:"unresolved_query",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};
-  // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
-  const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
+  const search=await resolveSearchOptions(signal);
+  // One rate limit covers paid web search and no-key background retrieval.
+  const broad=await runResearch(plan,{...search,maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
   // Key-free open providers run together: scholarly records (Crossref) and
   // encyclopedia background (Wikipedia). Both are background, never live news.
@@ -159,13 +182,16 @@ async function reviewCompletedAnswer(input:{
 }
 function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="",artifactFormat?:unknown,sectionLevel?:number) {
   const specialized=model==="Fanar-Sadiq"||model==="Fanar-Sadiq-2";
+  // A designed PDF is authored by a separate pass; the chat turn is a short
+  // design brief, so the answer-depth reviewer must not expand it.
+  const designedPdf=artifactFormat==="pdf"&&!graphRequested(actualRequest);
   // Sadiq is a grounded service with its own prompting and no token stream.
   // Keep a live heartbeat while waiting for its actual JSON response.
   const protectedMessages:{role:string;content:unknown}[]=[];
   const providerBody=specialized?{model,messages:(body.messages as {role:string}[]).filter(m=>m.role!=="system"),stream:false}:{...body,stream:true};
   return new Response(createFanarStream({
     model, clean,routeNote,
-    deferContentUntilReview:!specialized&&Boolean(userId)&&(plan?.needed===true||answerReviewReason(actualRequest,"",undefined,artifactFormat)!==null),
+    deferContentUntilReview:!specialized&&Boolean(userId)&&!designedPdf&&(plan?.needed===true||answerReviewReason(actualRequest,"",undefined,artifactFormat)!==null),
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);
       const messages=providerBody.messages as {role:string;content:unknown}[];
@@ -176,7 +202,7 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
         :"\nApplication evidence status for THIS request: live research was NOT available. Never claim a search, current verification, citations or URLs; answer only with stable general background and state the limitation.");
       return research;
     }:undefined,
-    review: !specialized&&userId?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,sectionLevel,emit}):undefined,
+    review: !specialized&&userId&&!designedPdf?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,sectionLevel,emit}):undefined,
     request: (signal,emit) => requestWithContextRecovery(providerBody,requestBody=>fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + FANAR_KEY, "Content-Type": "application/json" },
@@ -644,7 +670,7 @@ async function handleChat(
   const remembered=await loadApprovedMemory(userId,latestText,payload.temporary===true,model,typeof payload.conversationId==="string"?payload.conversationId:undefined);
   const capabilities=capabilitySystemContext({
     fanar:Boolean(FANAR_KEY),
-    brave:searchProviderConfigured({key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave"}),
+    brave:searchProviderConfigured(await resolveSearchOptions(AbortSignal.timeout(3000))),
     memorySchema:true
   });
   let lookupPlan=searchPlan(latestText);
@@ -706,7 +732,8 @@ async function handleChat(
     data = result.data;
   }
   let completedContent=clean(data?.choices?.[0]?.message?.content??"");
-  if(data?.choices?.[0]?.finish_reason!=="length"&&!["Fanar-Sadiq","Fanar-Sadiq-2"].includes(model)){
+  if(data?.choices?.[0]?.finish_reason!=="length"&&!["Fanar-Sadiq","Fanar-Sadiq-2"].includes(model)
+   &&!(payload.artifactFormat==="pdf"&&!graphRequested(graphAwareRequest))){
     const reviewed=await reviewCompletedAnswer({request:graphAwareRequest,content:completedContent,research,format:payload.artifactFormat,
       language:latestLanguage==="English"?"en":"ar",model,userId,sectionLevel,signal:AbortSignal.timeout(50000)});
     if(reviewed)completedContent=reviewed;
@@ -761,6 +788,58 @@ async function handlePlan(userId:string,payload:Record<string,unknown>){
  return json({kind:"plan",plan:fallback,model:"Fanar"});
 }
 
+/** Author a designed PDF source. This is a separate inference from chat: the
+ * model writes the file itself, then the renderer produces real bytes. */
+async function handleDocument(userId:string,payload:Record<string,unknown>){
+ const request=typeof payload.request==="string"?payload.request.trim():"";
+ const draft=typeof payload.draft==="string"?payload.draft.trim():"";
+ const previous=typeof payload.previous==="string"?payload.previous.trim():"";
+ const language=payload.language==="ar"?"ar":"en";
+ if(request.length<1||request.length>12000)return json({error:"Invalid document request"},400);
+ if(draft.length>30000||previous.length>40000)return json({error:"Document source is too large"},413);
+ if(!draft&&!previous)return json({error:"No source content for the document"},400);
+ const themeHint=documentThemeForStyle(payload.style);
+ const sourceRows=Array.isArray(payload.sources)?payload.sources.slice(0,5).flatMap(row=>{
+  if(!row||typeof row!=="object")return [];
+  const value=row as Record<string,unknown>;
+  if(!Number.isInteger(value.id)||typeof value.title!=="string"||typeof value.url!=="string"||typeof value.excerpt!=="string")return [];
+  return [{id:value.id as number,title:value.title,url:value.url,excerpt:value.excerpt,...(typeof value.published==="string"?{published:value.published}:{})}] as DocumentAuthorSource[];
+ }):[];
+ const input=documentAuthorInput({request,draft,previous,language,themeHint,sources:sourceRows});
+ const callAuthor=async(system:string)=> {
+  await claim(userId,"Fanar");
+  const {data}=await fanarJson("/chat/completions",{
+   model:"Fanar",messages:[{role:"system",content:system},{role:"user",content:input}],
+   temperature:0.4,max_tokens:5200,stream:false
+  },90000);
+  return clean(data?.choices?.[0]?.message?.content??"");
+ };
+ const acceptable=(text:string)=>{
+  const parsed=parseDesignDocument(text,request.slice(0,100),language);
+  return parsed.body.length>=600&&(parsed.body.match(/^##\s+\S/gm)?.length??0)>=2?parsed:null;
+ };
+ let raw:string;
+ try{
+  raw=await callAuthor(documentAuthorPrompt(language));
+  let parsed=acceptable(raw);
+  if(!parsed){
+   raw=await callAuthor(documentRepairPrompt(language));
+   parsed=acceptable(raw);
+  }
+  if(!parsed)return json({error:"DOCUMENT_AUTHORING_FAILED",message:"The document designer did not return a complete document."},502);
+  const body=parsed.body;
+  const design:DocumentDesign=parsed.designed?parsed.design:designFromMarkdown(body,parsed.design.title,payload.style,language);
+  const document=serializeDesignDocument(design,body);
+  console.info(JSON.stringify({event:"noata_document_authored",designed:parsed.designed,characters:body.length,sections:body.match(/^##\s+\S/gm)?.length??0,theme:design.theme}));
+  return json({kind:"document",document,design,fallback:!parsed.designed,model:"Fanar",usage:null});
+ }catch(error){
+  const status=(error as {status?:number}).status;
+  if(status===429)throw error;
+  console.error(JSON.stringify({event:"noata_document_failed",status:status??null,reason:error instanceof Error?error.message.slice(0,160):"unknown"}));
+  return json({error:"DOCUMENT_AUTHORING_UNAVAILABLE",message:"The document designer is temporarily unavailable. Please retry."},502);
+ }
+}
+
 /** Provider-generated, validated suggestions. Never blocks the primary chat request. */
 async function handleSuggestions(userId:string,payload:Record<string,unknown>){
  const kind:SuggestionKind=payload.kind==="followup"?"followup":"welcome";
@@ -801,6 +880,7 @@ async function handleJsonAction(
   const action = String(payload.action ?? "chat");
   if (action === "chat") return handleChat(userId, payload, receipt);
   if (action === "plan") return handlePlan(userId,payload);
+  if (action === "document") return handleDocument(userId,payload);
   if (action === "suggestions") return handleSuggestions(userId, payload);
   if (action === "capability_execute") {
     const parsed=validateCapabilityExecution(payload.capability);
@@ -1008,14 +1088,18 @@ Deno.serve(async (req) => {
     if (!payload) return json({ error: "Invalid payload" }, 400);
     // Authenticated, side-effect-free diagnostic. Configured does not claim
     // that an upstream Fanar inference has already succeeded.
-    if (payload.action === "readiness")
-      return json({ provider: "Fanar", configured: Boolean(FANAR_KEY), researchConfiguration:{enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",credentialPresent:Boolean(Deno.env.get("BRAVE_SEARCH_API_KEY")),provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",configured:searchProviderConfigured({key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave"})},sadiq2Enabled:Deno.env.get("NOATA_SADIQ_2_ENABLED")==="true" });
-    if (payload.action === "capabilities")
+    if (payload.action === "readiness") {
+      const search = await resolveSearchOptions(AbortSignal.timeout(3000));
+      return json({ provider: "Fanar", configured: Boolean(FANAR_KEY), researchConfiguration:{enabled:search.enabled,credentialPresent:Boolean(search.key),provider:search.provider,configured:searchProviderConfigured(search)},sadiq2Enabled:Deno.env.get("NOATA_SADIQ_2_ENABLED")==="true" });
+    }
+    if (payload.action === "capabilities") {
+      const search = await resolveSearchOptions(AbortSignal.timeout(3000));
       return json({kind:"capabilities",capabilities:getCapabilityAvailability({
         fanar:Boolean(FANAR_KEY),
-        brave:searchProviderConfigured({key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave"}),
+        brave:searchProviderConfigured(search),
         memorySchema:true
       }),disclaimer:"configured indicates credentials, not a successful live provider request"});
+    }
     if (!FANAR_KEY)
       return json({ error: "AI backend is not configured", code: "FANAR_NOT_CONFIGURED" }, 503);
     const claimed = await claimReceipt(user.id, payload);

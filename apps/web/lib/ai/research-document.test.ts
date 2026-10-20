@@ -28,6 +28,17 @@ test("Every source remains readable when inline PDF link actions are removed",()
  assert.match(value,/do not verify news or current claims/);
 });
 
+test("A revised document adds only sources it does not already cite",()=>{
+ const first=documentWithResearch("Claim [1].",research,"en","pdf");
+ const second={...source,id:2,title:"Artificial photosynthesis",url:"https://en.wikipedia.org/wiki/Artificial_photosynthesis"};
+ const revised=documentWithResearch(first+"\n\nNew claim [2].",{...research,sources:[source,second]},"en","pdf");
+ assert.equal((revised.match(/\[1\] Photosynthesis/g)??[]).length,1,"The original source is not duplicated");
+ assert.equal((revised.match(/\[2\] Artificial photosynthesis/g)??[]).length,1);
+ assert.match(revised,/## Additional retrieved references/);
+ assert.ok(revised.includes(second.url));
+ assert.equal(documentWithResearch(revised,{...research,sources:[source,second]},"en","pdf"),revised,"A second revision is idempotent");
+});
+
 test("research provenance survives actual spreadsheet and presentation exports",async()=>{
  const table="| Technology | Value |\n| --- | --- |\n| Solar | 10 |\n| Wind | 20 |";
  const workbook=documentWithResearch(table,research,"en","xlsx");

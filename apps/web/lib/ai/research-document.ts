@@ -7,20 +7,23 @@ export function documentWithResearch(text:string,research:unknown,language:"ar"|
  if(data?.status!=="complete"||!data.sources.length)return text;
  if(format==="xlsx"){
   const heading="## Sheet: "+(language==="ar"?"المراجع":"References");
-  if(data.sources.every(source=>text.includes(source.url)))return text;
+  const missingSources=data.sources.filter(source=>!text.includes(source.url));
+  if(!missingSources.length)return text;
   const cell=(value:string)=>label(value).replace(/\|/g," ");
   // Each reference is an actual retrieved record. No fetched timestamps are relabeled as publication dates.
   const references="| ID | Title | URL | Retrieved | Published |\n| --- | --- | --- | --- | --- |\n"+
-   data.sources.map(s=>`| ${s.id} | ${cell(s.title)} | ${s.url.replaceAll("|","%7C")} | ${s.retrievedAt} | ${s.published??""} |`).join("\n");
+   missingSources.map(s=>`| ${s.id} | ${cell(s.title)} | ${s.url.replaceAll("|","%7C")} | ${s.retrievedAt} | ${s.published??""} |`).join("\n");
   const markers=[...text.matchAll(/^#{1,3}\s*(?:sheet|worksheet|ورقة|ورقه)\s*:\s*.+$/gim)];
   // Existing renderer supports at most 8 sheets; preserve a full workbook unchanged rather than failing export.
   if(markers.length>=8)return text;
   const body=markers.length?text:"## Sheet: "+(language==="ar"?"البيانات":"Data")+"\n\n"+text;
   return body+"\n\n"+heading+"\n\n"+references;
  }
- const bibliography=data.sources.map(s=>`- **[${s.id}] ${label(s.title)}** · ${label(s.domain)}\n  ${s.url}`).join("\n");
- if(text.includes(bibliography))return text;
- const referenced=text.replace(/\[(\d{1,2})\](?!\()/g,(marker,id)=>{
+ const missingSources=data.sources.filter(source=>!text.includes(source.url));
+ if(!missingSources.length)return text;
+ const bibliography=missingSources.map(s=>`- **[${s.id}] ${label(s.title)}** · ${label(s.domain)}\n  ${s.url}`).join("\n");
+ const hasReferences=/^##\s+(?:Retrieved references|المراجع المسترجعة)\s*$/m.test(text);
+ const referenced=text.replace(/(?<!\*\*)\[(\d{1,2})\](?!\()/g,(marker,id)=>{
   const source=data.sources.find(s=>s.id===Number(id));
   return source?`[${id}](<${source.url}>)`:marker;
  });
@@ -31,6 +34,9 @@ export function documentWithResearch(text:string,research:unknown,language:"ar"|
   :language==="ar"?"المراجع المسترجعة لا تثبت تلقائيًا كل ادعاء في المستند.":"Retrieved sources do not automatically verify every claim in this document.";
  // PDF rendering intentionally removes link actions. Keep every source URL visible as text,
  // including sources already linked inline, so exported citations remain usable offline.
- return referenced+(format==="pptx"?"\n\n---":"")+"\n\n## "+(language==="ar"?"المراجع المسترجعة":"Retrieved references")+"\n\n"+note+"\n\n"+
+ const referencesHeading=hasReferences
+  ? language==="ar"?"مراجع إضافية مسترجعة":"Additional retrieved references"
+  : language==="ar"?"المراجع المسترجعة":"Retrieved references";
+ return referenced+(format==="pptx"?"\n\n---":"")+"\n\n## "+referencesHeading+"\n\n"+note+"\n\n"+
   bibliography;
 }

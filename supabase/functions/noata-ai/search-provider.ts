@@ -2,11 +2,16 @@
  * No caller-supplied endpoint, redirects, retry billing or unbounded response bodies.
  * API contract checked against Brave's LLM Context POST reference on 2026-10-15.
  */
+export type SearchProviderName = "brave" | "langsearch";
 export type SearchProviderOptions = {
  key:string; enabled:boolean; provider?:string; signal:AbortSignal; fetcher?:typeof fetch;
 };
+export function searchProviderName(value:unknown):SearchProviderName|null {
+ // Unknown values are rejected instead of silently selecting another service.
+ return value==="langsearch"?"langsearch":value==="brave"?"brave":null;
+}
 export function searchProviderConfigured(options:Pick<SearchProviderOptions,"key"|"enabled"|"provider">):boolean {
- return options.enabled && !!options.key.trim() && (options.provider??"brave")==="brave";
+ return options.enabled && !!options.key.trim() && ["brave","langsearch"].includes(options.provider??"brave");
 }
 export async function braveContext(query:string,freshness:string|undefined,options:SearchProviderOptions):Promise<unknown> {
  if(!searchProviderConfigured(options))throw Error("not_configured");

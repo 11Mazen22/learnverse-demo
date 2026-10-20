@@ -5,7 +5,7 @@ import {researchScope,encyclopediaFallbackAllowed} from "../../../../supabase/fu
 import {answerReviewIssue} from "../../../../supabase/functions/noata-ai/answer-quality.ts";
 import {citationClaims,citationDestination} from "../../../../supabase/functions/noata-ai/citations.ts";
 const payload=(url="https://science.nasa.gov/mission/artemis/",text="Retrieved mission evidence.")=>({grounding:{generic:[{url,title:"Mission update",snippets:[text]}]}});
-const options={key:"test-only",enabled:true,signal:new AbortController().signal};
+const options={provider:"brave" as const,key:"test-only",enabled:true,signal:new AbortController().signal};
 test("official NASA requests keep authority scope across model query rewriting",async()=>{
  const plan=searchPlan("Find the latest official NASA information about an active mission and cite sources");
  assert.deepEqual(plan.scope?.domains,["nasa.gov"]);

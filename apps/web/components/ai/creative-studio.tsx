@@ -15,6 +15,7 @@ import {Icon} from "@/components/ui/icon";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import {createClient} from "@/lib/supabase/client";
 import {inspectOfficeArtifact,type StudioInspection} from "@/lib/ai/studio-file-inspect";
+import type {DocumentDesign} from "../../../../supabase/functions/noata-ai/document-design.ts";
 import {originalDocument} from "@/lib/ai/original-documents";
 import type {CreatedArtifact} from "@/lib/ai/artifact-runner";
 import type {RenderTask,PDFDocumentLoadingTask} from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -27,29 +28,50 @@ export function downloadBytes(bytes:Uint8Array,name:string,mime:string){
  link.href=url;link.download=name;document.body.append(link);link.click();link.remove();
  window.setTimeout(()=>URL.revokeObjectURL(url),30000);
 }
+const PDF_WORKER="/pdf/pdf.worker.min.mjs";
 function PdfPage({file,page,onPages}:{file:Blob;page:number;onPages:(n:number)=>void}){
- const canvas=useRef<HTMLCanvasElement>(null),t=useTranslation(),[error,setError]=useState("");
+ const canvas=useRef<HTMLCanvasElement>(null),t=useTranslation(),[error,setError]=useState(""),[attempt,setAttempt]=useState(0);
  useEffect(()=>{
-  let alive=true;let task:PDFDocumentLoadingTask|undefined,render:RenderTask|undefined;
+  let alive=true;let task:PDFDocumentLoadingTask|undefined,render:RenderTask|undefined,objectUrl="";
   void(async()=>{
    try{
+    setError("");
     const pdf=await import("pdfjs-dist/legacy/build/pdf.mjs");
     if(!alive)return;
-    pdf.GlobalWorkerOptions.workerSrc=new URL("pdfjs-dist/legacy/build/pdf.worker.min.mjs",import.meta.url).toString();
-    task=pdf.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false});
-    const doc=await task.promise;if(!alive)return;
+    pdf.GlobalWorkerOptions.workerSrc=PDF_WORKER;
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const open=()=>pdf.getDocument({data:bytes.slice(),isEvalSupported:false});
+    task=open();
+    let doc;
+    try{doc=await task.promise;}
+    catch(workerError){
+     // A blocked or missing static worker must not make the saved file look
+     // broken. Retry once from an in-memory module worker before surfacing it.
+     if(!/worker|setting up fake/i.test(String(workerError)))throw workerError;
+     const worker=await fetch(PDF_WORKER,{cache:"force-cache"});
+     if(!worker.ok)throw workerError;
+     objectUrl=URL.createObjectURL(new Blob([await worker.arrayBuffer()],{type:"text/javascript"}));
+     pdf.GlobalWorkerOptions.workerSrc=objectUrl;
+     task=open();doc=await task.promise;
+    }
+    if(!alive)return;
     onPages(doc.numPages);
     const selected=await doc.getPage(Math.max(1,Math.min(page,doc.numPages)));
     if(!alive||!canvas.current)return;
-    const view=selected.getViewport({scale:1.25});
-    canvas.current.width=view.width;canvas.current.height=view.height;
+    const density=Math.min(typeof devicePixelRatio==="number"?devicePixelRatio:1,2);
+    const view=selected.getViewport({scale:1.25*density});
+    canvas.current.width=Math.max(1,Math.floor(view.width));canvas.current.height=Math.max(1,Math.floor(view.height));
     render=selected.render({canvas:canvas.current,viewport:view});await render.promise;
-   }catch(e){if(alive)setError(e instanceof Error?e.message:"PDF preview unavailable");}
+   }catch{if(alive)setError("pdf_preview_unavailable");}
   })();
-  return()=>{alive=false;render?.cancel();void task?.destroy();};
- },[file,page,onPages]);
- return <div className="noata-creative-pdf">{error&&<p role="alert">{error}</p>}
-  <canvas ref={canvas} role="img" aria-label={t("صفحة PDF","PDF page")+" "+page}/></div>;
+  return()=>{alive=false;render?.cancel();void task?.destroy();if(objectUrl)URL.revokeObjectURL(objectUrl);};
+ },[file,page,onPages,attempt]);
+ return <div className="noata-creative-pdf">{error?
+  <div className="noata-creative-pdf-error" role="alert">
+   <p>{t("تعذّر عرض الصفحة هنا. الملف محفوظ ويمكنك تنزيله أو إعادة المحاولة.","This page could not be rendered here. Your file is saved; download it or try again.")}</p>
+   <button type="button" onClick={()=>setAttempt(n=>n+1)}>{t("إعادة المحاولة","Retry")}</button>
+  </div>:
+  <canvas ref={canvas} role="img" aria-label={t("صفحة PDF","PDF page")+" "+page}/>}</div>;
 }
 export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPrepareEdit,onRevisionSaved,inline=false,initialMode="preview"}:{
  file:CreatedArtifact|null;
@@ -60,6 +82,8 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
 }){
  const t=useTranslation(),locale=useLocale(),supabase=useMemo(()=>createClient(),[]);
  const [loaded,setLoaded]=useState<Blob|null>(null),[inspection,setInspection]=useState<StudioInspection|null>(null);
+ const [loadError,setLoadError]=useState(""),[reloadToken,setReloadToken]=useState(0);
+ const [design,setDesign]=useState<DocumentDesign|null>(null);
  const [draft,setDraft]=useState(""),[mode,setMode]=useState<"preview"|"edit"|"compare"|"targeted"|"pages"|"annotate">("preview");
  const [partialRevisionAcknowledged,setPartialRevisionAcknowledged]=useState(false);
  const [pageOrder,setPageOrder]=useState(""),[rotatePage,setRotatePage]=useState(1),[rotation,setRotation]=useState(0);
@@ -78,12 +102,12 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const activeName=file?.filename??localSource?.name??"Noata document";
  const pageOrderValid=activeFormat==="pdf"&&isPdfPageOrderValid(pageOrder,pageCount);
  useEffect(()=>{
-  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setPdfNotes([]);setNoteText("");setNotePage(1);setNotePosition("top-right");setMode(initialMode);setPartialRevisionAcknowledged(false);setOriginalText("");setInstruction("");setSectionStart("whole");
+  let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setLoadError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setPdfNotes([]);setNoteText("");setNotePage(1);setNotePosition("top-right");setMode(initialMode);setPartialRevisionAcknowledged(false);setOriginalText("");setInstruction("");setSectionStart("whole");setDesign(null);
   setOutputFormat(activeFormat??"pdf");setStyle("classic");setFont("noata");
   if(!file&&!localSource)return;
   void(async()=>{
    try{
-    let loadedFile:Blob;let canonical="",parentSource="";
+    let loadedFile:Blob;let canonical="",parentSource="";let designedMeta:DocumentDesign|null=null;
     if(file){
      if(!owner)throw Error("Sign in to open your saved document");
      const row=await supabase.from("ai_artifacts").select("id,user_id,storage_path,mime_type,filename,source_content,parent_artifact_id").eq("id",file.id).eq("user_id",owner).single();
@@ -91,11 +115,28 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
      const download=await supabase.storage.from("noata-ai-artifacts").download(file.storagePath);
      if(download.error||!download.data)throw Error("Could not retrieve the saved file");
      loadedFile=download.data;const saved=readDocumentSource(row.data.source_content);canonical=saved.text;
+     if(canonical.trimStart().startsWith("---noata")){
+      const {parseDesignDocument}=await import("../../../../supabase/functions/noata-ai/document-design.ts");
+      try{const parsed=parseDesignDocument(canonical,activeName.replace(/\.[^.]+$/,""),locale);designedMeta=parsed.design;canonical=parsed.body;}catch{/* keep the source readable if metadata is malformed */}
+     }
      if(live){setStyle(saved.presentation.style);setFont(saved.presentation.font);}
-     if(row.data.parent_artifact_id){const parent=await supabase.from("ai_artifacts").select("source_content").eq("id",row.data.parent_artifact_id).eq("user_id",owner).maybeSingle();parentSource=readDocumentSource(parent.data?.source_content).text;}
+     if(row.data.parent_artifact_id){
+      const parent=await supabase.from("ai_artifacts").select("source_content").eq("id",row.data.parent_artifact_id).eq("user_id",owner).maybeSingle();
+      parentSource=readDocumentSource(parent.data?.source_content).text;
+      if(parentSource.trimStart().startsWith("---noata")){
+       const {stripDesignFrontMatter}=await import("../../../../supabase/functions/noata-ai/document-design.ts");
+       parentSource=stripDesignFrontMatter(parentSource);
+      }
+     }
      if(!canonical){
       const legacy=await supabase.from("ai_messages").select("content,metadata").eq("role","assistant").eq("status","complete").contains("metadata",{generatedArtifact:{id:file.id}}).limit(1).maybeSingle();
-      if(legacy.data?.content)canonical=legacy.data.content;
+      if(legacy.data?.content){
+       canonical=legacy.data.content;
+       if(canonical.trimStart().startsWith("---noata")){
+        const {parseDesignDocument}=await import("../../../../supabase/functions/noata-ai/document-design.ts");
+        try{const parsed=parseDesignDocument(canonical,activeName.replace(/\.[^.]+$/,""),locale);designedMeta=parsed.design;canonical=parsed.body;}catch{/* keep readable */}
+       }
+      }
      }
     }else if(localSource?.documentId){
      const response=await fetch("/api/documents?id="+encodeURIComponent(localSource.documentId));
@@ -132,11 +173,22 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
       const text=await loadedFile.text();
       view={pages:[{title:activeName,lines:text.slice(0,150000).split("\n")}],editableText:text.slice(0,150000),partial:text.length>150000};
     }else view=await inspectOfficeArtifact(new Uint8Array(await loadedFile.arrayBuffer()),activeFormat==="docx"?"docx":activeFormat==="pptx"?"pptx":"xlsx");
-    if(live){setInspection(view);setOriginalText(parentSource||canonical||view.editableText);setDraft(canonical||view.editableText);}
-   }catch(e){if(live)setError(e instanceof Error?e.message:"File preview unavailable");}
+    if(live){setInspection(view);setDesign(designedMeta);setOriginalText(parentSource||canonical||view.editableText);setDraft(canonical||view.editableText);}
+   }catch(e){
+    if(!live)return;
+    const code=e instanceof Error?e.message:"";
+    setLoadError(
+     code.includes("Sign in")?t("سجّل الدخول لفتح ملفك المحفوظ.","Sign in to open your saved document."):
+     code.includes("not available for your account")?t("هذا الملف لم يعد متاحًا لحسابك.","This file is no longer available for your account."):
+     code.includes("Could not retrieve")||code.includes("Source download failed")?t("تعذّر تنزيل الملف من مكتبتك. تحقّق من الاتصال وأعد المحاولة.","The file could not be downloaded from your library. Check your connection and retry."):
+     code.includes("no longer available")?t("انتهت صلاحية هذا المرفق. أعد إرفاقه ثم حاول مجددًا.","This attachment is no longer available. Attach it again and retry."):
+     code.includes("exceeds studio")||code.includes("safe limits")?t("حجم الملف أكبر من حد المعاينة الآمن. نزّله لفتحه على جهازك.","The file exceeds the safe preview limit. Download it to open it on your device."):
+     t("تعذّر فتح الملف الآن. أعد المحاولة أو نزّله مباشرة.","The file could not be opened right now. Retry or download it directly.")
+    );
+   }
   })();
   return()=>{live=false;};
- },[file?.id,localSource?.localId,localSource?.documentId,owner,supabase,locale,initialMode]);
+ },[file?.id,localSource?.localId,localSource?.documentId,owner,supabase,locale,initialMode,reloadToken,t]);
  const mime:Record<Format,string>={pdf:"application/pdf",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation"};
  async function buildRevision(kind:Format):Promise<Uint8Array>{
@@ -150,7 +202,12 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
    if(!pageOrderValid)throw Error("pdf_page_order_invalid");
    bytes=await revisePdfPages(new Uint8Array(await loaded.arrayBuffer()),{order:pdfPageOrder(pageOrder,pageCount),rotatePage,rotation:rotation as 0|90|180|270});
   }else if(kind==="pdf"){
-   const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text:draft,title:activeName.replace(/\.(pdf|docx|xlsx|pptx)$/i,"").slice(0,120),style,font})});
+   let text=draft;
+   if(design){
+    const {serializeDesignDocument}=await import("../../../../supabase/functions/noata-ai/document-design.ts");
+    text=serializeDesignDocument(design,draft);
+   }
+   const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},body:JSON.stringify({text,title:activeName.replace(/\.(pdf|docx|xlsx|pptx)$/i,"").slice(0,120),style,font})});
    if(!response.ok)throw Error("PDF generation unavailable ("+response.status+")");
    bytes=new Uint8Array(await response.arrayBuffer());
   }else if(kind==="docx")bytes=(await import("@/lib/ai/docx-export")).createNoataDocx(draft,style);
@@ -239,9 +296,14 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     if(mode==="annotate")revisionText+="\n\n# PDF annotations\n"+pdfNotes.map(note=>"- Page "+note.page+" ("+note.position+"): "+note.text).join("\n");
     if(operation.current!==ticket)throw Error("Operation cancelled");
    }
+   let storedSource=storedDocumentSource(revisionText,{style,font});
+   if(design&&outputFormat==="pdf"&&mode!=="pages"&&mode!=="annotate"){
+    const {serializeDesignDocument}=await import("../../../../supabase/functions/noata-ai/document-design.ts");
+    storedSource=serializeDesignDocument(design,revisionText);
+   }
    const row=await supabase.from("ai_artifacts").insert({
     id,user_id:owner,filename,mime_type:mime[outputFormat],
-    storage_path:path,byte_size:bytes.byteLength,source_content:storedDocumentSource(revisionText,{style,font}),
+    storage_path:path,byte_size:bytes.byteLength,source_content:storedSource,
     ...(file?{parent_artifact_id:file.id}:localSource?.documentId?{source_document_id:localSource.documentId}:{})
    }).select("id,version").single();
    if(row.error||row.data?.id!==id)throw row.error??Error("File metadata could not be saved");
@@ -275,9 +337,11 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
   <div className="noata-creative-studio" dir={locale==="ar"?"rtl":"ltr"}>
    <header className="noata-creative-header"><span className="noata-creative-symbol"><Icon name="file" size={21}/></span>
     <div><strong dir="auto">{activeName}</strong><p>{t("مساحة واحدة للمعاينة، التعديل، تحسين الذكاء الاصطناعي والتصدير.","One workspace for real previews, editable drafts, AI improvements and exports.")}</p></div></header>
+   {loadError&&<div role="alert" className="noata-creative-error"><p>{loadError}</p><button type="button" onClick={()=>setReloadToken(n=>n+1)}>{t("إعادة المحاولة","Retry")}</button></div>}
    {error&&<p role="alert" className="noata-creative-error">{error}</p>}
    {originalText&&revisionMayLoseContent(originalText,draft,instruction)&&<p role="status" className="noata-creative-error">{t("هذه النسخة أقصر بكثير من الأصل. قارن المحتوى قبل الحفظ للتأكد من بقاء التفاصيل.","This revision is substantially shorter than the original. Compare the content before saving to check that details remain.")}</p>}
-   {!loaded&&!error&&<p role="status">{t("بنفتح الملف الأصلي من مكتبتك الخاصة…","Opening the original from your private library…")}</p>}
+   {design&&<p role="status" className="noata-design-preserved"><Icon name="sparkles" size={15}/>{t("ملف مصمّم: تعديلك يحافظ على الغلاف والهوية البصرية والفهرس.","Designed file: your edits preserve the cover, visual identity and contents.")}</p>}
+   {!loaded&&!error&&!loadError&&<p role="status">{t("بنفتح الملف الأصلي من مكتبتك الخاصة…","Opening the original from your private library…")}</p>}
    {loaded&&<div className="noata-creative-tabs" role="group" aria-label={t("عرض الملف","File view")}>
     <button type="button" aria-pressed={mode==="preview"} onClick={()=>setMode("preview")}>{t("معاينة حقيقية","Real preview")}</button>
     <button type="button" aria-pressed={mode==="edit"} onClick={()=>setMode("edit")}>{t("تعديل نسخة","Edit a revision")}</button>
