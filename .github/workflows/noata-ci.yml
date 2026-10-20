@@ -95,6 +95,7 @@ jobs:
             curl -fsS -o /dev/null "http://127.0.0.1:3000$path"
           done
 
+          curl -fsSI http://127.0.0.1:3000/pdf/pdf.worker.min.mjs | grep -qi '^content-type: application/javascript'
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-frame-options: DENY'
           curl -fsSI http://127.0.0.1:3000/ | grep -qi '^x-content-type-options: nosniff'
           test "$(curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/documents/pdf -H 'Content-Type: application/json' -H 'Origin: https://untrusted.invalid' --data '{}')" = 403
