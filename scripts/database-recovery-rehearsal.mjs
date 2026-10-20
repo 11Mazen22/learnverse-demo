@@ -18,7 +18,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   assert.equal(before.length,18);
   assert.ok(delta.includes('20261017175911_respiratory_system_learning_pathway.sql'));
   assert.ok(delta.includes('20261019193000_submission_grading_integrity.sql'));
-  assert.equal(delta.length,17); // Includes the already-applied staging curriculum source recovered under its original ledger version and the submission grading integrity guard.
+  assert.equal(delta.length,19); // Includes the already-applied staging curriculum source recovered under its original ledger version, the submission grading integrity guard, and the two provider-secret reader migrations.
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);
