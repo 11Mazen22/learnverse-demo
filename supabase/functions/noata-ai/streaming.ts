@@ -86,6 +86,10 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
           if (/not authorized|unauthorized|permission|not enabled|not allowed|access denied|additional authorization/i.test(detail))throw Error("PROVIDER_MODEL_ACCESS_DENIED");
           if (/stream/i.test(detail)&&/not support|unsupported|not available|cannot/i.test(detail))throw Error("PROVIDER_STREAM_UNSUPPORTED");
           if(Array.isArray(rejected?.detail))console.warn("Fanar validation fields",rejected.detail.flatMap((item:{loc?:unknown[]})=>(item.loc??[]).filter(x=>typeof x==="string"&&/^(body|messages|role|content|model|stream|temperature|max_tokens)$/.test(x))));
+          // An oversized request is a size problem, not a connection problem.
+          // Log the provider's own wording (never the prompt or a key) so the
+          // real limit can be read from the logs.
+          if(response.status===413)console.warn("Fanar rejected an oversized request",JSON.stringify({status:413,detail:detail.slice(0,200).replace(/[A-Za-z0-9_-]{32,}/g,"[redacted]")}));
           throw Error(`PROVIDER_HTTP_${response.status}`);
         }
         if (!response.headers.get("content-type")?.includes("text/event-stream")) {

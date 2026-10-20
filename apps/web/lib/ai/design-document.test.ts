@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {designFromMarkdown,parseDesignDocument,serializeDesignDocument,stripDesignFrontMatter} from "../../../../supabase/functions/noata-ai/document-design.ts";
-import {documentAuthorInput,documentAuthorPrompt} from "../../../../supabase/functions/noata-ai/document-author.ts";
+import {documentAuthorInput,documentAuthorPrompt,DOCUMENT_INPUT_BUDGET} from "../../../../supabase/functions/noata-ai/document-author.ts";
 import {designedDocumentParts} from "./pdf-design.ts";
 
 const fonts={arabic:"AAAA",latin:"BBBB",symbols:"CCCC"};
@@ -50,7 +50,10 @@ test("author prompt requires the marker and prohibits fake evidence",()=>{
  assert.match(structured,/## First\\n\\nLine one/);
  const previous="# Existing\n\n"+"x".repeat(30_000);
  const revised=JSON.parse(documentAuthorInput({request:"حسّن",draft:"Draft",previous,language:"ar"}));
- assert.equal(revised.previous.length,previous.length,"Existing document sections are not silently truncated");
+ assert.ok(revised.previous.length<=previous.length,"Existing document sections are never silently invented");
+ if(revised.previous.length<previous.length)assert.equal(revised.previousTruncated,true,"a shortened document is disclosed to the model");
+ const bounded=documentAuthorInput({request:"r".repeat(6_000),draft:"d".repeat(20_000),previous:"p".repeat(40_000),language:"ar",sources:Array.from({length:5},(_,index)=>({id:index+1,title:"T",url:"https://example.org",excerpt:"e".repeat(2_000)}))});
+ assert.ok(bounded.length<=DOCUMENT_INPUT_BUDGET,`authoring input was ${bounded.length} characters`);
 });
 test("the cover title is never repeated at the top of the body",()=>{
  const source='---noata\n{"title":"Baghdad","theme":"ivory","lang":"en"}\n---\n\n# **BAGHDAD**\n\n## Markets\n\nText.';

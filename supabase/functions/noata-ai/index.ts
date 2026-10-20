@@ -17,6 +17,7 @@ import {searchProviderConfigured,searchProviderName,type SearchProviderOptions} 
 import {parseDesignDocument,serializeDesignDocument,designFromMarkdown,documentThemeForStyle,type DocumentDesign} from "./document-design.ts";
 import {documentAuthorInput,documentAuthorPrompt,documentRepairPrompt,type DocumentAuthorSource} from "./document-author.ts";
 import {readProviderSecret} from "./provider-secrets.ts";
+import {fitRequestBody} from "./request-budget.ts";
 import {searchEncyclopedia} from "./encyclopedia.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
@@ -163,10 +164,10 @@ async function reviewCompletedAnswer(input:{
         await claim(input.userId,input.model);
         const reviewed=await fetch(FANAR_BASE+"/chat/completions",{
           method:"POST",headers:{Authorization:"Bearer "+FANAR_KEY,"Content-Type":"application/json"},
-          body:JSON.stringify({model:input.model,stream:true,max_tokens:6000,temperature:0.1,messages:[
+          body:JSON.stringify(fitRequestBody({model:input.model,stream:true,max_tokens:6000,temperature:0.1,messages:[
             {role:"system",content:answerReviewInstruction(reason,input.language,input.request)+"\n"+fileDeliveryInstruction(input.format,input.language,input.sectionLevel)},
-            {role:"user",content:JSON.stringify({request:input.request,previousDraft:input.content.slice(0,16000),...(input.research?{retrievedEvidence:researchContext(input.research)}:{})})}
-          ]}),signal:AbortSignal.any([input.signal,AbortSignal.timeout(45000)])
+            {role:"user",content:JSON.stringify({request:input.request,previousDraft:input.content.slice(0,6000),...(input.research?{retrievedEvidence:researchContext(input.research)}:{})})}
+          ]})),signal:AbortSignal.any([input.signal,AbortSignal.timeout(45000)])
         });
         if(!reviewed.ok||!reviewed.body)return fallback();
         const reviewOutput=await readFanarTextResponse(reviewed,candidate=>input.emit?.({content:clean(candidate),model:input.model,delivery:"streamed"}));
@@ -206,7 +207,9 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
     request: (signal,emit) => requestWithContextRecovery(providerBody,requestBody=>fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + FANAR_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody), signal,
+      // The provider rejects oversized bodies with 413, so every request is
+      // fitted to a character budget before it is sent.
+      body: JSON.stringify(fitRequestBody(requestBody,protectedMessages)), signal,
     }),protectedMessages,()=>emit({status:"context_recovery"})),
     persist: (result, status) => completeReceipt(receipt, result, status),
   }), { headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" } });

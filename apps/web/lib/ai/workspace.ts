@@ -225,6 +225,8 @@ export function friendlyError(error: unknown,locale:"ar"|"en"="ar") {
   const message = error instanceof Error ? error.message : String(error);
   if (/PROVIDER_HTTP_(401|403)|PROVIDER_MODEL_ACCESS_DENIED/.test(message))
     return t("لم يسمح مزوّد Fanar باستخدام هذا النموذج بالمفتاح المهيأ. جرّب نموذجًا آخر؛ يلزم تفعيل الوصول لدى المزوّد.","Fanar has not authorized this model for the configured API key. Choose another model; provider access must be enabled.");
+  if (/PROVIDER_HTTP_413|REQUEST_TOO_LARGE|too large/i.test(message))
+    return t("الطلب كان أكبر من الحدّ الذي يقبله مزوّد النموذج. جرّب سؤالًا أقصر أو ابدأ محادثة جديدة.","The request was larger than the model provider accepts. Try a shorter question or start a new chat.");
   if (/PROVIDER_HTTP_4(00|04|22)/.test(message))
     return t("رفض المزوّد صيغة هذا الطلب أو النموذج. رسالتك محفوظة هنا؛ جرّب نموذجًا آخر.","The provider rejected this request or model. Your message is kept here; try another model.");
   if (/PROVIDER_HTTP_5[0-9][0-9]|PROVIDER_STREAM_INTERRUPTED/.test(message))

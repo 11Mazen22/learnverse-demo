@@ -48,16 +48,40 @@ export function documentAuthorPrompt(language:"ar"|"en"):string{
 export function documentRepairPrompt(language:"ar"|"en"):string{
  return documentAuthorPrompt(language)+"\nYour previous output was rejected. Reply with the exact marker format and a complete body only. No code fence. Ensure the JSON is valid and every theme/cover value is allowlisted.";
 }
+/** The provider rejects oversized request bodies, so the authoring input is
+ * budgeted. A shortened previous document is disclosed to the model instead of
+ * being cut silently. */
+export const DOCUMENT_INPUT_BUDGET=15000;
 export function documentAuthorInput(input:DocumentAuthorInput):string{
- const sources=(input.sources??[]).slice(0,5).map(source=>({
+ const sources=(input.sources??[]).slice(0,4).map(source=>({
   id:source.id,title:clip(source.title,180),url:source.url,
-  ...(source.published?{published:source.published}:{}),excerpt:clip(source.excerpt,700)
+  ...(source.published?{published:source.published}:{}),excerpt:clip(source.excerpt,450)
  }));
- return JSON.stringify({
-  request:clip(input.request,4_000),
-  draft:preserve(input.draft,12_000),
-  ...(input.previous?{previous:preserve(input.previous,40_000)}:{}),
+ const request=clip(input.request,2_000);
+ let draft=preserve(input.draft,4_000);
+ const originalPrevious=input.previous?preserve(input.previous,40_000):"";
+ let previous=originalPrevious;
+ let truncated=false;
+ const build=()=>JSON.stringify({
+  request,
+  draft,
+  ...(previous?{previous}:{}),
+  ...(truncated?{previousTruncated:true}:{}),
   ...(input.themeHint?{themeHint:input.themeHint}:{}),
   ...(sources.length?{evidence:sources}:{}),
  });
+ let payload=build();
+ if(payload.length>DOCUMENT_INPUT_BUDGET){
+  const overhead=payload.length-previous.length;
+  const room=Math.max(2_000,DOCUMENT_INPUT_BUDGET-overhead);
+  previous=previous.slice(0,room);
+  truncated=previous.length<originalPrevious.length;
+  payload=build();
+  if(payload.length>DOCUMENT_INPUT_BUDGET){
+   const draftRoom=Math.max(500,DOCUMENT_INPUT_BUDGET-(payload.length-draft.length));
+   draft=draft.slice(0,draftRoom);
+   payload=build();
+  }
+ }
+ return payload;
 }
