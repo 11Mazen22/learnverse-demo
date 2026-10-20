@@ -103,6 +103,7 @@ function clean(text: string) {
 
 async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,userId:string,signal:AbortSignal,emit?:(data:unknown)=>void):Promise<Research>{
  try{
+  const started=Date.now();
   // An unresolved plan must not reach Brave (empty query) or spend a quota claim.
   if(!plan.query.trim())return {version:1,status:"unavailable",reason:"unresolved_query",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
@@ -120,9 +121,10 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
    .slice(0,5).map((source,index)=>({...source,id:index+1}));
   if(openSources.length){
    const reason=scholarly.status==="complete"&&background.status==="complete"?"open_mixed":scholarly.status==="complete"?"open_scholarly":"encyclopedia_background";
-   return {version:1,status:"complete",reason,query:plan.query,sources:openSources,elapsedMs:Date.now(),
+   const at=new Date().toISOString();
+   return {version:1,status:"complete",reason,query:plan.query,sources:openSources,elapsedMs:Math.max(0,Date.now()-started),
     ...(researchRequiresCurrent(plan)?{currentRequired:true}:{}),
-    activity:[...(scholarly.activity??[]),...(background.activity??[])].slice(0,7)};
+    activity:[{stage:"searching",at},{stage:"reviewing",at},{stage:"complete",at,resultCount:openSources.length}]};
   }
   return broad;
  }catch{signal.throwIfAborted();return {version:1,status:"unavailable",reason:"quota_or_service",sources:[],elapsedMs:0,...(researchRequiresCurrent(plan)?{currentRequired:true}:{})};}
