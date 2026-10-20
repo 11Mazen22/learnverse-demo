@@ -7,6 +7,13 @@ export function normalizedDocumentSource(text:string):string {
   .replace(/^\[\s*([^\n]*\\(?:text|mathrm|frac|sqrt|rightarrow|xrightarrow|sum|int|begin)\b[^\n]*)\s*\]\s*$/gm,(_,math)=>"\n$$\n"+math.trim()+"\n$$\n")
  ).join("");
 }
+/** Chat lead-ins such as "بالتأكيد! إليك التقرير المطلوب:" must not enter a document. */
+export function withoutChatPreamble(text:string):string{
+ // A stored presentation marker may precede the body; it is metadata, not content.
+ const stripped=text.replace(/^(?:\s*<!--\s*noata-document-presentation[^>]*-->\s*)+/,"");
+ const lead=/^\s*(?:بالتأكيد|أكيد|تم|حسناً|حسنا|إليكِ?|سأقوم|هيّا|sure|certainly|of course|okay|here(?:'s| is)|this is the|the (?:report|document) (?:you )?(?:requested|is below))[^\n]{0,120}\n+/i;
+ return stripped.replace(lead,"").replace(/^\s*(?:بالتأكيد|أكيد|تم|إليكِ?|sure|certainly|of course)[^\n]{0,120}\n+/i,"").trimStart();
+}
 /** Remove opening Markdown headings already shown in the generated PDF cover. */
 export function withoutDuplicateDocumentTitle(text:string,title:string):string{
  const key=(value:string)=>value.replace(/\.(pdf|docx|pptx|xlsx)$/i,"").replace(/[*_\x60]/g,"")

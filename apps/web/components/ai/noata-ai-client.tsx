@@ -526,7 +526,7 @@ export function NoataAIClient() {
           )}
 
           {!messages.length && !loading && (
-            <div><NoataWelcome signedIn={signedIn} />{error&&<p className="owui-error" role="alert">{error}</p>}</div>
+            <div><NoataWelcome signedIn={signedIn} owner={seenAccount.user?.id??null}/>{error&&<p className="owui-error" role="alert">{error}</p>}</div>
           )}
 
           <div className="owui-thread">

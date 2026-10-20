@@ -43,6 +43,7 @@ import { artifactContent,detectArtifactIntents,checkArtifactContent } from "@/li
 import {artifactDerivativeHistory} from "@/lib/ai/artifact-derivative";
 import {documentWithResearch} from "@/lib/ai/research-document";
 import {readDocumentSource,storedDocumentSource,requestedDocumentPresentation,type DocumentPresentation} from "@/lib/ai/document-presentation";
+import {withoutChatPreamble} from "@/lib/ai/document-source";
 import {planNoataRequest} from "@/lib/ai/capability-planner";
 import {isNonDeliverableDraft,imageNeedsSubject} from "@/lib/ai/delivery-quality";
 import {confirmedFileIntent} from "@/lib/ai/artifact-followup";
@@ -1151,7 +1152,7 @@ export function useAIWorkspace() {
             currentContent=next.content;currentResearch=next.research??(currentIntent.usePrevious?validatedResearch(priorForFile?.metadata?.research):result.research);
           }
           let source = documentWithResearch(
-            artifactContent(currentIntent,responseText(currentContent),responseText(prior)),
+            withoutChatPreamble(artifactContent(currentIntent,responseText(currentContent),responseText(prior))),
             currentIntent.usePrevious?priorForFile?.metadata?.research:currentResearch,
             requestLanguage(text,locale),currentIntent.kind,
           );

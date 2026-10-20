@@ -64,6 +64,8 @@ export function ResearchSources({research}:{research:unknown}){
   <summary className="noata-research-summary"><span className="noata-research-indicator" aria-hidden="true"><Icon name="search" size={20}/></span>
    <span>{data.reason==="encyclopedia_background"
       ?t("مراجع موسوعية من ويكيبيديا","Wikipedia background sources")
+      :data.reason==="open_scholarly"
+      ?t("سجلات علمية مفتوحة","Open scholarly records")
       :t("تم البحث على الويب","Searched the web")} · {data.sources.length} {t("مصادر","sources")}</span>
    <span className="noata-research-expand">{t("التفاصيل","Details")}</span><span className="noata-research-chevron"><Icon name="chevron" size={16}/></span>
   </summary>
@@ -85,6 +87,8 @@ export function ResearchSources({research}:{research:unknown}){
    </li>)}</ol>
    <p className="noata-research-disclaimer"><Icon name="help" size={16}/><span>{data.reason==="encyclopedia_background"
      ?t("هذه مقاطع من ويكيبيديا للمعلومات العامة، وليست بحثًا حديثًا أو تحققًا من الأخبار.","These are Wikipedia background excerpts, not live news or verification of current claims.")
+     :data.reason==="open_scholarly"
+     ?t("سجلات علمية مفتوحة (بيانات ببليوغرافية). لا تتحقق من الأخبار أو الأحداث الجارية.","Open scholarly records (bibliographic metadata). They do not verify news or current events.")
      :t("المصادر المسترجعة لا تثبت تلقائيًا كل معلومة في الإجابة. تحقّق من الادعاءات المهمة.","Retrieved sources do not automatically verify every claim. Check important conclusions.")}</span></p>
   </div>
  </details>;

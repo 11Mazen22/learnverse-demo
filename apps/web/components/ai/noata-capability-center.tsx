@@ -6,6 +6,7 @@ import {AI_FUNCTION} from "@/lib/ai/workspace";
 import type {CapabilityAvailability,CapabilityId,CapabilityStatus} from "../../../../supabase/functions/noata-ai/capabilities.ts";
 const names:Partial<Record<CapabilityId,{en:string;ar:string}>>={
  chat:{en:"Conversation",ar:"المحادثات"}, "research.search":{en:"Web research",ar:"بحث الويب"},
+ "research.scholarly":{en:"Open scholarly records",ar:"سجلات علمية مفتوحة"},
  "text.translate":{en:"Translation",ar:"الترجمة"}, "image.generate":{en:"Image generation",ar:"توليد الصور"},
  "voice.transcribe":{en:"Speech to text",ar:"تحويل الصوت لنص"}, "voice.speak":{en:"Text to speech",ar:"تحويل النص لصوت"},
  "document.pdf":{en:"PDF export",ar:"تصدير PDF"}, "document.docx":{en:"Word export",ar:"تصدير Word"},

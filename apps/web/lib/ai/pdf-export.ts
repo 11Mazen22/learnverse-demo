@@ -1,4 +1,4 @@
-import {normalizedDocumentSource,withoutDuplicateDocumentTitle} from "./document-source.ts";
+import {normalizedDocumentSource,withoutChatPreamble,withoutDuplicateDocumentTitle} from "./document-source.ts";
 import {documentStyle,type DocumentStyle} from "./document-style.ts";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
@@ -27,7 +27,7 @@ export async function documentHtml(text: string, title: string, fonts: {arabic: 
   const direction = documentDirection(text);
   const colors=documentStyle(style);
   const textFont=font==="editorial"?"NoataEditorial":font==="mono"?"NoataMono":"Noata";
-  const source=withoutDuplicateDocumentTitle(normalizedDocumentSource(text),title);
+  const source=withoutDuplicateDocumentTitle(withoutChatPreamble(normalizedDocumentSource(text)),title);
   const content = await unified().use(remarkParse).use(remarkGfm).use(remarkMath)
     .use(remarkRehype).use(rehypeKatex, {output: "mathml", strict: "ignore", trust: false, maxExpand:100, maxSize:20})
     .use(() => (tree: any) => {

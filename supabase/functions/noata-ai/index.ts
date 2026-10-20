@@ -6,12 +6,13 @@ import {answerReviewReason,answerReviewIssue,answerReviewInstruction,limitedRese
 import {answerPresentation} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
-import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure} from "./semantic-plan.ts";
+import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure,deterministicSemanticPlan} from "./semantic-plan.ts";
 import { createFanarStream,readFanarTextResponse } from "./streaming.ts";
 import {validGeneratedPng} from "./image-validation.ts";
 import { resolveAutoRoute, requestLanguage } from "./routing.ts";
 import {searchPlan,searchNeedsTopic,runResearch,researchContext,researchRequiresCurrent,type Research} from "./research.ts";
 import {encyclopediaFallbackAllowed} from "./research-policy.ts";
+import {searchOpenScholarly} from "./open-search.ts";
 import {searchProviderConfigured} from "./search-provider.ts";
 import {searchEncyclopedia} from "./encyclopedia.ts";
 import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
@@ -107,6 +108,10 @@ async function prepareResearchForRequest(plan:ReturnType<typeof searchPlan>,user
   // One rate limit covers paid Brave and no-key encyclopedic background retrieval.
   const broad=await runResearch(plan,{key:Deno.env.get("BRAVE_SEARCH_API_KEY")??"",enabled:Deno.env.get("NOATA_SEARCH_ENABLED")==="true",signal,provider:Deno.env.get("NOATA_SEARCH_PROVIDER")??"brave",maxQueries:Number(Deno.env.get("NOATA_RESEARCH_MAX_QUERIES")??3),beforeQuery:()=>claim(userId,"web_search").then(()=>{}),onStatus:status=>emit?.({status})});
   if(broad.status==="complete"||!encyclopediaFallbackAllowed(plan))return broad;
+  // Open scholarly metadata (Crossref, key-free) before general encyclopedia background.
+  await claim(userId,"web_search");
+  const scholarly=await searchOpenScholarly(plan,{signal,onStatus:status=>emit?.({status})});
+  if(scholarly.status==="complete")return scholarly;
   // Real limited Wikipedia references, never represented as current news.
   await claim(userId,"web_search");
   const background=await searchEncyclopedia(plan,{signal,onStatus:status=>emit?.({status})});
@@ -723,12 +728,26 @@ async function handlePlan(userId:string,payload:Record<string,unknown>){
  },12000);
  const rawPlan=data?.choices?.[0]?.message?.content;
  const plan=parseSemanticPlan(clean(rawPlan??""));
- if(!plan){
-  const reason=semanticPlanFailure(rawPlan);
-  console.info(JSON.stringify({event:"noata_plan_rejected",reason,finishReason:data?.choices?.[0]?.finish_reason??"unknown",outputCharacters:typeof rawPlan==="string"?rawPlan.length:0}));
-  return json({error:"Invalid planner output",code:"PLAN_INVALID",reason},502);
- }
- return json({kind:"plan",plan,model:"Fanar"});
+ if(plan)return json({kind:"plan",plan,model:"Fanar"});
+ const reason=semanticPlanFailure(rawPlan);
+ console.info(JSON.stringify({event:"noata_plan_rejected",reason,finishReason:data?.choices?.[0]?.finish_reason??"unknown",outputCharacters:typeof rawPlan==="string"?rawPlan.length:0}));
+ // A malformed planner reply must never fail the user's turn. Retry once with
+ // the same bounded request, then fall back to a deterministic local plan.
+ try{
+  const {data:retry}=await fanarJson("/chat/completions",{
+   model:"Fanar",messages:[{role:"system",content:semanticPlanningPrompt(language)+"\nReply with the JSON object only. No prose, no code fence."},
+    {role:"user",content:JSON.stringify({request,context})}],
+   temperature:0,max_tokens:600,stream:false
+  },12000);
+  const retried=parseSemanticPlan(clean(retry?.choices?.[0]?.message?.content??""));
+  if(retried){
+   console.info(JSON.stringify({event:"noata_plan_recovered",stage:"retry"}));
+   return json({kind:"plan",plan:retried,model:"Fanar"});
+  }
+ }catch{/* the deterministic fallback below still applies */}
+ const fallback=deterministicSemanticPlan(request);
+ console.info(JSON.stringify({event:"noata_plan_recovered",stage:"deterministic",kind:fallback.kind}));
+ return json({kind:"plan",plan:fallback,model:"Fanar"});
 }
 
 /** Provider-generated, validated suggestions. Never blocks the primary chat request. */
