@@ -324,8 +324,6 @@
 .mushaf .mushaf-reciters,.mushaf .mushaf-player{border-radius:15px;box-shadow:none}
 .mushaf .mushaf-player{padding:clamp(15px,2.4vw,24px)}
 .mushaf .mushaf-attribution{border-radius:17px;font-size:11px}
-.mushaf-focused .mushaf-workspace{max-width:1150px}
-.mushaf-focused .mushaf-hero{min-height:150px}
 @media(min-width:1400px){
  .mushaf .mushaf-workspace{grid-template-columns:278px minmax(0,1fr)}
 }
@@ -649,4 +647,72 @@
   .mushaf .mushaf-insignia-crown,.mushaf .mushaf-insignia-crown-soft{fill:CanvasText}
   .mushaf .mushaf-insignia-arabic,.mushaf .mushaf-insignia-caption{color:CanvasText}
   .mushaf .mushaf-insignia-halo{background:Canvas;border-color:CanvasText}
+}
+
+/* Focused reading is a full canvas mode: the app chrome steps aside, the
+   index column is not rendered, and the mushaf reads as one centred column.
+   The reading column is derived from the DOM (no index column => one column)
+   with a stronger selector, so no other stylesheet or media query can leave
+   the reading pane squeezed next to an empty grid track. */
+.noata-shell:has(.mushaf-focused){
+  display:block;
+  min-height:100dvh;
+  width:100%;
+}
+.noata-shell:has(.mushaf-focused)>.noata-sidebar,
+.noata-shell:has(.mushaf-focused)>.mobile-nav,
+.noata-shell:has(.mushaf-focused)>.noata-main>.shell-topbar,
+.noata-shell:has(.mushaf-focused)>.noata-main>.page-footer{
+  display:none!important;
+}
+.noata-shell:has(.mushaf-focused)>.noata-main{
+  display:block;
+  width:100%;
+  min-width:0;
+  min-height:100dvh;
+  padding:0;
+  margin:0;
+}
+.noata-shell:has(.mushaf-focused) .page-content{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  margin:0;
+  padding:0;
+}
+.mushaf.aura-quran.mushaf-focused{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  width:100%;
+  max-width:1200px;
+  min-width:0;
+  margin-inline:auto;
+  padding:clamp(14px,3vw,36px);
+  gap:clamp(16px,2.2vw,28px);
+}
+.mushaf .mushaf-workspace:not(:has(> .mushaf-side)),
+.mushaf-focused .mushaf-workspace{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  width:100%;
+  max-width:1080px;
+  min-width:0;
+  margin-inline:auto;
+}
+.mushaf-focused .mushaf-main,
+.mushaf-focused .mushaf-reading{
+  width:100%;
+  min-width:0;
+  max-width:none;
+}
+.mushaf-focused .mushaf-reading{
+  border-radius:clamp(16px,2vw,26px);
+}
+.mushaf-focused .mushaf-hero{min-height:150px}
+@media(max-width:600px){
+  .mushaf.aura-quran.mushaf-focused{padding:10px;gap:14px}
+}
+@media(forced-colors:active){
+  .noata-shell:has(.mushaf-focused) .mushaf-reading{border:1px solid CanvasText}
 }
