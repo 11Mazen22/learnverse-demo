@@ -197,12 +197,19 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
   // Keep a live heartbeat while waiting for its actual JSON response.
   const protectedMessages:{role:string;content:unknown}[]=[];
   const providerBody=specialized?{model,messages:(body.messages as {role:string}[]).filter(m=>m.role!=="system"),stream:false}:{...body,stream:true};
+  // Whether a review will actually rewrite the answer.
+  const reviewWillRun=!specialized&&Boolean(userId)&&!designedPdf&&(Boolean(plan?.needed)||answerReviewReason(actualRequest,"",undefined,artifactFormat)!==null);
   return new Response(createFanarStream({
     model, clean,routeNote,
     // The draft is streamed live while it is written. The bounded review that
     // follows replaces it with the audited answer, so the learner never waits
     // for a silent answer to appear all at once.
-    deferContentUntilReview:false,
+    // Exactly one answer reaches the learner. The quality review only rewrites
+    // the answer when the request needs one (retrieved evidence, a requested
+    // chart or depth). In that case the draft stays hidden and the review's own
+    // output streams live, so the learner never sees the same text twice.
+    // Otherwise the draft itself streams live and the answer stays fast.
+    deferContentUntilReview:reviewWillRun,
     prepare:plan?.needed?async(signal,emit)=>{
       const research=await prepareResearchForRequest(plan,userId!,signal,emit);
       const messages=providerBody.messages as {role:string;content:unknown}[];
@@ -214,7 +221,8 @@ function streamFanar(body: Record<string, unknown>, model: string, receipt: Rece
 :"\nApplication evidence status for THIS request: live research was NOT available. Never claim a search, current verification, citations or URLs. Answer the request directly and completely from stable general knowledge. Do not apologise, do not talk about searching or browsing, and do not tell the learner that you cannot look things up unless they asked about current events. If one specific current fact is needed, answer what is stable and mark that part as not verified in a single short sentence.");
       return research;
     }:undefined,
-    review: !specialized&&userId&&!designedPdf?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,format:artifactFormat,language:responseLanguage,model,userId,signal,sectionLevel,emit}):undefined,
+    review: reviewWillRun?(result,signal,emit)=>reviewCompletedAnswer({request:actualRequest,content:result.content,research:result.research,
+format:artifactFormat,language:responseLanguage,model,userId:userId!,signal,sectionLevel,emit}):undefined,
     request: (signal,emit) => requestWithContextRecovery(providerBody,requestBody=>fetch(FANAR_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: "Bearer " + FANAR_KEY, "Content-Type": "application/json" },
