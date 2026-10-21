@@ -2,7 +2,6 @@
 import Link from "next/link";
 import {Icon} from "@/components/ui/icon";
 import {useTranslation} from "@/lib/i18n/locale";
-import {NoataPowerStrip} from "./noata-power-strip";
 
 /** The same composer handles the first message and every later turn. The hero
  * turns real capabilities into starting points instead of decorating a blank box. */
@@ -13,7 +12,6 @@ export function NoataWelcome({signedIn,owner,onPrompt}:{signedIn:boolean|null;ow
    <span className="noata-one-eyebrow r2-eyebrow"><i aria-hidden="true"/>Noata AI · {t("مساحة عمل ذكية","intelligent workspace")}</span>
    <h1>{t("فكّر.","Think.")}<br/><span>{t("اصنع.","Make.")}</span> {t("شارك.","Share.")}</h1>
    <p>{t("من سؤال عابر إلى بحث موثّق أو ملف مصمّم. مساحة واحدة للفهم والإنشاء والتقديم.","From a passing question to sourced research or a designed file. One workspace to understand, create and present.")}</p>
-   <div className="r2-power"><NoataPowerStrip owner={owner??null}/></div>
    {signedIn===false&&<Link className="noata-one-signin" href="/login?next=/ai">{t("سجّل الدخول للبدء","Sign in to get started")}</Link>}
   </div>
   <div className="r2-welcome-art" aria-hidden="true">

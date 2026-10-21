@@ -86,6 +86,7 @@ const CONTROL_TAG =
 
 function clean(text: string) {
   return sanitizeResponseUi(String(text ?? "")
+    .replace(/\[[^\]]{0,40}(?:رابط(?:\s+التنزيل)?|link(?:\s+to\s+download)?|تحميل)[^\]]{0,40}\]/gi,"")
     .replace(
       /<(think|thinking|analysis|reasoning)\b[^>]*>[\s\S]*?(?:<\/\1>|$)/gi,
       "",
@@ -177,10 +178,14 @@ async function reviewCompletedAnswer(input:{
         const issue=answerReviewIssue(input.request,candidateText,input.research,input.sectionLevel?"pptx":input.format);
         if(finishReason==="length"||!candidateText||issue){
           console.info("noata_answer_review_rejected",JSON.stringify({issue,finishReason:finishReason||null,words:candidateText.match(/[\p{L}\p{N}]+/gu)?.length??0,sections:candidateText.match(/^#{1,3}\s+\S/gm)?.length??0}));
-          const safe=fallback();if(safe)input.emit?.({content:clean(safe),model:input.model,delivery:"streamed"});return safe;
+          
+// The reviewed draft stays the answer. Replacing it with the raw evidence
+// dump made the learner see the same answer twice.
+if(reason==="requested_chart")return fallback();
+return candidateText||undefined;
         }
         return candidateText;
-      }catch{input.signal.throwIfAborted();const safe=fallback();if(safe)input.emit?.({content:clean(safe),model:input.model,delivery:"streamed"});return safe;}
+      }catch{input.signal.throwIfAborted();if(reason==="requested_chart")return fallback();return undefined;}
 
 }
 function streamFanar(body: Record<string, unknown>, model: string, receipt: Receipt | null,plan?:ReturnType<typeof searchPlan>,userId?:string,routeNote?:string,responseLanguage:"ar"|"en"="ar",actualRequest="",artifactFormat?:unknown,sectionLevel?:number) {
