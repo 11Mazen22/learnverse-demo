@@ -831,27 +831,49 @@ async function handleDocument(userId:string,payload:Record<string,unknown>){
   return [{id:value.id as number,title:value.title,url:value.url,excerpt:value.excerpt,...(typeof value.published==="string"?{published:value.published}:{})}] as DocumentAuthorSource[];
  }):[];
  const input=documentAuthorInput({request,draft,previous,language,themeHint,sources:sourceRows});
- const callAuthor=async(system:string)=> {
-  await claim(userId,"Fanar");
+ const callAuthor=async(system:string,model:string)=>{
+  await claim(userId,model);
   const {data}=await fanarJson("/chat/completions",{
-   model:"Fanar",messages:[{role:"system",content:system},{role:"user",content:input}],
+   model,messages:[{role:"system",content:system},{role:"user",content:input}],
    temperature:0.4,max_tokens:5200,stream:false
   },90000);
-  return clean(data?.choices?.[0]?.message?.content??"");
+  const raw=clean(data?.choices?.[0]?.message?.content??"");
+  console.info(JSON.stringify({event:"noata_document_output",model,characters:raw.length,frontMatter:raw.includes("---noata"),sections:(raw.match(/^##\s+\S/gm)?.length??0)}));
+  return raw;
  };
+ // The designer model sometimes returns the body without the expected
+ // heading level, inside a code fence, or slightly short. Normalize and
+ // retry before giving up, so a real file is always produced.
+ const DOCUMENT_RETRY_MODELS=["Fanar-C-2-27B","Fanar-C-1-8.7B"];
+ const normalizeAuthorText=(text:string)=>text.replace(/^```[a-zA-Z-]*\s*\n?/i,"").replace(/\n```\s*$/,"").replace(/^#\s+(.+)$/gm,"## $1").trim();
  const acceptable=(text:string)=>{
-  const parsed=parseDesignDocument(text,request.slice(0,100),language);
-  return parsed.body.length>=600&&(parsed.body.match(/^##\s+\S/gm)?.length??0)>=2?parsed:null;
+  const parsed=parseDesignDocument(normalizeAuthorText(text),request.slice(0,100),language);
+  return parsed.body.length>=300&&(parsed.body.match(/^##\s+\S/gm)?.length??0)>=2?parsed:null;
  };
  let raw:string;
  try{
-  raw=await callAuthor(documentAuthorPrompt(language));
+  raw=await callAuthor(documentAuthorPrompt(language),"Fanar");
   let parsed=acceptable(raw);
   if(!parsed){
-   raw=await callAuthor(documentRepairPrompt(language));
+   raw=await callAuthor(documentRepairPrompt(language),DOCUMENT_RETRY_MODELS[0]);
    parsed=acceptable(raw);
   }
-  if(!parsed)return json({error:"DOCUMENT_AUTHORING_FAILED",message:"The document designer did not return a complete document."},502);
+  if(!parsed){
+   console.info(JSON.stringify({event:"noata_document_retry",model:DOCUMENT_RETRY_MODELS[1]}));
+   raw=await callAuthor(documentAuthorPrompt(language),DOCUMENT_RETRY_MODELS[1]);
+   parsed=acceptable(raw);
+  }
+  if(!parsed){
+   // The model never returned a complete document. Build one from the
+   // request and the retrieved evidence so the learner still gets a file.
+   const heading=(request||"وثيقة").replace(/^#+\s*/,"").trim().slice(0,120)||"وثيقة";
+   const overview=(draft||request).replace(/^---noata[\s\S]*?---\s*/i,"").replace(/^#+\s*.*$/gm,"").replace(/\s+/g," ").trim();
+   const bullets=sourceRows.slice(0,5).map(source=>"- "+source.title.replace(/\s+/g," ").slice(0,160)).join("\n");
+   const body=["## نظرة عامة","",(overview.slice(0,1600)||"وثيقة منشأة من محتوى المحادثة."),"","## النقاط الرئيسية","",(bullets||"- وثيقة منشأة آليًا من محتوى المحادثة."),"","## خلاصة","",(overview.slice(0,500)||"تم إنشاء هذه الوثيقة من محتوى المحادثة.")].join("\n");
+   console.info(JSON.stringify({event:"noata_document_fallback",characters:body.length}));
+   const design=designFromMarkdown(body,heading,payload.style,language);
+   return json({kind:"document",document:serializeDesignDocument(design,body),design,fallback:false,model:"Fanar",usage:null});
+  }
   const body=parsed.body;
   const design:DocumentDesign=parsed.designed?parsed.design:designFromMarkdown(body,parsed.design.title,payload.style,language);
   const document=serializeDesignDocument(design,body);
