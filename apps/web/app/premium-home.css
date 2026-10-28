@@ -1,0 +1,152 @@
+/* Premium Noata Home — Futuristic AI Aesthetic */
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 15px) scale(0.95); }
+  75% { transform: translate(10px, -10px) scale(1.02); }
+}
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(-40px, 30px) scale(1.08); }
+  66% { transform: translate(20px, -25px) scale(0.92); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeUpSlow {
+  from { opacity: 0; transform: translateY(36px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6;filter: blur(80px); }
+  50% { opacity: 1;filter: blur(100px); }
+}
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.p-home-wrap {
+  background: #050b14;
+  color: #e8edf3;
+  overflow-x: hidden;
+  position: relative;
+}
+.p-home-wrap::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 30%, rgba(90,120,210,0.12), transparent 60%),
+              radial-gradient(circle at 80% 70%, rgba(160,100,220,0.12), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glass nav */
+.p-nav-glass {
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  background: rgba(5, 11, 20, 0.72);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Hero atmosphere */
+.p-hero-atmosphere {
+  position: relative;
+  isolation: isolate;
+  padding: 10rem 0 8rem;
+}
+.p-hero-atmosphere .orb {
+  position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55; pointer-events: none;
+  animation: orbFloat 18s ease-in-out infinite alternate;
+}
+.p-hero-atmosphere .orb-1 { width: 320px; height: 320px; background: linear-gradient(135deg, #4a6bd0, #8b7ae0); top: -10%; left: -5%; animation-delay: 0s; }
+.p-hero-atmosphere .orb-2 { width: 260px; height: 260px; background: linear-gradient(135deg, #c07aee, #6a8ce8); bottom: -5%; right: -5%; animation-delay: -6s; animation-name: orbFloat2; }
+.p-hero-atmosphere .orb-3 { width: 200px; height: 200px; background: linear-gradient(135deg, #e8a84e, #b06ee0); top: 40%; right: 20%; animation-delay: -10s; opacity: 0.35; }
+
+/* Typography */
+.p-h1 {
+  font-weight: 700; line-height: 1.05; letter-spacing: -0.03em;
+  font-size: clamp(3rem, 7vw, 6rem);
+  background: linear-gradient(170deg, #fff 55%, #c0b8e6 75%, #8aa4f0 100%);
+  background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: shimmer 6s linear infinite;
+}
+.p-h2 {
+  font-weight: 700; line-height: 1.1; letter-spacing: -0.025em;
+  font-size: clamp(2rem, 5vw, 3.5rem); color: #f2f0fa;
+}
+.p-eyebrow {
+  display: inline-block; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.8rem;
+  color: #9fa6c5; font-weight: 600; margin-bottom: 1rem;
+}
+
+/* Glass cards */
+.p-glass {
+  background: rgba(255,255,255,0.035);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-radius: 1.25rem; padding: 2rem;
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+.p-glass:hover {
+  border-color: rgba(255,255,255,0.18);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset;
+}
+
+/* CTA buttons */
+.p-cta-primary {
+  display: inline-flex; align-items: center; gap: 0.5em; padding: 0.85rem 1.8rem; border-radius: 999px;
+  background: linear-gradient(135deg, #4a6bd0, #7a6ae8); color: #fff; font-weight: 600; text-decoration: none;
+  box-shadow: 0 0 30px rgba(74,107,208,0.25), 0 10px 30px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+.p-cta-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(74,107,208,0.4); }
+.p-cta-secondary {
+  display: inline-flex; align-items: center; gap: 0.5em; padding: 0.85rem 1.8rem; border-radius: 999px;
+  background: rgba(255,255,255,0.05); color: #e8edf3; font-weight: 600; text-decoration: none;
+  border: 1px solid rgba(255,255,255,0.12); transition: background 0.2s ease, border-color 0.2s ease;
+}
+.p-cta-secondary:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+
+/* Section dividers */
+.p-section { position: relative; z-index: 1; padding: 7rem 1.5rem; max-width: 1200px; margin: 0 auto; }
+.p-section-divider {
+  height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), rgba(255,255,255,0.06), transparent);
+  margin: 0 auto; max-width: 1200px;
+}
+
+/* Feature grid */
+.p-features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; }
+
+/* Subject pills */
+.p-pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.9rem; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); font-size: 0.95rem; color: #d0d4e8; }
+
+/* FAQ details */
+.p-faq details { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
+.p-faq summary { cursor: pointer; font-weight: 600; color: #f2f0fa; list-style: none; }
+.p-faq summary::-webkit-details-marker { display: none; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .p-hero-atmosphere .orb { animation: none !important; }
+  .p-h1 { animation: none; }
+  .p-glass { transition: none; }
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .p-hero-atmosphere { padding: 6rem 0 5rem; }
+  .p-features-grid { grid-template-columns: 1fr; }
+}

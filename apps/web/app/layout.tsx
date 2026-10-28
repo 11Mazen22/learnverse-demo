@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     template: "%s · Noata",
   },
   description:
-    "نوتة — منصة تعلّم عربية ذكية: دروس، مراجعة، مصحف موثّق، ومساعد Noata AI يرافقك خطوة بخطوة.",
+    "نقطة — منصة تعلّم عربية ذكية: دروس، مراجعة، مصحف موثّق، ومساعد Noata AI يرافقك خطوة بخطوة.",
   applicationName: "Noata",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },

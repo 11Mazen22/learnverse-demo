@@ -78,7 +78,7 @@ export function DashboardLive() {
             .from("courses")
              .select("id,title_ar,title_en")
             .eq("active", true)
-            .order("created_at")
+            .order("created_at", { ascending: false })
             .limit(1),
           supabase
             .from("lessons")

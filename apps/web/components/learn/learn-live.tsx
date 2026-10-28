@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 
+type Course = { id: string; title_ar: string; title_en: string };
 type Unit = {
   id: string;
   position: number;
@@ -44,6 +45,8 @@ export function LearnLive() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseId, setCourseId] = useState<string | null>(null);
   const [course, setCourse] = useState<{title_ar:string;title_en:string}|null>(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -51,8 +54,33 @@ export function LearnLive() {
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0);
 
+  // The curriculum course ships newest; default to it and keep older paths reachable via the picker.
   useEffect(() => {
     if (account.loading) return;
+    let active = true;
+    void (async () => {
+      try {
+        const result = await supabase
+          .from("courses")
+          .select("id,title_ar,title_en")
+          .eq("active", true)
+          .order("created_at", { ascending: false });
+        if (active && !result.error) {
+          const rows = (result.data ?? []) as Course[];
+          setCourses(rows);
+          setCourseId((current) =>
+            current && rows.some((row) => row.id === current) ? current : rows[0]?.id ?? null,
+          );
+        }
+      } catch { /* the selected course effect reports connection errors */ }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [supabase, account.loading]);
+
+  useEffect(() => {
+    if (account.loading || !courseId) return;
     setProgress([]);
     let active = true;
     const controller = new AbortController();
@@ -63,9 +91,7 @@ export function LearnLive() {
         const courses = await supabase
           .from("courses")
           .select("id,title_ar,title_en")
-          .eq("active", true)
-          .order("created_at")
-          .limit(1)
+          .eq("id", courseId)
           .abortSignal(controller.signal);
         if (courses.error)
           throw Error(t("تعذّر تحميل المسار. بياناتك محفوظة؛ جرّب مرة أخرى.","Could not load the learning path. Your data is saved; please try again."));
@@ -129,7 +155,7 @@ export function LearnLive() {
       active = false;
       controller.abort();
     };
-  }, [supabase, reload, account.user, account.loading, t]);
+  }, [supabase, reload, account.user, account.loading, courseId, t]);
 
   const completed = new Set(
     progress.filter((x) => x.completed_at).map((x) => x.lesson_id),
@@ -168,6 +194,21 @@ export function LearnLive() {
               else setReload((n) => n + 1);
             }}
           >{t("إعادة المحاولة","Try again")}</button>
+        </div>
+      )}
+      {courses.length > 1 && (
+        <div className="filter-bar" role="tablist" aria-label={t("اختر المسار","Choose a learning path")}>
+          {courses.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="filter-chip"
+              aria-pressed={courseId === item.id}
+              onClick={() => setCourseId(item.id)}
+            >
+              {locale === "en" ? item.title_en : item.title_ar}
+            </button>
+          ))}
         </div>
       )}
       <section className="panel" aria-busy={loading || account.loading}>

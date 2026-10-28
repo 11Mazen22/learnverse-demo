@@ -1,0 +1,1335 @@
+دليل مذاكرة شامل — الصف الأول الثانوي — الترم الأول 2026–2027
+المواد: فلسفة ومنطق | العلوم المتكاملة (Science) | الرياضيات (Math) | اللغة العربية | اللغة الإنجليزية | التاريخ
+
+مهم قبل المذاكرة
+هذا الملف دليل مذاكرة أصلي ومفصّل يشرح الأفكار والقواعد ويقدّم أمثلة وأسئلة تدريبية، وليس نسخة حرفية من الكتب المدرسية. راجع الكتاب المدرسي مع هذه الملاحظات، خصوصًا النصوص الأدبية، مفردات الوحدات، الأشكال والخرائط، وأي تدريبات يحددها مدرسك.
+
+طريقة استخدام الملف
+1) اقرأ عنوان الدرس وأهدافه.
+2) ذاكر التعريفات والقواعد، ثم غطِّ الشرح وحاول استرجاعه بنفسك.
+3) حلّ التدريب دون النظر إلى الإجابة، ثم صحّح أخطاءك.
+4) في المواد اللغوية، استخدم كتاب المدرسة للنص الأصلي؛ هذه الملاحظات تلخّص الأفكار والتحليل ولا تستبدل النص.
+5) قد يختلف ترتيب توزيع الحصص داخل المدرسة؛ ترتيب العناوين هنا مبني على فهرس منهج الترم الأول 2026–2027 المتاح وقت الإعداد.
+
+======================================================================
+القسم الأول: الفلسفة والمنطق
+======================================================================
+
+ملاحظة المنهج: الفهرس الحالي يعرض أربعة دروس رسمية فقط في فلسفة ومنطق أولى ثانوي: التفكير الإنساني، الفلسفة وطبيعة الموقف الفلسفي، مبادئ المنطق (الحدود والقضايا)، والاستدلال. لذلك ستجد الدروس الأربعة كاملة في صورة ملاحظات دراسية، ثم قسم مراجعة خامس إضافي وليس درسًا رسميًا.
+
+الدرس 1: التفكير الإنساني
+
+أولًا: معنى التفكير الإنساني
+التفكير نشاط عقلي يربط الإنسان من خلاله بين المعلومات والخبرات والملاحظات للوصول إلى معنى أو حكم أو حل لمشكلة. قد يكون التفكير بسيطًا وسريعًا، مثل اختيار طريق إلى المدرسة، أو منظمًا ومعقدًا، مثل تفسير ظاهرة علمية أو تقييم حجة.
+
+أمثلة على وظائف التفكير:
+- تنظيم الخبرات: تصنيف الأشياء المتشابهة حتى يسهل فهمها.
+- استدعاء الماضي: استخدام تجربة سابقة لتجنب الخطأ نفسه.
+- التخطيط للمستقبل: وضع خطوات لتحقيق هدف.
+- حل المشكلات: تحديد المشكلة، جمع المعلومات، اقتراح حلول، ثم اختيار الحل الأفضل ومراجعة النتيجة.
+
+ثانيًا: أساليب التفكير الإنسانية
+1) التفكير الخرافي: يفسر الأحداث بنسبتها إلى قوى أو أسباب لا تقوم على دليل يمكن اختباره. ينتشر حين يحل الخوف أو الجهل محل البحث.
+2) التفكير الديني: ينطلق من الإيمان والمعتقدات الدينية ومصادرها. وهو مختلف عن المنهج التجريبي في مصدر المعرفة وطريقة الاستدلال، ولا يعني ذلك أن كل سؤال ديني سؤال علمي أو العكس.
+3) التفكير الفلسفي: يقوم على التساؤل المنظم، وتحليل المفاهيم، وفحص الافتراضات، ومناقشة المعاني والقيم والأسباب.
+4) التفكير العلمي: يعتمد على الملاحظة وصياغة الفروض وجمع البيانات والاختبار والتحقق وقابلية النتائج للمراجعة عند ظهور أدلة جديدة.
+
+ثالثًا: العلاقة بين الفلسفة والدين والعلم
+- تتفق هذه المجالات في اهتمام الإنسان بالمعرفة وفهم الوجود والحياة، لكن تختلف مصادرها وأسئلتها ومناهجها.
+- العلم يدرس الظواهر القابلة للملاحظة والاختبار ويصوغ تفسيرات يمكن فحصها.
+- الفلسفة تفحص المفاهيم والأسس والافتراضات، وتسأل عن معنى المعرفة والحقيقة والعدل والمسؤولية.
+- الدين يقدّم للمتدين تصورًا إيمانيًا وأخلاقيًا للوجود والحياة، وتُفهم قضاياه وفق مصادره ومناهجه الخاصة.
+- قد يتكامل الحوار بين المجالات، لكن لا يصح الخلط بين البرهان التجريبي والحجة الفلسفية أو الإيمان الديني وكأنها نوع واحد من الأدلة.
+
+رابعًا: التفكير الناقد والتفكير الإبداعي
+التفكير الناقد هو فحص المعلومات والحجج قبل قبولها. من مهاراته: التمييز بين الحقيقة والرأي، التحقق من المصدر، كشف التناقض، اختبار الأدلة، والبحث عن تفسيرات بديلة.
+التفكير الإبداعي هو إنتاج أفكار أو حلول جديدة ومناسبة. من مهاراته: الطلاقة (عدد الأفكار)، المرونة (تنوعها)، الأصالة (جدتها)، والتطوير (تحسين الفكرة).
+يمكن الجمع بينهما: الإبداع يقترح حلولًا كثيرة، والنقد يفحصها ويختار الحل الأقوى.
+
+خطوات حل مشكلة بطريقة منظمة:
+1. تحديد المشكلة بدقة.
+2. فصل الحقائق عن الافتراضات.
+3. جمع معلومات موثوقة.
+4. وضع تفسيرات أو حلول متعددة.
+5. فحص كل حل وفق الأدلة والتكلفة والنتائج.
+6. اختيار حل وتجربته ثم تقييم النتيجة.
+
+أخطاء شائعة:
+- قبول معلومة لأن كثيرين يكررونها.
+- تعميم تجربة واحدة على الجميع.
+- الخلط بين التعاقب الزمني والسببية؛ حدوث شيئين معًا لا يثبت أن أحدهما سبب الآخر.
+- مهاجمة الشخص بدل مناقشة الفكرة.
+- البحث عن أدلة تؤيد الرأي فقط وإهمال الأدلة المخالفة.
+
+أسئلة مراجعة:
+1. قارن بين التفكير العلمي والتفكير الفلسفي.
+2. ما الفرق بين التفكير الناقد والتفكير الإبداعي؟ وضّح كيف يكمل أحدهما الآخر.
+3. أعط مثالًا على قرار يومي يمكن تحسينه باستخدام خطوات حل المشكلة.
+
+الدرس 2: الفلسفة وطبيعة الموقف الفلسفي
+
+أولًا: معنى الفلسفة ونشأتها
+كلمة الفلسفة ذات أصل يوناني يُشرح عادةً بمعنى «محبة الحكمة». والفلسفة نشاط عقلي يبحث في الأسئلة الأساسية عن الوجود والمعرفة والقيم والعقل والحياة الاجتماعية، ولا تقتصر على حفظ آراء الفلاسفة؛ بل تتطلب فهم السؤال والحجة ومناقشة الافتراضات.
+ارتبط ظهور الفلسفة المنظمة في التراث المدرسي باليونان القديمة، مع وجود تقاليد فكرية عميقة في حضارات أخرى. من المهم التفريق بين نشأة مصطلح أو مدرسة تاريخية وبين وجود التفكير الحكيم في حضارات متعددة.
+
+ثانيًا: مباحث الفلسفة الأساسية
+- مبحث الوجود: ما طبيعة الواقع؟ وما معنى الوجود والتغير؟
+- مبحث المعرفة: كيف نعرف؟ وما مصادر المعرفة وحدودها؟
+- مبحث القيم والأخلاق: ما الخير والعدل والمسؤولية؟ وكيف نحكم على الأفعال؟
+- المنطق: ما قواعد التفكير السليم والاستدلال؟
+- الفلسفة السياسية والاجتماعية: ما الدولة العادلة؟ وما علاقة الفرد بالمجتمع والسلطة؟
+- فلسفة الجمال: ما الجمال؟ وكيف نفهم الفن والتذوق؟
+قد تتداخل هذه المباحث؛ فالسؤال عن عدالة قانون مثلًا يتصل بالأخلاق والسياسة والمعرفة.
+
+ثالثًا: أهمية الفلسفة للفرد والمجتمع
+للفرد: تنمية الاستقلال الفكري، ووضوح المفاهيم، والقدرة على تحليل المشكلات، واتخاذ قرار مبني على أسباب، ومراجعة الأحكام المتسرعة.
+للمجتمع: تشجيع الحوار، واحترام الاختلاف، وفحص الأفكار المتوارثة، وتوضيح المبادئ التي تقوم عليها القوانين والمؤسسات، ومقاومة التعصب والتضليل.
+
+رابعًا: الموقف الفلسفي وخصائصه
+الموقف الفلسفي هو اتخاذ موقف عقلي متسائل من قضية أو مشكلة بهدف فهمها وفحص أسبابها.
+من خصائصه:
+- الدهشة: ملاحظة ما يبدو عاديًا وطرح سؤال حوله.
+- التساؤل: صياغة السؤال بدقة وعدم الاكتفاء بالإجابة السطحية.
+- الشك المنهجي: تعليق الحكم مؤقتًا حتى تتضح الأدلة، لا إنكار كل شيء بلا تمييز.
+- النقد: فحص الحجج والافتراضات.
+- التحليل والتركيب: تفكيك المشكلة إلى عناصر، ثم إعادة ربطها في صورة متماسكة.
+- الحوار: عرض الرأي والأسباب والاستماع إلى اعتراضات الآخرين.
+- التسامح الفكري: احترام حق الآخر في النقاش مع الاحتفاظ بحق نقد الفكرة.
+- التجريد والتعميم: الانتقال من الحالات الجزئية إلى المفاهيم العامة، مع تجنب التعميم المتسرع.
+
+خامسًا: تحديات الموقف الفلسفي
+من أبرز التحديات: التعصب، والخوف من مراجعة الموروث، وضغط الجماعة، والخلط بين الرأي والحقيقة، والاعتماد على الشائعات، وصعوبة بعض المفاهيم. وتُواجَه هذه التحديات بوضوح المصطلحات، والدليل، والحوار المنصف، والاستعداد لتعديل الرأي.
+
+مثال تطبيقي:
+الادعاء: «كل من يختلف معي مخطئ».
+الفحص: ما الدليل؟ هل توجد أمثلة مضادة؟ هل الاختلاف حول حقيقة أم قيمة أم تفسير؟ هل تم عرض رأي الطرف الآخر بدقة؟
+النتيجة: الاختلاف وحده لا يثبت صحة أي طرف أو خطأه؛ يلزم فحص الأسباب.
+
+أسئلة مراجعة:
+1. اذكر ثلاثة مباحث فلسفية ونوع الأسئلة التي يدرسها كل منها.
+2. وضح الفرق بين الشك المنهجي والشك المطلق.
+3. كيف تساعد الفلسفة على مقاومة التعصب والشائعات؟
+
+الدرس 3: مبادئ المنطق — الحدود والقضايا
+
+أولًا: تعريف المنطق وأهميته
+المنطق دراسة القواعد التي تساعد على التمييز بين الاستدلال السليم وغير السليم. فائدته أن يجعل التفكير أوضح، ويساعد على ترتيب الأفكار، واكتشاف التناقض والمغالطات، وتقييم الحجج في الدراسة والحياة العامة.
+
+ثانيًا: عوامل الوقوع في أخطاء التفكير
+- عوامل ذاتية: التحيز، والانفعال الشديد، والرغبة في تصديق ما يوافقنا، وضعف الانتباه.
+- عوامل اجتماعية: ضغط الجماعة، والتعصب، والسلطة أو الشهرة التي تجعلنا نقبل كلامًا بلا فحص.
+- عوامل لغوية: استخدام لفظ غامض، أو كلمة لها أكثر من معنى، أو صياغة سؤال مضلل.
+- عوامل معرفية: معلومات ناقصة، ومصدر غير موثوق، وعينة صغيرة، وعدم التمييز بين الارتباط والسببية.
+
+ثالثًا: المنطق واللغة
+اللغة أداة للتعبير عن المفاهيم والقضايا، لكن غموض اللفظ قد يؤدي إلى سوء الفهم. لذلك ينبغي تعريف المصطلحات، وتحديد المقصود من الكلمات، والتمييز بين المعنى الحرفي والمعنى المجازي عندما يؤثر ذلك في الحجة.
+
+رابعًا: الحد المنطقي والمفهوم والماصدق
+الحد لفظ أو تعبير يدل على مفهوم، مثل «طالب» أو «مدينة» أو «عادل».
+- المفهوم: الصفات أو المعاني التي نفهمها من الحد.
+- الماصدق: الأفراد أو الأشياء التي ينطبق عليها الحد.
+العلاقة العامة: كلما زادت الصفات التي يتضمنها المفهوم ضاق عادةً عدد أفراده؛ فمفهوم «طالب» أوسع من «طالب في الصف الأول الثانوي بمدرسة معينة».
+قد يكون الحد كليًا إذا صدق على أفراد متعددين، وجزئيًا إذا دل على فرد معين، مثل اسم شخص محدد.
+
+الكليات الخمس في المنطق التقليدي:
+1. الجنس: مفهوم عام تشترك فيه أنواع، مثل «حيوان» بالنسبة إلى الإنسان والحصان.
+2. النوع: مفهوم يندرج تحت جنس، مثل «إنسان» تحت «حيوان».
+3. الفصل: صفة أساسية تميز النوع في التعريف التقليدي.
+4. الخاصة: صفة تلازم النوع أو تميزه دون أن تكون جزءًا من ماهيته في التصنيف التقليدي.
+5. العرض العام: صفة قد توجد في النوع وغيره ولا تميزه وحده.
+تُستخدم هذه التصنيفات لتحليل التعريفات والعلاقات بين المفاهيم.
+
+خامسًا: القضية المنطقية
+القضية قول خبري يمكن الحكم عليه بالصدق أو الكذب، مثل «النيل نهر» أو «بعض الطلاب يفضلون القراءة». أما الأمر والسؤال والتعجب، فلا يكون كل منها قضية خبرية بذاته.
+تتكوّن القضية الحملية في صورتها الأساسية من:
+- الموضوع: ما نتحدث عنه.
+- المحمول: ما نثبته أو ننفيه عن الموضوع.
+- الرابطة: ما يربط الموضوع بالمحمول في التحليل المنطقي.
+- الكم: كلي أو جزئي.
+- الكيف: موجبة أو سالبة.
+
+التقسيم الرباعي الشائع للقضايا الحملية:
+A: كلية موجبة — «كل الطلاب مجتهدون».
+E: كلية سالبة — «لا طالب مهمل».
+I: جزئية موجبة — «بعض الطلاب رياضيون».
+O: جزئية سالبة — «بعض الطلاب ليسوا رياضيين».
+ركز على الكم (كل/بعض/لا أحد) والكيف (إثبات/نفي). وقد تتطلب أسئلة الكتاب تحليل الاستغراق، أي هل يشمل الحد جميع أفراده في القضية أم لا؛ راجع جدول الاستغراق في كتاب المدرسة إن كان ضمن توزيع مدرسك.
+
+أسئلة مراجعة:
+1. فرّق بين المفهوم والماصدق بمثال.
+2. صنّف «بعض المدن ليست ساحلية» من حيث الكم والكيف.
+3. اذكر ثلاثة أسباب للخطأ في التفكير، واقترح علاجًا لكل سبب.
+
+الدرس 4: الاستدلال — تعريفه وأنواعه
+
+أولًا: معنى الاستدلال
+الاستدلال انتقال عقلي من معلومات أو قضايا نبدأ بها (مقدمات) إلى نتيجة نرى أنها تتبع عنها. ينبغي أن تكون المقدمات واضحة ومرتبطة بالنتيجة، وأن يكون شكل الاستدلال صالحًا.
+
+ثانيًا: الاستدلال المباشر
+ينتقل من قضية واحدة إلى قضية أخرى تلزم عنها وفق علاقة منطقية محددة. في بعض المقررات يدرس من خلال علاقات القضايا أو تحويل صورتها، لذلك اتبع اصطلاحات وأمثلة الكتاب المدرسي عند حل مسائل التوزيع والاستغراق والتقابل.
+مثال توضيحي عام: إذا ثبت أن «كل المربعات مستطيلات»، فإن القول «بعض المربعات مستطيلات» يتبع في منطق يسمح بوجود أفراد للمفهوم؛ أما القواعد التفصيلية للاستنتاج من القضايا فتتوقف على صورة القضية ونظام المنطق المستخدم.
+
+ثالثًا: الاستدلال غير المباشر — القياس
+القياس استدلال يتكون في صورته البسيطة من مقدمتين ونتيجة، ويشترك في المقدمتين حد أوسط يربط الحدين الآخرين.
+مثال:
+- كل الثدييات كائنات حية.
+- الحوت من الثدييات.
+- إذن الحوت كائن حي.
+الحد الأكبر هو محمول النتيجة، والحد الأصغر موضوعها، والحد الأوسط هو المصطلح الذي يظهر في المقدمتين ولا يظهر في النتيجة.
+
+تمييز صحة الاستدلال:
+- صدق المقدمة: هل المعلومة التي بدأت منها صحيحة؟
+- صحة الصورة: هل تلزم النتيجة عن المقدمات وفق قواعد الاستدلال؟
+- قوة الحجة في الواقع تتطلب الأمرين معًا؛ فقد تكون صورة الحجة صحيحة لكن إحدى مقدماتها خاطئة.
+
+أخطاء شائعة:
+- النتيجة لا تتبع من المقدمات.
+- استخدام حد أوسط بمعنيين مختلفين.
+- إخفاء مقدمة مهمة أو الاعتماد على افتراض لم يُثبت.
+- مهاجمة صاحب الرأي أو الاستناد إلى الشهرة بدل الدليل.
+
+أسئلة مراجعة:
+1. عرّف الاستدلال وميّز بين المقدمة والنتيجة.
+2. حلل القياس: «كل المعادن توصل الكهرباء؛ النحاس معدن؛ إذن النحاس يوصل الكهرباء».
+3. لماذا لا يكفي أن تكون النتيجة صحيحة في الواقع لإثبات صحة طريقة الاستدلال؟
+
+مراجعة خامسة إضافية — ليست درسًا رسميًا
+- التفكير الجيد يحتاج إلى بيانات كافية، وتعريف واضح للمشكلة، وفحص الفرضيات.
+- الفلسفة تحلل المفاهيم والأسئلة الكبرى، والمنطق يفحص صورة الحجج.
+- في أي سؤال مقالي: ابدأ بتعريف، ثم اشرح الفكرة، ثم مثال، ثم نتيجة أو مقارنة.
+
+======================================================================
+SECTION 2: INTEGRATED SCIENCE (SCIENCE)
+======================================================================
+
+LESSON 1 — THE HYDROSPHERE ON EARTH
+
+Learning objectives
+By the end of this lesson, you should be able to define an ecosystem, identify Earth's major spheres, describe the distribution of water, and explain the water cycle, including the role of living organisms.
+
+1. Environment and ecosystem
+The environment is the sum of the conditions and factors surrounding an organism. An ecosystem includes living organisms and non-living environmental factors interacting in a particular area.
+- Biotic factors: plants, animals, fungi, bacteria, and other organisms.
+- Abiotic factors: water, air, light, temperature, soil, minerals, and other physical or chemical conditions.
+An ecosystem is more than a list of organisms. It includes relationships such as feeding, competition, decomposition, and exchanges of matter and energy.
+
+2. Earth's four major spheres
+- Atmosphere: the layer of gases surrounding Earth.
+- Hydrosphere: water in oceans, seas, rivers, lakes, groundwater, glaciers, ice, and water vapour.
+- Lithosphere/geosphere: the solid outer part of Earth, including rocks and the uppermost solid layers.
+- Biosphere: all regions where life exists and interacts with the other spheres.
+These spheres interact continuously. For example, rain moves water from the atmosphere to the lithosphere, while plants absorb water from soil and return water vapour to the atmosphere through transpiration.
+
+3. Distribution of water on Earth
+Water covers roughly 71% of Earth's surface. Approximately 97% of Earth's water is saline and held in oceans and seas; only about 3% is freshwater. Most freshwater is stored in glaciers and ice sheets or underground, so only a small fraction is readily available in rivers and lakes.
+Key implication: having abundant water on the planet does not mean that usable freshwater is unlimited. Pollution, overuse, drought, and uneven distribution make conservation and careful management essential.
+
+4. The water cycle
+The water cycle is the continuous movement of water between Earth's surface, underground, living organisms, and the atmosphere. Solar energy drives evaporation, and gravity helps return water to the surface.
+- Evaporation: liquid water changes to water vapour after gaining energy.
+- Transpiration: plants release water vapour, mainly through leaf stomata.
+- Condensation: water vapour cools and changes into tiny liquid droplets or ice crystals, helping clouds form.
+- Precipitation: water falls from clouds as rain, snow, or hail.
+- Surface runoff: water flows over the land into streams, rivers, lakes, and oceans.
+- Infiltration/percolation: water enters and moves through soil and rock, helping recharge groundwater.
+- Storage: water remains for a time in oceans, lakes, soil, glaciers, groundwater, and organisms.
+The cycle recycles water through different reservoirs. It is not a simple one-way path; a water molecule may pass through several stages and storage locations.
+
+5. Why water is essential for life
+Water is a major component of cells, acts as a solvent and transport medium, supports biochemical reactions, and helps regulate temperature. The search for liquid water is important in astrobiology because all known life depends on water-based chemistry.
+
+Check your understanding
+1. Distinguish between the hydrosphere and the biosphere.
+2. Why is the percentage of freshwater that is easily available much smaller than the total water supply?
+3. Explain how transpiration contributes to the water cycle.
+Suggested answers: the hydrosphere includes Earth's water, while the biosphere is where life exists; most water is saline and most freshwater is locked in ice or groundwater; transpiration transfers water from plants to the atmosphere as vapour.
+
+LESSON 2 — CHEMICAL PROPERTIES OF WATER
+
+1. Structure of a water molecule
+Water has the chemical formula H2O: each molecule contains two hydrogen atoms covalently bonded to one oxygen atom. Oxygen attracts the shared bonding electrons more strongly than hydrogen, so each O–H bond is polar. The molecule has a bent shape, with a bond angle of approximately 104.5 degrees.
+
+2. Polarity and hydrogen bonding
+Because the charge is distributed unevenly, the oxygen end of a water molecule is partially negative and the hydrogen ends are partially positive. This makes water a polar molecule.
+A hydrogen bond is an attraction between a partially positive hydrogen bonded to an electronegative atom and an electronegative atom in another molecule. Hydrogen bonds between water molecules are weaker than the covalent bonds inside a water molecule, but collectively they have major effects on water's properties.
+
+3. Water as a solvent
+Water dissolves many ionic and polar substances. When sodium chloride (NaCl) dissolves, water molecules attract sodium ions (Na+) and chloride ions (Cl−), surround them, and help disperse them through the solution. This is why salts can dissolve readily in water.
+Not every substance dissolves well in water. Many non-polar substances, including many oils, do not mix well with water. A useful rule of thumb is that polar solvents tend to dissolve polar or ionic substances better than non-polar substances.
+
+4. Acids, bases, and pH
+The pH scale describes how acidic or basic an aqueous solution is. At about 25°C:
+- pH below 7: acidic solution.
+- pH equal to 7: neutral solution.
+- pH above 7: basic/alkaline solution.
+In the basic school model, acidic solutions have a relatively high hydrogen-ion concentration (H+), while basic solutions have a relatively high hydroxide-ion concentration (OH−). A neutral solution has balanced H+ and OH− concentrations under the reference conditions.
+Neutralisation is a reaction between an acid and a base. It commonly produces salt and water, although exact products depend on the substances involved. A salt solution is not automatically neutral: its pH depends on the ions and the acid/base from which it was formed.
+
+5. Examples
+- A solution with pH 3 is acidic.
+- A solution with pH 7 is neutral under the reference conditions.
+- A solution with pH 10 is basic.
+- Sugar dissolving in water does not, by itself, mean that the solution becomes acidic or basic; dissolving and acid–base behaviour are different ideas.
+
+Check your understanding
+1. Why is water a polar molecule?
+2. What do water molecules do when table salt dissolves?
+3. Classify solutions with pH values 4, 7, and 11.
+Suggested answers: oxygen attracts bonding electrons more strongly and the molecule is bent; water surrounds and separates the ions; acidic, neutral, and basic, respectively.
+
+LESSON 3 — PHYSICAL PROPERTIES OF WATER
+
+1. Mass, volume, and density
+Density is mass divided by volume:
+Density = mass / volume
+Common units include kg/m³ and g/cm³. Relative density compares a material's density with the density of a reference substance. A hydrometer measures the relative density of liquids by how deeply it floats in them.
+
+2. Water's anomalous expansion
+Liquid water reaches its maximum density at approximately 4°C. When water cools from 4°C toward 0°C, it expands and its density decreases. Ice is therefore less dense than liquid water and floats on it.
+This behaviour matters ecologically. In cold conditions, surface water may freeze while deeper water remains liquid, helping aquatic organisms survive beneath the ice. If ice sank, lakes could freeze in a very different way.
+
+3. Temperature versus heat
+Temperature is a measure related to the average kinetic energy of particles. Heat is energy transferred between objects because of a temperature difference. The terms are related but are not interchangeable.
+Conversion between Celsius and kelvin:
+T(K) = T(°C) + 273.15
+Some school calculations use 273 as an approximation. Follow the value required by the question.
+
+4. Specific heat capacity and heat calculations
+Specific heat capacity is the energy required to raise the temperature of one unit of mass of a substance by one degree.
+Equation: Q = m × c × ΔT
+Q = heat energy transferred (joules, J)
+m = mass (kg if c is in J/(kg·°C))
+c = specific heat capacity
+ΔT = final temperature − initial temperature
+Water has a high specific heat capacity (approximately 4200 J/(kg·°C)), so it warms and cools more slowly than many materials. This moderates temperatures in aquatic environments and coastal regions.
+Worked example: A 0.50 kg sample of water warms by 10°C. Using c = 4200 J/(kg·°C):
+Q = 0.50 × 4200 × 10 = 21,000 J.
+
+5. Sea breeze and latent heat
+During the day, land usually warms faster than the sea. Air over the warmer land rises, and cooler air moves from sea to land; this is a sea breeze. At night, land often cools faster than the sea, so the direction may reverse and a land breeze may occur.
+Latent heat is energy absorbed or released during a change of state without a temperature change during the phase change itself. Evaporation absorbs energy; condensation releases energy. These energy transfers affect weather and the movement of heat through the atmosphere.
+
+Check your understanding
+1. Why does ice float on liquid water?
+2. Explain the difference between temperature and heat.
+3. Calculate Q when m = 2 kg, c = 4200 J/(kg·°C), and ΔT = 5°C.
+Suggested answers: ice has a lower density; temperature measures thermal state while heat is energy transferred due to a temperature difference; Q = 42,000 J.
+
+LESSON 4 — AQUEOUS SOLUTIONS AND THEIR PROPERTIES
+
+1. Solute, solvent, and solution
+A solution is a homogeneous mixture of a solute dissolved in a solvent. In an aqueous solution, water is the solvent.
+- Solute: the substance being dissolved.
+- Solvent: the medium that dissolves the solute.
+- Unsaturated solution: more solute can dissolve under the same conditions.
+- Saturated solution: it contains the maximum amount of dissolved solute at a specified temperature and pressure, at equilibrium.
+- Supersaturated solution: it contains more dissolved solute than is normally stable under the same conditions and may crystallise if disturbed.
+
+2. Solubility and concentration
+Solubility is the maximum quantity of solute that dissolves in a given amount of solvent under specified conditions. Concentration describes how much solute is actually present in a quantity of solution. These are different: a solution may be dilute even when the solute has high solubility.
+Solubility depends on the nature of the solute and solvent, temperature, and—especially for gases—pressure. For many solid solutes, increasing temperature increases solubility, but there are exceptions. Gas solubility in water commonly decreases as temperature increases.
+
+3. Colligative properties
+Certain solution properties depend mainly on the number of dissolved particles, rather than their chemical identity alone, under comparable conditions. Important examples are:
+- Lower vapour pressure: a non-volatile solute reduces the tendency of solvent molecules to escape into the vapour phase.
+- Boiling-point elevation: the solution generally needs a higher temperature to boil at the same external pressure.
+- Freezing-point depression: the solution generally freezes at a lower temperature than the pure solvent.
+The size of the effect is associated with the effective number of solute particles. Ionic compounds can produce more than one dissolved ion per formula unit, so their behaviour may differ from that of molecular solutes at the same concentration.
+
+4. Osmosis and osmotic pressure
+Osmosis is the net movement of solvent molecules across a selectively permeable membrane from a region with lower solute concentration to a region with higher solute concentration, under the usual school model. The membrane allows solvent molecules to pass more readily than certain solute particles.
+Osmotic pressure is the pressure required to prevent the net osmotic movement. Osmosis is important in water uptake by plant roots and in the movement of water across cell membranes. Very concentrated salt or sugar solutions can draw water out of cells, which is one reason they can help preserve some foods.
+
+5. Common misconceptions
+- A homogeneous solution does not have to be colourless.
+- Saturation is a dynamic equilibrium; molecules continue to move even when no net increase in dissolved solute occurs.
+- Solubility is not identical to concentration.
+- Osmosis describes solvent movement through a selectively permeable membrane, not simply the spreading of any substance in water.
+
+Check your understanding
+1. Identify the solute and solvent in salt water.
+2. What is the usual direction of solvent movement during osmosis?
+3. Name two colligative properties.
+Suggested answers: salt is the solute and water is the solvent; from lower solute concentration toward higher solute concentration through the membrane; boiling-point elevation and freezing-point depression, or vapour-pressure lowering.
+
+LESSON 5 — THE BIOLOGICAL IMPORTANCE OF WATER
+
+1. Water in living organisms
+The proportion of water varies among organisms, tissues, and cells. Water is found inside cells and in extracellular fluids, including blood and other body fluids. It provides a medium for many of the chemical reactions that sustain life.
+
+2. Major biological functions
+- Solvent: it dissolves many ions and polar molecules.
+- Transport: it helps move nutrients, mineral ions, gases, and waste products.
+- Metabolism: it participates in some reactions, including hydrolysis.
+- Temperature regulation: its high specific heat capacity limits rapid temperature change, and evaporation can remove heat.
+- Cell structure: water contributes to cell volume and helps maintain turgor pressure in plant cells.
+- Movement of materials: dissolved substances can diffuse or be transported through aqueous environments.
+
+3. Prokaryotic and eukaryotic cells
+Prokaryotic cells do not have a membrane-bound nucleus; their genetic material is located in a region of the cell. Bacteria are examples of prokaryotes.
+Eukaryotic cells have a membrane-bound nucleus and specialised organelles. They occur in animals, plants, fungi, and many other organisms.
+A typical eukaryotic cell has a plasma membrane that controls exchange with its surroundings, cytoplasm where many reactions occur, and a nucleus containing most of the genetic material. Other organelles perform specialised functions. Cell structure varies with the organism and cell type.
+
+4. Enzymes and metabolism
+Metabolism is the sum of chemical reactions in a living organism. Enzymes are biological catalysts, commonly proteins, that accelerate reactions by lowering activation energy. They are not permanently used up by the reactions they catalyse.
+Enzyme activity is affected by:
+- Temperature: activity often rises as temperature increases to an optimum. Above the optimum, the enzyme's structure may change (denaturation), reducing activity.
+- pH: each enzyme has a suitable pH range; extreme pH can alter the active site and reduce activity.
+- Substrate concentration and enzyme concentration: these affect reaction rate, especially before other factors become limiting.
+- Inhibitors or activators: certain substances can reduce or increase enzyme activity.
+
+5. How water supports enzyme action
+An aqueous medium allows molecules to move and interact. Water dissolves many substrates and products, enabling them to reach reaction sites and be transported. A shortage of water can disrupt transport and biochemical reactions. However, water alone cannot guarantee normal enzyme function if temperature, pH, or other conditions are unsuitable.
+
+Check your understanding
+1. Give four biological functions of water.
+2. State the main difference between prokaryotic and eukaryotic cells.
+3. Why can very high temperature reduce enzyme activity?
+Suggested answers: solvent, transport, metabolic reactions, temperature regulation, or maintaining cell volume; eukaryotes have a membrane-bound nucleus while prokaryotes do not; high temperature may denature the enzyme and change its active site.
+
+INTEGRATED SCIENCE — HIGH-PRIORITY REVISION
+- Earth's spheres: atmosphere, hydrosphere, lithosphere/geosphere, biosphere.
+- Water cycle: evaporation and transpiration, condensation, precipitation, runoff, infiltration, and storage.
+- Water is polar; hydrogen bonding helps explain its distinctive properties.
+- Density = mass/volume; Q = mcΔT; water has maximum density near 4°C.
+- A solution contains a solvent and solute; osmosis is solvent movement across a selectively permeable membrane.
+- Water supports metabolism, transport, and temperature regulation; enzyme activity depends on temperature and pH.
+
+======================================================================
+SECTION 3: MATHEMATICS (MATH)
+======================================================================
+
+LESSON 1 — INTRODUCTION TO COMPLEX NUMBERS
+
+1. Why complex numbers are needed
+There is no real number whose square is −1. To solve equations such as x² + 1 = 0, we define the imaginary unit i by:
+i² = −1.
+Complex numbers extend the real number system and allow quadratic equations with negative discriminants to have solutions.
+
+2. Powers of i
+The powers repeat in a cycle of four:
+i¹ = i
+i² = −1
+i³ = −i
+i⁴ = 1
+After every four powers, the cycle repeats. To simplify i^n, divide n by 4 and use the remainder.
+Example: i^7 = i^4 × i^3 = 1 × (−i) = −i.
+Example: i^10 = i^8 × i² = 1 × (−1) = −1.
+
+3. Standard form
+A complex number is written z = a + bi, where a and b are real numbers.
+- Real part: Re(z) = a.
+- Imaginary coefficient: Im(z) = b (the coefficient of i, not the whole term bi).
+If b = 0, the number is real. If a = 0 and b ≠ 0, it is purely imaginary.
+Two complex numbers are equal if and only if their real parts and imaginary coefficients are equal separately.
+Example: If 3 + (x − 2)i = 3 + 5i, then x − 2 = 5, so x = 7.
+
+4. Operations
+Addition and subtraction: combine real parts and imaginary parts separately.
+(2 + 3i) + (4 − i) = 6 + 2i.
+(5 + 2i) − (1 + 7i) = 4 − 5i.
+Multiplication: expand using the distributive law, then replace i² with −1.
+(2 + i)(3 − 2i) = 6 − 4i + 3i − 2i² = 8 − i.
+
+5. The complex conjugate and division
+The conjugate of z = a + bi is z̄ = a − bi. Multiplying a complex number by its conjugate gives a real number:
+(a + bi)(a − bi) = a² + b².
+To divide by a non-zero complex number, multiply both numerator and denominator by the conjugate of the denominator.
+Example:
+(1 + i)/(1 − i) × (1 + i)/(1 + i)
+= (1 + i)² / (1 − i²)
+= (1 + 2i + i²) / 2
+= 2i / 2 = i.
+
+Common mistakes
+- Forgetting that i² = −1.
+- Treating bi as the imaginary coefficient rather than b.
+- Forgetting to change the sign of the imaginary term in the conjugate.
+- Dividing real and imaginary parts separately, which is generally invalid.
+
+Practice
+1. Simplify i^14.
+2. Calculate (3 + 2i) + (1 − 5i).
+3. Calculate (2 + i)(2 − i).
+Answers: i^14 = i^12 × i² = −1; 4 − 3i; 5.
+
+LESSON 2 — DETERMINING THE NATURE OF THE ROOTS OF A QUADRATIC EQUATION
+
+1. General form and discriminant
+A quadratic equation has the form:
+ax² + bx + c = 0, where a ≠ 0.
+Its discriminant is:
+Δ = b² − 4ac.
+The quadratic formula is:
+x = (−b ± √Δ)/(2a).
+The sign of the discriminant tells us the nature of the roots without requiring us to calculate the full roots.
+
+2. Nature of roots
+- If Δ > 0, the equation has two distinct real roots.
+- If Δ = 0, it has two equal real roots; the repeated root is −b/(2a).
+- If Δ < 0, it has no real roots. With real coefficients, its roots are a pair of non-real complex conjugates.
+
+3. Graphical meaning
+The graph of y = ax² + bx + c is a parabola. Its real roots are the x-coordinates where the graph intersects the x-axis.
+- Δ > 0: the parabola crosses the x-axis at two points.
+- Δ = 0: the parabola touches the x-axis at one point.
+- Δ < 0: the parabola does not intersect the x-axis.
+
+4. Worked examples
+Example A: x² − 5x + 6 = 0.
+a = 1, b = −5, c = 6.
+Δ = (−5)² − 4(1)(6) = 25 − 24 = 1 > 0.
+The roots are real and distinct.
+
+Example B: x² + 4x + 4 = 0.
+Δ = 4² − 4(1)(4) = 16 − 16 = 0.
+The roots are real and equal.
+
+Example C: x² + x + 1 = 0.
+Δ = 1² − 4(1)(1) = −3 < 0.
+There are no real roots.
+
+5. Finding a parameter
+If a question asks for equal roots, set Δ = 0. For distinct real roots, require Δ > 0. For no real roots, require Δ < 0.
+Example: x² + kx + 9 = 0 has equal roots when k² − 36 = 0, so k = 6 or k = −6.
+
+Practice
+Determine the nature of the roots of 2x² − 3x + 1 = 0 and x² + 2x + 5 = 0.
+Answers: first equation: Δ = 9 − 8 = 1, so two distinct real roots. Second equation: Δ = 4 − 20 = −16, so no real roots.
+
+LESSON 3 — THE RELATION BETWEEN ROOTS AND COEFFICIENTS
+
+If α and β are the roots of ax² + bx + c = 0, where a ≠ 0, then:
+α + β = −b/a
+αβ = c/a
+These relationships are often called Vieta's formulas. They allow us to form equations and simplify expressions without solving for each root individually.
+
+1. Check the relationships
+For x² − 5x + 6 = 0, the sum of roots is 5 and their product is 6. The numbers 2 and 3 satisfy both conditions.
+
+2. Form an equation from its roots
+If the roots are α and β, the monic quadratic is:
+x² − (α + β)x + αβ = 0.
+Example: If the roots are 4 and −1, their sum is 3 and product is −4. The equation is:
+x² − 3x − 4 = 0.
+
+3. Form an equation from a given sum and product
+If the sum is S and the product is P, write:
+x² − Sx + P = 0.
+If a different non-zero leading coefficient is required, multiply the entire equation by that coefficient; the roots remain unchanged.
+
+4. Simplifying expressions involving roots
+Let S = α + β and P = αβ.
+α² + β² = (α + β)² − 2αβ = S² − 2P.
+(α − β)² = (α + β)² − 4αβ = S² − 4P.
+1/α + 1/β = (α + β)/(αβ) = S/P, provided P ≠ 0.
+
+Worked example
+The roots have sum 7 and product 10. Then:
+α² + β² = 7² − 2(10) = 29.
+The equation with these roots is x² − 7x + 10 = 0.
+
+Common mistakes
+- Missing the negative sign in the formula for the sum.
+- Using c/b instead of c/a for the product.
+- Writing x² + Sx + P instead of x² − Sx + P.
+- Dividing by αβ without checking that the product is non-zero.
+
+Practice
+The sum of two roots is −2 and their product is −8. Find the monic quadratic and α² + β².
+Answer: x² + 2x − 8 = 0; α² + β² = (−2)² − 2(−8) = 20.
+
+LESSON 4 — THE SIGN OF A QUADRATIC FUNCTION
+
+For f(x) = ax² + bx + c, a ≠ 0, determining the sign means finding the values of x for which f(x) is positive, negative, or zero.
+
+General method
+1. Find the real roots by factoring or using the quadratic formula.
+2. Place the roots in increasing order on a number line.
+3. Use the leading coefficient and the factor signs to determine the sign on each interval.
+4. State explicitly where the function equals zero.
+
+Case 1: Two distinct real roots r1 < r2
+If a > 0, the parabola opens upward. The function is positive outside the roots and negative between them.
+If a < 0, the parabola opens downward. The function is negative outside the roots and positive between them.
+At each root, f(x) = 0.
+
+Case 2: A repeated real root (Δ = 0)
+The parabola touches the x-axis at one point and does not cross it. The function keeps the sign of a on both sides of the root, except that its value is zero at the repeated root.
+
+Case 3: No real roots (Δ < 0)
+The graph does not intersect the x-axis. The function keeps the sign of a for every real x: always positive when a > 0 and always negative when a < 0.
+
+Worked example
+f(x) = x² − 5x + 6 = (x − 2)(x − 3).
+The roots are 2 and 3, and a = 1 > 0. Therefore:
+- f(x) > 0 for x < 2 or x > 3.
+- f(x) < 0 for 2 < x < 3.
+- f(x) = 0 at x = 2 and x = 3.
+
+Another example
+f(x) = −x² + 4 = −(x − 2)(x + 2).
+The roots are −2 and 2, and a < 0. The function is negative outside the roots, positive between them, and zero at −2 and 2.
+
+Practice
+Determine the sign of f(x) = x² − 9.
+Answer: positive for x < −3 or x > 3; negative for −3 < x < 3; zero at x = −3 and x = 3.
+
+LESSON 5 — QUADRATIC INEQUALITIES IN ONE VARIABLE
+
+A quadratic inequality contains a quadratic expression and an inequality sign: >, <, ≥, or ≤. The usual method is to move all terms to one side, find the zeros, and analyse the sign over the resulting intervals.
+
+Step-by-step method
+1. Rearrange the inequality so that one side is zero.
+2. Factor the quadratic if possible, or calculate its roots.
+3. Mark the roots on a number line.
+4. Determine where the expression is positive or negative.
+5. Select the intervals matching the requested sign.
+6. Include roots for ≥ or ≤; exclude them for strict inequalities > or <, unless the expression has another domain restriction.
+
+Example 1
+Solve x² − 5x + 6 > 0.
+Factor: (x − 2)(x − 3) > 0.
+The roots are 2 and 3, and the leading coefficient is positive, so the expression is positive outside the roots.
+Solution: x < 2 or x > 3.
+Interval notation: (−∞, 2) ∪ (3, ∞).
+
+Example 2
+Solve x² − 5x + 6 ≤ 0.
+The expression is negative between the roots and zero at the roots.
+Solution: 2 ≤ x ≤ 3.
+Interval notation: [2, 3].
+
+Example 3
+Solve −x² + 4 ≥ 0.
+Rearrange: x² ≤ 4. Thus −2 ≤ x ≤ 2.
+
+Example 4
+Solve (x − 1)(x + 4) < 0.
+The roots are −4 and 1. The product is negative between the roots.
+Solution: −4 < x < 1.
+
+Frequent errors
+- Stopping after finding the roots; the roots are usually boundaries, not the full solution.
+- Forgetting the sign of the leading coefficient.
+- Including endpoints in a strict inequality.
+- Using one interval when the solution has two separate intervals.
+
+Math revision — essential formulas
+- i² = −1; powers of i repeat every four powers.
+- Conjugate of a + bi is a − bi.
+- Δ = b² − 4ac.
+- Sum of roots = −b/a; product of roots = c/a.
+- α² + β² = (α + β)² − 2αβ.
+- For a quadratic inequality, find the roots, make a sign chart, and apply the exact inequality symbol.
+
+القسم الرابع: اللغة العربية
+======================================================================
+
+نطاق هذا القسم
+يشمل أول خمسة نصوص أدبية/قرائية بحسب ترتيب الكتاب، وأول خمس وحدات من كتاب القواعد الأساسية للنحو والصرف، ثم ملخصًا دراسيًا لأجزاء قصة «أبو الفوارس: عنترة بن شداد» الأربعة؛ لأن القصة مقررة ضمن مكونات العربية في هذه السنة. استخدم الكتاب عند قراءة النصوص والأبيات الأصلية.
+
+أولًا: النصوص والقراءة والأدب — أول خمسة موضوعات
+
+الدرس 1: مكارم الأخلاق وحاتم الطائي (قراءة)
+الفكرة العامة: إبراز أثر الأخلاق الكريمة في مكانة الإنسان، مع تقديم حاتم الطائي نموذجًا للكرم والمروءة.
+
+أهم القيم التي يمكن استخلاصها:
+- الكرم: إعطاء المحتاج وإكرام الضيف دون انتظار مقابل.
+- الحلم: ضبط النفس وعدم الرد على الإساءة بالاندفاع.
+- العفة: الابتعاد عن الطمع وصيانة حقوق الآخرين.
+- الوفاء: احترام الوعد وتحمل المسؤولية.
+- التواضع: عدم استخدام المكانة أو المال للتعالي على الناس.
+- الشهامة: مساعدة المحتاج والدفاع عن المظلوم.
+
+طريقة تحليل موضوع القراءة:
+1. حدّد الفكرة الرئيسة: ماذا يريد الكاتب أن يثبت من خلال سيرة حاتم؟
+2. استخرج قيمة أخلاقية من موقف محدد، واشرح الدليل.
+3. فرّق بين صفات الشخصية والأحداث التي تكشفها.
+4. عند سؤال «ما أثر الخلق؟» اشرح أثره في الفرد والمجتمع بدل تكرار اسم الخلق فقط.
+
+مفردات وأساليب للمراجعة: المروءة هي التمسك بمحاسن الأخلاق؛ الجود هو سعة العطاء؛ الحلم ضبط النفس عند الغضب؛ الوفاء حفظ العهد. قد يختلف معنى الكلمة حسب سياقها، لذلك استخدم جمل النص لتحديد المقصود.
+
+أسئلة تدريب:
+أ. ما القيم التي تجعل حاتمًا نموذجًا أخلاقيًا؟
+ب. كيف يختلف الكرم عن الإسراف؟
+ج. اكتب فقرة قصيرة عن خلق يمكن تطبيقه في المدرسة.
+إرشاد للإجابة: لا يكفي القول إن حاتمًا كريم؛ اذكر كيف يظهر الكرم وما أثره على الآخرين. والكرم النافع يراعي حاجة الآخرين والحكمة في استخدام المال، أما الإسراف فهو تجاوز الاعتدال دون مصلحة.
+
+الدرس 2: «شباب تسامى للعلا وكهول» — السموأل
+الفكرة العامة: الدفاع عن الشرف والوفاء وعلو الهمة، وبيان أن قيمة الجماعة لا تُقاس بكثرة العدد بل بأخلاق أفرادها ومواقفهم.
+
+معلومات أدبية:
+- السموأل شاعر من العصر الجاهلي اشتهر في الذاكرة العربية بالوفاء.
+- من سمات الشعر الجاهلي: قوة العبارة، ووضوح المعنى، والتعبير عن الفخر والحكمة والوفاء والكرم، والاعتماد على الصور والمحسنات التي تخدم المعنى.
+- الفخر في النص ليس مجرد تفاخر بالعدد؛ بل تأكيد على السيادة، وحماية الجار، وإكرام الضيف، والوفاء بالقول.
+
+عناصر التحليل:
+- العاطفة الأساسية: الاعتزاز بالقيم والوفاء والثقة بالنفس.
+- الفكرة: الشرف والعمل الكريم أهم من التفوق العددي وحده.
+- الصور البلاغية: افحص التشبيهات والاستعارات والكنايات في أبيات الكتاب؛ اشرح المشبه به أو المعنى الذي توحي به الصورة، ولا تكتفِ بكتابة اسم الصورة.
+- المحسنات: الطباق يُظهر التضاد بين معنيين، والمقابلة توازن بين مجموعتين من المعاني، والقافية تسهم في الموسيقى الشعرية.
+- الأسلوب: الخبر قد يقرر حقيقة أو يبرز الفخر، والأمر قد يأتي للنصح أو التحدي بحسب السياق.
+
+بيئة النص الجاهلي:
+الشعر والخطابة كانا وسيلتين مهمتين للتعبير عن القيم والسمعة والانتماء القبلي. ومن الموضوعات المتكررة الفخر والحماسة والمدح والهجاء والغزل والوصف والحكمة. لا تُسقط أحكامًا عامة على كل الشعراء؛ اربط إجابتك دائمًا بالنص المقرر.
+
+أسئلة تدريب:
+أ. لماذا لا تمثل قلة العدد بالضرورة ضعفًا؟
+ب. كيف يخدم الفخر القيم التي يريد الشاعر إثباتها؟
+ج. اختر صورة بلاغية من النص الأصلي واشرح أثرها في المعنى.
+
+الدرس 3: «قيم الحياة الزوجية» — وصية أمامة بنت الحارث
+الفكرة العامة: تقديم نصائح لبناء علاقة زوجية قائمة على التفاهم والاحترام وحسن المعاملة والمسؤولية.
+
+الأفكار الرئيسة التي ينبغي فهمها:
+- لا تقوم العلاقة السليمة على الشكل وحده؛ بل على حسن الخلق والتوافق والتعاون.
+- حفظ أسرار الأسرة، واحترام الطرف الآخر، وتجنب الإهانة، وحسن إدارة الخلاف، عوامل تساعد على الاستقرار.
+- الوصية تمثل نموذج النثر التعليمي الذي يقدّم خبرة اجتماعية في صورة نصائح واضحة.
+- عند تحليل النص تاريخيًا، تذكّر أنه يعكس بيئة اجتماعية قديمة؛ يمكن دراسة القيم الإنسانية العامة مع فهم سياق العصر.
+
+خصائص النص النثري:
+- وضوح الفكرة وتسلسل النصائح.
+- الجمل الخبرية والإنشائية لتقديم التوجيه والتأكيد.
+- استخدام المقابلة أو التكرار حين يخدمان توضيح الفكرة.
+- الاعتماد على الخبرة والنتيجة المتوقعة من السلوك.
+
+كيف تجيب عن سؤال «ما الهدف من الوصية؟»
+اذكر أنها توجيه عملي لحياة مستقرة، ثم بيّن قيمة أو قيمتين، ثم وضح أثر تطبيقهما. تجنب تلخيص النص بعبارة عامة جدًا مثل «تتحدث عن الزواج» فقط.
+
+أسئلة تدريب:
+أ. اذكر ثلاث قيم اجتماعية يركز عليها النص.
+ب. ما خصائص النثر التعليمي؟
+ج. كيف يمكن تحويل نصيحة قديمة إلى سلوك إيجابي في الحياة المعاصرة؟
+
+الدرس 4: «قيم اجتماعية» — قراءة
+الفكرة العامة: أهمية القيم المشتركة في تنظيم العلاقات بين الأفراد، والحفاظ على التماسك الاجتماعي، وتحقيق التعاون والاحترام.
+
+محاور للفهم:
+- المجتمع لا يقوم على المصالح الفردية فقط؛ بل يحتاج إلى ثقة متبادلة وقواعد للسلوك.
+- من القيم الاجتماعية: التعاون، والعدل، والتسامح، واحترام الحقوق، وتحمل المسؤولية، ومراعاة المصلحة العامة.
+- القيمة الحقيقية لا تُقاس بما يقوله الإنسان فقط، بل بكيفية تحويلها إلى سلوك.
+- احترام الآخر لا يعني الموافقة على كل آرائه؛ بل يعني التعامل معه بإنصاف وعدم انتهاك حقوقه.
+
+مهارات القراءة:
+1. استخرج الفكرة العامة والعنوان الأنسب.
+2. ميّز بين الفكرة الرئيسة والتفصيل الداعم.
+3. استدل من العبارة أو السياق على معنى كلمة.
+4. حدّد العلاقة بين الجمل: تعليل، نتيجة، توضيح، مقارنة، أو مثال.
+5. استنتج موقف الكاتب مع ذكر دليل لغوي.
+
+أسئلة تدريب:
+أ. ما الفرق بين القيمة الاجتماعية والسلوك الذي يثبتها؟
+ب. اقترح موقفًا مدرسيًا يظهر التعاون والعدل.
+ج. لماذا يحتاج المجتمع إلى احترام الحقوق مع الاختلاف؟
+
+الدرس 5: «العفو مأمول» — كعب بن زهير
+الفكرة العامة في إطار المراجعة: إبراز قيمة العفو وطلب الصفح وأثرهما في إصلاح العلاقات، مع دراسة أسلوب الشاعر ومعانيه وصوره البلاغية في النص المقرر.
+
+محاور التحليل:
+- العفو لا يعني إنكار الخطأ؛ بل قد يكون قرارًا واعيًا بترك الانتقام عندما تسمح الظروف بذلك.
+- الاعتذار الصادق يحتاج إلى الاعتراف بالخطأ، ووقف الضرر، ومحاولة إصلاح ما أفسده الفعل.
+- يتيح العفو تخفيف الخصومة وإعادة بناء الثقة، لكنه لا يلغي ضرورة حماية المظلوم أو وضع حدود للسلوك المؤذي.
+- في تحليل القصيدة، حدّد العاطفة، والغرض، وتسلسل الأفكار، وأثر الألفاظ والتراكيب والصور في نقل الحالة النفسية.
+
+عند استخراج الجمال:
+- اذكر التعبير من النص القصير الذي يطلبه السؤال ثم سمِّ الصورة أو المحسن.
+- اشرح المعنى المقصود والأثر الفني، مثل توضيح الفكرة أو تقوية العاطفة أو إحداث موسيقى.
+- لا تكتفِ بكتابة «استعارة جميلة»؛ وضح ما الذي شُبّه بماذا أو ما المعنى غير المباشر.
+
+أسئلة تدريب:
+أ. كيف يسهم العفو في إصلاح العلاقات؟
+ب. فرّق بين العفو والتهاون في الحقوق.
+ج. اذكر خطوات تحليل قصيدة من حيث الفكرة والعاطفة والصورة والموسيقى.
+
+ثانيًا: القواعد الأساسية للنحو والصرف — أول خمسة دروس
+
+الدرس النحوي 1: الكلمة وأقسامها
+الكلمة في العربية تنقسم إلى اسم وفعل وحرف.
+
+الاسم: يدل على إنسان أو حيوان أو شيء أو معنى، ولا يرتبط بزمن في ذاته. من علاماته المحتملة: قبول «الـ»، أو التنوين، أو الجر، أو النداء.
+أمثلة: كتاب، طالب، القاهرة، عدل، شجاعة.
+
+الفعل: يدل على حدث مرتبط بزمن.
+- ماضٍ: حدث في الزمن الماضي، مثل كتبَ، حضرَ.
+- مضارع: يدل غالبًا على الحال أو الاستقبال، مثل يكتبُ، يحضرُ.
+- أمر: طلب حدوث الفعل، مثل اكتبْ، احضرْ.
+
+الحرف: لا يظهر معناه كاملًا إلا مع غيره، مثل: من، إلى، في، هل، لم، لن.
+
+تمييز سريع:
+- «العلمُ نافعٌ»: العلم اسم، نافع اسم، والجملة اسمية.
+- «يقرأ الطالب»: يقرأ فعل مضارع، الطالب اسم.
+- «في المدرسة»: في حرف جر، المدرسة اسم مجرور.
+
+الدرس النحوي 2: الاسم وأقسامه
+يمكن تصنيف الاسم من زوايا متعددة:
+- من حيث التعريف: معرفة ونكرة. المعرفة تدل على معين، مثل «الطالب» أو «محمود»؛ والنكرة غير معينة، مثل «طالب».
+- من حيث العدد: مفرد، مثنى، جمع. المثنى يدل على اثنين أو اثنتين، وغالبًا يرفع بالألف وينصب ويجر بالياء. جمع المذكر السالم يرفع بالواو وينصب ويجر بالياء، وجمع المؤنث السالم يرفع بالضمة وينصب ويجر بالكسرة في القاعدة الأساسية.
+- من حيث الجنس: مذكر ومؤنث، مع وجود علامات وتأويلات مختلفة للمؤنث.
+- من حيث الاشتقاق في دروس الصرف: جامد ومشتق؛ فالجامد لا يؤخذ في صورته من فعل في التحليل الصرفي المعتاد، والمشتق مثل اسم الفاعل واسم المفعول.
+
+المعرفة تشمل عادةً: الضمائر، وأسماء الإشارة، والأسماء الموصولة، وأسماء العلم، والمعرّف بـ«الـ»، والمضاف إلى معرفة، والمنادى المقصود في أحكامه.
+
+أمثلة إعرابية مختصرة:
+«جاء الطالبُ»: الطالب اسم معرفة مرفوع فاعل.
+«رأيت طالبًا»: طالبًا نكرة منصوب مفعول به.
+«مررت بالطالبِ»: الطالب اسم مجرور بالباء.
+
+الدرس النحوي 3: الفعل وأقسامه
+أولًا الفعل الماضي: يدل على حدث وقع قبل زمن التكلم؛ مثل «نجحَ». وهو مبني، وتتغير علامة بنائه بحسب اتصاله بالضمائر.
+ثانيًا الفعل المضارع: يدل على الحال أو الاستقبال، ويبدأ غالبًا بأحد أحرف «أنيت». يكون مرفوعًا إذا لم يسبقه ناصب أو جازم، وينصب بعد أدوات مثل «لن» و«أن»، ويجزم بعد أدوات مثل «لم» و«لا الناهية» في مواضعها.
+ثالثًا فعل الأمر: يدل على طلب حدوث الفعل، مثل «اكتبْ» و«اجتهدْ»، وهو مبني في الأصل.
+
+أمثلة:
+- «يذاكرُ الطالبُ» — المضارع مرفوع بالضمة الظاهرة.
+- «لن يهملَ الطالبُ» — المضارع منصوب بـ«لن» وعلامة نصبه الفتحة.
+- «لم يهملْ الطالبُ» — المضارع مجزوم بـ«لم» وعلامة جزمه السكون.
+- «اجتهدْ» — فعل أمر مبني على السكون في المثال.
+
+تنبيه: علامات الإعراب التفصيلية تختلف في الأفعال الخمسة والمعتل الآخر؛ لا تطبق قاعدة الضمة أو الفتحة الظاهرة عليها دون فحص نوع الفعل.
+
+الدرس النحوي 4: المعرب والمبني من الأسماء والأفعال
+المعرب: ما يتغير آخره بتغير العامل أو موقعه الإعرابي. مثال: «جاء محمدٌ، رأيت محمدًا، مررت بمحمدٍ»؛ تغير آخر الاسم بحسب موقعه.
+المبني: ما يلزم آخره صورة واحدة في السياق المعتاد، مثل كثير من الضمائر وأسماء الإشارة وبعض الأسماء، والفعل الماضي وفعل الأمر في القاعدة العامة.
+
+الحالات الإعرابية الأساسية للأسماء:
+- الرفع: من علاماته الأصلية الضمة.
+- النصب: من علاماته الأصلية الفتحة.
+- الجر: من علاماته الأصلية الكسرة.
+أما الجزم فيكون في الفعل المضارع، ولا يدخل الأسماء.
+
+العامل هو ما يؤثر في الإعراب؛ فقد يكون فعلًا أو حرفًا أو عاملًا معنويًا بحسب التركيب.
+
+أمثلة:
+«حضر المعلمُ» — المعلم فاعل مرفوع.
+«كرّم المديرُ المعلمَ» — المعلم مفعول به منصوب.
+«سلّمت على المعلمِ» — المعلم اسم مجرور.
+«الذي» و«هذا» من الأسماء المبنية في الاستخدامات الأساسية.
+
+الدرس النحوي 5: مرفوعات الأسماء
+المرفوعات هي أسماء يكون حكمها الإعرابي الرفع، وتظهر فيها الضمة أو علامة فرعية بحسب نوع الاسم.
+
+1. المبتدأ: اسم تبدأ به الجملة الاسمية غالبًا، مثل «العلمُ نورٌ»؛ العلم مبتدأ مرفوع.
+2. الخبر: ما يتمم معنى المبتدأ، مثل «العلمُ نورٌ»؛ نور خبر مرفوع.
+3. الفاعل: من قام بالفعل أو اتصف به في بناء الجملة، مثل «شرح المعلمُ الدرسَ»؛ المعلم فاعل مرفوع.
+4. نائب الفاعل: يحل محل الفاعل عند بناء الفعل للمجهول، مثل «شُرح الدرسُ»؛ الدرس نائب فاعل مرفوع.
+5. اسم كان وأخواتها: يظل مرفوعًا، بينما يكون خبرها منصوبًا في العمل الناقص؛ «كان الجوُّ معتدلًا».
+6. خبر إن وأخواتها: يكون مرفوعًا، بينما اسم إن منصوب؛ «إن العلمَ نافعٌ».
+7. التوابع: قد يتبع النعت أو العطف أو التوكيد أو البدل الاسم المرفوع في الرفع، مثل «حضر الطالبُ المجتهدُ».
+
+علامات الرفع الأساسية والفرعية:
+- الضمة: المفرد، جمع التكسير، جمع المؤنث السالم في حال الرفع، والمضارع الصحيح الآخر في الرفع.
+- الألف: المثنى.
+- الواو: جمع المذكر السالم والأسماء الخمسة في شروطها.
+- ثبوت النون: الأفعال الخمسة في حالة الرفع، وهي أفعال لا أسماء؛ تذكرها لتمييز القاعدة وعدم الخلط بين مرفوعات الاسم وإعراب الفعل.
+
+أمثلة إعرابية:
+«المهندسان ماهران»: المهندسان مبتدأ مرفوع بالألف لأنه مثنى؛ ماهران خبر مرفوع بالألف لأنه مثنى.
+«كتب الطلابُ الواجبَ»: الطلاب فاعل مرفوع بالضمة.
+«فُتح البابُ»: الباب نائب فاعل مرفوع بالضمة.
+«إن الصدقَ منجاةٌ»: الصدق اسم إن منصوب، ومنجاة خبر إن مرفوع.
+
+تدريب نحو شامل:
+1. حدّد نوع الكلمة في «على، يكتب، الشجاعة».
+2. بيّن المعرفة والنكرة في «جاء طالبٌ، ثم جاء الطالبُ».
+3. أعرب الفعل في «لن يقصرَ المجتهدُ».
+4. حدّد المبتدأ والخبر في «الوقتُ ثمينٌ».
+5. حدّد نائب الفاعل في «كُرّم المتفوقُ».
+الإجابات: حرف، فعل مضارع، اسم؛ طالب نكرة والطالب معرفة؛ يقصر فعل مضارع منصوب بلن وعلامة نصبه الفتحة؛ الوقت مبتدأ وثمين خبر؛ المتفوق نائب فاعل مرفوع.
+
+ثالثًا: قصة «أبو الفوارس: عنترة بن شداد» — ملخص الأجزاء الأربعة
+ملاحظة: هذا تلخيص دراسي للأحداث والشخصيات، لا ينقل نص القصة الأصلي. استخدم كتاب القصة لتثبيت تفاصيل المشاهد وتسلسلها وأي أسئلة محددة عليها.
+
+الجزء الأول: من مغنى القافلة إلى حوار ساخن
+- يقدّم الجزء البيئة التي يعيش فيها عنترة، ومكانته داخل القبيلة وما يواجهه بسبب النسب والتمييز الاجتماعي.
+- تبرز شخصية عنترة من خلال الشجاعة والاعتداد بالنفس والرغبة في إثبات الجدارة بالفعل لا بالكلام.
+- يهيئ الحوار والصراع لفهم علاقات القبيلة وتوقعاتها ومكانة الفروسية والشرف.
+- عند المراجعة: حدّد سبب التوتر، وموقف كل شخصية، وكيف تكشف الحوارات عن الطباع.
+
+الجزء الثاني: من خطبة عبلة إلى علاقة قلقة
+- تتقدم العلاقة بين عنترة وعبلة لتظهر الفجوة بين المشاعر الشخصية والقيود الاجتماعية.
+- يواجه عنترة تحديات لا تتعلق بالقوة الجسدية وحدها، بل بمكانته واعتراف الآخرين بقدرته على الوفاء وتحمل المسؤولية.
+- ينبغي الانتباه إلى الفرق بين ما تتمناه الشخصيات وما تسمح به الظروف والقرارات المحيطة بها.
+- أسئلة متوقعة: ما العائق أمام العلاقة؟ كيف تظهر العاطفة في سلوك البطل؟ ما أثر المجتمع في قرارات الشخصيات؟
+
+الجزء الثالث: رحيل عبلة والمهر
+- يشتد الصراع بسبب الشروط التي توضع أمام عنترة، ويصبح تحقيق المطلوب اختبارًا للشجاعة والإصرار والقدرة على مواجهة الخطر.
+- يرتبط الرمز الاجتماعي للمهر في الأحداث بإثبات الجدارة وطلب الاعتراف، لا بالقيمة المادية وحدها.
+- تتقدم الحبكة من الرغبة إلى المهمة التي تتطلب مغامرة وتحمّلًا للمسؤولية.
+- عند الإجابة، اربط الحدث بصفة من صفات عنترة مع الاستدلال من السلوك الوارد في النص.
+
+الجزء الرابع: من رحلة المخاطر إلى الخاتمة
+- تتابع الأحداث مسار المخاطر وما ينتج عنها من قرارات ونتائج، وتجمع خطوط الصراع الرئيسة في نهاية القصة.
+- تظهر قيمة الوفاء والإصرار في مواجهة العقبات، ويكشف الحل عن أثر الشجاعة والسمعة والاعتراف الاجتماعي.
+- عند مراجعة الخاتمة، فرّق بين نهاية الحدث الرئيس وتطور شخصية البطل، واستخلص القيمة التي تريد القصة إبرازها.
+
+بطاقة شخصية عنترة للمراجعة:
+- صفات بارزة: الشجاعة، قوة الإرادة، الاعتزاز بالكرامة، الوفاء، الشعر والفروسية.
+- الصراع: بين موهبته وقيمته من جهة، والحواجز الاجتماعية ورفض الاعتراف من جهة أخرى.
+- وسائل بناء الشخصية: الحوار، الفعل، ردود أفعال الآخرين، وصف المواقف، والقرارات تحت الضغط.
+- أفكار عامة: قيمة الإنسان لا تختزل في نسبه؛ الاعتراف الاجتماعي قد يتأخر؛ الشجاعة تحتاج إلى ضبط النفس والحكمة؛ الحب والوفاء يواجهان اختبارات واقعية.
+
+======================================================================
+القسم الخامس: اللغة الإنجليزية
+======================================================================
+
+Scope note: The current first-term book is organized into six major units. This guide covers the first five units in order, as the first five major lesson blocks. It provides original explanations, grammar, vocabulary support, and writing models rather than copying the textbook's full readings.
+
+UNIT 1 — EGYPT'S HERITAGE
+
+Theme and learning goals
+This unit is about Egypt's heritage, history, identity, and the responsibility of protecting cultural and historical places. You should be able to understand the main idea and details of a text, narrate past events, and write an organized essay or paragraph.
+
+Vocabulary bank
+heritage = traditions, places, and achievements passed down from earlier generations
+ancient = very old; belonging to the distant past
+civilization = a developed human society with institutions, knowledge, arts, and technology
+monument = a building or structure of historical importance
+preserve = protect something so it remains in good condition
+restore = repair and return something to a former condition
+archaeologist = a person who studies the past through material remains
+identity = the qualities and traditions that make a person or community distinct
+legacy = something valuable left by earlier people
+conservation = protection from damage or loss
+
+Grammar: Past Simple
+Form: subject + past form of the verb. For regular verbs, add -ed; irregular verbs have special forms.
+Affirmative: We visited the museum last week.
+Negative: We did not visit the museum last week. (did + base verb)
+Question: Did you visit the museum? (did + subject + base verb)
+With be: I/he/she/it was; you/we/they were.
+Common time expressions: yesterday, last year, two days ago, in 2019, when I was young.
+
+Grammar: Past Continuous
+Form: was/were + verb-ing.
+Use it for an action in progress at a particular time in the past, or as background for another event.
+Example: We were walking through the museum when the guide called us.
+With while, two simultaneous ongoing actions are often described: While the visitors were looking at the statues, the guide was explaining their history.
+With when, a shorter completed action often interrupts a longer activity: I was reading when the lights went out.
+
+Past Simple vs Past Continuous
+- Past Simple: completed event or sequence — We entered the hall, saw the statues, and took notes.
+- Past Continuous: ongoing background — People were waiting outside when the museum opened.
+- Both: While we were taking notes, the guide explained the inscription.
+
+Writing: A short essay about heritage (about 120–150 words)
+Suggested structure:
+1. Introduction: define heritage and state why it matters.
+2. Body: give two or three examples and explain how people can protect them.
+3. Conclusion: restate the key message and suggest an action.
+Useful linkers: First, Moreover, For example, However, Therefore, Finally.
+Model paragraph:
+Egypt has a rich heritage that connects modern people with earlier generations. Ancient buildings, museums, traditional crafts, and local stories help us understand how people lived and what they achieved. We should protect historic places by keeping them clean, following museum rules, and learning from reliable sources. Schools can organize visits and projects so students feel responsible for their country's history. Technology can also help through digital archives and virtual tours. Heritage is not only a collection of old objects; it is part of our identity and a source of knowledge for the future. By preserving it today, we give future generations the chance to learn from it.
+
+UNIT 2 — HANDS HELP, HEARTS CARE
+
+Theme
+Kindness, volunteering, helping neighbours, community service, and supporting people in difficult situations. A helpful person notices needs and acts responsibly rather than waiting for praise.
+
+Vocabulary bank
+volunteer = offer to help without being paid
+charity = help given to people in need; also an organization that provides it
+donate = give money, goods, or time to support a cause
+community = people living in or sharing a particular place or interest
+support = help someone or something
+compassion = concern for another person's suffering
+neighbour = a person living nearby
+emergency = a serious and unexpected situation requiring quick action
+responsibility = a duty or obligation
+cooperate = work together toward a shared goal
+
+Grammar: Modal verbs and obligation
+should / shouldn't: advice or recommendation.
+You should check on elderly neighbours. You shouldn't share someone's private information.
+must / mustn't: strong obligation or prohibition.
+You must wear a seat belt. You mustn't enter a dangerous area.
+have to / has to: obligation, often because of a rule or circumstance.
+Volunteers have to follow the organiser's safety instructions. She has to finish the form today.
+don't have to / doesn't have to: lack of necessity, not prohibition.
+You don't have to donate money; you can give your time.
+Important distinction: mustn't means “it is not allowed”; don't have to means “it is not necessary.”
+
+Grammar patterns
+Modal + base verb: should help, must listen, shouldn't ignore.
+Have to + base verb: have to work / has to work.
+For questions with have to: Do we have to register? Does he have to attend?
+
+Writing: Descriptive essay about a helpful person or community project
+Plan: introduce the person/project; describe what happened and what actions were taken; explain the effect on people; conclude with what you learned.
+Useful adjectives: generous, thoughtful, reliable, caring, patient, organised, courageous.
+Model paragraph:
+Our school volunteering team is small, but its work makes a real difference. Every month, students collect books and organise them for children who need extra learning resources. Some students sort the books, while others prepare labels and deliver the boxes with teachers. The project teaches us that helping others does not always require money; time, planning, and kindness are valuable too. We also learn to cooperate and respect the needs of different families. I feel proud when I see students using the books and enjoying their lessons. I hope our team can expand the project next term.
+
+UNIT 3 — TRUTH VS. LIES
+
+Theme
+Trust, misinformation, digital deception, fake news, and checking claims before sharing them. A message may look convincing and still be false or misleading.
+
+Vocabulary bank
+claim = a statement that someone says is true
+source = where information comes from
+reliable = able to be trusted
+verify = check whether something is true
+evidence = information or facts that support a conclusion
+rumour = an unverified story passed between people
+misleading = giving the wrong idea or impression
+fake news = false or deceptive information presented as news
+bias = a tendency to favour one side
+privacy = control over personal information and space
+
+Digital fact-checking routine
+1. Check the original source and who published the claim.
+2. Check the date and full context; old information may be presented as new.
+3. Look for supporting evidence from more than one reliable source.
+4. Read beyond the headline and distinguish fact from opinion.
+5. Examine images and quotes in context.
+6. Do not share a claim just because it makes you angry, afraid, or excited.
+
+Grammar: Conditionals
+Zero conditional — general facts and routines:
+If + present simple, present simple.
+If water reaches 100°C at normal atmospheric pressure, it boils.
+
+First conditional — a realistic future possibility:
+If + present simple, will + base verb.
+If you check the source, you will understand the story better.
+The if-clause normally does not use will in this pattern.
+
+Second conditional — an imaginary or unlikely situation:
+If + past simple, would + base verb.
+If I were the editor, I would verify the evidence before publishing the story.
+“Were” is commonly used for hypothetical situations with I/he/she/it in formal school grammar.
+
+Choose the type by meaning:
+- General fact or predictable rule: zero.
+- Possible future result: first.
+- Hypothetical or unreal situation: second.
+
+Writing: A short post or article about fake news
+Include: what fake news is; why it spreads; two risks; a practical checking routine; a responsible conclusion.
+Model paragraph:
+Fake news can spread quickly because people often share dramatic stories without checking them. This can damage a person's reputation, create fear, or lead people to make poor decisions. Before sharing a post, readers should check who published it, when it appeared, and whether reliable sources support it. They should also read the full article rather than judging it from the headline. If a claim cannot be verified, it is safer not to present it as fact. Responsible sharing protects both individuals and the wider community.
+
+UNIT 4 — SAVE AND SHINE
+
+Theme
+Environmental protection, efficient use of resources, pollution reduction, and greener production. Everyday choices, public policy, and technology can work together to reduce waste.
+
+Vocabulary bank
+environment = the natural world and conditions around living things
+sustainable = able to continue without exhausting resources or causing unacceptable harm
+renewable = naturally replenished, such as sunlight or wind
+recycle = process used materials so they can be used again
+reuse = use an item again rather than throw it away
+reduce = use less or prevent waste
+emissions = gases or substances released into the environment
+waste = material that is no longer wanted or useful
+resource = something useful that people can draw on
+energy-efficient = using less energy for the same task
+
+Grammar: Verbs followed by gerund (-ing) or infinitive (to + verb)
+Some verbs are commonly followed by a gerund:
+- enjoy, avoid, finish, keep, mind, suggest, consider.
+Example: We should avoid wasting water. She enjoys planting trees.
+Some verbs are commonly followed by an infinitive:
+- decide, hope, plan, want, need, promise, learn.
+Example: They decided to organise a clean-up. We hope to reduce plastic waste.
+Some verbs can take both with little change in meaning, such as like, love, and hate: I like reading / I like to read.
+Some verbs change meaning by pattern; learn the patterns your course includes. For example, stop doing something means end the activity, while stop to do something means pause another activity in order to do something else.
+
+Environmental actions
+- Reduce single-use packaging.
+- Reuse containers and bags when safe and practical.
+- Separate recyclable material where local systems accept it.
+- Save electricity and water.
+- Choose efficient transport when possible.
+- Support responsible manufacturing and repair products rather than replacing them unnecessarily.
+
+Writing: Formal email
+Basic structure:
+Subject: Clear and short.
+Greeting: Dear [Name/Title],
+Opening: State why you are writing.
+Body: Explain the issue and provide relevant details or requests.
+Closing: Thank the reader and state the next step.
+Sign-off: Kind regards / Yours sincerely,
+Model email:
+Subject: Suggestion for a School Recycling Project
+Dear School Coordinator,
+I am writing to suggest a recycling project for our school. Students could separate paper and plastic into clearly labelled containers, while teachers could explain which materials can be recycled locally. The project could also include a monthly competition between classes to encourage participation. This would help reduce waste and make students more aware of their environmental responsibilities. I would be happy to help prepare posters and organise the first collection day.
+Thank you for considering this suggestion.
+Kind regards,
+A Student
+
+UNIT 5 — USING TECHNOLOGY AT SCHOOLS
+
+Theme
+Technology in education, learning new languages, digital tools, and the benefits and limits of artificial intelligence. Technology can support learning, but it does not remove the need for effort, judgement, practice, and reliable feedback.
+
+Vocabulary bank
+technology = practical use of scientific knowledge and tools
+platform = a digital service or environment where users interact or learn
+application/app = a software program designed for a task
+multilingual = able to use several languages
+translate = express meaning in another language
+pronunciation = the way a word or language is spoken
+feedback = information that helps improve performance
+access = the ability or opportunity to use something
+interactive = involving two-way activity or response
+artificial intelligence (AI) = computer systems designed to perform tasks that often require human-like reasoning or language processing
+
+Grammar: Countable and uncountable nouns
+Countable nouns have singular and plural forms: a book, two books, many students.
+Uncountable nouns are treated as a mass or concept in the relevant meaning: information, advice, equipment, homework, knowledge.
+Say “a piece of advice” or “two pieces of information,” not “an advice” or “informations.”
+
+Quantifiers
+some: often affirmative statements or offers/requests.
+I have some useful notes. Would you like some help?
+any: common in negatives and questions.
+We don't have any paper. Do you have any questions?
+many: countable plural nouns — many books.
+much: uncountable nouns — much time.
+a few: a small but positive number of countable items — a few exercises.
+few: not many; often stresses insufficiency — few students understood the task.
+a little: a small but positive amount of uncountable material — a little time.
+little: not much; often stresses insufficiency — little time remains.
+a lot of/lots of: used with both countable and uncountable nouns in many everyday contexts.
+
+Examples
+There are many useful videos, but we don't have much time.
+I downloaded a few dictionaries and found some advice about pronunciation.
+We have little information about the source, so we should check it.
+
+Writing: Informal email to a friend about learning with technology
+Use a friendly greeting, natural language, paragraphs, and a warm closing. Explain the tool, how you use it, one benefit, and one limitation.
+Model email:
+Hi Omar,
+I've been using a language-learning app to practise English after school. It gives me short listening activities, vocabulary reviews, and feedback on some pronunciation exercises. I like that I can practise for ten minutes whenever I have time. However, I still check new words in a reliable dictionary, and I try to speak with real people because an app cannot replace every kind of conversation. I think technology is most useful when we use it regularly and think carefully about its feedback.
+Write back and tell me which tools you use!
+See you soon,
+Mazen
+
+ENGLISH QUICK REVIEW
+- Past Simple: completed past actions; Past Continuous: an action in progress in the past.
+- should = advice; mustn't = prohibition; don't have to = no necessity.
+- Zero conditional: facts; first: realistic future possibility; second: hypothetical situation.
+- Learn which verbs take gerund or infinitive.
+- Countable nouns take many/a few; uncountable nouns take much/a little.
+- Writing should have a clear purpose, sensible paragraphing, appropriate tone, and correct punctuation.
+
+Practice quiz
+1. While we _____ (visit) the museum, the guide _____ (explain) the statue.
+2. You _____ share private information without permission. (prohibition)
+3. If water _____ (freeze), it _____ (turn) into ice.
+4. If I _____ (be) the head teacher, I _____ (start) a reading club. (hypothetical)
+5. We have _____ information and only _____ minutes. (a few/a little/much/many)
+Answers: 1. were visiting / was explaining; 2. mustn't; 3. freezes / turns; 4. were / would start; 5. little information and a few minutes (depending on the intended meaning).
+
+======================================================================
+القسم السادس: التاريخ — مصر الحضارة والعالم القديم
+======================================================================
+
+الدرس 1: الحضارة والتاريخ
+
+أولًا: مفهوم الحضارة
+الحضارة حصيلة ما ينتجه الإنسان ويتعلمه وينظمه في تفاعله مع البيئة، بهدف تحسين ظروف الحياة. لها جوانب مادية مثل المباني والأدوات ووسائل الإنتاج، وجوانب معنوية مثل اللغة والقيم والعلوم والمعتقدات والفنون والنظم.
+
+ثانيًا: مفهوم التاريخ
+التاريخ دراسة النشاط الإنساني في الماضي باستخدام المصادر والأدلة، بهدف تفسير التغير والاستمرار وفهم الحاضر والاستفادة من الخبرات السابقة. التاريخ ليس مجرد حفظ أسماء وتواريخ؛ بل يتطلب سؤالًا ومصدرًا وتحليلًا ومقارنة.
+
+الفرق بين الحضارة والتاريخ
+الحضارة هي الإنجازات والنظم التي أنتجها البشر؛ أما التاريخ فهو المجال الذي يدرس الماضي الإنساني ويجمع أدلته ويفسرها. قد تكون الحضارة موضوعًا من موضوعات البحث التاريخي.
+
+ثالثًا: انتقال مراكز الحضارة
+تظهر في دراسة العالم القديم حضارات كبرى في مصر وبلاد العراق القديم وغيرها من مناطق الشرق، ثم تطورت حضارات البحر المتوسط مثل اليونان وروما. وأسهمت الحضارة الإسلامية في العلوم والفلسفة والطب والرياضيات والثقافة عبر قرون، ثم انتقلت كثير من المعارف وتطورت داخل مجتمعات أوروبية وغيرها. الانتقال الحضاري ليس خطًا بسيطًا في اتجاه واحد؛ بل هو تبادل وتأثير وتأثر وترجمة وتجارة وهجرة وصراع وتعاون.
+
+رابعًا: تقسيم العصور التاريخية
+تقسيم شائع في المناهج:
+- العصور القديمة: من ظهور الكتابة في بعض التصنيفات إلى سقوط الإمبراطورية الرومانية الغربية سنة 476م تقريبًا.
+- العصور الوسطى: تمتد في تقسيمات شائعة من 476م إلى سقوط القسطنطينية سنة 1453م، مع وجود تقسيمات أخرى.
+- العصور الحديثة: تبدأ غالبًا في القرن الخامس عشر أو السادس عشر، وتستخدم بعض التصنيفات 1453م حدًا تقريبيًا، وتستمر إلى الثورات والتحولات الكبرى في أواخر القرن الثامن عشر.
+- العصور المعاصرة: تبدأ في بعض التصنيفات بالثورة الفرنسية 1789م وتستمر إلى الحاضر.
+هذه الحدود اصطلاحات تنظيمية وليست حواجز تحدث في يوم واحد؛ اكتب في الامتحان الحدود المعتمدة في كتاب المدرسة.
+
+أهمية دراسة التاريخ
+- استخلاص الدروس من نجاحات المجتمعات وأخطائها.
+- فهم جذور المؤسسات والحدود والعلاقات الثقافية.
+- تقدير التراث وحمايته.
+- اكتشاف دور الإنسان والبيئة والاقتصاد والسياسة في التحول.
+- تنمية التفكير النقدي من خلال مقارنة الروايات ومصادرها.
+
+الدرس 2: مصادر دراسة الحضارات
+
+1) المصادر الأولية
+هي بقايا أو وثائق قريبة من الفترة التاريخية التي ندرسها أو صادرة عنها، ومنها:
+- الآثار والمباني والأدوات.
+- النقوش والكتابات على الجدران واللوحات.
+- البرديات والوثائق المكتوبة.
+- الأوستراكا: شقفات فخار أو حجر استُخدمت أحيانًا للكتابة.
+- النقود والمسكوكات.
+- المقابر والتماثيل واللقى الأثرية.
+- الوثائق الإدارية والرسائل والنصوص التي تعود للعصر نفسه.
+
+2) المصادر الثانوية
+هي دراسات أو تفسيرات كتبها باحثون بعد الفترة المدروسة، اعتمادًا على المصادر والأدلة. تشمل الكتب التاريخية الحديثة والدراسات والمقالات الأكاديمية. وقد تشمل بعض الروايات الأدبية أو الأساطير مادة تساعدنا على دراسة تصورات المجتمع، لكنها لا تؤخذ تلقائيًا كوقائع حرفية.
+
+3) كيف نقيّم مصدرًا تاريخيًا؟
+- الأصالة: هل المصدر أصلي أم نسخة لاحقة؟
+- الزمن: متى كُتب أو صُنع؟ وهل كاتبه شاهد مباشر؟
+- الغرض والجمهور: لماذا أُنتج المصدر ولمن؟
+- السياق: ما الظروف السياسية والاجتماعية وقتها؟
+- الانحياز: هل يمدح حاكمًا أو يبرر حربًا أو يدافع عن جماعة؟
+- المقارنة: هل تؤيد مصادر مستقلة أخرى المعلومة؟
+
+أمثلة
+النقش الذي يوثق حملة ملكية قد يكون مصدرًا أوليًا، لكنه قد يبالغ في النصر. كتاب باحث معاصر يفسر النقش مصدر ثانوي. الأدق مقارنة النقش بمصادر أخرى والبحث في غرضه ولغته.
+
+الدرس 3: عوامل قيام الحضارات
+
+عوامل طبيعية
+- الأنهار ومصادر المياه: توفر الشرب والري وطرق النقل.
+- التربة الخصبة: دعم الزراعة والاستقرار.
+- المناخ: قد يسهّل الإنتاج أو يفرض تحديات.
+- الموقع الجغرافي: القرب من طرق التجارة والبحار ومناطق التفاعل.
+- الثروات الطبيعية: الأحجار والمعادن والأخشاب وغيرها من المواد اللازمة للبناء والإنتاج.
+- الحدود الطبيعية: قد توفر الحماية النسبية، لكنها لا تمنع كل اتصال أو غزو.
+
+عوامل بشرية
+- تنظيم العمل والري والإنتاج.
+- تكوين سلطة أو إدارة تستطيع تنسيق المشروعات العامة.
+- المهارات والخبرات ونقل المعرفة بين الأجيال.
+- التجارة والتخصص وتقسيم العمل.
+- التعاون الاجتماعي والاستقرار النسبي.
+- الكتابة والتسجيل والتخطيط والابتكار.
+
+عوامل قيام الحضارة المصرية
+- نهر النيل: مصدر الماء والري والطمي ووسيلة نقل طبيعية.
+- الموقع: اتصال بإفريقيا والبحر المتوسط والشرق الأدنى، مع موقع يتيح التجارة والتبادل.
+- الحدود الطبيعية: الصحارى والبحار وبعض المناطق الوعرة وفرت حماية نسبية، مع بقاء الاتصال والحركة ممكنين.
+- المناخ والثروات: ساعدا في بعض الأنشطة الزراعية والتعدين والبناء.
+- العامل البشري: تنظيم الزراعة والري والعمالة والإدارة، وتطوير الكتابة والحرف والفنون.
+
+مقولة «مصر هبة النيل»
+تُبرز المقولة أهمية النيل في قيام الحضارة المصرية، لكنها لا تعني أن النهر وحده صنع الحضارة؛ فالإنسان المصري والتنظيم والعمل والمعرفة والإدارة عوامل أساسية حوّلت البيئة إلى إنجاز حضاري.
+
+الدرس 4: ملامح من تاريخ مصر القديمة
+
+1) توحيد القطرين
+ارتبط توحيد مصر العليا والسفلى بالملك نعرمر، المعروف في تقاليد كثيرة باسم مينا، في بدايات التاريخ المصري الموحد نحو أواخر الألف الرابع/بدايات الألف الثالث قبل الميلاد. ساعد توحيد السلطة على تنسيق الإدارة والري والموارد وتكوين دولة واسعة.
+
+2) الخط العام للتاريخ الفرعوني
+تُرتب العصور في تقسيمات مدرسية إلى أسرات ومراحل كبرى، وتفصل بينها أحيانًا فترات ضعف أو انقسام:
+- العصر العتيق/الأسرات المبكرة: بناء الدولة الموحدة وترسيخ الإدارة.
+- الدولة القديمة: مركزية السلطة، والمشروعات الملكية الكبرى، وارتباطها الشهير بالأهرامات.
+- عصر الاضمحلال الأول: تراجع وحدة السلطة في بعض الفترات.
+- الدولة الوسطى: إعادة توحيد الحكم، ونشاط الإدارة والاقتصاد والأدب.
+- عصر الاضمحلال الثاني: وجود قوى حاكمة متعددة، ومن بينها الهكسوس في أجزاء من مصر.
+- الدولة الحديثة: اتساع النفوذ المصري وبروز ملوك مثل أحمس وتحتمس الثالث وحتشبسوت وأخناتون وتوت عنخ آمون ورمسيس الثاني، مع اختلاف أدوارهم التاريخية.
+- العصور المتأخرة: تعدد القوى والتحديات الخارجية، ثم خضوع مصر في مراحل لاحقة لقوى أجنبية.
+تأكد من ترتيب الأسماء والتواريخ التفصيلية وفق الجدول الزمني في كتابك.
+
+3) خصائص الحضارة المصرية القديمة
+- ارتباط وثيق بنهر النيل والزراعة.
+- وجود سلطة ملكية وجهاز إداري لتنظيم الدولة.
+- الكتابة المصرية القديمة ونظم الحساب والتسجيل.
+- عمارة متميزة ومقابر ومعابد ومشروعات عامة.
+- معتقدات دينية واهتمام بالحياة الأخرى والطقوس الجنائزية.
+- تقدم في الحرف والطب والفلك العملي والهندسة، بقدر ما تسمح به الأدلة التاريخية.
+- استمرار كثير من التقاليد مع تغيرها عبر العصور.
+
+4) كيف ندرس خطًا زمنيًا؟
+ابدأ بأسماء المراحل، ثم رتبها زمنيًا، ثم اربط كل مرحلة بميزة واحدة أو حدث واحد. لا تخلط بين الأسرة الحاكمة والدولة الكبرى والفترة الانتقالية. إذا طُلبت مقارنة، اذكر معيارًا واضحًا مثل وحدة السلطة أو النشاط العسكري أو البناء أو الاقتصاد.
+
+الدرس 5: الحياة الاقتصادية في مصر القديمة
+
+1) الزراعة
+كانت الزراعة نشاطًا رئيسيًا بسبب نهر النيل والتربة الزراعية. ارتبط الإنتاج بموسمية الفيضان ومواعيد الزراعة والحصاد، واحتاج إلى تنظيم القنوات والري وتخزين المحاصيل. من المحاصيل المهمة الحبوب مثل القمح والشعير، إلى جانب الكتان ومحاصيل أخرى بحسب المنطقة والفترة.
+
+2) الأرض والإنتاج
+تفاوتت أنماط ملكية الأرض وإدارتها عبر العصور بين الملكية المرتبطة بالسلطة والمعابد والأفراد. كانت الضرائب والمحاصيل والتخزين والإدارة عوامل تساعد الدولة على تمويل المشروعات وإمداد العاملين والجيش والموظفين.
+
+3) تربية الحيوان والصيد
+استخدم المصريون القدماء الحيوانات في الغذاء والزراعة والنقل وبعض أعمال الإنتاج. وساهم صيد الأسماك والطيور والحيوانات في توفير الغذاء والمواد، كما ظهر في رسوم ومشاهد الحياة اليومية.
+
+4) الصناعة والحرف
+من الأنشطة الحرفية والصناعية: صناعة الفخار، والنسيج من الكتان، وصناعة الأدوات المعدنية، والعمل في الأحجار، وصناعة الحلي، وبناء القوارب، وتصنيع منتجات من البردي. احتاجت هذه الحرف إلى مواد أولية وعمال مهرة وتنظيم وتبادل للمنتجات.
+
+5) التجارة والنقل
+- التجارة الداخلية ربطت مناطق الإنتاج والاستهلاك.
+- كان النيل طريقًا مهمًا للنقل، بجانب الطرق البرية.
+- التجارة الخارجية جلبت مواد لا تتوافر محليًا بالقدر الكافي، وسمحت بتبادل السلع والأفكار.
+- ارتبطت البعثات التجارية والاستكشافية باتصالات مصر بمناطق إفريقية وشرق أوسطية ومتوسطية.
+- تنسب المصادر القديمة إلى عصر الملك نخاو الثاني محاولة أو رحلة بحرية للدوران حول إفريقيا عبر البحر الأحمر ثم العودة من جهة البحر المتوسط؛ تعامل مع التفاصيل كما يعرضها كتاب المدرسة، لأن الروايات التاريخية القديمة تحتاج إلى نقد ومقارنة.
+
+6) دور الدولة
+يمكن أن يشمل دور الدولة تنظيم الري، وجمع الضرائب أو جزء من الإنتاج، وإدارة المخازن، وتوفير العمالة للمشروعات، وتأمين طرق النقل، وتنظيم بعض الحرف والتجارة. وتختلف التفاصيل من عصر إلى آخر.
+
+تدريبات تاريخ:
+1. فرّق بين الحضارة والتاريخ.
+2. أعط مثالين لمصدرين أوليين ومثالًا لمصدر ثانوي.
+3. اشرح كيف تفاعلت العوامل الطبيعية والبشرية في قيام الحضارة المصرية.
+4. لماذا لا يصح القول إن النيل وحده هو الذي صنع الحضارة المصرية؟
+5. اذكر ثلاثة أنشطة اقتصادية في مصر القديمة واشرح علاقة أحدها بالنيل.
+إجابات إرشادية: الحضارة إنجازات الإنسان، والتاريخ دراسة النشاط الإنساني في الماضي؛ من المصادر الأولية النقوش والبرديات والنقود، والثانوي دراسة حديثة؛ اجتمعت المياه والموقع والموارد مع تنظيم الإنسان وإدارته؛ لأن العمل والمعرفة والدولة عوامل لا تقل أهمية؛ مثل الزراعة والنقل والتجارة.
+
+======================================================================
+مراجعة نهائية سريعة لكل المواد
+======================================================================
+
+فلسفة ومنطق
+- التفكير: عملية عقلية؛ التمييز بين التفكير الخرافي والديني والفلسفي والعلمي.
+- التفكير الناقد يفحص الأدلة، والإبداعي ينتج بدائل.
+- الفلسفة تطرح أسئلة عن الوجود والمعرفة والقيم، والموقف الفلسفي يتطلب الدهشة والسؤال والنقد والحوار.
+- الحد المنطقي يرتبط بالمفهوم والماصدق؛ القضية الخبرية تقبل الصدق أو الكذب؛ الاستدلال ينتقل من مقدمات إلى نتيجة.
+
+العلوم المتكاملة
+- أغلفة الأرض: الجوي، المائي، الصخري، الحيوي.
+- دورة الماء: تبخر/نتح، تكثف، هطول، جريان/تسرب.
+- الماء قطبي، والروابط الهيدروجينية تفسر خواص مهمة.
+- الكثافة = الكتلة/الحجم؛ Q = mcΔT؛ الماء أعلى كثافة قرب 4°C.
+- المحلول يتكون من مذيب ومذاب؛ الأسموزية انتقال عبر غشاء شبه منفذ.
+- الماء مذيب وناقل ومنظم للحرارة وضروري للأيض؛ الإنزيمات تتأثر بالحرارة وpH.
+
+الرياضيات
+- i² = -1؛ الصورة المركبة a + bi؛ المرافق a - bi.
+- Δ = b² - 4ac لتحديد نوع جذري المعادلة.
+- مجموع الجذرين -b/a؛ وحاصل ضربهما c/a.
+- إشارة الدالة والمتباينة تعتمد على الجذور وإشارة المعامل الرئيسي.
+
+العربية
+- افهم فكرة كل نص وقيمه وسياقه، ثم اربط الجماليات بأثرها في المعنى.
+- أقسام الكلمة: اسم وفعل وحرف.
+- الفعل: ماضٍ ومضارع وأمر؛ الإعراب يتغير بالعامل، والبناء يلزم صورة واحدة.
+- من المرفوعات: المبتدأ والخبر والفاعل ونائب الفاعل واسم كان وخبر إن والتوابع بحسب موقعها.
+- قصة عنترة: راجع تسلسل الأجزاء، دوافع الشخصيات، الصراع الاجتماعي، وسمات شخصية عنترة.
+
+الإنجليزية
+- Past Simple للأحداث المكتملة؛ Past Continuous للخلفية أو الفعل المستمر بالماضي.
+- should للنصيحة؛ mustn't للمنع؛ don't have to لعدم الضرورة.
+- Zero conditional للحقائق، first للمستقبل المحتمل، second للفرضيات.
+- احفظ نمط الفعل: gerund أو infinitive؛ واضبط quantifiers وفق كون الاسم معدودًا أو غير معدود.
+- الكتابة الجيدة لها غرض واضح، فقرات مترابطة، ونبرة مناسبة للقارئ.
+
+التاريخ
+- الحضارة إنجازات الإنسان؛ التاريخ دراسة الماضي بالمصادر.
+- صنّف المصادر إلى أولية وثانوية، وقيّم الغرض والانحياز والسياق.
+- قامت الحضارات بتفاعل عوامل طبيعية وبشرية.
+- راجع التوحيد والعصور الكبرى وخصائص الحضارة المصرية.
+- الاقتصاد شمل الزراعة والصناعة والتجارة والنقل وتربية الحيوان والصيد.
+
+======================================================================
+مصادر الفهرس والتحقق من ترتيب الدروس
+======================================================================
+المكتبة الإلكترونية لوزارة التربية والتعليم: https://ellibrary.moe.gov.eg/Books-sec/
+فهرس العلوم المتكاملة أولى ثانوي: https://zakermasr.com/الصف-الاول-الثانوي/العلوم-المتكاملة/
+فهرس الرياضيات أولى ثانوي: https://zakermasr.com/الصف-الاول-الثانوي/رياضيات/
+فهرس الفلسفة والمنطق أولى ثانوي: https://zakermasr.com/الصف-الاول-الثانوي/الفلسفة-والمنطق/
+فهرس التاريخ أولى ثانوي: https://zakermasr.com/الصف-الاول-الثانوي/التاريخ/
+فهرس اللغة الإنجليزية أولى ثانوي: https://zakermasr.com/الصف-الاول-الثانوي/اللغة-الانجليزية/
+فهرس اللغة العربية أولى ثانوي: https://zakermasr.com/الصف-الاول-الثانوي/اللغة-العربية/
+فهرس النحو والصرف أولى ثانوي: https://zakermasr.com/الصف-الاول-الثانوي/النحو-والصرف/
+فهرس قصة أبو الفوارس: https://zakermasr.com/الصف-الاول-الثانوي/اللغة-العربية-قصة-أبو-الفوارس/
+
+انتهى الدليل.
