@@ -16,6 +16,8 @@ next-env.d.ts
 .env.*.local
 .vercel/
 supabase/.temp/
+.opencode/
+opencode.jsonc
 
 artifacts/
 apps/web/public/pdf/pdf.worker.min.mjs

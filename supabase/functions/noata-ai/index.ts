@@ -23,6 +23,7 @@ import {RESPONSE_UI_POLICY,sanitizeResponseUi} from "./response-ui.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import {parseSuggestions,suggestionContext,type SuggestionKind} from "./suggestions.ts";
 import {memorySystemContext,lastChatRecallRequested,type MemoryItem} from "./memory.ts";
+import {loadLearnerContext} from "./learner-context.ts";
 import {conversationalMemoryIntent,memoryStorageRefusal,memoryResultMessage,persistentMemoryAllowed} from "./memory-actions.ts";
 import {getCapabilityAvailability,validateCapabilityExecution,capabilitySystemContext} from "./capabilities.ts";
 
@@ -722,7 +723,10 @@ async function handleChat(
   const sectionLevel=typeof payload.revisionSectionLevel==="number"&&Number.isInteger(payload.revisionSectionLevel)&&payload.revisionSectionLevel>=1&&payload.revisionSectionLevel<=3?payload.revisionSectionLevel:undefined;
   const delivery=fileDeliveryInstruction(payload.artifactFormat,latestLanguage==="English"?"en":"ar",sectionLevel);
   const presentation=delivery?"":answerPresentation(latestText);
-  const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}` }, ...safeMessages];
+  // Progress personalization is server-verified and owner-scoped. It never
+  // blocks the request: an unavailable read simply yields no context block.
+  const learnerContext=await loadLearnerContext(admin,userId);
+  const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}${learnerContext?"\n"+learnerContext:""}` }, ...safeMessages];
   const body: any = {
     model,
     messages,

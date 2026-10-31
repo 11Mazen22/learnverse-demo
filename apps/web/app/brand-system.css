@@ -101,7 +101,18 @@ html[data-palette="midnight"] {
 .noata-logo .noata-mark-outline { fill: var(--brand-mark-ink); }
 .noata-logo .noata-mark-paper { fill: var(--brand-mark-paper); }
 .noata-logo .noata-mark-ribbon { fill: var(--brand-mark-accent); }
-.noata-brand-copy strong { color: var(--ink); }
+.noata-brand-copy strong { color: var(--ink, #0c192c); }
+.noata-brand-copy small { color: var(--muted, #64748b); }
+html[data-theme="light"] .noata-brand-copy strong,
+html:not([data-theme="dark"]) .noata-brand-copy strong {
+  color: var(--ink, #0c192c) !important;
+}
+html[data-theme="light"] .noata-brand-copy small,
+html:not([data-theme="dark"]) .noata-brand-copy small {
+  color: var(--muted, #64748b) !important;
+}
+.marketing-page .noata-brand-copy strong, .mk-footer .noata-brand-copy strong, html[data-theme="dark"] .noata-brand-copy strong { color: #ffffff !important; }
+.marketing-page .noata-brand-copy small, .mk-footer .noata-brand-copy small, html[data-theme="dark"] .noata-brand-copy small { color: #94a3b8 !important; }
 .noata-brand-copy small { color: var(--muted); }
 :is(.hero, .auth-aside, .noata-legal-hero) .noata-logo,
 .noata-logo-on-navy {

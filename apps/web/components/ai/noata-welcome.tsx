@@ -9,7 +9,7 @@ export function NoataWelcome({signedIn,owner,onPrompt}:{signedIn:boolean|null;ow
  const t=useTranslation();
  return <div className="owui-welcome noata-r2-welcome">
   <div className="r2-welcome-copy">
-   <span className="noata-one-eyebrow r2-eyebrow"><i aria-hidden="true"/>Noata AI · {t("مساحة عمل ذكية","intelligent workspace")}</span>
+   <span className="noata-one-eyebrow r2-eyebrow"><i aria-hidden="true"/>Noäta AI · {t("مساحة عمل ذكية","intelligent workspace")}</span>
    <h1>{t("فكّر.","Think.")}<br/><span>{t("اصنع.","Make.")}</span> {t("شارك.","Share.")}</h1>
    <p>{t("من سؤال عابر إلى بحث موثّق أو ملف مصمّم. مساحة واحدة للفهم والإنشاء والتقديم.","From a passing question to sourced research or a designed file. One workspace to understand, create and present.")}</p>
    {signedIn===false&&<Link className="noata-one-signin" href="/login?next=/ai">{t("سجّل الدخول للبدء","Sign in to get started")}</Link>}
@@ -24,7 +24,7 @@ export function NoataWelcome({signedIn,owner,onPrompt}:{signedIn:boolean|null;ow
     <span className="r2-page-back-block"/>
    </div>
    <div className="r2-page r2-page-front">
-    <div className="r2-page-top"><span>Noata document</span><b>01</b></div>
+    <div className="r2-page-top"><span>Noäta document</span><b>01</b></div>
     <strong>{t("من السؤال إلى ملف جاهز.","From question to a finished file.")}</strong>
     <div className="r2-page-grid"><span>RESEARCH</span><span>STRUCTURE</span><span>DESIGN</span></div>
     <div className="r2-page-bars"><i/><i/><i/></div>

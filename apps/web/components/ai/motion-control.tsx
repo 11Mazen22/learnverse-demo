@@ -30,7 +30,7 @@ export function NoataMotionControl(){
   {id:"reduce",ar:"حركة أقل",en:"Reduced"},{id:"off",ar:"بدون حركة",en:"Off"}
  ];
  return <fieldset className="noata-motion-field">
-  <legend>{t("حركة واجهة Noata","Noata interface motion")}</legend>
+  <legend>{t("حركة واجهة Noäta","Noäta interface motion")}</legend>
   <p>{t("إعداد محفوظ على هذا الجهاز. يظل تفضيل النظام لتقليل الحركة أولوية.","Saved on this device. Your system's reduced-motion preference takes priority.")}</p>
   <div className="noata-motion-options" dir={locale==="en"?"ltr":"rtl"}>
    {items.map(x=><label className={mode===x.id?"active":""} key={x.id}>

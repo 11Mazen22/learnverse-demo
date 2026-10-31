@@ -8,7 +8,7 @@ import { QuranVerseMarker } from "./quran-verse-marker";
 type Verse = { number: number; text: string };
 type State = { status: "loading" } | { status: "error" } | { status: "ready"; name: string; verses: Verse[] };
 
-/** A chat never prints guessed sacred text. Verses come from Noata's
+/** A chat never prints guessed sacred text. Verses come from Noäta's
  * existing server-validated canonical Uthmani Quran source. */
 export function QuranPassage({ surah, start, end }: { surah: number; start: number; end: number }) {
   const t = useTranslation(), locale = useLocale();

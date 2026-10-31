@@ -49,7 +49,7 @@ export function NoataCapabilityCenter({open,owner}:{open:boolean;owner:string|nu
   return()=>{live=false;};
  },[open,owner,locale,reload,supabase]);
  return <section className="noata-capability-center">
-  <h3>{t("مركز قدرات Noata AI","Noata AI capability center")}</h3>
+  <h3>{t("مركز قدرات Noäta AI","Noäta AI capability center")}</h3>
   <p>{t("فرق مهم: إعداد مفتاح الخدمة لا يعني نجاح طلب مباشر. «أداة مدمجة» تعني وجود التنفيذ، وليس إثبات كل سيناريو.","Important: a configured provider is not a verified successful request. Built-in means code exists, not that every scenario passed.")}</p>
   <div className="noata-capability-heading"><strong>{t("الحالة التقنية الحالية","Current technical status")}</strong>
    <button type="button" disabled={!owner||loading} onClick={()=>setReload(x=>x+1)}>{t("إعادة التحقق","Refresh")}</button>

@@ -35,11 +35,11 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
   signin: {
     eyebrow: t("أهلًا بعودتك","Welcome back"),
     title: t("أكمل رحلتك","Continue your journey"),
-    lead: t("تقدّمك ومكافآتك ومحادثاتك مع Noata AI محفوظة بأمان في حسابك.","Your progress, rewards and Noata AI conversations are safely saved in your account."),
+    lead: t("تقدّمك ومكافآتك ومحادثاتك مع Noäta AI محفوظة بأمان في حسابك.","Your progress, rewards and Noäta AI conversations are safely saved in your account."),
   },
   signup: {
     eyebrow: t("ابدأ رحلتك","Start your journey"),
-    title: t("أنشئ حسابك في Noata","Create your Noata account"),
+    title: t("أنشئ حسابك في Noäta","Create your Noäta account"),
     lead: t("كل فكرة جديدة تستحق فرصة. أنشئ حسابك وابدأ التعلّم بطريقتك.","Every new idea deserves a chance. Create an account and learn your way."),
   },
   forgot: {
@@ -238,7 +238,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
           </div>
         </div>
         <ul className="auth-aside-points">
-          <li><Icon name="ai" size={18} />{t("مذاكرة أذكى في ورشة Noata","Study smarter in the Noata workshop")}</li>
+          <li><Icon name="ai" size={18} />{t("مذاكرة أذكى في ورشة Noäta","Study smarter in the Noäta workshop")}</li>
           <li><Icon name="chart" size={18} />{t("تقدّمك ومكافآتك محفوظة بأمان في حسابك","Your progress and rewards are safely saved in your account")}</li>
           <li><Icon name="check" size={18} />{t("مهام ومراجعات تبني مستواك خطوة بخطوة","Missions and reviews build your skills step by step")}</li>
         </ul>
@@ -345,7 +345,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
           </>
         )}
 
-        <Link href="/" className="auth-explore">{t("استكشف Noata دون حساب","Explore Noata without an account")}</Link>
+        <Link href="/" className="auth-explore">{t("استكشف Noäta دون حساب","Explore Noäta without an account")}</Link>
       </section>
     </main>
   );

@@ -1,10 +1,12 @@
 /** AI may SUGGEST colors, but it may never inject arbitrary CSS/JS/HTML.
  * Users preview structured, contrast-checked color tokens before committing.
  */
+import type { PaletteModeConstraint } from "./mode";
+
 export type DesignTokens = { accent: string; deep: string; bright: string };
 export type CustomDesign = {
  id: string; user_id: string; name: string; description: string;
- tokens: DesignTokens; visible: boolean;
+ tokens: DesignTokens; modeConstraint?: PaletteModeConstraint; visible: boolean;
 };
 const HEX = /^#[0-9a-fA-F]{6}$/;
 export function relativeLuminance(hex:string):number {
@@ -76,7 +78,7 @@ function readableShade(color:string,target:number):string {
  }
  return "#000000";
 }
-export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar",options:{adjustContrast?:boolean}={}):{name:string;description:string;tokens:DesignTokens;contrastAdjusted?:boolean} {
+export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar",options:{adjustContrast?:boolean}={}):{name:string;description:string;tokens:DesignTokens;modeConstraint?:PaletteModeConstraint;contrastAdjusted?:boolean} {
   if(raw.length>16000)throw Error(locale==="en"?"The AI response exceeds the permitted size.":"رد الذكاء الاصطناعي أكبر من الحد المسموح.");
   raw=normalizeAnnotatedJson(raw);
  // A model may wrap its answer in a code fence or add prose containing braces.
@@ -110,18 +112,23 @@ export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar",options:{
     throw Error(locale==="en"?"The design name or description is outside the permitted length.":"عنوان أو وصف التصميم خارج الحدود المسموحة.");
   const suggested=hexTokens(obj.tokens,locale);
  const colors=options.adjustContrast?{...suggested,accent:readableShade(suggested.accent,4.5),deep:readableShade(suggested.deep,7)}:suggested;
- return {name,description,tokens:validateTokens(colors,locale),
+ const rawConstraint = (obj.modeConstraint ?? obj.mode_constraint);
+ const modeConstraint: PaletteModeConstraint =
+   rawConstraint === "dark-only" || rawConstraint === "light-only" ? rawConstraint : "both";
+ return {name,description,tokens:validateTokens(colors,locale),modeConstraint,
    ...(options.adjustContrast?{contrastAdjusted:colors.accent!==suggested.accent||colors.deep!==suggested.deep}:{})};
 }
-export function applyCustomDesign(tokens:DesignTokens):void {
+export function applyCustomDesign(tokens:DesignTokens, modeConstraint:PaletteModeConstraint="both"):void {
  const safe=validateTokens(tokens), root=document.documentElement;
  root.style.setProperty("--custom-accent",safe.accent);
  root.style.setProperty("--custom-deep",safe.deep);
  root.style.setProperty("--custom-bright",safe.bright);
  root.dataset.palette="custom";
+ root.dataset.modeConstraint=modeConstraint;
 }
 export function clearCustomDesign():void {
  for(const key of ["--custom-accent","--custom-deep","--custom-bright"])document.documentElement.style.removeProperty(key);
+ document.documentElement.removeAttribute("data-mode-constraint");
 }
 export function isDesignRecord(value:unknown):value is CustomDesign {
  if(!value||typeof value!=="object")return false;
@@ -130,21 +137,23 @@ export function isDesignRecord(value:unknown):value is CustomDesign {
  try{validateTokens(x.tokens);return true;}catch{return false;}
 }
 export const DESIGN_STUDIO_INSTRUCTION = [
- "صمّم نظام ألوان أنيقًا ومريحًا للعين لتطبيق تعليمي اسمه Noata.",
+ "صمّم نظام ألوان أنيقًا ومريحًا للعين لتطبيق تعليمي اسمه Noäta.",
  "لا تنشئ أكواد CSS أو HTML أو JavaScript أو أسماء ملفات أو صور.",
   "أرجع JSON واحدًا فقط بلا markdown وبالمفاتيح التالية:",
   "لا تكتب أي تعليقات داخل JSON؛ لا تستخدم // أو # أو /* */. استخدم الفاصلة الإنجليزية , فقط بين الحقول.",
- '{"name":"اسم قصير بالعربية","description":"وصف عربي مختصر","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}',
+ '{"name":"اسم قصير بالعربية","description":"وصف عربي مختصر","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"},"modeConstraint":"both"}',
+ "يمكن لحقل modeConstraint أن يكون 'both' أو 'dark-only' أو 'light-only'.",
  "يجب أن تكون accent داكنة بما يكفي لتباين نص أبيض WCAG AA (4.5:1)، وأن تكون deep داكنة جدًا لتباين 7:1.",
  "اجعل bright درجة مساندة جميلة متناغمة مع accent وdeep؛ لا تخترع أسماء رمزية للألوان.",
  "لا تذكر معلومات شخصية. ألوان هذا التصميم تُعايَن قبل الموافقة والحفظ.",
 ].join("\n");
 export const DESIGN_STUDIO_INSTRUCTION_EN = [
-  "Suggest a refined, accessible color palette for an educational app called Noata.",
+  "Suggest a refined, accessible color palette for an educational app called Noäta.",
   "Do not produce CSS, HTML, JavaScript, file names, or images.",
   "Return exactly one JSON object with these keys, without markdown:",
   "Do not include comments using //, # or /* */. Use ASCII commas between fields.",
-  '{"name":"Short English name","description":"Brief English description","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}',
+  '{"name":"Short English name","description":"Brief English description","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"},"modeConstraint":"both"}',
+  "The modeConstraint field may be 'both', 'dark-only', or 'light-only'.",
   "The accent must contrast at least 4.5:1 with white text, and deep must contrast at least 7:1 with white text.",
   "Choose a harmonious supporting bright color. Use six-digit hexadecimal colors only.",
   "Do not include personal information. The user will preview and approve the colors before saving.",

@@ -24,7 +24,7 @@ export function NoataAnswerExports({text,title,ready}:{text:string;title?:string
    if(format==="markdown")saveText(text,stem+".md");
    else if(format==="pdf"){
     const response=await fetch("/api/documents/pdf",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","Accept-Language":locale},
-     body:JSON.stringify({text,title:title?.slice(0,120)||"Noata AI"})});
+     body:JSON.stringify({text,title:title?.slice(0,120)||"Noäta AI"})});
     if(!response.ok)throw Error(response.status===401?"AUTH":response.status===429?"RATE":"SERVICE");
     const blob=await response.blob(),magic=await blob.slice(0,5).text();
     if(!blob.type.includes("application/pdf")||magic!=="%PDF-"||blob.size<250)throw Error("INVALID");

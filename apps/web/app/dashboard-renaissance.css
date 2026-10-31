@@ -1,0 +1,813 @@
+/* ==========================================================================
+   Noäta Aura — Reimagined Dashboard Renaissance System
+   Meets Master Directive §8 (Completely Reimagine Application Dashboard)
+   Answers the 5 Vital Questions:
+   1. What should I focus on now?
+   2. Where did I leave off?
+   3. What progress have I made?
+   4. Which areas need more attention?
+   5. What is the most useful next action?
+   ========================================================================== */
+
+.db-cockpit {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-bottom: 48px;
+}
+
+/* 1. Dashboard Header & Greeting */
+.db-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.db-greeting-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.db-badge-term {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.db-badge-term .db-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: dbPulse 2s infinite;
+}
+
+@keyframes dbPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.db-greeting h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3.2vw, 2.1rem);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.db-greeting p {
+  margin: 6px 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.db-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.db-streak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.15));
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #b45309;
+  font-size: 0.84rem;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.1);
+}
+
+html[data-theme="dark"] .db-streak-pill {
+  color: #fde68a;
+}
+
+.db-streak-pill .db-flame {
+  font-size: 1.15rem;
+  animation: dbFlame 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes dbFlame {
+  0% { transform: scale(1) rotate(-3deg); }
+  100% { transform: scale(1.18) rotate(3deg); }
+}
+
+/* 2. Grand Spotlight Hero — "What to focus on now" + "Where I left off" */
+.db-spotlight {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  padding: clamp(22px, 3.2vw, 36px);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 85% 15%, rgba(99, 102, 241, 0.25), transparent 55%),
+    radial-gradient(ellipse at 15% 85%, rgba(34, 211, 238, 0.15), transparent 50%),
+    linear-gradient(135deg, #091222 0%, #050b14 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  color: #ffffff;
+}
+
+@media (min-width: 900px) {
+  .db-spotlight {
+    grid-template-columns: 1.7fr 1fr;
+    align-items: center;
+  }
+}
+
+.db-spotlight::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #818cf8, #22d3ee, transparent);
+}
+
+.db-spotlight-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.db-spotlight-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #818cf8;
+}
+
+.db-spotlight-subject-tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.db-spotlight h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+  font-weight: 800;
+  color: #ffffff !important;
+  line-height: 1.3;
+}
+
+.db-spotlight p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  line-height: 1.7;
+  max-width: 58ch;
+}
+
+.db-spotlight-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 440px;
+  margin-top: 4px;
+}
+
+.db-spotlight-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.db-spotlight-progress-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.db-spotlight-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6366f1, #22d3ee);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.db-spotlight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.db-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.db-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.5);
+  filter: brightness(1.08);
+}
+
+.db-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.db-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.db-spotlight-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.db-quick-target {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.db-target-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  color: #22d3ee;
+}
+
+.db-target-info h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.db-target-info p {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+/* 3. Metrics Grid — The 4 Core Learning Pillars */
+.db-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.db-metric-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+html[data-theme="dark"] .db-metric-card {
+  background: #091222;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.db-metric-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.db-metric-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.db-metric-top span {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.db-metric-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  background: var(--accent-soft);
+}
+
+.db-metric-value {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 850;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+html[data-theme="dark"] .db-metric-value {
+  color: #ffffff;
+}
+
+.db-metric-sub {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* 4. Section Heading */
+.db-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: -6px;
+}
+
+.db-section-heading h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .db-section-heading h3 {
+  color: #f8fafc;
+}
+
+.db-section-link {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.db-section-link:hover {
+  text-decoration: underline;
+}
+
+/* 5. Curriculum Cockpit — 6 Subjects & 8 Tracks */
+.db-curriculum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.db-curriculum-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  color: inherit;
+}
+
+html[data-theme="dark"] .db-curriculum-card {
+  background: #091222;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.db-curriculum-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.db-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.db-subject-crest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  font-size: 1.1rem;
+  background: var(--accent-soft);
+}
+
+.db-track-toggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  gap: 2px;
+}
+
+.db-track-toggle-btn {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.db-track-toggle-btn.is-active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.db-curriculum-card h4 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .db-curriculum-card h4 {
+  color: #ffffff;
+}
+
+.db-curriculum-card p {
+  margin: 0 0 12px;
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.db-card-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: auto;
+}
+
+.db-card-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.db-card-progress-meta strong {
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .db-card-progress-meta strong {
+  color: #cbd5e1;
+}
+
+.db-card-progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.db-card-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* 6. Two-Column Working Grid: Daily Focus & Weak Areas Radar */
+.db-two-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 860px) {
+  .db-two-col {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+}
+
+.db-panel {
+  padding: 22px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="dark"] .db-panel {
+  background: #091222;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.db-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.db-panel-head h4 {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+html[data-theme="dark"] .db-panel-head h4 {
+  color: #f8fafc;
+}
+
+/* Daily Targets Checklist */
+.db-targets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.db-target-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.db-target-item:hover {
+  border-color: var(--accent);
+}
+
+.db-target-item.is-done {
+  opacity: 0.65;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.db-target-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid var(--muted);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+}
+
+.db-target-item.is-done .db-target-check {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.db-target-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.db-target-copy strong {
+  display: block;
+  font-size: 0.84rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+html[data-theme="dark"] .db-target-copy strong {
+  color: #e2e8f0;
+}
+
+.db-target-copy small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.db-target-time {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 3px 7px;
+  border-radius: 6px;
+}
+
+/* Weak Concepts Radar */
+.db-weak-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.db-weak-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.db-weak-copy strong {
+  display: block;
+  font-size: 0.82rem;
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.db-weak-copy small {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.db-weak-action {
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.db-weak-action:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ffffff;
+}
+
+.db-weak-empty {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.db-weak-empty span {
+  font-size: 1.8rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* 7. Quick Action Command Launcher */
+.db-launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.db-launcher-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html[data-theme="dark"] .db-launcher-card {
+  background: #091222;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.db-launcher-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.db-launcher-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.db-launcher-info strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .db-launcher-info strong {
+  color: #ffffff;
+}
+
+.db-launcher-info small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}

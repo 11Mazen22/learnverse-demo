@@ -1,7 +1,7 @@
 "use client";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 /*
- * Noata AI workspace sidebar.
+ * Noäta AI workspace sidebar.
  * Interaction structure adapted from Open WebUI v0.6.5 Sidebar under BSD-3-Clause.
  * See docs/THIRD_PARTY_NOTICES.md.
  */
@@ -115,7 +115,7 @@ export function ConversationHistory(p: Props) {
 
   if (p.collapsed) {
     return (
-      <aside className="owui-sidebar collapsed noata-compact-rail" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
+      <aside className="owui-sidebar collapsed noata-compact-rail" aria-label={t("التنقل في Noäta AI","Noäta AI navigation")}>
         <div className="owui-rail">
           <button type="button" className="owui-icon owui-rail-toggle" onClick={p.onToggleCollapse}
             aria-label={t("توسيع القائمة","Expand sidebar")} data-tooltip={t("توسيع القائمة","Expand sidebar")}>
@@ -142,12 +142,12 @@ export function ConversationHistory(p: Props) {
   }
 
   return (
-    <aside className="owui-sidebar noata-organized-sidebar" aria-label={t("التنقل في Noata AI","Noata AI navigation")}>
+    <aside className="owui-sidebar noata-organized-sidebar" aria-label={t("التنقل في Noäta AI","Noäta AI navigation")}>
       <div className="owui-sidebar-top">
         <div className="owui-brand">
           <NoataLogo size={38}/>
           <div>
-            <strong>Noata AI</strong>
+            <strong>Noäta AI</strong>
             <small>{t("فكّر، تعلّم، واصنع","Think · Learn · Create")}</small>
           </div>
         </div>

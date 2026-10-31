@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 type ReviewQuestion = {
   id: string;
   skill_id: string | null;
+  variant_of: string | null;
   question_type: string;
   prompt_ar: string;
    prompt_en: string | null;
@@ -23,7 +24,7 @@ type Evidence = {
   mastery_score: number;
   state: string;
   next_review_at: string | null;
-  skills: { title_ar: string; title_en: string } | null;
+  skills: { title_ar: string; title_en: string; course_id: string } | null;
 };
 type Grade = {
   correct?: boolean;
@@ -41,6 +42,7 @@ export function ReviewLive() {
  const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [courseLanguages, setCourseLanguages] = useState<Map<string, "ar" | "en">>(new Map());
   const [questions, setQuestions] = useState<ReviewQuestion[]>([]);
   const [idx, setIdx] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -61,6 +63,7 @@ export function ReviewLive() {
     setGrade(null);
     setIdx(0);
     setEvidence([]);
+    setCourseLanguages(new Map());
     setLoading(true);
     setError("");
     void (async () => {
@@ -72,7 +75,7 @@ export function ReviewLive() {
         const { data: ev, error: readError } = await supabase
           .from("skill_evidence")
           .select(
-            "skill_id,mastery_score,state,next_review_at,skills(title_ar,title_en)",
+            "skill_id,mastery_score,state,next_review_at,skills(title_ar,title_en,course_id)",
           )
           .eq("user_id", user.id)
           .order("next_review_at", { ascending: true });
@@ -80,23 +83,58 @@ export function ReviewLive() {
         if (readError) throw readError;
         const rows = (ev ?? []) as Evidence[];
         setEvidence(rows);
+        const courseIds = [...new Set(rows.map((row) => row.skills?.course_id).filter((id): id is string => Boolean(id)))];
+        if (courseIds.length) {
+          const tracks = await supabase
+            .from("curriculum_tracks")
+            .select("course_id,content_language")
+            .in("course_id", courseIds)
+            .eq("publication_status", "published");
+          if (tracks.error) throw tracks.error;
+          setCourseLanguages(new Map((tracks.data ?? []).filter((row) => row.course_id).map((row) => [row.course_id!, row.content_language as "ar" | "en"])));
+        }
         const skillIds = rows
           .filter((x) => !x.next_review_at || new Date(x.next_review_at).getTime() <= Date.now())
           .map((x) => x.skill_id);
         if (!skillIds.length) return;
-        const { data: q, error: questionError } = await supabase
-          .from("questions")
-          .select("id,skill_id,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
-          .in("skill_id", skillIds)
-          .is("variant_of", null)
-          .in("publication_status", ["published_demo", "published"])
-          .order("position");
+        const [questionResult, attemptResult] = await Promise.all([
+          supabase
+            .from("questions")
+            .select("id,skill_id,variant_of,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
+            .in("skill_id", skillIds)
+            .in("publication_status", ["published_demo", "published"])
+            .order("position"),
+          supabase
+            .from("attempts")
+            .select("question_id,created_at")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(100),
+        ]);
         if (!active) return;
-        if (questionError) throw questionError;
-        const pool = (q ?? []) as ReviewQuestion[];
+        if (questionResult.error || attemptResult.error)
+          throw questionResult.error ?? attemptResult.error;
+        const pool = ((questionResult.data ?? []) as ReviewQuestion[]).filter((question) => {
+          const metadata = question.metadata && typeof question.metadata === "object"
+            ? question.metadata as Record<string, unknown>
+            : {};
+          return question.variant_of === null || metadata.translation_track === true;
+        });
+        const recency = new Map<string, number>();
+        for (const [position, attempt] of (attemptResult.data ?? []).entries()) {
+          if (!recency.has(attempt.question_id)) recency.set(attempt.question_id, position);
+        }
         const picked: ReviewQuestion[] = [];
         for (const skillId of skillIds) {
-          const used = pool.find((x) => x.skill_id === skillId);
+          const used = pool
+            .filter((question) => question.skill_id === skillId)
+            .sort((left, right) => {
+              const leftRecent = recency.get(left.id);
+              const rightRecent = recency.get(right.id);
+              if (leftRecent === undefined && rightRecent !== undefined) return -1;
+              if (leftRecent !== undefined && rightRecent === undefined) return 1;
+              return (rightRecent ?? 0) - (leftRecent ?? 0);
+            })[0];
           if (used) picked.push(used);
         }
         setQuestions(picked);
@@ -113,6 +151,9 @@ export function ReviewLive() {
 
   const current = questions[idx];
   const skill = evidence.find((x) => x.skill_id === current?.skill_id);
+  const contentLanguage = skill?.skills?.course_id
+    ? courseLanguages.get(skill.skills.course_id) ?? "ar"
+    : "ar";
   const due = evidence.filter(
     (x) => !x.next_review_at || new Date(x.next_review_at) <= new Date(),
   ).length;
@@ -145,7 +186,7 @@ export function ReviewLive() {
       if (grade && !grade.correct) {
         const { data: variant, error: variantError } = await supabase
           .from("questions")
-          .select("id,skill_id,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
+          .select("id,skill_id,variant_of,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
           .eq("variant_of", current.id)
           .in("publication_status", ["published_demo", "published"])
           .limit(1)
@@ -209,7 +250,7 @@ export function ReviewLive() {
     return (
       <section className="hero" style={{ textAlign: "center", padding: 44 }}>
         <div className="eyebrow">{t("اكتملت مراجعة اليوم","Today’s review is complete")}</div>
-        <h1>{t("كده المراجعة خلصت ✨","Review complete ✨")}</h1>
+        <h1>{t("اكتملت جلسة الاسترجاع اليومية","Review complete")}</h1>
         <p>{t("المواعيد الجديدة اتحدثت من أدائك، مش من مؤقت ثابت.","Your next review dates have been updated based on your performance.")}</p>
         <div className="hero-actions" style={{ justifyContent: "center" }}>
           <a className="btn btn-primary" href="/progress">{t("تابع مستوى إتقانك","View your mastery")}</a>
@@ -240,8 +281,8 @@ export function ReviewLive() {
         <section className="panel" style={{ padding: 28 }}>
           <div className="panel-head">
             <div>
-              <span className="pill">{(locale==="en"?skill?.skills?.title_en:skill?.skills?.title_ar) ?? t("مهارة قيد المراجعة","Skill under review")}</span>
-              <h2 style={{ marginTop: 12 }}>{(locale==="en" ? current?.prompt_en ?? "English question unavailable." : current?.prompt_ar)}</h2>
+               <span className="pill">{(contentLanguage==="en"?skill?.skills?.title_en:skill?.skills?.title_ar) ?? t("مهارة قيد المراجعة","Skill under review")}</span>
+               <h2 style={{ marginTop: 12 }} dir={contentLanguage === "ar" ? "rtl" : "ltr"}>{(contentLanguage==="en" ? current?.prompt_en ?? "English question unavailable." : current?.prompt_ar)}</h2>
             </div>
             <b>
               {idx + 1}/{questions.length}
@@ -250,7 +291,7 @@ export function ReviewLive() {
           <form onSubmit={submit}>
             {current?.question_type === "multiple-choice" ? (
               <div style={{ display: "grid", gap: 10 }}>
-                {options((locale==="en" ? current.choices_en : current.choices_ar)).map((option, i) => (
+                 {options((contentLanguage==="en" ? current.choices_en : current.choices_ar)).map((option, i) => (
                   <button
                     key={option}
                     type="button"
@@ -302,7 +343,7 @@ export function ReviewLive() {
                 }}
               >
                 <b>{grade.correct ? t("صح 👏","Correct 👏") : t("لسه محتاجة محاولة تانية","Try again")}</b>
-                <p>{(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
+                 <p>{(contentLanguage==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
                 {grade.mastery_score != null && (
                   <small>{t("درجة الإتقان","Mastery")}{Math.round(Number(grade.mastery_score)).toLocaleString(locale==="en"?"en":"ar-EG")}{t("٪ ·","% ·")}{" "}
                     {masteryLabel(grade.mastery_state,locale)}

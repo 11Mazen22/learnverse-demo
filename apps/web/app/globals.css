@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@source "../components";
+@source "../app";
+@source "../lib";
 
 /* Noata AI's trusted learning surfaces share the active palette. */
 .noata-response-component{margin-block:20px;padding:clamp(16px,3vw,26px);border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--ink);min-width:0}
@@ -4158,7 +4161,13 @@ a.noata-sign-in:focus-visible {
 .aura-studio-close-confirm{border:1px solid var(--line);padding:16px;border-radius:14px;background:var(--surface)}
 .aura-studio-close-confirm button{min-height:44px;padding:8px 14px;margin:4px;border:1px solid var(--line);border-radius:10px;color:var(--ink);background:var(--surface)}
 /* Focused appearance and document panels with one scroll area and reachable actions. */
-.aura-theme-menu{width:min(360px,calc(100vw - 24px));min-width:0;max-height:min(720px,calc(100dvh - 100px));overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:16px;gap:10px}
+.aura-theme-menu{width:min(360px,calc(100vw - 24px));min-width:0;max-height:min(720px,calc(100dvh - 100px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none;padding:16px;gap:10px}
+.aura-theme-menu::-webkit-scrollbar,
+.aura-theme-menu *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}
+.aura-theme-menu::-webkit-scrollbar-track,
+.aura-theme-menu *::-webkit-scrollbar-track{display:none!important;background:transparent!important}
+.aura-theme-menu::-webkit-scrollbar-thumb,
+.aura-theme-menu *::-webkit-scrollbar-thumb{display:none!important;background:transparent!important}
 .aura-theme-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block-end:10px;border-block-end:1px solid var(--line)}
 .aura-theme-heading>span{display:flex;align-items:center;gap:9px;font-size:16px;color:var(--ink)}
 .aura-theme-heading .icon-btn{width:36px;min-height:36px;flex:none;padding:6px;justify-content:center}

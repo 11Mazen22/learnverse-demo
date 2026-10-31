@@ -1,4 +1,4 @@
-/* Noata device-local color worlds; semantic tokens let all routes inherit the selection. */
+/* Noäta device-local color worlds; semantic tokens let all routes inherit the selection. */
 html[data-palette="aura"] { --ink:#2b2750;--muted:#625e81;--surface:#fff;--surface-soft:#f5f3ff;--line:#e5ddf5;--accent:#6551bd;--accent-soft:#eee9ff;--blue-500:#6551bd;--blue-400:#896cd6;--navy-950:#28194c;--navy-900:#473277; }
 html[data-theme="dark"][data-palette="aura"] { --ink:#f3ecff;--muted:#c4b8e2;--surface:#241c3c;--surface-soft:#161328;--line:#433658;--accent:#c1a9ff;--accent-soft:#3a285d;--blue-500:#a888f2; }
 html[data-palette="ocean"] { --ink:#113c53;--muted:#47677a;--surface:#fff;--surface-soft:#edf8fa;--line:#d6eaf0;--accent:#06738b;--accent-soft:#def6f8;--blue-500:#06738b;--blue-400:#008caf;--navy-950:#063950;--navy-900:#125b74; }
@@ -10,34 +10,550 @@ html[data-theme="dark"][data-palette="sunset"] { --ink:#fff0e4;--muted:#d9b9a9;-
 html[data-palette="rose"] { --ink:#49283f;--muted:#77556b;--surface:#fff;--surface-soft:#fff3f8;--line:#f2dce5;--accent:#a03065;--accent-soft:#ffe2ef;--blue-500:#a03065;--blue-400:#d24b86;--navy-950:#3b1f45;--navy-900:#6b2f5c; }
 html[data-theme="dark"][data-palette="rose"] { --ink:#fff0f8;--muted:#d5b2c7;--surface:#372134;--surface-soft:#221728;--line:#593950;--accent:#ff9fc8;--accent-soft:#542c4a;--blue-500:#ed7aaf; }
 html[data-palette="midnight"] { color-scheme:dark;--ink:#eaf0ff;--muted:#adbad9;--surface:#19233f;--surface-soft:#0e1730;--line:#344261;--accent:#a4b8ff;--accent-soft:#25375c;--blue-500:#91aafa;--blue-400:#b3c6ff;--navy-950:#0d1530;--navy-900:#253261;--shadow-soft:0 12px 35px #01061330; }
-.noata-palette-gallery { padding:17px 0 4px; }
-.noata-palette-heading { display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px; }
-.noata-palette-heading b { font-size:15px; }
-.noata-palette-heading small,.noata-palette-local { color:var(--muted);font-size:11px; }
-.noata-palette-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px; }
-.noata-palette-grid button { display:flex;align-items:center;gap:10px;position:relative;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);cursor:pointer;min-height:58px;text-align:start;padding:8px 11px;transition:transform .2s ease,border-color .2s ease; }
-.noata-palette-grid button:hover { transform:translateY(-2px);border-color:var(--accent); }
-.noata-palette-grid button:focus-visible { outline:3px solid var(--accent);outline-offset:2px; }
-.noata-palette-grid button[aria-pressed="true"] { border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent); }
-.noata-palette-grid button > span:nth-child(2) { display:flex;flex-direction:column;min-width:0; }
-.noata-palette-grid button b { font-size:12px; }
-.noata-palette-grid button small { color:var(--muted);font-size:10px; }
-.noata-palette-grid button i { position:absolute;inset-inline-end:6px;inset-block-start:5px;color:var(--accent);font-style:normal;font-size:11px; }
-.noata-palette-grid button .noata-palette-swatch { display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;flex:0 0 35px;border-radius:11px;box-shadow:inset 0 1px 5px #0002; }
-.noata-palette-notice { display:block;color:var(--accent);margin-top:8px; }
-.noata-palette-local { display:block;margin-top:10px; }
-.aura-theme-menu { max-height:min(78dvh,660px);overflow-y:auto;overscroll-behavior:contain; }
-.noata-palette-gallery.compact { border-top:1px solid var(--line);margin-top:12px;padding-top:14px; }
-.noata-palette-gallery.compact .noata-palette-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-.noata-palette-gallery.compact .noata-palette-grid button { min-height:47px;gap:6px;padding:5px; }
-.noata-palette-gallery.compact .noata-palette-swatch { width:25px;height:25px;flex-basis:25px;border-radius:8px; }
-.noata-palette-gallery.compact .noata-palette-grid small,.noata-palette-gallery.compact .noata-palette-heading small { display:none; }
-@media(max-width:450px) { .noata-palette-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(prefers-reduced-motion:reduce){.noata-palette-grid button{transition:none !important;transform:none !important;}}
-html[data-reduced-motion="true"] .noata-palette-grid button {transition:none !important;transform:none !important;}
 
-@media(max-width:650px) {
-  .aura-theme-menu { position:fixed;inset-inline:12px;inset-block-start:70px;width:auto;max-height:calc(100dvh - 150px); }
+/* Popover Menu Container */
+.aura-theme-menu {
+  width: min(360px, calc(100vw - 24px)) !important;
+  max-height: min(84dvh, 720px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  padding: 16px !important;
+  border-radius: 24px !important;
+  border: 1.5px solid color-mix(in srgb, var(--line) 80%, var(--accent) 20%) !important;
+  background: color-mix(in srgb, var(--surface) 95%, transparent) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  box-shadow: 0 24px 64px -8px color-mix(in srgb, var(--ink) 25%, transparent), 0 0 0 1px color-mix(in srgb, var(--line) 60%, transparent) !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.aura-theme-menu,
+.aura-theme-menu * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.aura-theme-menu::-webkit-scrollbar,
+.aura-theme-menu *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+.aura-theme-menu::-webkit-scrollbar-track,
+.aura-theme-menu *::-webkit-scrollbar-track {
+  display: none !important;
+  background: transparent !important;
+}
+.aura-theme-menu::-webkit-scrollbar-thumb,
+.aura-theme-menu *::-webkit-scrollbar-thumb {
+  display: none !important;
+  background: transparent !important;
+}
+
+.aura-theme-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding-block-end: 12px !important;
+  border-block-end: 1px solid var(--line) !important;
+  margin-bottom: 6px !important;
+}
+
+.aura-theme-heading-title {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  font-size: 15px !important;
+  color: var(--ink) !important;
+  font-weight: 800 !important;
+}
+
+.aura-theme-heading-icon {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: none !important;
+}
+
+.aura-theme-heading .icon-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: 9px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+  color: var(--muted) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+.aura-theme-heading .icon-btn:hover {
+  color: var(--ink) !important;
+  border-color: var(--accent) !important;
+  background: var(--surface-soft) !important;
+}
+
+.aura-theme-menu .noata-theme-guidance {
+  margin: 0 !important;
+  padding: 6px 4px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.7 !important;
+  color: var(--muted) !important;
+  font-weight: 500 !important;
+}
+
+/* Mode Options List in Popover */
+.aura-theme-options-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-block: 4px 14px !important;
+}
+
+.aura-mode-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-height: 62px !important;
+  padding: 10px 13px !important;
+  border: 1.5px solid var(--line) !important;
+  border-radius: 16px !important;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  cursor: pointer !important;
+  text-align: start !important;
+  position: relative !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.aura-mode-option:hover:not([disabled]) {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line)) !important;
+  background: color-mix(in srgb, var(--surface) 80%, var(--surface-soft)) !important;
+  transform: translateY(-1.5px) !important;
+}
+.aura-mode-option.selected {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface)) !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+}
+
+/* Crucial: Override the blanket `button span` selector from globals.css */
+.aura-theme-menu .aura-mode-icon-circle,
+.aura-theme-menu .aura-mode-active-pill,
+.aura-theme-menu .aura-mode-check-dot,
+.aura-theme-menu .aura-mode-radio-dot,
+.aura-theme-menu .aura-mode-check-pill,
+.aura-theme-menu .aura-mode-locked-badge,
+.noata-palette-grid .noata-palette-check-pill,
+.noata-palette-grid .noata-palette-swatch,
+.noata-palette-grid .noata-palette-night-badge,
+.noata-custom-theme-grid .noata-palette-check-pill,
+.noata-custom-theme-grid .noata-design-constraint-badge {
+  flex: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.aura-mode-icon-circle {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 11px !important;
+  background: color-mix(in srgb, var(--ink) 4%, var(--surface)) !important;
+  color: var(--accent) !important;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent) !important;
+  transition: all 0.2s ease !important;
+}
+.aura-mode-option.selected .aura-mode-icon-circle {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 35%, transparent) !important;
+}
+
+.aura-mode-text {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  text-align: start !important;
+}
+.aura-mode-text b {
+  font-size: 13.5px !important;
+  font-weight: 750 !important;
+  color: var(--ink) !important;
+  line-height: 1.3 !important;
+}
+.aura-mode-text small {
+  font-size: 11px !important;
+  color: var(--muted) !important;
+  line-height: 1.4 !important;
+  margin-top: 2px !important;
+}
+
+/* Luxury Oriented Active Badge & Checkmark Pill */
+.aura-mode-active-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent) !important;
+  color: var(--accent) !important;
+  margin-inline-start: auto !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  transition: all 0.2s ease !important;
+}
+
+.aura-mode-check-dot {
+  width: 17px !important;
+  height: 17px !important;
+  border-radius: 50% !important;
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.aura-mode-active-text {
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Subtle Oriented Radio Ring for Unselected States */
+.aura-mode-radio-dot {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid color-mix(in srgb, var(--line) 90%, var(--muted)) !important;
+  background: transparent !important;
+  margin-inline-start: auto !important;
+  transition: all 0.2s ease !important;
+}
+.aura-mode-option:hover:not([disabled]) .aura-mode-radio-dot {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+
+.aura-mode-check-pill {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1 !important;
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  margin-inline-start: auto !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent) !important;
+  transition: all 0.2s ease !important;
+}
+.aura-mode-check-pill.is-placeholder {
+  background: transparent !important;
+  box-shadow: none !important;
+  visibility: hidden !important;
+}
+
+/* Locked & Disabled Modes */
+.aura-mode-option[disabled], .aura-mode-option.is-disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  background: color-mix(in srgb, var(--surface) 60%, var(--surface-soft)) !important;
+  border-color: var(--line) !important;
+  pointer-events: none !important;
+}
+.aura-mode-locked-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  padding: 4px 9px !important;
+  border-radius: 20px !important;
+  background: color-mix(in srgb, var(--ink) 8%, transparent) !important;
+  color: var(--muted) !important;
+  margin-inline-start: auto !important;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent) !important;
+}
+
+/* Palette Gallery Container */
+.noata-palette-gallery {
+  padding: 12px 0 4px !important;
+  border-top: 1px solid var(--line) !important;
+}
+.noata-palette-heading {
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+}
+.noata-palette-heading-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: var(--ink) !important;
+}
+.noata-palette-heading b {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+.noata-palette-heading small, .noata-palette-local {
+  color: var(--muted) !important;
+  font-size: 11px !important;
+}
+
+.noata-palette-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+}
+
+/* Compact Palette Grid inside Popover */
+.noata-palette-gallery.compact {
+  padding: 8px 0 2px !important;
+}
+.noata-palette-gallery.compact .noata-palette-heading {
+  margin-bottom: 6px !important;
+}
+.noata-palette-gallery.compact .noata-palette-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 6px !important;
+}
+.noata-palette-gallery.compact .noata-palette-grid button {
+  min-height: 48px !important;
+  padding: 6px 5px !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  align-items: center !important;
+  text-align: center !important;
+  border-radius: 12px !important;
+}
+.noata-palette-gallery.compact .noata-palette-info {
+  align-items: center !important;
+  text-align: center !important;
+}
+.noata-palette-gallery.compact .noata-palette-info b {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+}
+.noata-palette-gallery.compact .noata-palette-swatch {
+  width: 20px !important;
+  height: 20px !important;
+  font-size: 9px !important;
+}
+.noata-palette-gallery.compact .noata-palette-check-pill {
+  position: absolute !important;
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  max-width: 14px !important;
+  inset-block-start: 4px !important;
+  inset-inline-end: 4px !important;
+}
+.noata-palette-gallery.compact .noata-palette-night-badge {
+  display: none !important;
+}
+.noata-palette-grid button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  position: relative !important;
+  border: 1.5px solid var(--line) !important;
+  border-radius: 14px !important;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  cursor: pointer !important;
+  min-height: 54px !important;
+  text-align: start !important;
+  padding: 8px 10px !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.noata-palette-grid button:hover {
+  transform: translateY(-1.5px) !important;
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line)) !important;
+}
+.noata-palette-grid button:focus-visible {
+  outline: 3px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+.noata-palette-grid button[aria-pressed="true"], .noata-palette-grid button.selected {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface)) !important;
+  box-shadow: inset 0 0 0 1px var(--accent), 0 5px 16px color-mix(in srgb, var(--accent) 12%, transparent) !important;
+}
+
+.noata-palette-info {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  text-align: start !important;
+}
+.noata-palette-info b {
+  font-size: 12.5px !important;
+  font-weight: 750 !important;
+  line-height: 1.3 !important;
+}
+.noata-palette-info small {
+  color: var(--muted) !important;
+  font-size: 10px !important;
+}
+
+.noata-palette-check-pill {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1 !important;
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  margin-inline-start: auto !important;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 35%, transparent) !important;
+}
+
+.noata-palette-night-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  font-size: 9.5px !important;
+  font-weight: 750 !important;
+  padding: 2px 6px !important;
+  border-radius: 6px !important;
+  background: color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  color: var(--accent) !important;
+  margin-top: 3px !important;
+  width: fit-content !important;
+  line-height: 1.2 !important;
+}
+
+.noata-palette-grid button .noata-palette-swatch {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 1px 5px #0002 !important;
+  font-size: 12px !important;
+}
+.noata-palette-notice {
+  display: block !important;
+  color: var(--accent) !important;
+  margin-top: 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+}
+.noata-palette-local {
+  display: block !important;
+  margin-top: 10px !important;
+  line-height: 1.5 !important;
+}
+
+/* Custom AI Designs Choices */
+.noata-custom-theme-choices {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  padding-block: 12px 6px !important;
+  margin-top: 10px !important;
+  border-top: 1px solid var(--line) !important;
+}
+.noata-custom-theme-heading {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  color: var(--ink) !important;
+}
+.noata-custom-theme-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+.noata-custom-theme-grid button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border: 1.5px solid var(--line) !important;
+  border-radius: 13px !important;
+  background: var(--surface) !important;
+  color: var(--ink) !important;
+  padding: 7px 9px !important;
+  min-height: 52px !important;
+  text-align: start !important;
+  cursor: pointer !important;
+  position: relative !important;
+  transition: all 0.2s ease !important;
+}
+.noata-custom-theme-grid button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line)) !important;
+  transform: translateY(-1.5px) !important;
+}
+.noata-custom-theme-grid button[aria-pressed="true"], .noata-custom-theme-grid button.selected {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface)) !important;
+  box-shadow: inset 0 0 0 1px var(--accent) !important;
+}
+.noata-design-constraint-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  padding: 2px 5px !important;
+  border-radius: 5px !important;
+  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+  color: var(--accent) !important;
+  margin-top: 2px !important;
+  width: fit-content !important;
+}
+
+.noata-theme-studio-link {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 9px !important;
+  min-height: 48px !important;
+  padding: 11px 14px !important;
+  margin-top: 14px !important;
+  border-radius: 14px !important;
+  color: var(--accent) !important;
+  background: var(--accent-soft) !important;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 25%, var(--line)) !important;
+  font-weight: 800 !important;
+  font-size: 12.5px !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+}
+.noata-theme-studio-link:hover {
+  background: color-mix(in srgb, var(--accent-soft) 80%, var(--accent)) !important;
+  border-color: var(--accent) !important;
+  transform: translateY(-1px) !important;
+}
+
+@media(max-width: 650px) {
+  .aura-theme-menu {
+    position: fixed !important;
+    inset-inline: 12px !important;
+    inset-block-start: 70px !important;
+    width: auto !important;
+    max-height: calc(100dvh - 110px) !important;
+  }
 }
 
 .noata-chapter-recitations { display:grid;gap:14px;margin:18px 0;padding:22px;border:1px solid var(--line);border-radius:20px;background:var(--surface); }

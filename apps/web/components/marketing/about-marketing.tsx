@@ -18,9 +18,9 @@ export function AboutMarketing() {
     <MarketingShell>
       <section className="mk-section">
         <Reveal>
-          <span className="mk-eyebrow">{t("عن نقطة", "About Noata")}</span>
+          <span className="mk-eyebrow">{t("عن نقطة", "About Noäta")}</span>
           <h1 className="mk-h2" style={{ fontSize: "clamp(1.9rem,4vw,2.8rem)" }}>
-            {t("لماذا وُجدت نقطة؟", "Why Noata exists")}
+            {t("لماذا وُجدت نقطة؟", "Why Noäta exists")}
           </h1>
           <div className="mk-prose" style={{ marginBlockStart: 18 }}>
             <p>
@@ -32,14 +32,14 @@ export function AboutMarketing() {
             <p>
               {t(
                 "نقطة بُنيت لتكون المسار نفسه: منهج كامل مقسّم إلى دروس قصيرة، وسؤال بعد كل فكرة، وتصحيح يشرح سبب الخطأ، وجدولة تعيد الأصعب أبكر والراسخ أبعد. المذاكرة تتحول من «قرأت الدرس» إلى «أستطيع أن أحلّه».",
-                "Noata is built to be that path: a complete curriculum split into short lessons, a question after each idea, corrections that explain the error, and scheduling that brings the hard back sooner and the solid later. Studying shifts from “I read it” to “I can solve it”.",
+                "Noäta is built to connect published source-mapped lessons, server-graded practice, and scheduled review. Missing content stays unavailable, and a review date is an estimate rather than proof of mastery. Studying can move from “I read it” toward “I can apply it”.",
               )}
             </p>
             <p>
               <b>{t("فلسفتنا التعليمية", "Our learning philosophy")}:</b>{" "}
               {t(
                 "التعلّم الحقيقي يمر بفهمٍ ثم تطبيقٍ ثم استرجاعٍ ثم مراجعة موزّعة — وكل ميزة في نقطة تخدم إحدى هذه المراحل أو تصل بينها.",
-                "Real learning moves through understanding, practice, retrieval and spaced review — and every Noata feature serves one of those stages or connects them.",
+                "Real learning moves through understanding, practice, retrieval and spaced review — and every Noäta feature serves one of those stages or connects them.",
               )}
             </p>
           </div>
@@ -74,7 +74,7 @@ export function AboutMarketing() {
             <p>
               {t(
                 "المساعد الذكي في نقطة أداة تعليم لا موجة إجابات: يشرح بخطوات، ويختبر قبل أن يكشف، ويقبل التصحيح والتعديل. ونحن نقول بوضوح: النماذج اللغوية قد تخطئ، فاعرض مخرجاتها على كتابك المدرسي ومدرسك، وأبلغنا عن أي خطأ لتصحيحه.",
-                "Noata's AI companion is a teaching tool, not an answer firehose: it explains in steps, quizzes before revealing, and accepts correction and editing. And we say clearly: language models can be wrong — check their output against your school book and teacher, and report errors so we fix them.",
+                "Noäta's AI companion is a teaching tool, not an answer firehose: it explains in steps, quizzes before revealing, and accepts correction and editing. And we say clearly: language models can be wrong — check their output against your school book and teacher, and report errors so we fix them.",
               )}
             </p>
             <p>

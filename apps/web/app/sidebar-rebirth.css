@@ -1,0 +1,906 @@
+/* ==========================================================================
+   NOATA AURA — SIGNATURE SIDEBAR REBIRTH
+   Master Navigation Architecture, Fluid Motion & Premium Scrolling System
+   Executive Luxury Width & Substantial Confident Geometry
+   ========================================================================== */
+
+:root {
+  --sidebar-w-expanded: clamp(268px, 20vw, 304px);
+  --sidebar-w-collapsed: 78px;
+  --sidebar-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --sidebar-duration: 0.26s;
+  --sidebar-current-w: var(--sidebar-w-expanded);
+}
+
+/* --------------------------------------------------------------------------
+   1. Application Shell Layout Integration
+   -------------------------------------------------------------------------- */
+.noata-shell {
+  display: grid !important;
+  grid-template-columns: var(--sidebar-current-w) minmax(0, 1fr) !important;
+  min-height: 100dvh !important;
+  transition: grid-template-columns var(--sidebar-duration) var(--sidebar-ease) !important;
+}
+
+.noata-shell[data-sidebar-collapsed="true"] {
+  --sidebar-current-w: var(--sidebar-w-collapsed) !important;
+}
+
+/* --------------------------------------------------------------------------
+   2. Main Signature Sidebar Container
+   -------------------------------------------------------------------------- */
+.noata-sidebar-aura {
+  position: sticky !important;
+  top: 0 !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  width: var(--sidebar-current-w) !important;
+  background: color-mix(in srgb, var(--surface) 97%, var(--surface-soft)) !important;
+  border-inline-end: 1.5px solid var(--line) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 40 !important;
+  overflow: hidden !important;
+  transition: width var(--sidebar-duration) var(--sidebar-ease) !important;
+  box-shadow: 2px 0 28px color-mix(in srgb, var(--ink) 5%, transparent) !important;
+  user-select: none !important;
+}
+
+/* Atmospheric subtle glow */
+.noata-sidebar-aura::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  width: 100%;
+  height: 260px;
+  background: radial-gradient(
+    circle at 50% 0%,
+    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+    transparent 78%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. Sidebar Header (Brand & Collapse Toggle)
+   -------------------------------------------------------------------------- */
+.noata-sidebar-head {
+  flex: none !important;
+  height: 76px !important;
+  padding: 0 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  border-bottom: 1.5px solid var(--line) !important;
+  position: relative !important;
+  z-index: 2 !important;
+  background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.noata-sidebar-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  text-decoration: none !important;
+  color: var(--ink) !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.noata-sidebar-brand .noata-brand-copy strong {
+  font-size: 23px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.noata-sidebar-brand .noata-brand-copy small {
+  font-size: 11.5px !important;
+  color: var(--muted) !important;
+  font-weight: 600 !important;
+}
+
+.noata-sidebar-toggle {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  border-radius: 11px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--muted) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+  flex: none !important;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--ink) 5%, transparent) !important;
+}
+
+.noata-sidebar-toggle:hover {
+  color: var(--accent) !important;
+  background: var(--accent-soft) !important;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line)) !important;
+  transform: scale(1.05) !important;
+}
+
+.noata-sidebar-toggle:active {
+  transform: scale(0.96) !important;
+}
+
+/* Collapsed Header */
+.noata-sidebar-head.is-collapsed-head {
+  padding: 12px 8px !important;
+  justify-content: center !important;
+  flex-direction: column !important;
+  height: 98px !important;
+  gap: 10px !important;
+}
+
+.noata-sidebar-head.is-collapsed-head .noata-brand-copy {
+  display: none !important;
+}
+
+.noata-sidebar-head.is-collapsed-head .noata-sidebar-brand {
+  justify-content: center !important;
+  width: 100% !important;
+  flex: none !important;
+}
+
+.noata-sidebar-head.is-collapsed-head .noata-sidebar-toggle {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. Independent Scroll Container & Luxury Scrollbar
+   -------------------------------------------------------------------------- */
+.noata-sidebar-scroll-viewport {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-height: 0 !important;
+  padding: 16px 14px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  scroll-behavior: smooth !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: color-mix(in srgb, var(--ink) 14%, transparent) transparent !important;
+}
+
+/* WebKit Custom Scrollbar */
+.noata-sidebar-scroll-viewport::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.noata-sidebar-scroll-viewport::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.noata-sidebar-scroll-viewport::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink) 14%, transparent) !important;
+  border-radius: 999px !important;
+  transition: background 0.2s ease !important;
+}
+
+.noata-sidebar-aura:hover .noata-sidebar-scroll-viewport::-webkit-scrollbar-thumb,
+.noata-sidebar-scroll-viewport::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 55%, var(--ink)) !important;
+}
+
+.noata-sidebar-scroll-viewport::-webkit-scrollbar-thumb:active {
+  background: var(--accent) !important;
+}
+
+/* Dynamic Shadow Masks to indicate more scrollable content */
+.noata-sidebar-scroll-viewport.has-top-mask::before {
+  content: "";
+  position: sticky;
+  top: -16px;
+  inset-inline: -14px;
+  height: 22px;
+  display: block;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--surface) 97%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+  margin-bottom: -22px;
+}
+
+.noata-sidebar-scroll-viewport.has-bottom-mask::after {
+  content: "";
+  position: sticky;
+  bottom: -16px;
+  inset-inline: -14px;
+  height: 22px;
+  display: block;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--surface) 97%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+  margin-top: -22px;
+}
+
+.noata-sidebar-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  width: 100% !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. Navigation Groups & Expandable Accordion
+   -------------------------------------------------------------------------- */
+.noata-sidebar-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  width: 100% !important;
+}
+
+.noata-group-header {
+  padding: 0 4px 6px !important;
+}
+
+.noata-group-static-title,
+.noata-group-trigger {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 5px 10px !important;
+  border-radius: 9px !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+  text-align: start !important;
+}
+
+.noata-group-trigger {
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+.noata-group-trigger:hover {
+  color: var(--ink) !important;
+  background: color-mix(in srgb, var(--surface-soft) 85%, transparent) !important;
+}
+
+.noata-group-title-wrap {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.noata-group-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  color: var(--muted) !important;
+  flex: none !important;
+}
+
+.noata-group-count {
+  font-size: 10.5px !important;
+  font-weight: 750 !important;
+  padding: 1.5px 7px !important;
+  border-radius: 99px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--muted) !important;
+}
+
+.noata-group-chevron {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.22s var(--sidebar-ease) !important;
+  color: var(--muted) !important;
+}
+
+.noata-group-chevron.is-rotated {
+  transform: rotate(180deg) !important;
+}
+
+/* Animated Expansion using CSS Grid */
+.noata-group-content-animator {
+  display: grid !important;
+  grid-template-rows: 1fr !important;
+  transition: grid-template-rows 0.24s var(--sidebar-ease) !important;
+}
+
+.noata-sidebar-group.is-closed .noata-group-content-animator {
+  grid-template-rows: 0fr !important;
+}
+
+.noata-group-content-inner {
+  overflow: hidden !important;
+}
+
+.noata-group-items {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  padding: 2px 0 !important;
+}
+
+/* Group Divider in Collapsed Mode */
+.noata-group-divider {
+  height: 1px !important;
+  background: var(--line) !important;
+  margin: 10px 14px !important;
+  opacity: 0.7 !important;
+}
+
+.noata-group-items-rail {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  align-items: center !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. Signature Navigation Item System (Executive Weight & Contrast)
+   -------------------------------------------------------------------------- */
+.noata-nav-item {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-height: 46px !important;
+  padding: 7px 13px !important;
+  border-radius: 13px !important;
+  color: var(--ink) !important;
+  text-decoration: none !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  transition: background-color 0.16s ease,
+              border-color 0.16s ease,
+              transform 0.16s var(--sidebar-ease),
+              box-shadow 0.16s ease !important;
+  outline: none !important;
+}
+
+/* Hover Micro-interaction */
+.noata-nav-item:hover {
+  background: color-mix(in srgb, var(--surface-soft) 85%, transparent) !important;
+  border-color: color-mix(in srgb, var(--line) 75%, transparent) !important;
+  color: var(--ink) !important;
+  transform: translateX(3px) !important;
+}
+
+html[dir="rtl"] .noata-nav-item:hover {
+  transform: translateX(-3px) !important;
+}
+
+.noata-nav-item:hover .noata-nav-icon-wrap {
+  color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface)) !important;
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent) !important;
+}
+
+/* Active State with Indicator Bar */
+.noata-nav-item.is-active {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 8%, transparent) !important;
+}
+
+.noata-nav-indicator {
+  position: absolute !important;
+  inset-inline-start: 0 !important;
+  top: 50% !important;
+  transform: translateY(-50%) scaleY(0) !important;
+  width: 4px !important;
+  height: 22px !important;
+  border-radius: 0 4px 4px 0 !important;
+  background: var(--accent) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent) !important;
+  transition: transform 0.22s var(--sidebar-ease) !important;
+}
+
+html[dir="rtl"] .noata-nav-indicator {
+  border-radius: 4px 0 0 4px !important;
+}
+
+.noata-nav-item.is-active .noata-nav-indicator {
+  transform: translateY(-50%) scaleY(1) !important;
+}
+
+/* Icon Box */
+.noata-nav-icon-wrap {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--muted) !important;
+  background: var(--surface) !important;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent) !important;
+  transition: all 0.18s ease !important;
+  flex: none !important;
+}
+
+.noata-nav-item.is-active .noata-nav-icon-wrap {
+  background: var(--surface) !important;
+  color: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 22%, transparent) !important;
+}
+
+/* Content Container */
+.noata-nav-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  transition: opacity var(--sidebar-duration) var(--sidebar-ease),
+              max-width var(--sidebar-duration) var(--sidebar-ease) !important;
+}
+
+.noata-nav-label-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.noata-nav-label {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.3 !important;
+  font-size: 13.5px !important;
+}
+
+.noata-nav-desc {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--muted) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.3 !important;
+}
+
+/* Badge / Tags */
+.noata-nav-badge {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 2px 7.5px !important;
+  border-radius: 99px !important;
+  line-height: 1.2 !important;
+  flex: none !important;
+}
+
+.noata-nav-badge--accent {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 6px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+
+.noata-nav-badge--warning {
+  background: color-mix(in srgb, #f59e0b 20%, var(--surface)) !important;
+  color: #d97706 !important;
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent) !important;
+}
+
+/* Special AI Link */
+.noata-nav-item.is-ai-special {
+  background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+.noata-nav-item.is-ai-special:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent) !important;
+}
+
+.noata-nav-item.is-ai-special .noata-nav-icon-wrap {
+  color: var(--accent) !important;
+  background: var(--accent-soft) !important;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+/* Command Button Trigger inside Sidebar */
+.noata-sidebar-command-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 40px !important;
+  padding: 7px 13px !important;
+  margin: 4px 0 !important;
+  border-radius: 11px !important;
+  background: color-mix(in srgb, var(--surface-soft) 60%, var(--surface)) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 650 !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+  width: 100% !important;
+  text-align: start !important;
+}
+
+.noata-sidebar-command-btn:hover {
+  border-color: var(--accent) !important;
+  color: var(--ink) !important;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface)) !important;
+}
+
+.noata-cmd-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  color: var(--muted) !important;
+  flex: none !important;
+}
+
+.noata-cmd-label {
+  flex: 1 1 auto !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.noata-cmd-kbd {
+  font-family: inherit !important;
+  font-size: 10.5px !important;
+  font-weight: 750 !important;
+  padding: 1.5px 6px !important;
+  border-radius: 5px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--muted) !important;
+  flex: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. Core Curriculum Module (6 Subjects Integrated)
+   -------------------------------------------------------------------------- */
+.noata-curriculum-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  padding: 5px 6px 5px 14px !important;
+  border-inline-start: 2px solid color-mix(in srgb, var(--line) 85%, transparent) !important;
+  margin-inline-start: 16px !important;
+}
+
+.noata-curriculum-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-height: 36px !important;
+  padding: 6px 10px !important;
+  border-radius: 9px !important;
+  color: var(--ink) !important;
+  text-decoration: none !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  transition: all 0.15s ease !important;
+  background: transparent !important;
+}
+
+.noata-curriculum-item:hover {
+  background: var(--surface-soft) !important;
+  color: var(--accent) !important;
+  transform: translateX(2.5px) !important;
+}
+
+html[dir="rtl"] .noata-curriculum-item:hover {
+  transform: translateX(-2.5px) !important;
+}
+
+.noata-curriculum-dot {
+  width: 6.5px !important;
+  height: 6.5px !important;
+  border-radius: 50% !important;
+  background: var(--line) !important;
+  flex: none !important;
+  transition: background 0.18s ease !important;
+}
+
+.noata-curriculum-item:hover .noata-curriculum-dot {
+  background: var(--accent) !important;
+}
+
+.noata-curriculum-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  color: var(--muted) !important;
+  flex: none !important;
+}
+
+.noata-curriculum-text {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.noata-curriculum-title {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 12.5px !important;
+}
+
+.noata-curriculum-track-pills {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3.5px !important;
+  flex: none !important;
+}
+
+.noata-track-pill {
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  padding: 1px 4.5px !important;
+  border-radius: 4px !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--muted) !important;
+  line-height: 1 !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. Collapsed Rail Experience (Solid 80px Rail)
+   -------------------------------------------------------------------------- */
+.noata-sidebar-aura.is-collapsed {
+  width: var(--sidebar-w-collapsed) !important;
+}
+
+.noata-sidebar-aura.is-collapsed .noata-sidebar-scroll-viewport {
+  padding: 14px 10px !important;
+}
+
+.noata-sidebar-aura.is-collapsed .noata-nav-item.is-collapsed-item {
+  justify-content: center !important;
+  padding: 7px !important;
+  min-height: 44px !important;
+  width: 48px !important;
+  margin: 3px auto !important;
+}
+
+.noata-sidebar-aura.is-collapsed .noata-nav-icon-wrap {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+}
+
+.noata-sidebar-aura.is-collapsed .noata-nav-content {
+  opacity: 0 !important;
+  max-width: 0 !important;
+  pointer-events: none !important;
+  display: none !important;
+}
+
+.noata-sidebar-aura.is-collapsed .noata-nav-indicator {
+  inset-inline-start: 1px !important;
+  height: 20px !important;
+  border-radius: 4px !important;
+}
+
+/* --------------------------------------------------------------------------
+   9. Stationary Bottom Footer (Settings & Support Dock)
+   -------------------------------------------------------------------------- */
+.noata-sidebar-foot {
+  flex: none !important;
+  padding: 12px 14px 12px !important;
+  border-top: 1.5px solid var(--line) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  background: color-mix(in srgb, var(--surface) 93%, var(--surface-soft)) !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.noata-sidebar-utility-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.noata-sidebar-legal {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding-top: 2px !important;
+  font-size: 11px !important;
+  color: var(--muted) !important;
+}
+
+.noata-legal-link {
+  color: inherit !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease !important;
+}
+
+.noata-legal-link:hover {
+  color: var(--accent) !important;
+  text-decoration: underline !important;
+}
+
+.noata-legal-sep {
+  opacity: 0.5 !important;
+}
+
+.noata-sidebar-foot.is-collapsed-foot {
+  padding: 12px 10px !important;
+  align-items: center !important;
+}
+
+/* --------------------------------------------------------------------------
+   10. Keyboard Accessibility & Focus Rings
+   -------------------------------------------------------------------------- */
+.noata-sidebar-aura :is(a, button):focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+  border-radius: 11px !important;
+}
+
+.noata-sidebar-scroll-viewport:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  outline-offset: -2px !important;
+}
+
+/* --------------------------------------------------------------------------
+   11. Responsive Breakpoints & Mobile Drawer
+   -------------------------------------------------------------------------- */
+/* Keep the real sidebar on tablets. The previous 1024px switch exposed the
+   bottom nav before its positioning styles applied (801–1024px), producing an
+   unpositioned, overlapping strip like the reported screenshot. */
+@media (min-width: 768px) and (max-width: 1180px) {
+  :root {
+    --sidebar-w-expanded: clamp(236px, 27vw, 276px);
+  }
+
+  .noata-sidebar-scroll-viewport {
+    padding-inline: 10px !important;
+  }
+
+  .noata-main {
+    padding-inline: clamp(16px, 2.4vw, 26px) !important;
+  }
+
+  .mobile-menu,
+  .mobile-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .noata-shell {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .noata-sidebar-aura:not(.is-mobile-drawer-view) {
+    display: none !important;
+  }
+
+  .mobile-menu {
+    display: inline-flex !important;
+  }
+
+  .mobile-nav {
+    display: flex !important;
+    position: fixed !important;
+    z-index: 70 !important;
+    inset-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right)) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    min-height: 66px !important;
+    padding: 6px !important;
+    gap: 2px !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 19px !important;
+    background: color-mix(in srgb, var(--surface) 94%, transparent) !important;
+    box-shadow: 0 14px 44px color-mix(in srgb, var(--ink) 18%, transparent) !important;
+    backdrop-filter: blur(18px) !important;
+  }
+
+  .mobile-nav > a,
+  .mobile-nav > button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    min-height: 52px !important;
+    padding: 5px 2px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    border: 0 !important;
+    border-radius: 13px !important;
+    background: transparent !important;
+    color: var(--muted) !important;
+    text-decoration: none !important;
+  }
+
+  .mobile-nav > a.active {
+    color: var(--accent) !important;
+    background: var(--accent-soft) !important;
+  }
+
+  .mobile-nav small {
+    display: block !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+  }
+
+  .noata-main {
+    width: 100% !important;
+    padding-inline: clamp(12px, 4vw, 20px) !important;
+    padding-bottom: calc(90px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .shell-topbar {
+    min-height: 72px !important;
+    gap: 8px !important;
+  }
+
+  .top-actions {
+    gap: 6px !important;
+  }
+}
+
+/* Mobile Drawer Mode */
+.noata-sidebar-aura.is-mobile-drawer-view {
+  position: relative !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: min(82dvh, 760px) !important;
+  max-height: min(82dvh, 760px) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   12. Reduced Motion Overrides
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .noata-shell,
+  .noata-sidebar-aura,
+  .noata-nav-item,
+  .noata-nav-indicator,
+  .noata-group-chevron,
+  .noata-group-content-animator,
+  .noata-curriculum-item,
+  .noata-sidebar-toggle {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    transform: none !important;
+  }
+}

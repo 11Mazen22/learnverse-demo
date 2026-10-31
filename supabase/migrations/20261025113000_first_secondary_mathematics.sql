@@ -8,6 +8,7 @@ declare
   v_unit_id uuid;
   v_skill_complex uuid;
   v_skill_quadratic uuid;
+  v_skill_solving uuid;
   v_l1 uuid; v_l2 uuid; v_l3 uuid; v_l4 uuid; v_l5 uuid;
   v_q1 uuid; v_q2 uuid; v_q3 uuid; v_q4 uuid;
   v_prov jsonb := jsonb_build_object(

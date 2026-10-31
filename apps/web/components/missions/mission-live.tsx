@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 type Question = {
   id: string;
   lesson_id: string | null;
+  variant_of: string | null;
   position: number | null;
   question_type: string;
   prompt_ar: string;
@@ -36,6 +37,7 @@ export function MissionLive() {
   const supabase = useMemo(() => createClient(), []);
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [lessonTitle, setLessonTitle] = useState({ar:"المهام",en:"Missions"});
+  const [contentLanguage, setContentLanguage] = useState<"ar" | "en">("ar");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -77,12 +79,12 @@ export function MissionLive() {
         const requested = new URLSearchParams(window.location.search).get(
           "lesson",
         );
-        let lesson: { id: string; title_ar: string; title_en: string } | null = null;
+        let lesson: { id: string; unit_id: string; title_ar: string; title_en: string; units: { course_id: string } | null } | null = null;
 
         if (requested) {
           const { data, error: readError } = await supabase
             .from("lessons")
-            .select("id,title_ar,title_en")
+            .select("id,unit_id,title_ar,title_en,units(course_id)")
             .eq("id", requested)
             .maybeSingle();
           if (!active) return;
@@ -90,32 +92,77 @@ export function MissionLive() {
           lesson = data;
         }
         if (!lesson) {
-          const { data, error: readError } = await supabase
+          const enrollment = await supabase
+            .from("curriculum_enrollments")
+            .select("track_id")
+            .eq("user_id", user.id)
+            .eq("status", "active")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (enrollment.error) throw enrollment.error;
+          if (!enrollment.data) return;
+          const selectedTrack = await supabase
+            .from("curriculum_tracks")
+            .select("course_id")
+            .eq("id", enrollment.data.track_id)
+            .eq("publication_status", "published")
+            .maybeSingle();
+          if (selectedTrack.error || !selectedTrack.data?.course_id)
+            throw selectedTrack.error ?? Error("Track unavailable");
+          const units = await supabase
+            .from("units")
+            .select("id")
+            .eq("course_id", selectedTrack.data.course_id)
+            .order("position");
+          if (units.error) throw units.error;
+          const unitIds = (units.data ?? []).map((unit) => unit.id);
+          if (!unitIds.length) return;
+          const lessonResult = await supabase
             .from("lessons")
-            .select("id,title_ar,title_en")
+            .select("id,unit_id,title_ar,title_en,units(course_id)")
+            .in("unit_id", unitIds)
             .order("position")
             .limit(1);
           if (!active) return;
-          if (readError) throw readError;
-          lesson = data?.[0] ?? null;
+          if (lessonResult.error) throw lessonResult.error;
+          lesson = lessonResult.data?.[0] ?? null;
         }
         if (!lesson) return;
 
         setLessonId(lesson.id);
         setLessonTitle({ar:lesson.title_ar,en:lesson.title_en});
+        const courseId = lesson.units?.course_id;
+        if (!courseId) throw Error("Lesson track unavailable");
+        const trackResult = await supabase
+          .from("curriculum_tracks")
+          .select("content_language")
+          .eq("course_id", courseId)
+          .eq("publication_status", "published")
+          .maybeSingle();
+        if (trackResult.error || !trackResult.data) throw trackResult.error ?? Error("Lesson track unavailable");
+        setContentLanguage(trackResult.data.content_language as "ar" | "en");
         const { data, error: readError } = await supabase
           .from("questions")
           .select(
-            "id,lesson_id,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
+            "id,lesson_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
           )
           .eq("lesson_id", lesson.id)
-          .is("variant_of", null)
           .in("publication_status", ["published_demo", "published"])
           .order("position")
-          .limit(3);
+          .limit(20);
         if (!active) return;
         if (readError) throw readError;
-        setQuestions((data ?? []) as Question[]);
+        setQuestions(
+          ((data ?? []) as Question[])
+            .filter((question) => {
+              const metadata = question.metadata && typeof question.metadata === "object"
+                ? question.metadata as Record<string, unknown>
+                : {};
+              return question.variant_of === null || metadata.translation_track === true;
+            })
+            .slice(0, 3),
+        );
       } catch {
         if (active) setError(t("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.","Could not load this page. Please try again."));
       } finally {
@@ -128,7 +175,7 @@ export function MissionLive() {
   }, [supabase, reload, account.user, account.loading]);
 
   const current = questions[index];
-  const opts = current ? choices((locale==="en" ? current.choices_en : current.choices_ar)) : [];
+  const opts = current ? choices((contentLanguage==="en" ? current.choices_en : current.choices_ar)) : [];
   const progress = questions.length
     ? Math.round((index / questions.length) * 100)
     : 0;
@@ -176,7 +223,7 @@ export function MissionLive() {
         const { data, error: variantError } = await supabase
           .from("questions")
           .select(
-            "id,lesson_id,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
+            "id,lesson_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
           )
           .eq("variant_of", current.id)
           .in("publication_status", ["published_demo", "published"])
@@ -260,7 +307,7 @@ export function MissionLive() {
     return (
       <section className="hero" style={{ textAlign: "center", padding: 44 }}>
         <div className="eyebrow">{t("خطوة اكتملت في رحلتك","Another step completed")}</div>
-        <h1>{t("خلصت المهمة 🔥","Mission complete 🔥")}</h1>
+        <h1>{t("اكتملت المهمة بنجاح","Mission complete")}</h1>
         <p>{t("خطوة جديدة في رحلتك! تقدّمك محفوظ، ومهاراتك بتقوى مع كل محاولة.","Your progress is saved. Every attempt helps your skills grow.")}</p>
         <div
           style={{
@@ -292,7 +339,7 @@ export function MissionLive() {
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("ثلاث مراحل · فهم أعمق","Three stages · Deeper understanding")}</div>
-          <h1 style={{ margin: "6px 0 0" }}>{locale==="en" ? lessonTitle.en : lessonTitle.ar}</h1>
+          <h1 style={{ margin: "6px 0 0" }} dir={contentLanguage === "ar" ? "rtl" : "ltr"}>{contentLanguage==="en" ? lessonTitle.en : lessonTitle.ar}</h1>
         </div>
         <span className="pill">
           {questions.length ? index + 1 : 0} / {questions.length || 3}
@@ -353,7 +400,7 @@ export function MissionLive() {
               </small>
             </div>
             <h2 style={{ fontSize: 25, lineHeight: 1.6, margin: "22px 0" }}>
-              {(locale==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}
+              {(contentLanguage==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}
             </h2>
 
             <form onSubmit={gradeCurrent}>
@@ -420,7 +467,7 @@ export function MissionLive() {
                       : t("قريب منها — خلّينا نحاول بطريقة تانية","Not quite. Let’s try a different approach.")}
                   </b>
                   <p style={{ margin: "7px 0 0", lineHeight: 1.7 }}>
-                    {(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar) || ""}
+                    {(contentLanguage==="en" ? grade.explanation_en ?? "" : grade.explanation_ar) || ""}
                   </p>
                   {grade.mastery_score != null && (
                     <small>
