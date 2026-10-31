@@ -38,6 +38,7 @@ export function MissionLive() {
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [lessonTitle, setLessonTitle] = useState({ar:"المهام",en:"Missions"});
   const [contentLanguage, setContentLanguage] = useState<"ar" | "en">("ar");
+  const effectiveLang = contentLanguage === "en" || locale === "en" ? "en" : "ar";
   const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState("");
@@ -175,7 +176,7 @@ export function MissionLive() {
   }, [supabase, reload, account.user, account.loading]);
 
   const current = questions[index];
-  const opts = current ? choices((contentLanguage==="en" ? current.choices_en : current.choices_ar)) : [];
+  const opts = current ? choices((effectiveLang === "en" ? current.choices_en : current.choices_ar)) : [];
   const progress = questions.length
     ? Math.round((index / questions.length) * 100)
     : 0;
@@ -339,7 +340,7 @@ export function MissionLive() {
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("ثلاث مراحل · فهم أعمق","Three stages · Deeper understanding")}</div>
-          <h1 style={{ margin: "6px 0 0" }} dir={contentLanguage === "ar" ? "rtl" : "ltr"}>{contentLanguage==="en" ? lessonTitle.en : lessonTitle.ar}</h1>
+          <h1 style={{ margin: "6px 0 0" }} dir={effectiveLang === "ar" ? "rtl" : "ltr"}>{effectiveLang === "en" ? lessonTitle.en : lessonTitle.ar}</h1>
         </div>
         <span className="pill">
           {questions.length ? index + 1 : 0} / {questions.length || 3}
@@ -400,7 +401,7 @@ export function MissionLive() {
               </small>
             </div>
             <h2 style={{ fontSize: 25, lineHeight: 1.6, margin: "22px 0" }}>
-              {(contentLanguage==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}
+              {(effectiveLang === "en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}
             </h2>
 
             <form onSubmit={gradeCurrent}>
@@ -467,7 +468,7 @@ export function MissionLive() {
                       : t("قريب منها — خلّينا نحاول بطريقة تانية","Not quite. Let’s try a different approach.")}
                   </b>
                   <p style={{ margin: "7px 0 0", lineHeight: 1.7 }}>
-                    {(contentLanguage==="en" ? grade.explanation_en ?? "" : grade.explanation_ar) || ""}
+                    {(effectiveLang === "en" ? grade.explanation_en ?? "" : grade.explanation_ar) || ""}
                   </p>
                   {grade.mastery_score != null && (
                     <small>

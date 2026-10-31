@@ -1,5 +1,5 @@
 "use client";
-import {useTranslation} from "@/lib/i18n/locale";
+import { useLocale, useTranslation } from "@/lib/i18n/locale";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
@@ -36,13 +36,14 @@ type BoxResult = {
 const opts = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
 
 export function BossLive() {
- const t=useTranslation();
+ const t = useTranslation(), locale = useLocale();
   const supabase = useMemo(() => createClient(), []);
   const [unit, setUnit] = useState<{ id: string; title_ar: string; title_en: string } | null>(
     null,
   );
   const [questions, setQuestions] = useState<BossQuestion[]>([]);
   const [contentLanguage, setContentLanguage] = useState<"ar" | "en">("ar");
+  const effectiveLang = contentLanguage === "en" || locale === "en" ? "en" : "ar";
   const [idx, setIdx] = useState(0);
   const [answer, setAnswer] = useState("");
   const [grade, setGrade] = useState<Grade | null>(null);
@@ -326,7 +327,7 @@ export function BossLive() {
             UNIT BOSS
           </div>
           <h1 style={{ margin: "6px 0 0" }}>
-             {(contentLanguage==="en"?unit?.title_en:unit?.title_ar) ?? t("تحدّي الوحدة","Unit challenge")}
+             {(effectiveLang === "en" ? unit?.title_en : unit?.title_ar) ?? t("تحدّي الوحدة","Unit challenge")}
           </h1>
         </div>
         <span className="pill">{questions.length ? idx + 1 : 0}/3</span>
@@ -341,10 +342,10 @@ export function BossLive() {
           <p>{t("لا يوجد تحدّي منشور لهذه الوحدة بعد.","No challenge has been published for this unit yet.")}</p>
         ) : (
           <form onSubmit={submit}>
-             <h2 style={{ lineHeight: 1.6 }} dir={contentLanguage === "ar" ? "rtl" : "ltr"}>{(contentLanguage==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
+             <h2 style={{ lineHeight: 1.6 }} dir={effectiveLang === "ar" ? "rtl" : "ltr"}>{(effectiveLang === "en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
             {current.question_type === "multiple-choice" ? (
               <div style={{ display: "grid", gap: 10 }}>
-                 {opts((contentLanguage==="en" ? current.choices_en : current.choices_ar)).map((x, i) => (
+                 {opts((effectiveLang === "en" ? current.choices_en : current.choices_ar)).map((x, i) => (
                   <button
                     key={x}
                     type="button"
@@ -396,7 +397,7 @@ export function BossLive() {
                 }}
               >
                 <b>{grade.correct ? t("صح","Correct") : t("حاول مرة أخرى","Try again")}</b>
-                 <p>{(contentLanguage==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
+                 <p>{(effectiveLang === "en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
               </div>
             )}
             {(error || status) && (
