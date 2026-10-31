@@ -2,10 +2,10 @@
 import {isPoetryRequest} from "@/lib/ai/presentation-blocks";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 /*
- * Noata AI full workspace.
+ * Noäta AI full workspace.
  * UX structure and interaction patterns are adapted from Open WebUI v0.6.5
  * (Sidebar, Navbar/ModelSelector, Messages, MessageInput, Controls/Settings)
- * under BSD-3-Clause. This is a React/Next.js port integrated with Noata's
+ * under BSD-3-Clause. This is a React/Next.js port integrated with Noäta's
  * Supabase persistence, authentication and Fanar backend.
  * See docs/THIRD_PARTY_NOTICES.md.
  */
@@ -226,13 +226,13 @@ export function NoataAIClient() {
     if (format === "docx") {
       const body =
         "# " +
-        (activeConversation?.title ?? t("محادثة Noata AI","Noata AI conversation")) +
+        (activeConversation?.title ?? t("محادثة Noäta AI","Noäta AI conversation")) +
         "\n\n" +
         messages
           .filter((m) => m.role !== "system")
           .map(
             (m) =>
-              (m.role === "user" ? t("## أنت","## You") : "## Noata AI") + "\n" + (m.role === "assistant" ? responseText(m.content) : m.content),
+              (m.role === "user" ? t("## أنت","## You") : "## Noäta AI") + "\n" + (m.role === "assistant" ? responseText(m.content) : m.content),
           )
           .join("\n\n");
       if (body.length > 200000) {
@@ -245,7 +245,7 @@ export function NoataAIClient() {
         title + "-" + stamp + ".json",
         JSON.stringify(
           {
-            title: activeConversation?.title ?? "Noata AI",
+            title: activeConversation?.title ?? "Noäta AI",
             model,
             temporary,
             exportedAt: new Date().toISOString(),
@@ -261,12 +261,12 @@ export function NoataAIClient() {
         .filter((m) => m.role !== "system")
         .map(
           (m) =>
-            (m.role === "user" ? t("## أنت\n\n","## You\n\n") : "## Noata AI\n\n") + (m.role === "assistant" ? responseText(m.content) : m.content),
+            (m.role === "user" ? t("## أنت\n\n","## You\n\n") : "## Noäta AI\n\n") + (m.role === "assistant" ? responseText(m.content) : m.content),
         )
         .join("\n\n---\n\n");
       downloadText(
         title + "-" + stamp + ".md",
-        "# " + (activeConversation?.title ?? "Noata AI") + "\n\n" + body,
+        "# " + (activeConversation?.title ?? "Noäta AI") + "\n\n" + body,
         "text/markdown",
       );
     }
@@ -366,7 +366,7 @@ export function NoataAIClient() {
                   className="owui-model-menu aura-model-gallery"
                   id="noata-ai-model-options"
                   role="group"
-                  aria-label={t("النماذج المهيأة على خادم Noata","Models configured for Noata")}
+                  aria-label={t("النماذج المهيأة على خادم Noäta","Models configured for Noäta")}
                 >
                   <div className="aura-model-gallery-head">
                     <div className="aura-model-gallery-heading">
@@ -475,7 +475,7 @@ export function NoataAIClient() {
           </div>
 
           <div className="owui-navbar-center">
-            <span className="noata-header-brand" dir="ltr"><NoataLogo size={24}/><strong>Noata AI</strong></span>
+            <span className="noata-header-brand" dir="ltr"><NoataLogo size={24}/><strong>Noäta AI</strong></span>
             {temporary ? (
               <span className="owui-status-pill temporary">
                 <Icon name="clock" size={13} />{t("مؤقتة","Temporary")}</span>
@@ -521,7 +521,7 @@ export function NoataAIClient() {
               <span />
               <span />
               <span />
-              <p>{t("بنجهّز مساحة Noata AI…","Preparing Noata AI…")}</p>
+              <p>{t("بنجهّز مساحة Noäta AI…","Preparing Noäta AI…")}</p>
             </div>
           )}
 
@@ -540,7 +540,7 @@ export function NoataAIClient() {
                   <div className="owui-message-body">
                     <div className="owui-message-meta">
                       <strong>
-                        {m.role === "assistant" ? "Noata AI" : t("أنت","You")}
+                        {m.role === "assistant" ? "Noäta AI" : t("أنت","You")}
                       </strong>
                       {m.role === "assistant" && answerModelLabel(m.model,locale) && (
                         <details className="noata-model-disclosure">
@@ -670,7 +670,7 @@ export function NoataAIClient() {
                 </div>
                 <div className="owui-message-body">
                   <div className="owui-message-meta">
-                    <strong>Noata AI</strong>
+                    <strong>Noäta AI</strong>
                     <span className="owui-stream-badge">
                       {busy ? t("يكتب…","Writing…") : t("رد غير مكتمل","Incomplete response")}
                     </span>
@@ -697,7 +697,7 @@ export function NoataAIClient() {
                 </div>
                 <div className="owui-message-body">
                   <div className="owui-message-meta">
-                    <strong>Noata AI</strong>
+                    <strong>Noäta AI</strong>
                     <span className="owui-stream-badge">{t("جاري التحضير…","Preparing response…")}</span>
                   </div>
                   <div className="noata-stream-progress">
@@ -846,7 +846,7 @@ export function NoataAIClient() {
 
             <textarea
               ref={composer}
-              aria-label={t("رسالتك إلى Noata AI","Your message to Noata AI")}
+              aria-label={t("رسالتك إلى Noäta AI","Your message to Noäta AI")}
               value={input}
               maxLength={8000}
               disabled={busy || loading}
@@ -868,7 +868,7 @@ export function NoataAIClient() {
                   void send();
                 }
               }}
-              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("ابعت رسالتك…","Message Noata AI")}
+              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("ابعت رسالتك…","Message Noäta AI")}
               rows={1}
             />
 
@@ -985,7 +985,7 @@ export function NoataAIClient() {
           <p className="owui-disclaimer">
             {temporary
               ? t("محادثة مؤقتة · لا تظهر في سجل المحادثات.","Temporary conversation · does not appear in your history.")
-              : notice || t("Noata AI ممكن تخطئ. راجع المعلومات المهمة.","Noata AI can make mistakes. Check important information.")}
+              : notice || t("Noäta AI ممكن تخطئ. راجع المعلومات المهمة.","Noäta AI can make mistakes. Check important information.")}
           </p>
         </footer>
       </section>
@@ -1015,7 +1015,7 @@ export function NoataAIClient() {
       <Dialog
         open={controlsOpen}
         onClose={() => setControlsOpen(false)}
-        title={t("عناصر تحكم Noata AI","Noata AI controls")}
+        title={t("عناصر تحكم Noäta AI","Noäta AI controls")}
       >
         <div className="owui-control-grid">
           <label>
@@ -1025,7 +1025,7 @@ export function NoataAIClient() {
               onChange={(e) => setModel(e.target.value)}
               disabled={busy}
             >
-              <option value="auto">{t("تلقائي · Noata تختار الأفضل","Auto · Noata selects a model")}</option>
+              <option value="auto">{t("تلقائي · Noäta تختار الأفضل","Auto · Noäta selects a model")}</option>
               {FANAR_CAPABILITIES.filter((c) => c.visibleInPicker).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -1084,7 +1084,7 @@ export function NoataAIClient() {
       <Dialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        title={t("إعدادات Noata AI","Noata AI settings")}
+        title={t("إعدادات Noäta AI","Noäta AI settings")}
         variant="ai"
       >
         <div className="owui-settings">
@@ -1148,17 +1148,17 @@ export function NoataAIClient() {
             {settingsTab === "appearance" && (
               <>
                 <h3>{t("المظهر والحركة","Appearance and motion")}</h3>
-                <p>{t("اختار ألوان Noata وحركة الواجهة. إعداد الحركة محفوظ على الجهاز.","Choose your Noata palette and animation level. Motion settings are saved on this device.")}</p>
+                <p>{t("اختار ألوان Noäta وحركة الواجهة. إعداد الحركة محفوظ على الجهاز.","Choose your Noäta palette and animation level. Motion settings are saved on this device.")}</p>
                 <ThemeControl />
                 <NoataMotionControl />
-                <label className="noata-typography-choice">{t("خط الردود","Response typography")}<select value={typography} onChange={e=>changeTypography(e.target.value)}><option value="noata">{t("Noata · واضح ومتوازن","Noata · clear and balanced")}</option><option value="editorial">{t("Lora · قراءة تحريرية","Lora · editorial reading")}</option><option value="mono">{t("Roboto Mono · تقني","Roboto Mono · technical")}</option></select></label>
+                <label className="noata-typography-choice">{t("خط الردود","Response typography")}<select value={typography} onChange={e=>changeTypography(e.target.value)}><option value="noata">{t("Noäta · واضح ومتوازن","Noäta · clear and balanced")}</option><option value="editorial">{t("Lora · قراءة تحريرية","Lora · editorial reading")}</option><option value="mono">{t("Roboto Mono · تقني","Roboto Mono · technical")}</option></select></label>
               </>
             )}
 
             {settingsTab === "models" && (
               <>
                 <h3>{t("النموذج الافتراضي","Default model")}</h3>
-                <p>{t("اختار قدرة محددة أو سيب Noata تختار تلقائيًا حسب سؤالك والمرفقات.","Choose a model or let Noata select one for your request and attachments.")}</p>
+                <p>{t("اختار قدرة محددة أو سيب Noäta تختار تلقائيًا حسب سؤالك والمرفقات.","Choose a model or let Noäta select one for your request and attachments.")}</p>
                 <select
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
@@ -1290,7 +1290,7 @@ export function NoataAIClient() {
       <Dialog
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
-        title={t("اختصارات Noata AI","Noata AI shortcuts")}
+        title={t("اختصارات Noäta AI","Noäta AI shortcuts")}
       >
         <div className="owui-shortcuts">
           <div>
@@ -1335,7 +1335,7 @@ export function NoataAIClient() {
       <Dialog
         open={educationOpen}
         onClose={() => setEducationOpen(false)}
-        title={t("ورشة المذاكرة · Noata Aura","Study workshop · Noata Aura")}
+        title={t("ورشة المذاكرة · Noäta Aura","Study workshop · Noäta Aura")}
         variant="workshop"
       >
         <EducationPanel

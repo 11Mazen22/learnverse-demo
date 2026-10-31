@@ -11,7 +11,7 @@ import { Icon } from "@/components/ui/icon";
 import { writingDrafts } from "@/lib/ai/session-work";
 import {artifactFilename} from "@/lib/ai/artifact-filename";
 
-/** A genuine editable document workspace for real Noata AI responses. */
+/** A genuine editable document workspace for real Noäta AI responses. */
 export function WritingStudio({
   open,
   onClose,
@@ -34,12 +34,12 @@ export function WritingStudio({
   const [draft, setDraft] = useState(source);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [notice, setNotice] = useState("");
-  const [title, setTitle] = useState("Noata document");
+  const [title, setTitle] = useState("Noäta document");
   const [exporting, setExporting] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const [retained, setRetained] = useState(true);
   const initialTitle =
-    source.match(/^#\s+(.+)$/m)?.[1]?.slice(0, 120) || "Noata document";
+    source.match(/^#\s+(.+)$/m)?.[1]?.slice(0, 120) || "Noäta document";
   const dirty = draft !== source || title !== initialTitle;
   const exportRequest = useRef<AbortController | null>(null);
   // Reset before Dialog's passive showModal effect can reveal the previous
@@ -136,7 +136,7 @@ export function WritingStudio({
       });
       if(record.error)throw record.error;
       path=undefined;
-      setNotice(t("تم حفظ الملف في مكتبتك. افتح تبويب الملفات من إعدادات Noata AI.","Saved to your library. Open Files in Noata AI settings."));
+      setNotice(t("تم حفظ الملف في مكتبتك. افتح تبويب الملفات من إعدادات Noäta AI.","Saved to your library. Open Files in Noäta AI settings."));
     }catch{
       if(path)await supabase.storage.from("noata-ai-artifacts").remove([path]).catch(()=>{});
       setNotice(t("تعذّر حفظ الملف. قد تحتاج إلى تفعيل مكتبة الملفات في بيئة العمل.","Could not save the file. Artifact storage may not be enabled in this environment."));
@@ -152,7 +152,7 @@ export function WritingStudio({
       const response = await fetch(textOnly ? "/api/pdf" : "/api/documents/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept-Language":locale },
-        body: JSON.stringify(textOnly ? { markdown: draft, title: title === "Noata document" ? t("مستند Noata","Noata document") : title } : { text: draft, title: title === "Noata document" ? t("مستند Noata","Noata document") : title }),
+        body: JSON.stringify(textOnly ? { markdown: draft, title: title === "Noäta document" ? t("مستند Noäta","Noäta document") : title } : { text: draft, title: title === "Noäta document" ? t("مستند Noäta","Noäta document") : title }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -206,7 +206,7 @@ export function WritingStudio({
         )}
         <label className="aura-studio-title">{t("عنوان المستند","Document title")}<input
             maxLength={120}
-            value={title === "Noata document" ? t("مستند Noata","Noata document") : title}
+            value={title === "Noäta document" ? t("مستند Noäta","Noäta document") : title}
             onChange={(e) => {
               setTitle(e.target.value);
               setRetained(
@@ -239,7 +239,7 @@ export function WritingStudio({
         </div>
         {mode === "edit" ? (
           <textarea
-            aria-label={t("محتوى مستند Noata","Noata document content")}
+            aria-label={t("محتوى مستند Noäta","Noäta document content")}
             spellCheck
             dir="auto"
             value={draft}

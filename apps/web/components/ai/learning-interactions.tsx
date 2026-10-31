@@ -1,6 +1,8 @@
 "use client";
-import {useId,useState} from "react";
+import {useId,useMemo,useState} from "react";
 import {useTranslation} from "@/lib/i18n/locale";
+import {createClient} from "@/lib/supabase/client";
+import {useVerifiedAccount} from "@/lib/supabase/use-verified-account";
 import type {ResponseUi} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import {lineChartGeometry} from "@/lib/ai/line-chart";
 type Cards=Extract<ResponseUi,{type:"flashcards"}>;
@@ -8,6 +10,8 @@ type Series=Extract<ResponseUi,{type:"line_chart"}>;
 export function StudyDeck({data}:{data:Cards}){
  const t=useTranslation(),[order,setOrder]=useState(()=>data.cards.map((_,i)=>i)),[position,setPosition]=useState(0);
  const [revealed,setRevealed]=useState(false),[mastered,setMastered]=useState<number[]>([]),[reviewed,setReviewed]=useState<number[]>([]);
+ const supabase=useMemo(()=>createClient(),[]),account=useVerifiedAccount();
+ const [saving,setSaving]=useState(false),[saveStatus,setSaveStatus]=useState("");
  const index=order[position],card=data.cards[index];
  function go(i:number){setPosition(Math.max(0,Math.min(i,order.length-1)));setRevealed(false);}
  function mark(known:boolean){
@@ -18,6 +22,22 @@ export function StudyDeck({data}:{data:Cards}){
  function shuffle(){
   const items=[...order];for(let i=items.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[items[i],items[j]]=[items[j],items[i]];}
   setOrder(items);setPosition(0);setRevealed(false);
+ }
+ async function saveDraft(){
+  if(saving)return;
+  if(!account.user){window.location.href="/login?next=/ai";return;}
+  setSaving(true);setSaveStatus("");
+  const title=(data.title||data.cards[0]?.front||t("بطاقات من Noäta AI","Noäta AI flashcards")).slice(0,160);
+  const deck=await supabase.from("flashcard_decks").insert({user_id:account.user.id,title,status:"draft",source_type:"ai_draft",source_version:data.id.slice(0,160)}).select("id").single();
+  if(deck.error||!deck.data){setSaveStatus(t("تعذّر حفظ المسودة. لم تُنشأ مجموعة.","Could not save the draft. No deck was created."));setSaving(false);return;}
+  const cards=await supabase.from("flashcards").insert(data.cards.map((item,i)=>({deck_id:deck.data.id,user_id:account.user!.id,front:item.front,back:item.back,position:i+1})) ).select("id");
+  if(cards.error||cards.data?.length!==data.cards.length){
+   const cleanup=await supabase.from("flashcard_decks").delete().eq("id",deck.data.id).select("id");
+   setSaveStatus(cleanup.error||cleanup.data?.length!==1
+    ?t("تعذّر حفظ كل البطاقات ولم يتأكد تنظيف المسودة. راجع مركز المذاكرة قبل المحاولة مرة أخرى.","Not all cards were saved and cleanup was not confirmed. Check Study Center before retrying.")
+    :t("تعذّر حفظ كل البطاقات؛ أُزيلت المسودة غير المكتملة.","Not all cards could be saved; the incomplete draft was removed."));
+  }else setSaveStatus(t("حُفظت كمسودة. راجعها ثم فعّلها من مركز المذاكرة.","Saved as a draft. Review and activate it in Study Center."));
+  setSaving(false);
  }
  return <div className="noata-study-deck">
   <div className="noata-study-meta"><span>{t("البطاقة","Card")} {position+1}/{order.length}</span>
@@ -38,7 +58,9 @@ export function StudyDeck({data}:{data:Cards}){
    <button type="button" disabled={position===0} onClick={()=>go(position-1)}>{t("السابق","Previous")}</button>
    <button type="button" onClick={shuffle}>{t("خلط","Shuffle")}</button>
    <button type="button" disabled={position===order.length-1} onClick={()=>go(position+1)}>{t("التالي","Next")}</button>
-  </div>
+   </div>
+  <div className="noata-study-navigation"><button type="button" disabled={saving||account.loading} onClick={()=>void saveDraft()}>{saving?t("جارٍ الحفظ…","Saving…"):t("حفظ كمسودة بطاقات","Save as draft deck")}</button><a href="/study">{t("فتح مركز المذاكرة","Open Study Center")}</a></div>
+  {saveStatus&&<p className="noata-widget-note" role="status">{saveStatus}</p>}
   {reviewed.length===order.length&&<p className="noata-study-finished" role="status">{t("أكملت الجولة","Round complete")} · {mastered.length}/{order.length} {t("متقنة","mastered")} <button type="button" onClick={()=>{setReviewed([]);setMastered([]);go(0);}}>{t("ابدأ مجددًا","Start again")}</button></p>}
   <p className="noata-widget-note">{t("تدريب غير مُقيَّم. تحقق من صحة الإجابات؛ لا تُمنح مكافآت تلقائيًا.","Ungraded practice. Verify AI answers; no automatic rewards.")}</p>
  </div>;

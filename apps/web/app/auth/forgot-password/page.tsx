@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
           {busy ? t("جارٍ إرسال الرابط…","Sending the link…") : t("إرسال رابط الاستعادة","Send recovery link")}
         </button>
       </form>
-      <p className="auth-journey-note">{t("لحماية خصوصيتك، لن نؤكد وجود البريد في سجلاتنا. لن يطلب منك فريق Noata كلمة مرورك عبر البريد.","For your privacy, we do not confirm whether an email is registered. Noata will never ask for your password by email.")}</p>
+      <p className="auth-journey-note">{t("لحماية خصوصيتك، لن نؤكد وجود البريد في سجلاتنا. لن يطلب منك فريق Noäta كلمة مرورك عبر البريد.","For your privacy, we do not confirm whether an email is registered. Noäta will never ask for your password by email.")}</p>
       <Link className="auth-journey-subaction" href="/login">{t("تذكرت كلمة المرور؟ العودة للدخول","Remembered your password? Back to sign in")}</Link>
     </AuthJourney>
   );

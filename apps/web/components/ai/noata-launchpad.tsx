@@ -4,7 +4,7 @@ import {launchItems,type LaunchAction,launchActionEnabled} from "@/lib/ai/launch
 import {Icon} from "@/components/ui/icon";
 export function NoataLaunchpad({signedIn,disabled,onSelect}:{signedIn:boolean;disabled:boolean;onSelect:(id:LaunchAction)=>void}){
  const locale=useLocale(),t=useTranslation();
- return <section className="noata-launchpad" aria-label={t("مساحات Noata AI","Noata AI workspaces")}>
+ return <section className="noata-launchpad" aria-label={t("مساحات Noäta AI","Noäta AI workspaces")}>
   <div className="noata-launchpad-heading"><div><span className="noata-launchpad-overline">NOATA · INTELLIGENCE STUDIO</span>
    <h2>{t("من الفكرة إلى النتيجة","From idea to something real")}</h2>
    <p>{t("اختار مساحة عمل حقيقية. الأدوات التي تحتاج خدمة خارجية تظهر حالتها بوضوح؛ لن نعرض قدرات وهمية.","Choose a real workspace. Provider-dependent tools disclose their availability instead of pretending to work.")}</p>

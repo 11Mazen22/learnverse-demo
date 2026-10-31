@@ -2,19 +2,19 @@ import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
 
 export const metadata = {
   title: "Terms of Use | شروط الاستخدام",
-  description: "Understand Noata learning accounts, age expectations, AI limitations, achievements, virtual currency, content and safety rules.",
+  description: "Understand Noäta learning accounts, age expectations, AI limitations, achievements, virtual currency, content and safety rules.",
 };
 
 const sections: LegalSection[] = [
   {
     id: "agreement", titleAr: "قبول الشروط ونطاق الخدمة", titleEn: "Agreement and service scope",
     ar: [
-      "تنظم هذه الشروط استخدام Noata كمنصة تعليمية للدروس والمراجعة والمهام والفصول والمكافآت والمساعد الذكي. باستخدام المنصة توافق على الالتزام بقواعد الحساب والمحتوى والأمان الواردة هنا وبسياسة الخصوصية.",
-      "لا تزال بعض وظائف Noata قيد التطوير والاختبار، وقد تتغير أو تتوقف أثناء الصيانة. لا يُعد ظهور زر أو ميزة غير مفعّلة تعهدًا بإتاحتها فورًا.",
+      "تنظم هذه الشروط استخدام Noäta كمنصة تعليمية للدروس والمراجعة والمهام والفصول والمكافآت والمساعد الذكي. باستخدام المنصة توافق على الالتزام بقواعد الحساب والمحتوى والأمان الواردة هنا وبسياسة الخصوصية.",
+      "لا تزال بعض وظائف Noäta قيد التطوير والاختبار، وقد تتغير أو تتوقف أثناء الصيانة. لا يُعد ظهور زر أو ميزة غير مفعّلة تعهدًا بإتاحتها فورًا.",
     ],
     en: [
-      "These terms govern use of Noata as an educational service for lessons, revision, missions, classrooms, rewards and AI assistance. By using it, you agree to the account, content and safety requirements here and to the Privacy Policy.",
-      "Some Noata capabilities remain in development or testing and may change or be unavailable during maintenance. A visible but inactive feature is not a promise of immediate availability.",
+      "These terms govern use of Noäta as an educational service for lessons, revision, missions, classrooms, rewards and AI assistance. By using it, you agree to the account, content and safety requirements here and to the Privacy Policy.",
+      "Some Noäta capabilities remain in development or testing and may change or be unavailable during maintenance. A visible but inactive feature is not a promise of immediate availability.",
     ],
   },
   {
@@ -31,11 +31,11 @@ const sections: LegalSection[] = [
   {
     id: "minors", titleAr: "استخدام الطلاب القاصرين", titleEn: "Use by minors",
     ar: [
-      "Noata موجهة للتعليم وقد تتضمن مستخدمين دون سن الرشد. ينبغي للطالب القاصر مراجعة الشروط مع ولي أمره واتباع متطلبات السن والموافقة السارية في بلده أو مدرسته.",
+      "Noäta موجهة للتعليم وقد تتضمن مستخدمين دون سن الرشد. ينبغي للطالب القاصر مراجعة الشروط مع ولي أمره واتباع متطلبات السن والموافقة السارية في بلده أو مدرسته.",
       "يجب على المشغل استكمال آليات الموافقات والعمر المناسبة قبل التوسع العام. لا تشارك معلومات أو صورًا حساسة لزملائك أو معلميك من دون ضرورة وإذن.",
     ],
     en: [
-      "Noata supports education and may be used by people under the age of majority. Minor users should review these terms with a parent or guardian and follow applicable age and consent requirements in their country or school.",
+      "Noäta supports education and may be used by people under the age of majority. Minor users should review these terms with a parent or guardian and follow applicable age and consent requirements in their country or school.",
       "The operator must complete appropriate consent and age controls before broad public launch. Do not share sensitive information or images of classmates or teachers without a legitimate reason and permission.",
     ],
   },
@@ -51,14 +51,14 @@ const sections: LegalSection[] = [
     ],
   },
   {
-    id: "ai", titleAr: "شروط استخدام Noata AI", titleEn: "Noata AI usage",
+    id: "ai", titleAr: "شروط استخدام Noäta AI", titleEn: "Noäta AI usage",
     ar: [
-      "يساعد Noata AI في الشرح والمراجعة والكتابة وتنظيم المعرفة، لكنه قد ينتج أخطاء أو معلومات غير محدثة أو إجابات ناقصة. تحقق من المراجع المهمة ولا تستخدمه وحده لاتخاذ قرارات طبية أو قانونية أو مالية أو أمنية.",
+      "يساعد Noäta AI في الشرح والمراجعة والكتابة وتنظيم المعرفة، لكنه قد ينتج أخطاء أو معلومات غير محدثة أو إجابات ناقصة. تحقق من المراجع المهمة ولا تستخدمه وحده لاتخاذ قرارات طبية أو قانونية أو مالية أو أمنية.",
       "لا ترفع مستندات لا تملك حق استخدامها أو بيانات شخصية حساسة تخص الآخرين. قد تُرسل مدخلات المهمة إلى مزود AI خارجي مثل Fanar لتنفيذ الطلب. تخضع حدود الاستهلاك والمزايا لتوافر المزود والبيئة المشغلة.",
       "لا تستخدم أدوات AI لانتحال الأشخاص أو تعريض الآخرين للضرر أو اختراق الأنظمة أو التحايل على الامتحانات عندما تمنع قواعد الجهة التعليمية ذلك.",
     ],
     en: [
-      "Noata AI helps with explanation, revision, writing and organizing knowledge, but may produce mistakes, outdated statements or incomplete answers. Verify important sources and never rely on it alone for medical, legal, financial or safety-critical decisions.",
+      "Noäta AI helps with explanation, revision, writing and organizing knowledge, but may produce mistakes, outdated statements or incomplete answers. Verify important sources and never rely on it alone for medical, legal, financial or safety-critical decisions.",
       "Do not upload documents you lack permission to use or sensitive personal data about others. Necessary task inputs may be sent to an external AI provider such as Fanar. Limits and capabilities depend on provider availability and environment configuration.",
       "Do not use AI tools to impersonate people, harm others, attack systems or cheat on assessments where school rules prohibit it.",
     ],
@@ -66,12 +66,12 @@ const sections: LegalSection[] = [
   {
     id: "economy", titleAr: "الإنجازات وXP والعملات والهدايا", titleEn: "Achievements, XP, coins and rewards",
     ar: [
-      "XP والعملات وصناديق المكافآت والمظاهر والشارات عناصر تعليمية رقمية داخل Noata، وليست نقودًا حقيقية أو عملة مشفرة أو استثمارًا أو وعدًا بجوائز مالية. أي Gems تُضاف لاحقًا ستكون عملة افتراضية داخلية ما لم تنص قواعد منشورة مختلفة على خلاف ذلك.",
+      "XP والعملات وصناديق المكافآت والمظاهر والشارات عناصر تعليمية رقمية داخل Noäta، وليست نقودًا حقيقية أو عملة مشفرة أو استثمارًا أو وعدًا بجوائز مالية. أي Gems تُضاف لاحقًا ستكون عملة افتراضية داخلية ما لم تنص قواعد منشورة مختلفة على خلاف ذلك.",
       "تُمنح المكافآت بناءً على عمليات تعلم مؤهلة ومؤكدة من الخادم، مثل إكمال درس أو مهمة أو تحدٍّ لأول مرة وفق القواعد المعلنة. قد تختلف القيم بحسب نوع المهمة وصعوبتها، ولا تُمنح مكافآت مكررة لمحاولة استغلال إعادة تحميل الصفحة أو تكرار الطلب.",
       "يُمنع تزوير المحاولات أو استغلال الأخطاء أو استخدام حسابات وهمية لزيادة الرصيد. يمكن تصحيح أرصدة ناتجة عن أخطاء تقنية أو غش بعد المراجعة، مع الاحتفاظ بسجل معاملات قابل للتدقيق. لا يوجد وعد ثابت بأن كل تفاعل أو كل رسالة AI سيولّد عملات.",
     ],
     en: [
-      "XP, coins, reward boxes, cosmetics and badges are educational digital items within Noata. They are not cash, cryptocurrency, investments or a promise of real-world prizes. Any future Gems are virtual in-platform currency unless separately published rules say otherwise.",
+      "XP, coins, reward boxes, cosmetics and badges are educational digital items within Noäta. They are not cash, cryptocurrency, investments or a promise of real-world prizes. Any future Gems are virtual in-platform currency unless separately published rules say otherwise.",
       "Rewards are granted for eligible server-confirmed learning work, such as first completion of a lesson, mission or challenge under the published rules. Values may vary by type and difficulty. Duplicate page refreshes or repeated requests do not earn duplicate rewards.",
       "Fabricating attempts, exploiting bugs or using fake accounts to inflate balances is prohibited. Balances caused by technical errors or abuse may be corrected after review with an auditable transaction record. Not every interaction or AI message necessarily earns currency.",
     ],
@@ -105,7 +105,7 @@ const sections: LegalSection[] = [
       "تُستخدم ملفاتك ومدخلاتك بالقدر اللازم لتقديم الخدمة والوظائف التي تطلبها وفق سياسة الخصوصية. يجب توضيح حقوق أي محتوى تابع لجهات ثالثة أو تلاوات أو مصادر تعليمية عند عرضه.",
     ],
     en: [
-      "You retain rights to original material you upload and are responsible for having permission to submit and process it. Access to Noata does not authorize resale of its content or copying protected third-party materials beyond what their rights holders or the law allow.",
+      "You retain rights to original material you upload and are responsible for having permission to submit and process it. Access to Noäta does not authorize resale of its content or copying protected third-party materials beyond what their rights holders or the law allow.",
       "Your files and prompts are processed as necessary to deliver the features you request under the Privacy Policy. Third-party content, recitations and educational sources must have appropriate attribution and usage rights.",
     ],
   },
@@ -124,11 +124,11 @@ const sections: LegalSection[] = [
     id: "termination", titleAr: "الإيقاف والحذف والمسؤولية", titleEn: "Restrictions, deletion and responsibility",
     ar: [
       "قد يُقيّد وصول الحسابات التي تنتهك هذه الشروط أو تعرض الأمان للخطر، بعد تقييم مناسب. حذف الحساب والمحتوى المرتبط به يخضع لإجراءات الحذف والتخزين المبينة بسياسة الخصوصية، وقد لا يتوفر حذف ذاتي كامل بعد.",
-      "تُقدَّم أدوات Noata التعليمية وفق الإمكانات المتاحة، ولا نضمن دقة كل محتوى أو استمرار الخدمات الخارجية بلا انقطاع. لا يحد أي بند من الحقوق التي يمنحها القانون الملزم للمستهلك أو الطالب.",
+      "تُقدَّم أدوات Noäta التعليمية وفق الإمكانات المتاحة، ولا نضمن دقة كل محتوى أو استمرار الخدمات الخارجية بلا انقطاع. لا يحد أي بند من الحقوق التي يمنحها القانون الملزم للمستهلك أو الطالب.",
     ],
     en: [
       "Accounts that violate these terms or threaten security may be restricted following appropriate review. Account and related-content deletion follows the procedures described in the Privacy Policy; complete self-service deletion may not yet be available.",
-      "Noata's educational tools are provided subject to available capabilities, without guaranteeing every answer's accuracy or uninterrupted external services. Nothing here removes mandatory consumer or learner rights under applicable law.",
+      "Noäta's educational tools are provided subject to available capabilities, without guaranteeing every answer's accuracy or uninterrupted external services. Nothing here removes mandatory consumer or learner rights under applicable law.",
     ],
   },
   {
@@ -150,8 +150,8 @@ export default function TermsPage() {
       kind="terms"
       titleAr="قواعد واضحة لتعلّم أفضل"
       titleEn="Clear terms for better learning"
-      summaryAr="حقوقك ومسؤولياتك في Noata، من الحساب والمحتوى إلى الذكاء الاصطناعي ونقاط XP والعملات والصناديق الرقمية."
-      summaryEn="Your rights and responsibilities on Noata, covering accounts, content, AI, XP, virtual currency and reward boxes."
+      summaryAr="حقوقك ومسؤولياتك في Noäta، من الحساب والمحتوى إلى الذكاء الاصطناعي ونقاط XP والعملات والصناديق الرقمية."
+      summaryEn="Your rights and responsibilities on Noäta, covering accounts, content, AI, XP, virtual currency and reward boxes."
       sections={sections}
     />
   );

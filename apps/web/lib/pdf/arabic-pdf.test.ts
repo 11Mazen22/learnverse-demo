@@ -40,7 +40,7 @@ const SAMPLE = `# ملخص الوحدة الثالثة: الجهاز التنف�
 | الرئتان | تبادل الغازات | Lungs |
 | القصبة الهوائية | ممر الهواء | Trachea |
 
-الله أكبر. مرحبًا بكم في منصة نوتة. لا إله إلا الله.
+الله أكبر. مرحبًا بكم في منصة نقطة. لا إله إلا الله.
 `;
 
 test("markdown parser recognises Arabic document structure", () => {
@@ -88,7 +88,7 @@ test("PDF.js reads back the real Arabic words in logical order from the generate
     "أجزاء الجهاز التنفسي",
     "الأنف والتجويف الأنفي",
     "ينقبض الحجاب الحاجز",
-    "الله أكبر مرحبًا بكم في منصة نوتة لا إله إلا الله".replace("مرحبًا", "مرحبا"),
+    "الله أكبر مرحبًا بكم في منصة نقطة لا إله إلا الله".replace("مرحبًا", "مرحبا"),
   ]) {
     assert.ok(flat.includes(letters(phrase.normalize("NFC"))) || flat.includes(letters(phrase.replace(/[ً-ٟ]/g, ""))), "missing in extraction: " + phrase + "\n" + page);
   }

@@ -1,0 +1,313 @@
+/* ==========================================================================
+   Noäta Aura — Intelligent Role-Aware Guided Tour System
+   ========================================================================== */
+
+.aura-tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: auto;
+  user-select: none;
+}
+
+/* Spotlight with dark scrim and subtle radiant pulse */
+.aura-tour-spotlight {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 80%, white),
+              0 0 24px color-mix(in srgb, var(--accent) 45%, transparent),
+              0 0 0 9999px rgba(5, 11, 23, 0.75);
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 9999;
+}
+
+/* Luxury Tour Step Card */
+.aura-tour-card {
+  width: min(400px, calc(100vw - 32px));
+  background: color-mix(in srgb, var(--surface) 97%, transparent);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1.5px solid color-mix(in srgb, var(--line) 70%, var(--accent) 30%);
+  border-radius: 20px;
+  box-shadow: 0 28px 72px -12px rgba(0, 0, 0, 0.45),
+              0 0 0 1px color-mix(in srgb, var(--line) 40%, transparent);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 10000;
+  animation: auraTourPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--ink);
+}
+
+.aura-tour-card.is-centered {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+@keyframes auraTourPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.aura-tour-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  padding-bottom: 12px;
+}
+
+.aura-tour-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aura-tour-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.aura-tour-step-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface-soft) 85%, var(--line));
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.aura-tour-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aura-tour-close-btn:hover {
+  background: color-mix(in srgb, var(--line) 80%, transparent);
+  color: var(--ink);
+}
+
+/* Body */
+.aura-tour-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aura-tour-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 850;
+  color: var(--ink);
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.aura-tour-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.aura-tour-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.aura-tour-tip-icon {
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.aura-tour-tip p {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink);
+  line-height: 1.5;
+  font-weight: 650;
+}
+
+/* Footer */
+.aura-tour-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+}
+
+.aura-tour-dont-show {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.aura-tour-dont-show input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.aura-tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.aura-tour-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aura-tour-btn-ghost:hover {
+  background: var(--surface-soft);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.aura-tour-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: var(--on-accent, #ffffff);
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: all 0.2s ease;
+}
+
+.aura-tour-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Topbar Trigger Button */
+.aura-tour-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+}
+
+.aura-tour-trigger-btn:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.aura-tour-trigger-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile Responsiveness: Bottom Sheet */
+@media (max-width: 768px) {
+  .aura-tour-card {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 16px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    transform: none !important;
+    border-radius: 18px;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+    animation: auraTourSheet 0.3s ease-out;
+  }
+
+  @keyframes auraTourSheet {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .aura-tour-trigger-text {
+    display: none;
+  }
+
+  .aura-tour-trigger-btn {
+    padding: 6px;
+    width: 36px;
+    justify-content: center;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .aura-tour-card,
+  .aura-tour-spotlight,
+  .aura-tour-btn-primary {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -47,7 +47,7 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
         <span className="aura-workshop-icon"><Icon name="book" size={22} /></span>
         <div>
           <strong>{t("ورشة المذاكرة","Study workshop")}</strong>
-          <small>{t("اختر نشاطًا، حدّد مستواك، ثم أرسله إلى Noata AI.","Choose an activity and your level, then send it to Noata AI.")}</small>
+          <small>{t("اختر نشاطًا، حدّد مستواك، ثم أرسله إلى Noäta AI.","Choose an activity and your level, then send it to Noäta AI.")}</small>
         </div>
       </header>
 
@@ -133,7 +133,7 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
         )}
         <button type="button" className="aura-workshop-draft" onClick={() => run(onUse)} disabled={!ready}>{t("ضعه في المحادثة لأعدّله","Add to chat for editing")}</button>
       </div>
-      <p className="aura-education-note">{t("تُرسل الورشة طلبًا منظّمًا إلى Noata AI. راجع النتائج المهمة مع معلّمك أو كتابك المدرسي.","The workshop sends a structured request to Noata AI. Check important answers with your teacher or textbook.")}</p>
+      <p className="aura-education-note">{t("تُرسل الورشة طلبًا منظّمًا إلى Noäta AI. راجع النتائج المهمة مع معلّمك أو كتابك المدرسي.","The workshop sends a structured request to Noäta AI. Check important answers with your teacher or textbook.")}</p>
       </div>
     </section>
   );

@@ -35,7 +35,7 @@ export function LegalPage({
   return (
     <main id="noata-main" className="noata-legal" dir={arabic ? "rtl" : "ltr"} lang={locale}>
       <header className="noata-legal-header">
-        <Link href="/" className="noata-legal-brand" aria-label="Noata home">
+        <Link href="/" className="noata-legal-brand" aria-label="Noäta home">
           <NoataBrand size={42} tagline={null} />
         </Link>
         <nav className="noata-legal-topnav" aria-label={arabic ? "روابط المنصة" : "Platform links"}>
@@ -98,7 +98,7 @@ export function LegalPage({
         </div>
       </div>
       <footer className="noata-legal-footer">
-        <span>© 2026 Noata · {arabic ? "تعلّم بفضول وتقدّم بثقة" : "Learn with curiosity, grow with confidence"}</span>
+        <span>© 2026 Noäta · {arabic ? "تعلّم بفضول وتقدّم بثقة" : "Learn with curiosity, grow with confidence"}</span>
         <div><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
       </footer>
     </main>

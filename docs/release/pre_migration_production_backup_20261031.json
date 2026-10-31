@@ -1,0 +1,663 @@
+{
+  "profiles": [
+    {
+      "id": "5c859676-7053-4f2f-a06f-d7f6bc61a14a",
+      "display_name": "نور الدين",
+      "role": "student",
+      "preferred_language": "ar",
+      "avatar_url": null,
+      "xp": 0,
+      "coins": 0,
+      "streak_days": 0,
+      "last_learning_day": null,
+      "created_at": "2026-10-07T14:34:32.828464+00:00",
+      "updated_at": "2026-10-07T15:18:16.478555+00:00",
+      "gems": 0
+    },
+    {
+      "id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "display_name": "Mazen",
+      "role": "student",
+      "preferred_language": "ar",
+      "avatar_url": null,
+      "xp": 45,
+      "coins": 25,
+      "streak_days": 0,
+      "last_learning_day": null,
+      "created_at": "2026-10-07T13:12:19.681861+00:00",
+      "updated_at": "2026-10-07T16:11:10.797785+00:00",
+      "gems": 0
+    },
+    {
+      "id": "36d03a8f-4545-46d3-ae26-5925720a593b",
+      "display_name": "مازن",
+      "role": "student",
+      "preferred_language": "ar",
+      "avatar_url": null,
+      "xp": 0,
+      "coins": 0,
+      "streak_days": 0,
+      "last_learning_day": null,
+      "created_at": "2026-10-07T20:23:40.120019+00:00",
+      "updated_at": "2026-10-07T20:23:40.120019+00:00",
+      "gems": 0
+    },
+    {
+      "id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "display_name": "farah",
+      "role": "student",
+      "preferred_language": "ar",
+      "avatar_url": null,
+      "xp": 55,
+      "coins": 25,
+      "streak_days": 0,
+      "last_learning_day": null,
+      "created_at": "2026-10-07T14:49:30.343832+00:00",
+      "updated_at": "2026-10-15T14:53:21.408277+00:00",
+      "gems": 0
+    },
+    {
+      "id": "4fc2c2b5-4b8c-4b58-80ae-d07b878d6481",
+      "display_name": "مازن",
+      "role": "student",
+      "preferred_language": "ar",
+      "avatar_url": null,
+      "xp": 0,
+      "coins": 0,
+      "streak_days": 0,
+      "last_learning_day": null,
+      "created_at": "2026-10-28T07:44:58.066932+00:00",
+      "updated_at": "2026-10-28T07:44:58.066932+00:00",
+      "gems": 0
+    }
+  ],
+  "user_settings": [
+    {
+      "user_id": "5c859676-7053-4f2f-a06f-d7f6bc61a14a",
+      "theme": "system",
+      "reduced_motion": false,
+      "locale": "ar",
+      "default_ai_model": "auto",
+      "ai_memory_enabled": true,
+      "created_at": "2026-10-07T14:34:32.828464+00:00",
+      "updated_at": "2026-10-07T14:34:32.828464+00:00",
+      "palette": null,
+      "active_design_id": null
+    },
+    {
+      "user_id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "theme": "dark",
+      "reduced_motion": false,
+      "locale": "ar",
+      "default_ai_model": "auto",
+      "ai_memory_enabled": true,
+      "created_at": "2026-10-07T13:12:19.681861+00:00",
+      "updated_at": "2026-10-07T22:22:20.714938+00:00",
+      "palette": null,
+      "active_design_id": null
+    },
+    {
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "theme": "dark",
+      "reduced_motion": false,
+      "locale": "ar",
+      "default_ai_model": "auto",
+      "ai_memory_enabled": true,
+      "created_at": "2026-10-07T14:49:30.343832+00:00",
+      "updated_at": "2026-10-15T14:50:20.707369+00:00",
+      "palette": "midnight",
+      "active_design_id": null
+    },
+    {
+      "user_id": "36d03a8f-4545-46d3-ae26-5925720a593b",
+      "theme": "system",
+      "reduced_motion": false,
+      "locale": "ar",
+      "default_ai_model": "auto",
+      "ai_memory_enabled": true,
+      "created_at": "2026-10-07T20:23:40.120019+00:00",
+      "updated_at": "2026-10-20T01:36:24.427066+00:00",
+      "palette": "aura",
+      "active_design_id": null
+    },
+    {
+      "user_id": "4fc2c2b5-4b8c-4b58-80ae-d07b878d6481",
+      "theme": "system",
+      "reduced_motion": false,
+      "locale": "ar",
+      "default_ai_model": "auto",
+      "ai_memory_enabled": true,
+      "created_at": "2026-10-28T07:44:58.066932+00:00",
+      "updated_at": "2026-10-28T07:44:58.066932+00:00",
+      "palette": null,
+      "active_design_id": null
+    }
+  ],
+  "ledger": [
+    {
+      "id": "bc9a388e-2e53-4a65-816f-c11c4573da39",
+      "user_id": "5c859676-7053-4f2f-a06f-d7f6bc61a14a",
+      "currency": "COIN",
+      "amount": 0,
+      "reason": "SHOP_PURCHASE",
+      "reference_type": "shop_item",
+      "reference_id": "51784f92-e172-59ea-9298-d7b7bac522be",
+      "idempotency_key": "purchase-ledger:cb86cc81-3416-46ac-a680-6416f863379f",
+      "created_at": "2026-10-07T15:18:16.478555+00:00"
+    },
+    {
+      "id": "2f321267-e638-4fa5-b0dd-a09877664605",
+      "user_id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "currency": "XP",
+      "amount": 10,
+      "reason": "QUESTION_FIRST_CORRECT",
+      "reference_type": "question",
+      "reference_id": "c0dc6501-b431-5374-a880-ad880de0305c",
+      "idempotency_key": "question-first-correct:c0dc6501-b431-5374-a880-ad880de0305c",
+      "created_at": "2026-10-07T16:10:25.537709+00:00"
+    },
+    {
+      "id": "7f70b57d-0650-4b45-84f1-263c3893fc34",
+      "user_id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "currency": "XP",
+      "amount": 10,
+      "reason": "QUESTION_FIRST_CORRECT",
+      "reference_type": "question",
+      "reference_id": "10986a4d-2a50-5268-861b-71b44e90635a",
+      "idempotency_key": "question-first-correct:10986a4d-2a50-5268-861b-71b44e90635a",
+      "created_at": "2026-10-07T16:10:53.270421+00:00"
+    },
+    {
+      "id": "7256d974-93ca-42fb-b59c-e5e4007a722b",
+      "user_id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "currency": "XP",
+      "amount": 10,
+      "reason": "QUESTION_FIRST_CORRECT",
+      "reference_type": "question",
+      "reference_id": "3dd19297-3a44-5592-90eb-8e9632b690f9",
+      "idempotency_key": "question-first-correct:3dd19297-3a44-5592-90eb-8e9632b690f9",
+      "created_at": "2026-10-07T16:11:08.709941+00:00"
+    },
+    {
+      "id": "93b9d430-e865-40e9-aa7a-a10a493dd847",
+      "user_id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "currency": "XP",
+      "amount": 15,
+      "reason": "LESSON_COMPLETION",
+      "reference_type": "lesson",
+      "reference_id": "d3b5a0f7-4a68-55a0-a73e-528c80fdfe59",
+      "idempotency_key": "lesson-xp:d3b5a0f7-4a68-55a0-a73e-528c80fdfe59",
+      "created_at": "2026-10-07T16:11:10.797785+00:00"
+    },
+    {
+      "id": "7e5738ae-4c5e-49e8-94bc-e70ff420a1af",
+      "user_id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "currency": "COIN",
+      "amount": 25,
+      "reason": "LESSON_COMPLETION",
+      "reference_type": "lesson",
+      "reference_id": "d3b5a0f7-4a68-55a0-a73e-528c80fdfe59",
+      "idempotency_key": "lesson-coin:d3b5a0f7-4a68-55a0-a73e-528c80fdfe59",
+      "created_at": "2026-10-07T16:11:10.797785+00:00"
+    },
+    {
+      "id": "9a5c528f-6a00-4f5d-a85e-787bbac13cdf",
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "currency": "XP",
+      "amount": 10,
+      "reason": "QUESTION_FIRST_CORRECT",
+      "reference_type": "question",
+      "reference_id": "9d871ff7-39fe-5a54-87d9-e9de30c37371",
+      "idempotency_key": "question-first-correct:9d871ff7-39fe-5a54-87d9-e9de30c37371",
+      "created_at": "2026-10-15T14:51:47.010725+00:00"
+    },
+    {
+      "id": "1f703cba-d755-4daa-877e-3d7935ce68b8",
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "currency": "XP",
+      "amount": 10,
+      "reason": "QUESTION_FIRST_CORRECT",
+      "reference_type": "question",
+      "reference_id": "b4ebb1e4-c88f-545a-8cdd-9faa970e5311",
+      "idempotency_key": "question-first-correct:b4ebb1e4-c88f-545a-8cdd-9faa970e5311",
+      "created_at": "2026-10-15T14:52:07.388148+00:00"
+    },
+    {
+      "id": "bc0de0cb-1779-4ac0-b9ab-f70b34279877",
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "currency": "XP",
+      "amount": 10,
+      "reason": "QUESTION_FIRST_CORRECT",
+      "reference_type": "question",
+      "reference_id": "d25f0844-8a0c-59e4-b93b-4cbde38e9bb8",
+      "idempotency_key": "question-first-correct:d25f0844-8a0c-59e4-b93b-4cbde38e9bb8",
+      "created_at": "2026-10-15T14:52:17.731469+00:00"
+    },
+    {
+      "id": "2761d2e6-b53f-45d5-876b-e587a9cfc0cd",
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "currency": "XP",
+      "amount": 15,
+      "reason": "LESSON_COMPLETION",
+      "reference_type": "lesson",
+      "reference_id": "29ea460d-92fc-570b-942a-c80fe012be22",
+      "idempotency_key": "lesson-xp:29ea460d-92fc-570b-942a-c80fe012be22",
+      "created_at": "2026-10-15T14:52:21.411669+00:00"
+    },
+    {
+      "id": "d7d89ff0-6786-4a38-a32e-fcca02005a88",
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "currency": "COIN",
+      "amount": 25,
+      "reason": "LESSON_COMPLETION",
+      "reference_type": "lesson",
+      "reference_id": "29ea460d-92fc-570b-942a-c80fe012be22",
+      "idempotency_key": "lesson-coin:29ea460d-92fc-570b-942a-c80fe012be22",
+      "created_at": "2026-10-15T14:52:21.411669+00:00"
+    },
+    {
+      "id": "a60cc45d-7124-4387-89b5-c402cb998879",
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "currency": "XP",
+      "amount": 10,
+      "reason": "QUESTION_FIRST_CORRECT",
+      "reference_type": "question",
+      "reference_id": "05c00c64-b9b8-5736-b996-86dd82a3dd83",
+      "idempotency_key": "question-first-correct:05c00c64-b9b8-5736-b996-86dd82a3dd83",
+      "created_at": "2026-10-15T14:53:21.408277+00:00"
+    }
+  ],
+  "courses": [
+    {
+      "id": "6a5dd445-b36e-5192-bfc5-6cd13da35baa",
+      "slug": "demo-science-v1",
+      "title_ar": "علوم تجريبية — محتوى توضيحي",
+      "title_en": "Demo Science — Illustrative content",
+      "description_ar": "محتوى أصلي للتجربة واختبار المنتج. غير تابع لمنهج رسمي.",
+      "description_en": "Original demonstration content for product testing. Not aligned to an official syllabus.",
+      "active": true,
+      "created_at": "2026-10-07T02:25:25.563721+00:00",
+      "metadata": {
+        "demo": true,
+        "version": "1.0-demo",
+        "grade_ar": "مرحلة ثانوية — غير معتمد",
+        "grade_en": "Secondary level — not approved",
+        "provenance": "Original demonstration content created for product testing. Not aligned to an official syllabus."
+      }
+    }
+  ],
+  "units": [
+    {
+      "id": "1193c2ae-2e06-53d0-ae79-ad338fb52742",
+      "course_id": "6a5dd445-b36e-5192-bfc5-6cd13da35baa",
+      "position": 1,
+      "title_ar": "الحركة والتمثيل البياني",
+      "title_en": "Motion and graphs",
+      "boss_enabled": true,
+      "description_ar": "اقرأ الحركة من المسافة والزمن، ثم استخدم الأدلة لتفسيرها.",
+      "description_en": "Read motion from distance and time, then explain it with evidence.",
+      "metadata": {
+        "demo": true,
+        "locked": false
+      }
+    },
+    {
+      "id": "7f41652d-12e5-5843-9cec-9454d3f3a547",
+      "course_id": "6a5dd445-b36e-5192-bfc5-6cd13da35baa",
+      "position": 2,
+      "title_ar": "القوى والتغيّر",
+      "title_en": "Forces and change",
+      "boss_enabled": true,
+      "description_ar": "وحدة تجريبية قيد المراجعة وغير متاحة بعد.",
+      "description_en": "A demo unit under review and not yet available.",
+      "metadata": {
+        "demo": true,
+        "locked": true
+      }
+    },
+    {
+      "id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "course_id": "6a5dd445-b36e-5192-bfc5-6cd13da35baa",
+      "position": 3,
+      "title_ar": "الجهاز التنفسي وتبادل الغازات",
+      "title_en": "The Respiratory System and Gas Exchange",
+      "boss_enabled": true,
+      "description_ar": "استكشف مسار الهواء من الأنف إلى الحويصلات الهوائية، وميكانيكا الشهيق والزفير، وتبادل الأكسجين وثاني أكسيد الكربون مع الدورة الدموية.",
+      "description_en": "Explore the pathway of air from the nasal cavity to the alveoli, breathing mechanics, and oxygen/carbon dioxide exchange with blood circulation.",
+      "metadata": {
+        "demo": true,
+        "locked": false,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice."
+      }
+    }
+  ],
+  "lessons": [
+    {
+      "id": "29ea460d-92fc-570b-942a-c80fe012be22",
+      "unit_id": "1193c2ae-2e06-53d0-ae79-ad338fb52742",
+      "position": 1,
+      "slug": "motion-basics",
+      "title_ar": "ما معنى السرعة؟",
+      "title_en": "What does speed mean?",
+      "content": {
+        "demo": true,
+        "worked_ar": "قطع درّاج 120 مترًا في 20 ثانية. السرعة المتوسطة = 120 ÷ 20 = 6 م/ث.",
+        "worked_en": "A cyclist covers 120 m in 20 s. Average speed = 120 ÷ 20 = 6 m/s.",
+        "summary_ar": "السرعة تصف مقدار المسافة المقطوعة في وحدة زمن. السرعة المتوسطة = المسافة ÷ الزمن.",
+        "summary_en": "Speed describes distance travelled per unit of time. Average speed = distance ÷ time.",
+        "duration_minutes": 7
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "d3b5a0f7-4a68-55a0-a73e-528c80fdfe59",
+      "unit_id": "1193c2ae-2e06-53d0-ae79-ad338fb52742",
+      "position": 2,
+      "slug": "motion-graphs",
+      "title_ar": "احكِ قصة الرسم",
+      "title_en": "Tell the graph's story",
+      "content": {
+        "demo": true,
+        "worked_ar": "إذا ظلت المسافة 40 مترًا من الثانية 5 إلى 8، فالجسم لم يتحرك خلال هذه الفترة.",
+        "worked_en": "If distance stays at 40 m from second 5 to 8, the object did not move in that interval.",
+        "summary_ar": "في رسم المسافة–الزمن، الميل الأكبر يعني سرعة أكبر، والخط الأفقي يعني أن الجسم متوقف.",
+        "summary_en": "On a distance–time graph, a steeper slope means greater speed; a horizontal line means stopped.",
+        "duration_minutes": 8,
+        "prerequisite_lesson_id": "29ea460d-92fc-570b-942a-c80fe012be22"
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "434fe50e-9c4a-4d4a-a3a5-8b8c6d6f0ce7",
+      "unit_id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "position": 1,
+      "slug": "respiratory-intro",
+      "title_ar": "مقدمة الجهاز التنفسي والغاية من تبادل الغازات",
+      "title_en": "Introduction to the Respiratory System and Gas Exchange",
+      "content": {
+        "demo": true,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "worked_ar": "مثال محلول: في حالة الراحة، يتنفس الشخص البالغ نحو 12 نفسًا في الدقيقة، ويدخل في كل نفس حوالي 500 ملليلتر من الهواء (الحجم الجاري Tidal Volume). حجم التهوية الرئوية في الدقيقة = 12 × 500 = 6000 ملليلتر (أي 6 لترات في الدقيقة).",
+        "worked_en": "Worked example: At rest, an adult breathes about 12 times per minute with a tidal volume of 500 mL per breath. Minute ventilation = 12 × 500 mL = 6,000 mL (6 L/min).",
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice.",
+        "summary_ar": "يحتاج جسم الإنسان إلى الأكسجين (Oxygen - O₂) لإنتاج الطاقة الخلوية (ATP) عبر عملية التنفس الخلوي (Cellular Respiration)، وينتج عن ذلك غاز ثاني أكسيد الكربون (Carbon Dioxide - CO₂) كفضلات أيضية يجب طرحها. يعمل الجهاز التنفسي بالتكامل مع الجهاز الدوري لتأمين دخول O₂ إلى الدم والتخلص من CO₂ باستمرار.",
+        "summary_en": "Human cells require oxygen (O₂) to generate ATP through cellular respiration, producing carbon dioxide (CO₂) as a metabolic waste product. The respiratory system partners with the circulatory system to supply O₂ and eliminate CO₂ continuously.",
+        "objectives_ar": [
+          "التمييز بين التهوية الرئوية والتنفس الخلوي",
+          "تحديد دور الأكسجين O₂ وثاني أكسيد الكربون CO₂ في أيض الخلايا",
+          "حساب حجم التهوية الرئوية في الدقيقة"
+        ],
+        "objectives_en": [
+          "Distinguish pulmonary ventilation from cellular respiration",
+          "Identify the roles of O₂ and CO₂ in cellular metabolism",
+          "Calculate minute ventilation from breathing rate and tidal volume"
+        ],
+        "duration_minutes": 7
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "0a1b0a3f-3924-4c46-80f9-c1e791060227",
+      "unit_id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "position": 2,
+      "slug": "respiratory-airway-path",
+      "title_ar": "أعضاء الجهاز التنفسي ومسار الهواء",
+      "title_en": "Respiratory Organs and the Pathway of Air",
+      "content": {
+        "demo": true,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "worked_ar": "مثال محلول: تتفرع القصبة الهوائية المفردة (1) إلى شعبتين رئيسيتين (2)، وعند انقسام كل شعبة إلى فرعين في الجيل التالي يتكون 2 × 2 = 4 فروع، ما يوزع تيار الهواء بانتظام على فصوص الرئتين.",
+        "worked_en": "Worked example: The single trachea (1) divides into 2 primary bronchi; when each divides into 2 branches at the next generation, 2 × 2 = 4 branches form, distributing airflow across the lung lobes.",
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice.",
+        "summary_ar": "يمر الهواء المستنشق عبر مسار منظم يبدأ بالتجويف الأنفي (Nasal Cavity) حيث يُدفأ الهواء ويُرطّب ويُنقى بواسطة الشعيرات والمخاط والأهداب، ثم البلعوم (Pharynx)، فالحنجرة (Larynx) المحمية بلسان المزمار (Epiglottis) لمنع دخول الطعام أثناء البلع، ثم القصبة الهوائية (Trachea) المدعومة بحلقات غضروفية غير مكتملة على شكل حرف C، والتي تتفرع إلى شعبتين هوائيتين (Bronchi) ثم شعيبات دقيقة (Bronchioles) داخل الرئتين.",
+        "summary_en": "Inhaled air follows an ordered pathway: the nasal cavity (warming, humidifying, and filtering air), pharynx, larynx (protected by the epiglottis during swallowing), trachea (reinforced by C-shaped cartilage rings), primary bronchi, and branching bronchioles within the lungs.",
+        "objectives_ar": [
+          "ترتيب أعضاء المسار التنفسي من الأنف إلى الشعيبات",
+          "تفسير وظيفة الحلقات الغضروفية ولسان المزمار",
+          "تعليل أفضلية التنفس عبر الأنف على التنفس الفموي"
+        ],
+        "objectives_en": [
+          "Order the conducting airway structures from nasal cavity to bronchioles",
+          "Explain the function of tracheal cartilage rings and the epiglottis",
+          "Explain why nasal breathing conditions air more effectively than mouth breathing"
+        ],
+        "duration_minutes": 8,
+        "prerequisite_lesson_id": "434fe50e-9c4a-4d4a-a3a5-8b8c6d6f0ce7"
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "c72a1537-7a1b-4e37-86e8-844187bf80bc",
+      "unit_id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "position": 3,
+      "slug": "lungs-and-alveoli",
+      "title_ar": "الرئتان والحويصلات الهوائية: بنية التبادل الغازي",
+      "title_en": "The Lungs and Alveoli: Architecture of Gas Exchange",
+      "content": {
+        "demo": true,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "worked_ar": "مثال محلول: إذا احتوت منطقة صغيرة من نسيج رئوي على 400 حويصلة هوائية، وكانت المساحة السطحية المتوسطة للحويصلة الواحدة 0.25 مليمتر مربع، فإن المساحة الكلية لهذه المجموعة = 400 × 0.25 = 100 مليمتر مربع.",
+        "worked_en": "Worked example: If a small lung tissue sample contains 400 alveoli with an average surface area of 0.25 mm² per alveolus, their combined surface area is 400 × 0.25 = 100 mm².",
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice.",
+        "summary_ar": "تنتهي الشعيبات التنفسية بملايين الأكياس الهوائية المجهرية المسماة الحويصلات الهوائية (Alveoli). تحقق الحويصلات كفاءة عالية في تبادل الغازات وفق قانون فيك للانتشار (Fick's Law) بفضل ثلاث خصائص بنيوية: مساحة سطحية إجمالية هائلة، وجدران رقيقة جدًا من طبقة خلوية واحدة (حوالي 0.5 ميكرومتر)، وشبكة كثيفة من الشعيرات الدموية، بالإضافة إلى مادة الفاعل بالسطح الرئوي (Surfactant) التي تقلل التوتر السطحي وتمنع انخماص الحويصلات.",
+        "summary_en": "Respiratory bronchioles end in millions of microscopic air sacs called alveoli. Alveoli maximize gas diffusion according to Fick's Law through three structural adaptations: an immense total surface area, ultra-thin single-cell walls (~0.5 µm), and a dense capillary network, supported by pulmonary surfactant that reduces surface tension and prevents alveolar collapse.",
+        "objectives_ar": [
+          "تحديد التكيفات البنيوية للحويصلات الهوائية لتعزيز الانتشار",
+          "توضيح وظيفة الفاعل بالسطح الرئوي Surfactant",
+          "حساب المساحة السطحية الإجمالية لمجموعة من الحويصلات"
+        ],
+        "objectives_en": [
+          "Identify the structural adaptations of alveoli that maximize gas diffusion",
+          "Explain the role of pulmonary surfactant",
+          "Calculate combined alveolar surface area"
+        ],
+        "duration_minutes": 8,
+        "prerequisite_lesson_id": "0a1b0a3f-3924-4c46-80f9-c1e791060227"
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "b795e321-b739-4ad7-a297-36fe71f8f77f",
+      "unit_id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "position": 4,
+      "slug": "breathing-mechanics",
+      "title_ar": "ميكانيكا التنفس: الحجاب الحاجز والشهيق والزفير",
+      "title_en": "Breathing Mechanics: Diaphragm, Inhalation, and Exhalation",
+      "content": {
+        "demo": true,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "worked_ar": "مثال محلول: إذا كان الضغط الجوي عند مستوى سطح البحر 760 ملم زئبق (mmHg)، وانخفض الضغط داخل الحويصلات أثناء الشهيق إلى 757 ملم زئبق، فإن فرق الضغط الدافع لدخول الهواء = 760 − 757 = 3 ملم زئبق.",
+        "worked_en": "Worked example: If atmospheric pressure at sea level is 760 mmHg and intra-alveolar pressure drops to 757 mmHg during inhalation, the pressure gradient driving air into the lungs is 760 − 757 = 3 mmHg.",
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice.",
+        "summary_ar": "تخضع التهوية الرئوية لقانون بويل (Boyle's Law: يتناسب ضغط الغاز عكسيًا مع حجمه عند ثبات الحرارة). أثناء الشهيق (Inhalation)، ينقبض الحجاب الحاجز (Diaphragm) فيتحرك لأسفل وتنقبض العضلات بين الضلعية الخارجية لرفع الأضلاع، فيزداد حجم التجويف الصدري وينخفض الضغط داخل الحويصلات دون الضغط الجوي فيندفع الهواء إلى الرئتين. وفي الزفير الهادئ (Exhalation)، تنبسط العضلات فيقل حجم الصدر ويرتفع الضغط داخل الرئتين فيخرج الهواء.",
+        "summary_en": "Pulmonary ventilation is governed by Boyle's Law (gas pressure is inversely proportional to volume at constant temperature). During inhalation, the diaphragm contracts downward and external intercostal muscles elevate the ribs, expanding thoracic volume and lowering intra-alveolar pressure below atmospheric pressure so air flows in. During quiet exhalation, muscle relaxation reduces volume and raises alveolar pressure to expel air.",
+        "objectives_ar": [
+          "ربط حركة الحجاب الحاجز والقفص الصدري بتغيرات الحجم والضغط",
+          "المقارنة بين آليتي الشهيق والزفير الهادئ",
+          "حساب فرق الضغط الدافع لحركة الهواء"
+        ],
+        "objectives_en": [
+          "Relate diaphragm and rib-cage movement to thoracic volume and pressure changes",
+          "Compare active inhalation with passive quiet exhalation",
+          "Calculate the trans-airway pressure gradient driving airflow"
+        ],
+        "duration_minutes": 8,
+        "prerequisite_lesson_id": "c72a1537-7a1b-4e37-86e8-844187bf80bc"
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "6e6f3d93-9d8b-4185-ad72-1b38beee63e7",
+      "unit_id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "position": 5,
+      "slug": "gas-exchange-and-circulation",
+      "title_ar": "تبادل الغازات والدورة الدموية الصغرى",
+      "title_en": "Gas Exchange and Pulmonary Circulation",
+      "content": {
+        "demo": true,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "worked_ar": "مثال محلول: عندما يكون الضغط الجزئي للأكسجين في الحويصلات الهوائية 104 ملم زئبق وفي الدم الوريدي الوارد للشعيرات الرئوية 40 ملم زئبق، فإن فرق الضغط الجزئي الدافع لانتشار الأكسجين نحو الدم = 104 − 40 = 64 ملم زئبق.",
+        "worked_en": "Worked example: When alveolar PO₂ is 104 mmHg and incoming pulmonary capillary blood PO₂ is 40 mmHg, the partial-pressure gradient driving O₂ diffusion into the blood is 104 − 40 = 64 mmHg.",
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice.",
+        "summary_ar": "ينتقل الأكسجين وثاني أكسيد الكربون عبر الغشاء الحويصلي الشعيري بالانتشار البسيط تبعًا لفرق الضغط الجزئي (Partial Pressure Gradient). يصل الدم غير المؤكسج عبر الشريان الرئوي بضغط جزئي للأكسجين (PO₂ ≈ 40 mmHg) بينما يكون في هواء الحويصلات (PO₂ ≈ 104 mmHg)، فينتشر O₂ إلى الدم ويرتبط معظمه بالهيموغلوبين (Hemoglobin) داخل خلايا الدم الحمراء لتكوين الأوكسيهيموغلوبين، ثم يعود الدم المؤكسج عبر الأوردة الرئوية إلى الأذين الأيسر للقلب.",
+        "summary_en": "Oxygen and carbon dioxide cross the alveolar-capillary membrane by simple diffusion down their partial-pressure gradients. Deoxygenated blood arrives via the pulmonary artery with PO₂ ≈ 40 mmHg while alveolar air has PO₂ ≈ 104 mmHg; O₂ diffuses into blood, binds mainly to hemoglobin in red blood cells, and returns via the pulmonary veins to the left atrium.",
+        "objectives_ar": [
+          "تفسير انتقال الغازات وفق فروق الضغط الجزئي PO₂ وPCO₂",
+          "توضيح دور الهيموغلوبين والأوردة والشرايين الرئوية",
+          "حساب فرق الضغط الجزئي عبر الغشاء الحويصلي الشعيري"
+        ],
+        "objectives_en": [
+          "Explain gas diffusion using PO₂ and PCO₂ partial-pressure gradients",
+          "Describe the roles of hemoglobin, pulmonary arteries, and pulmonary veins",
+          "Calculate partial-pressure gradients across the alveolar-capillary membrane"
+        ],
+        "duration_minutes": 9,
+        "prerequisite_lesson_id": "b795e321-b739-4ad7-a297-36fe71f8f77f"
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "a48216d3-a9d2-459e-af9b-bf90b48d1a89",
+      "unit_id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "position": 6,
+      "slug": "respiratory-health",
+      "title_ar": "صحة الجهاز التنفسي والعوامل المؤثرة في كفاءته",
+      "title_en": "Respiratory Health and Factors Affecting Efficiency",
+      "content": {
+        "demo": true,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "worked_ar": "مثال محلول: تُحسب السعة الحيوية للرئة (Vital Capacity) بجمع الحجم الجاري (500 مل) + الحجم الاحتياطي الشهيقي (2500 مل) + الحجم الاحتياطي الزفيري (1000 مل) = 4000 ملليلتر (4 لترات).",
+        "worked_en": "Worked example: Vital capacity equals tidal volume (500 mL) + inspiratory reserve volume (2,500 mL) + expiratory reserve volume (1,000 mL) = 4,000 mL (4 L).",
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice.",
+        "summary_ar": "تعتمد وقاية الجهاز التنفسي على كفاءة المصعد المخاطي الهدبي (Mucociliary Escalator) ونقاء الهواء المستنشق. يؤدي التعرض لدخان التبغ والملوثات الدقيقة إلى إضعاف حركة الأهداب، وتراكم المخاط، وتلف جدران الحويصلات الهوائية. كما يرتبط غاز أول أكسيد الكربون (CO) بالهيموغلوبين بألفة تفوق الأكسجين بنحو 200 مرة، ما يعيق نقل O₂ إلى الأنسجة. ويسهم النشاط البدني الهوائي والتهوية النظيفة في الحفاظ على السعة الحيوية للرئتين (Vital Capacity).",
+        "summary_en": "Respiratory protection relies on the mucociliary escalator and clean air. Exposure to tobacco smoke and fine particulate pollution impairs ciliary motion, increases mucus accumulation, and damages alveolar walls. Carbon monoxide (CO) binds hemoglobin with ~200× greater affinity than O₂, impairing oxygen delivery. Regular aerobic activity and clean air support lung vital capacity.",
+        "objectives_ar": [
+          "توضيح آلية عمل المصعد المخاطي الهدبي في حماية الرئتين",
+          "تحليل أثر الملوثات وأول أكسيد الكربون على نقل الأكسجين",
+          "حساب السعة الحيوية للرئة من حجوم التنفس"
+        ],
+        "objectives_en": [
+          "Explain how the mucociliary escalator protects the airways",
+          "Analyze how pollutants and carbon monoxide impair oxygen transport",
+          "Calculate vital capacity from respiratory volumes"
+        ],
+        "duration_minutes": 8,
+        "prerequisite_lesson_id": "6e6f3d93-9d8b-4185-ad72-1b38beee63e7"
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    },
+    {
+      "id": "6e85ca8c-1c38-4842-bfd1-dcc8ffb17b53",
+      "unit_id": "e16e5886-4bbd-437c-8bd7-f557a345b43d",
+      "position": 7,
+      "slug": "respiratory-integrated-review",
+      "title_ar": "مراجعة وتكامل: من الشهيق إلى التنفس الخلوي",
+      "title_en": "Integrated Review: From Inhalation to Cellular Respiration",
+      "content": {
+        "demo": true,
+        "pathway": "respiratory-system-v1",
+        "sources": [
+          "OpenStax Anatomy and Physiology 2e, Chapter 22: The Respiratory System",
+          "Guyton and Hall Textbook of Medical Physiology, Unit VII: Respiration"
+        ],
+        "worked_ar": "مثال محلول: إذا كان الحجم الجاري في النفس الواحد 500 ملليلتر، وكان الحيز الميت التشريحي 150 ملليلتر، فإن حجم الهواء النقي الواصل فعليًا إلى الحويصلات في كل نفس = 500 − 150 = 350 ملليلتر.",
+        "worked_en": "Worked example: If tidal volume is 500 mL and anatomical dead space is 150 mL, the effective fresh air reaching the alveoli per breath is 500 − 150 = 350 mL.",
+        "provenance": "Original educational demonstration content grounded in standard physiology references. Not aligned to an official Ministry syllabus and not clinical medical advice.",
+        "summary_ar": "يتكامل عمل الجهاز التنفسي في سلسلة مترابطة: التغير الميكانيكي في حجم الصدر يولد فرق ضغط يدفع الهواء عبر الممرات التوصيلية (قانون بويل)، بينما يبقى جزء من الهواء في الحيز الميت التشريحي (Anatomical Dead Space ≈ 150 mL) ولا يشارك في التبادل. أما الهواء الفعلي الواصل للحويصلات فيتبادل الغازات عبر غشاء رقيق ذي مساحة واسعة (قانون فيك) لينتقل O₂ مع الهيموغلوبين عبر الدورة الدموية إلى الميتوكوندريا في الخلايا.",
+        "summary_en": "Respiratory function integrates mechanics, diffusion, and circulation: thoracic volume expansion creates a pressure gradient driving airflow (Boyle's Law), while ~150 mL remains in the conducting anatomical dead space. Fresh air reaching the alveoli exchanges gases across a vast, thin membrane (Fick's Law) so hemoglobin delivers O₂ through the circulation to cellular mitochondria.",
+        "objectives_ar": [
+          "الربط بين قوانين الضغط والانتشار ونقل الغازات في الدم",
+          "التمييز بين التهوية الكلية والتهوية الحويصلية الفعالة",
+          "تحليل استجابة الجهازين التنفسي والدوري معًا للتغيرات الفسيولوجية"
+        ],
+        "objectives_en": [
+          "Connect pressure mechanics, alveolar diffusion, and blood gas transport",
+          "Distinguish total minute ventilation from effective alveolar ventilation",
+          "Analyze coordinated cardiopulmonary responses to physiological demand"
+        ],
+        "duration_minutes": 10,
+        "prerequisite_lesson_id": "a48216d3-a9d2-459e-af9b-bf90b48d1a89"
+      },
+      "xp_reward": 15,
+      "coin_reward": 25
+    }
+  ],
+  "lesson_progress": [
+    {
+      "user_id": "9fe2d0fc-f770-4a21-860f-e09c6a102bae",
+      "lesson_id": "d3b5a0f7-4a68-55a0-a73e-528c80fdfe59",
+      "completed_at": "2026-10-07T16:11:10.797785+00:00",
+      "best_score": 100,
+      "updated_at": "2026-10-07T16:11:10.797785+00:00"
+    },
+    {
+      "user_id": "f05cdc79-1f76-49ca-ae5a-ae53db4b97a5",
+      "lesson_id": "29ea460d-92fc-570b-942a-c80fe012be22",
+      "completed_at": "2026-10-15T14:52:21.411669+00:00",
+      "best_score": 67,
+      "updated_at": "2026-10-15T14:53:30.663646+00:00"
+    }
+  ],
+  "inventory": [
+    {
+      "user_id": "5c859676-7053-4f2f-a06f-d7f6bc61a14a",
+      "item_id": "51784f92-e172-59ea-9298-d7b7bac522be",
+      "acquired_at": "2026-10-07T15:18:16.478555+00:00"
+    }
+  ],
+  "purchases": [
+    {
+      "id": "d6f64e28-6b93-48c4-877d-978dd4aa5b92",
+      "user_id": "5c859676-7053-4f2f-a06f-d7f6bc61a14a",
+      "item_id": "51784f92-e172-59ea-9298-d7b7bac522be",
+      "price": 0,
+      "idempotency_key": "cb86cc81-3416-46ac-a680-6416f863379f",
+      "created_at": "2026-10-07T15:18:16.478555+00:00"
+    }
+  ],
+  "equipped_cosmetics": [
+    {
+      "user_id": "5c859676-7053-4f2f-a06f-d7f6bc61a14a",
+      "slot": "avatar",
+      "item_id": "51784f92-e172-59ea-9298-d7b7bac522be",
+      "updated_at": "2026-10-07T15:18:18.093694+00:00"
+    }
+  ]
+}

@@ -105,7 +105,7 @@ export function UserMenu() {
     setError("");
     try {
       const approved = await confirmAction({
-         title: t("تسجيل الخروج من Noata؟", "Sign out of Noata?"),
+         title: t("تسجيل الخروج من Noäta؟", "Sign out of Noäta?"),
          description: t("ستظل بياناتك محفوظة في حسابك. احفظ أي عمل غير مكتمل قبل تسجيل الخروج.", "Your account data will remain saved. Save unfinished work before signing out."),
          confirmLabel: t("تسجيل الخروج", "Sign out"),
          cancelLabel: t("البقاء في حسابي", "Stay signed in"),
@@ -170,7 +170,7 @@ export function UserMenu() {
           }}>
           <div className="noata-account-menu-identity">
             <strong>{name}</strong>
-             <small dir="ltr">{account.user.email ?? t("حساب Noata", "Noata account")}</small>
+             <small dir="ltr">{account.user.email ?? t("حساب Noäta", "Noäta account")}</small>
              <span>{profile ? roles[profile.role] : t("الحساب الشخصي", "Personal account")}</span>
           </div>
           <Link href="/settings#aura-profile" role="menuitem" tabIndex={-1} onClick={() => setMenuOpen(false)}>

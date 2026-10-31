@@ -1,0 +1,183 @@
+/* Noata curriculum hub — the six-subject catalog with its language tracks.
+   The hub is the learner's entry point into a subject, so it states the subject,
+   the track and the language of that track before anything else. */
+
+.aura-subject-hub {
+  margin-bottom: 18px;
+}
+
+.aura-subject-hub-head h2 {
+  margin: 0;
+}
+
+.aura-subject-hub-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 62ch;
+}
+
+.aura-subject-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.aura-subject-card {
+  --subject-accent: var(--accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--subject-accent) 8%, transparent), transparent 62%),
+    var(--surface);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--subject-accent) 8%, transparent);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.aura-subject-card[data-active="true"] {
+  border-color: color-mix(in srgb, var(--subject-accent) 55%, var(--line));
+  box-shadow: 0 16px 38px color-mix(in srgb, var(--subject-accent) 16%, transparent);
+}
+
+.aura-subject-card[data-accent="cyan"] {
+  --subject-accent: #22b8cf;
+}
+.aura-subject-card[data-accent="indigo"] {
+  --subject-accent: #5b6ee1;
+}
+.aura-subject-card[data-accent="amber"] {
+  --subject-accent: #d59a2b;
+}
+.aura-subject-card[data-accent="rose"] {
+  --subject-accent: #d95f8a;
+}
+.aura-subject-card[data-accent="teal"] {
+  --subject-accent: #16a394;
+}
+.aura-subject-card[data-accent="violet"] {
+  --subject-accent: #7a6ae8;
+}
+
+.aura-subject-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.aura-subject-card-head h3 {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.35;
+}
+
+.aura-subject-percent {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--subject-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.aura-subject-card-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.aura-track-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.aura-track-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.aura-track-chip:hover {
+  border-color: color-mix(in srgb, var(--subject-accent) 55%, var(--line));
+  transform: translateY(-1px);
+}
+
+.aura-track-chip[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--subject-accent) 70%, var(--line));
+  background: color-mix(in srgb, var(--subject-accent) 14%, var(--surface));
+}
+
+.aura-track-chip-empty {
+  cursor: default;
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.aura-track-language {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+}
+
+.aura-track-chip[data-language="en"] .aura-track-language {
+  color: color-mix(in srgb, var(--subject-accent) 82%, var(--ink));
+}
+
+.aura-track-name {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.aura-subject-progress {
+  height: 6px;
+  margin-top: 2px;
+}
+
+.aura-subject-progress i {
+  background: var(--subject-accent);
+}
+
+@media (max-width: 520px) {
+  .aura-subject-grid {
+    grid-template-columns: 1fr;
+  }
+  .aura-subject-card {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-subject-card,
+  .aura-track-chip {
+    transition: none;
+  }
+  .aura-track-chip:hover {
+    transform: none;
+  }
+}

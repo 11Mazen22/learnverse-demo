@@ -1,5 +1,5 @@
 "use client";
-import {useLocale,useTranslation} from "@/lib/i18n/locale";
+import {useTranslation} from "@/lib/i18n/locale";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
@@ -10,12 +10,14 @@ import { createClient } from "@/lib/supabase/client";
 type BossQuestion = {
   id: string;
   unit_id: string | null;
+  variant_of: string | null;
   position: number | null;
   question_type: string;
   prompt_ar: string;
    prompt_en: string | null;
    choices_en: unknown;
   choices_ar: unknown;
+  metadata: unknown;
 };
 type Grade = { correct?: boolean; explanation_ar?: string; explanation_en?:string };
 type BossResult = {
@@ -34,12 +36,13 @@ type BoxResult = {
 const opts = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
 
 export function BossLive() {
- const t=useTranslation(),locale=useLocale();
+ const t=useTranslation();
   const supabase = useMemo(() => createClient(), []);
   const [unit, setUnit] = useState<{ id: string; title_ar: string; title_en: string } | null>(
     null,
   );
   const [questions, setQuestions] = useState<BossQuestion[]>([]);
+  const [contentLanguage, setContentLanguage] = useState<"ar" | "en">("ar");
   const [idx, setIdx] = useState(0);
   const [answer, setAnswer] = useState("");
   const [grade, setGrade] = useState<Grade | null>(null);
@@ -70,9 +73,28 @@ export function BossLive() {
         if (!user) {
           return;
         }
+        const enrollment = await supabase
+          .from("curriculum_enrollments")
+          .select("track_id")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (enrollment.error) throw enrollment.error;
+        if (!enrollment.data) return;
+        const track = await supabase
+          .from("curriculum_tracks")
+          .select("course_id,content_language")
+          .eq("id", enrollment.data.track_id)
+          .eq("publication_status", "published")
+          .maybeSingle();
+        if (track.error || !track.data?.course_id) throw track.error ?? Error("Track unavailable");
+        setContentLanguage(track.data.content_language as "ar" | "en");
         const { data: units, error: readError } = await supabase
           .from("units")
           .select("id,title_ar,title_en,metadata")
+          .eq("course_id", track.data.course_id)
           .eq("boss_enabled", true)
           .order("position");
         if (!active) return;
@@ -90,15 +112,23 @@ export function BossLive() {
         setUnit({ id: selected.id, title_ar: selected.title_ar,title_en:selected.title_en });
         const { data: q, error: questionError } = await supabase
           .from("questions")
-          .select("id,unit_id,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en")
+          .select("id,unit_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
           .eq("unit_id", selected.id)
-          .is("variant_of", null)
           .in("publication_status", ["published_demo", "published"])
           .order("position")
-          .limit(3);
+          .limit(20);
         if (!active) return;
         if (questionError) throw questionError;
-        setQuestions((q ?? []) as BossQuestion[]);
+        setQuestions(
+          ((q ?? []) as BossQuestion[])
+            .filter((question) => {
+              const metadata = question.metadata && typeof question.metadata === "object"
+                ? question.metadata as Record<string, unknown>
+                : {};
+              return question.variant_of === null || metadata.translation_track === true;
+            })
+            .slice(0, 3),
+        );
       } catch {
         if (active) setError(t("تعذّر تحميل بيانات هذه المساحة. حاول مرة أخرى.","Could not load this page. Please try again."));
       } finally {
@@ -140,7 +170,7 @@ export function BossLive() {
       if (!grade.correct) {
         const { data: variant, error: variantError } = await supabase
           .from("questions")
-          .select("id,unit_id,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en")
+          .select("id,unit_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
           .eq("variant_of", current.id)
           .in("publication_status", ["published_demo", "published"])
           .limit(1)
@@ -296,7 +326,7 @@ export function BossLive() {
             UNIT BOSS
           </div>
           <h1 style={{ margin: "6px 0 0" }}>
-            {(locale==="en"?unit?.title_en:unit?.title_ar) ?? t("تحدّي الوحدة","Unit challenge")}
+             {(contentLanguage==="en"?unit?.title_en:unit?.title_ar) ?? t("تحدّي الوحدة","Unit challenge")}
           </h1>
         </div>
         <span className="pill">{questions.length ? idx + 1 : 0}/3</span>
@@ -311,10 +341,10 @@ export function BossLive() {
           <p>{t("لا يوجد تحدّي منشور لهذه الوحدة بعد.","No challenge has been published for this unit yet.")}</p>
         ) : (
           <form onSubmit={submit}>
-            <h2 style={{ lineHeight: 1.6 }}>{(locale==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
+             <h2 style={{ lineHeight: 1.6 }} dir={contentLanguage === "ar" ? "rtl" : "ltr"}>{(contentLanguage==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
             {current.question_type === "multiple-choice" ? (
               <div style={{ display: "grid", gap: 10 }}>
-                {opts((locale==="en" ? current.choices_en : current.choices_ar)).map((x, i) => (
+                 {opts((contentLanguage==="en" ? current.choices_en : current.choices_ar)).map((x, i) => (
                   <button
                     key={x}
                     type="button"
@@ -366,7 +396,7 @@ export function BossLive() {
                 }}
               >
                 <b>{grade.correct ? t("صح","Correct") : t("حاول مرة أخرى","Try again")}</b>
-                <p>{(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
+                 <p>{(contentLanguage==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
               </div>
             )}
             {(error || status) && (

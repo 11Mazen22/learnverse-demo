@@ -11,7 +11,12 @@ import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { Icon } from "@/components/ui/icon";
 import { confirmAction } from "@/components/ui/confirm-dialog";
 import { CHAT_MODEL_CARDS } from "@/lib/ai/model-routing";
-import {resolveAppearance} from "@/lib/appearance/mode";
+import {
+  resolveAppearance,
+  isThemeModeAllowed,
+  getActiveModeConstraint,
+  type PaletteModeConstraint,
+} from "@/lib/appearance/mode";
 import {DesignStudio} from "@/components/preferences/design-studio";
 import { applyLocale, localized, useLocale } from "@/lib/i18n/locale";
 
@@ -40,35 +45,522 @@ const MODEL_SUBTITLE_EN: Record<string, string> = {
   "Fanar-Oryx-IVU-2": "Image understanding",
 };
 type Notice = { kind: "success" | "error"; message: string };
-function normalizeSettings(row: Record<string, unknown> | null): Settings {
+function normalizeSettings(
+  row: Record<string, unknown> | null,
+  activeFallbackLocale: "ar" | "en" = "ar"
+): Settings {
   const validModel =
     row?.default_ai_model === "auto" ||
     CHAT_MODEL_CARDS.some((m) => m.id === row?.default_ai_model);
+  const preferredLocale =
+    row?.locale === "en" || row?.locale === "ar" ? row.locale : activeFallbackLocale;
   return {
     theme:
       row?.theme === "dark" || row?.theme === "light" ? row.theme : "system",
-    locale: row?.locale === "en" ? "en" : "ar",
+    locale: preferredLocale,
     reduced_motion: row?.reduced_motion === true,
     default_ai_model: validModel ? String(row?.default_ai_model) : "auto",
     ai_memory_enabled: row?.ai_memory_enabled !== false,
   };
 }
-function applySettings(settings: Settings) {
+function applyThemeOnly(theme: "system" | "light" | "dark") {
+  try {
+    localStorage.setItem("noata-theme", theme);
+  } catch {
+    /* Account persistence still succeeded. */
+  }
+  const pal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
+  const constraint = getActiveModeConstraint();
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = resolveAppearance(
+      theme,
+      pal,
+      window.matchMedia("(prefers-color-scheme: dark)").matches,
+      constraint
+    );
+    syncBrowserThemeColor();
+  }
+}
+
+function applySettings(settings: Settings, shouldSyncLocale = false) {
   try {
     localStorage.setItem("noata-theme", settings.theme);
   } catch {
     /* Account persistence still succeeded. */
   }
-  applyLocale(settings.locale);
-  document.documentElement.dataset.theme = resolveAppearance(
-    settings.theme,document.documentElement.dataset.palette,
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-  );
-  document.documentElement.dataset.reducedMotion = settings.reduced_motion
-    ? "true"
-    : "false";
-  syncBrowserThemeColor();
+  if (shouldSyncLocale && typeof document !== "undefined" && settings.locale && settings.locale !== document.documentElement.lang) {
+    applyLocale(settings.locale);
+  }
+  const pal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
+  const constraint = getActiveModeConstraint();
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = resolveAppearance(
+      settings.theme,
+      pal,
+      window.matchMedia("(prefers-color-scheme: dark)").matches,
+      constraint
+    );
+    document.documentElement.dataset.reducedMotion = settings.reduced_motion
+      ? "true"
+      : "false";
+    syncBrowserThemeColor();
+  }
 }
+
+function GrandThemeGrid({
+  currentTheme,
+  activePalette,
+  activeConstraint,
+  systemDark,
+  onSelectTheme,
+  locale,
+  t,
+}: {
+  currentTheme: "system" | "light" | "dark";
+  activePalette: string;
+  activeConstraint: PaletteModeConstraint;
+  systemDark: boolean;
+  onSelectTheme: (mode: "system" | "light" | "dark") => void;
+  locale: "ar" | "en";
+  t: (ar: string, en: string) => string;
+}) {
+  const cards = [
+    {
+      value: "light" as const,
+      titleAr: "نهاري نقي",
+      titleEn: "Pristine Light",
+      descAr: "إضاءة واضحة وتبايُن فائق للخطوط مريح للمذاكرة في ضوء النهار.",
+      descEn: "Clear, crisp illumination with high contrast optimized for daylight study.",
+      icon: "sun",
+      previewClass: "is-light",
+    },
+    {
+      value: "dark" as const,
+      titleAr: "ليلي مركّز",
+      titleEn: "Deep Midnight",
+      descAr: "خلفيات داكنة عميقة تحمي العين من الإجهاد وتقلل التشتت.",
+      descEn: "Deep slate backgrounds eliminating glare for focused nighttime sessions.",
+      icon: "moon",
+      previewClass: "is-dark",
+    },
+    {
+      value: "system" as const,
+      titleAr: "تلقائي ذكي",
+      titleEn: "System Adaptive",
+      descAr: "يتكيف ديناميكيًا مع نظام تشغيل جهازك وتوقيت اليوم.",
+      descEn: "Dynamically synchronizes with your device operating system theme.",
+      icon: "screen",
+      previewClass: "is-system",
+    },
+  ];
+
+  return (
+    <div
+      className="aura-theme-grand-grid"
+      role="group"
+      aria-label={t("اختر وضع الإضاءة", "Choose illumination mode")}
+    >
+      {cards.map((o) => {
+        const isAllowed = isThemeModeAllowed(o.value, activePalette, activeConstraint);
+        const isSelected = currentTheme === o.value;
+        return (
+          <div
+            key={o.value}
+            className={`aura-theme-card ${isSelected ? "selected" : ""} ${!isAllowed ? "is-disabled" : ""}`}
+            role="button"
+            tabIndex={isAllowed ? 0 : -1}
+            aria-pressed={isSelected}
+            aria-disabled={!isAllowed}
+            onClick={() => {
+              if (isAllowed) onSelectTheme(o.value);
+            }}
+            onKeyDown={(e) => {
+              if (isAllowed && (e.key === "Enter" || e.key === " ")) {
+                onSelectTheme(o.value);
+              }
+            }}
+          >
+            <div className="aura-theme-card-head">
+              <span className="aura-theme-icon-wrap">
+                <Icon name={o.icon} size={20} />
+              </span>
+              {!isAllowed ? (
+                <span className="noata-theme-locked-pill">
+                  <Icon name="lock" size={11} />
+                  <span>
+                    {activePalette === "midnight" || activeConstraint === "dark-only"
+                      ? t("ليلي حصريًا", "Dark only")
+                      : t("نهاري حصريًا", "Light only")}
+                  </span>
+                </span>
+              ) : isSelected ? (
+                <span className="noata-theme-selected-pill">
+                  <span className="noata-check-dot">
+                    <Icon name="check" size={11} />
+                  </span>
+                  <span>{t("مفعّل الآن", "Active")}</span>
+                </span>
+              ) : null}
+            </div>
+
+            <div className={`aura-theme-mini-screen ${o.previewClass}`} aria-hidden="true">
+              <div className="noata-screen-topbar">
+                <div className="noata-screen-dots">
+                  <span className="dot dot-1" />
+                  <span className="dot dot-2" />
+                  <span className="dot dot-3" />
+                </div>
+                <span className="noata-screen-center-pill" />
+                <span className="noata-screen-badge-mode">
+                  {o.value === "light" ? "☀️" : o.value === "dark" ? "🌙" : "☀️/🌙"}
+                </span>
+              </div>
+
+              <div className="noata-screen-layout">
+                <div className="noata-screen-rail">
+                  <span className="mini-rail-item is-active" />
+                  <span className="mini-rail-item" />
+                  <span className="mini-rail-item" />
+                </div>
+
+                <div className="noata-screen-workspace">
+                  <div className="mini-workspace-header">
+                    <span className="mini-title-line" />
+                    <span className="mini-chip-pill" />
+                  </div>
+                  <div className="mini-workspace-card">
+                    <div className="mini-card-row">
+                      <span className="mini-card-text" />
+                      <span className="mini-card-tag" />
+                    </div>
+                    <div className="mini-card-progress">
+                      <div className="mini-card-bar" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="aura-theme-card-body">
+              <div className="aura-theme-card-title-row">
+                <strong>{locale === "en" ? o.titleEn : o.titleAr}</strong>
+                {o.value === "system" && (
+                  <span className="aura-system-os-badge">
+                    {systemDark
+                      ? t("نظامك ليلي 🌙", "OS: Dark 🌙")
+                      : t("نظامك نهاري ☀️", "OS: Light ☀️")}
+                  </span>
+                )}
+              </div>
+              <small>{locale === "en" ? o.descEn : o.descAr}</small>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+function LiveDesignSystemShowcase({
+  locale,
+  t,
+}: {
+  locale: "ar" | "en";
+  t: (ar: string, en: string) => string;
+}) {
+  const [clickedAction, setClickedAction] = useState<string | null>(null);
+  const [tokens, setTokens] = useState({
+    accent: "#0065b5",
+    surface: "#ffffff",
+    ink: "#0a0a0a",
+  });
+
+  useEffect(() => {
+    const updateTokens = () => {
+      if (typeof window === "undefined") return;
+      const cs = window.getComputedStyle(document.documentElement);
+      setTokens({
+        accent: cs.getPropertyValue("--accent").trim() || "#0065b5",
+        surface: cs.getPropertyValue("--surface").trim() || "#ffffff",
+        ink: cs.getPropertyValue("--ink").trim() || "#0a0a0a",
+      });
+    };
+    updateTokens();
+    window.addEventListener("noata-palette-change", updateTokens);
+    window.addEventListener("noata-custom-theme-change", updateTokens);
+    const observer = new MutationObserver(updateTokens);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "data-palette", "style"],
+    });
+    return () => {
+      window.removeEventListener("noata-palette-change", updateTokens);
+      window.removeEventListener("noata-custom-theme-change", updateTokens);
+      observer.disconnect();
+    };
+  }, []);
+
+  const triggerFeedback = (name: string) => {
+    setClickedAction(name);
+    setTimeout(() => {
+      setClickedAction((cur) => (cur === name ? null : cur));
+    }, 2400);
+  };
+
+  return (
+    <div
+      className="aura-design-system-preview"
+      role="region"
+      aria-label={t("معاينة نظام التصميم", "Design System Showcase")}
+    >
+      {/* Signature Showcase Header */}
+      <div className="aura-preview-header">
+        <div className="aura-preview-title-wrap">
+          <span className="aura-preview-icon-badge">
+            <Icon name="sliders" size={18} />
+          </span>
+          <div>
+            <h4>{t("معاينة حية وتفاعلية لمكونات Noäta Aura", "Interactive Live Component Showcase")}</h4>
+            <p className="aura-preview-desc">
+              {t(
+                "استجابة فورية للألوان، حالات التفاعل، وبطاقات المحتوى تتكيف بدقة لحظية مع أي مظهر وعالم ألوان تختاره.",
+                "Real-time preview of buttons, badges, curriculum cards, and contrast tokens adapting dynamically."
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="aura-preview-header-tags">
+          <span className="noata-ds-live-tag">
+            <span className="pulse-dot" aria-hidden="true" />
+            <span>{t("تحديث فوري", "Instant Live")}</span>
+          </span>
+          <span className="noata-ds-contrast-tag">
+            <Icon name="shield" size={12} />
+            <span>{t("معاينة تباين فقط", "Contrast preview only")}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* 4 Executive Pillars Grid */}
+      <div className="aura-preview-grid-pillars">
+        {/* Pillar 1: Interactive Buttons */}
+        <div className="aura-preview-pillar">
+          <div className="aura-preview-pillar-header">
+            <span className="aura-pillar-icon">
+              <Icon name="zap" size={14} />
+            </span>
+            <span className="aura-preview-group-label">
+              {t("الأزرار التفاعلية", "Interactive Actions")}
+            </span>
+          </div>
+
+          <div className="aura-preview-pillar-content">
+            <div className="aura-preview-buttons-stack">
+              <button
+                type="button"
+                className="noata-ds-btn noata-ds-btn-primary"
+                onClick={() => triggerFeedback(t("الزر الأساسي (Primary)", "Primary Action"))}
+              >
+                <Icon name="zap" size={15} />
+                <span>{t("زر أساسي تفاعلي", "Primary Action")}</span>
+              </button>
+
+              <button
+                type="button"
+                className="noata-ds-btn noata-ds-btn-secondary"
+                onClick={() => triggerFeedback(t("الزر الثانوي الناعم (Secondary)", "Secondary Action"))}
+              >
+                <Icon name="sparkles" size={15} />
+                <span>{t("زر ثانوي ناعم", "Secondary Action")}</span>
+              </button>
+
+              <button
+                type="button"
+                className="noata-ds-btn noata-ds-btn-outline"
+                onClick={() => triggerFeedback(t("الزر الإطاري (Outline)", "Outline Action"))}
+              >
+                <Icon name="ai" size={15} />
+                <span>{t("زر إطاري", "Ghost Action")}</span>
+              </button>
+            </div>
+            <small className="noata-ds-pillar-note">
+              {t("اضغط على أي زر لتجربة التفاعل والرسائل اللحظية.", "Click any action to test live tactile response.")}
+            </small>
+          </div>
+        </div>
+
+        {/* Pillar 2: Status & Mastery Badges */}
+        <div className="aura-preview-pillar">
+          <div className="aura-preview-pillar-header">
+            <span className="aura-pillar-icon">
+              <Icon name="award" size={14} />
+            </span>
+            <span className="aura-preview-group-label">
+              {t("شارات الإتقان والحالة", "Mastery & Status Badges")}
+            </span>
+          </div>
+
+          <div className="aura-preview-pillar-content">
+            <div className="aura-preview-badges-wrap">
+              <span
+                className="noata-ds-pill noata-ds-pill-success"
+                onClick={() => triggerFeedback(t("شارة الإتقان 100%", "100% Mastery"))}
+                role="button"
+                tabIndex={0}
+              >
+                <span className="noata-pill-check-icon">
+                  <Icon name="check" size={11} />
+                </span>
+                <span>{t("مكتمل ومتقن", "Mastered 100%")}</span>
+              </span>
+
+              <span
+                className="noata-ds-pill noata-ds-pill-ai"
+                onClick={() => triggerFeedback(t("شارة ذكاء Noäta", "Noäta AI"))}
+                role="button"
+                tabIndex={0}
+              >
+                <Icon name="sparkles" size={13} />
+                <span>{t("ذكاء Noäta", "Noäta AI")}</span>
+              </span>
+
+              <span
+                className="noata-ds-pill noata-ds-pill-streak"
+                onClick={() => triggerFeedback(t("شارة النشاط المستمر", "Daily Streak"))}
+                role="button"
+                tabIndex={0}
+              >
+                <Icon name="flame" size={13} />
+                <span>{t("نشاط مستمر 7 أيام", "7-Day Streak")}</span>
+              </span>
+
+              <span
+                className="noata-ds-pill noata-ds-pill-challenge"
+                onClick={() => triggerFeedback(t("شارة تحدّي الوحدة", "Boss Challenge"))}
+                role="button"
+                tabIndex={0}
+              >
+                <Icon name="shield" size={13} />
+                <span>{t("تحدّي الوحدة", "Unit Boss")}</span>
+              </span>
+            </div>
+            <small className="noata-ds-pillar-note">
+              {t("شارات مصممة بأيقونات SVG موجهة ومتباينة بالكامل.", "Badges oriented cleanly in Arabic RTL & English LTR.")}
+            </small>
+          </div>
+        </div>
+
+        {/* Pillar 3: Curriculum Specimen Card */}
+        <div className="aura-preview-pillar">
+          <div className="aura-preview-pillar-header">
+            <span className="aura-pillar-icon">
+              <Icon name="book" size={14} />
+            </span>
+            <span className="aura-preview-group-label">
+              {t("نموذج بطاقة الدرس المنهجي", "Curriculum Card Specimen")}
+            </span>
+          </div>
+
+          <div className="aura-preview-pillar-content">
+            <div className="noata-ds-specimen-card">
+              <div className="noata-ds-specimen-head">
+                <div className="noata-ds-specimen-titles">
+                  <strong>{t("العلوم المتكاملة · الوحدة الأولى", "Integrated Science · Unit 1")}</strong>
+                  <small>{t("مفاهيم التوازن البيئي والطاقة", "Ecosystem Balance & Energy")}</small>
+                </div>
+                <span className="noata-ds-specimen-track-pill">{t("مسار ثنائي عربي / EN", "AR / EN")}</span>
+              </div>
+
+              <div className="noata-ds-progress-track">
+                <div className="noata-ds-progress-bar" style={{ width: "92%" }} />
+              </div>
+
+              <div className="noata-ds-specimen-footer">
+                <div className="noata-ds-specimen-stat">
+                  <small>{t("نسبة الإتقان المحققة", "Current Mastery")}</small>
+                  <b>92%</b>
+                </div>
+                <button
+                  type="button"
+                  className="noata-ds-specimen-btn"
+                  onClick={() => triggerFeedback(t("متابعة الدرس المنهجي", "Continue Lesson"))}
+                >
+                  <span>{t("متابعة الدرس", "Continue")}</span>
+                  <Icon name="arrow" size={12} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pillar 4: Live Tokens & Contrast Inspector */}
+        <div className="aura-preview-pillar">
+          <div className="aura-preview-pillar-header">
+            <span className="aura-pillar-icon">
+              <Icon name="palette" size={14} />
+            </span>
+            <span className="aura-preview-group-label">
+              {t("محلل رموز الألوان والتباين", "Live Contrast & Tokens")}
+            </span>
+          </div>
+
+          <div className="aura-preview-pillar-content">
+            <div className="noata-ds-swatches-row">
+              <div className="noata-ds-swatch-item">
+                <span className="noata-ds-color-circle" style={{ backgroundColor: tokens.accent }} />
+                <div className="noata-ds-swatch-meta">
+                  <b>{t("اللون الأساسي", "Accent")}</b>
+                  <code dir="ltr">{tokens.accent}</code>
+                </div>
+              </div>
+
+              <div className="noata-ds-swatch-item">
+                <span className="noata-ds-color-circle" style={{ backgroundColor: tokens.surface }} />
+                <div className="noata-ds-swatch-meta">
+                  <b>{t("السطح والخلفية", "Surface")}</b>
+                  <code dir="ltr">{tokens.surface}</code>
+                </div>
+              </div>
+
+              <div className="noata-ds-swatch-item">
+                <span className="noata-ds-color-circle" style={{ backgroundColor: tokens.ink }} />
+                <div className="noata-ds-swatch-meta">
+                  <b>{t("النصوص الرئيسية", "Ink")}</b>
+                  <code dir="ltr">{tokens.ink}</code>
+                </div>
+              </div>
+            </div>
+
+            <div className="noata-ds-contrast-banner">
+              <span className="noata-ds-contrast-check">
+                <Icon name="check" size={12} />
+              </span>
+              <span>
+                {t(
+                  "معاينة بصرية للتباين. لا تمثل شهادة WCAG؛ يلزم قياس كل تركيبة لون وحالة تفاعل.",
+                  "Visual contrast preview only. This is not WCAG certification; every color and interaction state still requires measurement."
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {clickedAction && (
+        <div className="noata-ds-interactive-toast" role="status">
+          <Icon name="check" size={14} />
+          <span>
+            {t(
+              `تم اختبار التفاعل بنجاح مع «${clickedAction}» بالألوان والرموز النشطة!`,
+              `Successfully triggered “${clickedAction}” using active design tokens!`
+            )}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SettingsLive() {
   const locale = useLocale();
   const t = useCallback((ar: string, en: string) => localized(locale, ar, en), [locale]);
@@ -90,6 +582,47 @@ export function SettingsLive() {
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const [reload, setReload] = useState(0);
+  const [activePalette, setActivePalette] = useState("classic");
+  const [activeConstraint, setActiveConstraint] = useState<PaletteModeConstraint>("both");
+  const [systemDark, setSystemDark] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const m = window.matchMedia("(prefers-color-scheme: dark)");
+    setSystemDark(m.matches);
+    const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    m.addEventListener("change", handler);
+    return () => m.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    const sync = () => {
+      if (typeof document === "undefined") return;
+      const curPalette = document.documentElement.dataset.palette || "classic";
+      const curConstraint = getActiveModeConstraint();
+      setActivePalette(curPalette);
+      setActiveConstraint(curConstraint);
+
+      setSettings((prev) => {
+        if (!isThemeModeAllowed(prev.theme, curPalette, curConstraint)) {
+          const fallback: "light" | "dark" = curConstraint === "light-only" ? "light" : "dark";
+          const updated = { ...prev, theme: fallback };
+          applyThemeOnly(fallback);
+          return updated;
+        }
+        return prev;
+      });
+    };
+    sync();
+    window.addEventListener("noata-palette-change", sync);
+    window.addEventListener("noata-custom-theme-change", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("noata-palette-change", sync);
+      window.removeEventListener("noata-custom-theme-change", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
 
   useEffect(() => {
     if (account.loading) return;
@@ -97,7 +630,17 @@ export function SettingsLive() {
     setUserId("");
     setEmail("");
     setName("");
-    setSettings(DEFAULT);
+    let localTheme: "system" | "light" | "dark" = "system";
+    try {
+      const stored = localStorage.getItem("noata-theme");
+      if (stored === "light" || stored === "dark" || stored === "system") localTheme = stored;
+    } catch {}
+    const curPal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
+    const curCons = getActiveModeConstraint();
+    if (!isThemeModeAllowed(localTheme, curPal, curCons)) {
+      localTheme = curCons === "light-only" ? "light" : "dark";
+    }
+    setSettings({ ...DEFAULT, theme: localTheme, locale: locale === "en" ? "en" : "ar" });
     setInitial("");
     setPassword("");
     setNotice(null);
@@ -135,6 +678,7 @@ export function SettingsLive() {
         if (!active) return;
         const next = normalizeSettings(
           preferences.data as Record<string, unknown> | null,
+          locale === "en" ? "en" : "ar"
         );
         const displayName = profile.data?.display_name ?? "";
         setName(displayName);
@@ -202,7 +746,7 @@ export function SettingsLive() {
           throw Error(
              t("اتحفظ الاسم، لكن تفضيلات الجهاز والذكاء الاصطناعي لم تُحفظ. حاول مرة أخرى.","Your name was saved, but your device and AI preferences were not. Please try again."),
           );
-        applySettings(settings);
+        applySettings(settings, true);
         setName(cleanName);
         setInitial(JSON.stringify({ name: cleanName, settings }));
         setNotice({
@@ -315,12 +859,58 @@ export function SettingsLive() {
           route="/settings"
            steps={[t("اختر المظهر المريح", "Choose a comfortable appearance"), t("خصّص تفضيلات المساعد", "Set your AI preferences"), t("احمِ حسابك", "Protect your account")]}
         />
-        <section className="aura-device-appearance">
-          <div>
-             <h2>{t("مظهر هذا الجهاز", "Appearance on this device")}</h2>
-             <p>{t("جرّب الوضع النهاري، الليلي أو تلقائيًا حسب جهازك.", "Choose light, dark, or your device's default appearance.")}</p>
+        <section id="aura-appearance" className="aura-settings-section">
+          <div className="aura-settings-section-top">
+            <Icon name="sun" size={24} />
+            <div>
+              <h2>{t("استوديو المظهر ونظام التصميم", "Appearance Studio & Design System")}</h2>
+              <p>
+                {t(
+                  "تحكم كامل في إضاءة المنصة، عوالم الألوان، وتفضيلات المظهر على هذا الجهاز.",
+                  "Full control over illumination, color worlds, and visual preferences on this device."
+                )}
+              </p>
+            </div>
           </div>
-          <ThemeControl />
+
+          <GrandThemeGrid
+            currentTheme={settings.theme}
+            activePalette={activePalette}
+            activeConstraint={activeConstraint}
+            systemDark={systemDark}
+            onSelectTheme={(mode) => {
+              setSettings((s) => ({ ...s, theme: mode }));
+              applyThemeOnly(mode);
+            }}
+            locale={locale}
+            t={t}
+          />
+
+          <PaletteGallery />
+
+          <p className="noata-appearance-footnote">
+            {activePalette === "midnight"
+              ? t(
+                  "طابع «منتصف الليل» يفرض الوضع الليلي حصريًا لحماية عمق الدرجات الليلية والتباين المريح.",
+                  "The Midnight palette strictly enforces Dark Mode to protect night-time contrast and depth."
+                )
+              : activeConstraint === "dark-only"
+              ? t(
+                  "تصميم Noäta AI المخصص يفرض الوضع الليلي حصريًا بناءً على ألوانه وتناغم التباين المعتمد.",
+                  "The active Noäta AI design strictly enforces Dark Mode based on its calibrated contrast."
+                )
+              : activeConstraint === "light-only"
+              ? t(
+                  "تصميم Noäta AI المخصص يفرض الوضع النهاري حصريًا.",
+                  "The active Noäta AI design strictly enforces Light Mode."
+                )
+              : t(
+                  "الأوضاع النهارية والليلية تعمل بتناغم تام مع كافة عوالم الألوان؛ طابع «منتصف الليل» داكن بطبيعته.",
+                  "Light and dark modes operate alongside color worlds. The Midnight palette remains deep dark."
+                )}
+          </p>
+
+          <LiveDesignSystemShowcase locale={locale} t={t} />
         </section>
         <DesignStudio />
       </>
@@ -331,7 +921,7 @@ export function SettingsLive() {
       {status && <p role="alert">{status}</p>}
       <header className="aura-settings-heading">
         <div>
-           <span className="eyebrow">{t("إعدادات الحساب · Noata Aura", "Account settings · Noata Aura")}</span>
+           <span className="eyebrow">{t("إعدادات الحساب · Noäta Aura", "Account settings · Noäta Aura")}</span>
            <h1>{t("مساحتك، بطريقتك.", "Your space, your way.")}</h1>
           <p>
              {t("تحكم في شكل التطبيق، تفضيلات الذكاء الاصطناعي وحماية حسابك من مكان واحد.","Manage appearance, AI preferences, and account security in one place.")}
@@ -344,7 +934,7 @@ export function SettingsLive() {
        <nav className="aura-settings-nav" aria-label={t("أقسام الإعدادات","Settings sections")}>
          <a href="#aura-profile">{t("الملف الشخصي","Profile")}</a>
          <a href="#aura-appearance">{t("المظهر","Appearance")}</a>
-        <a href="#aura-ai">Noata AI</a>
+        <a href="#aura-ai">Noäta AI</a>
          <a href="#aura-security">{t("الأمان","Security")}</a>
          <a href="#aura-account">{t("الحساب والجلسة","Account and session")}</a>
       </nav>
@@ -363,7 +953,7 @@ export function SettingsLive() {
               maxLength={80}
               value={name}
               onChange={(e) => setName(e.target.value)}
-               placeholder={t("اسمك داخل Noata","Your name in Noata")}
+               placeholder={t("اسمك داخل Noäta","Your name in Noata")}
             />
           </label>
           <label className="aura-settings-label">
@@ -385,48 +975,75 @@ export function SettingsLive() {
         </section>
         <section id="aura-appearance" className="aura-settings-section">
           <div className="aura-settings-section-top">
-            <Icon name="sun" size={21} />
+            <Icon name="sun" size={24} />
             <div>
-               <h2>{t("المظهر والحركة","Appearance and motion")}</h2>
-               <p>{t("اقرأ براحة وخلّي التنقل مناسبًا لك","Read comfortably and move through Noata your way")}</p>
+              <h2>{t("استوديو المظهر ونظام التصميم", "Appearance Studio & Design System")}</h2>
+              <p>
+                {t(
+                  "تحكم كامل في إضاءة المنصة، عوالم الألوان، تفضيلات الحركة، ومعاينة حية لمكونات النظام البصري.",
+                  "Full control over platform illumination, color worlds, motion preferences, and a live design system preview."
+                )}
+              </p>
             </div>
           </div>
-          <div
-            className="aura-settings-theme-options"
-            role="group"
-             aria-label={t("اختر المظهر","Choose appearance")}
-          >
-            {(
-              [
-                 { value: "system", label: t("تلقائي","System"), icon: "screen" },
-                 { value: "light", label: t("فاتح","Light"), icon: "sun" },
-                 { value: "dark", label: t("داكن","Dark"), icon: "moon" },
-              ] as const
-            ).map((o) => (
-              <button
-                type="button"
-                key={o.value}
-                aria-pressed={settings.theme === o.value}
-                onClick={() => setSettings((s) => ({ ...s, theme: o.value }))}
-              >
-                <Icon name={o.icon} size={20} />
-                {o.label}
-              </button>
-            ))}
-          </div>
+
+          <GrandThemeGrid
+            currentTheme={settings.theme}
+            activePalette={activePalette}
+            activeConstraint={activeConstraint}
+            systemDark={systemDark}
+            onSelectTheme={(mode) => {
+              setSettings((s) => ({ ...s, theme: mode }));
+              applyThemeOnly(mode);
+            }}
+            locale={locale}
+            t={t}
+          />
+
           <PaletteGallery />
-           <p className="noata-appearance-footnote">{t("الوضعان فاتح وداكن منفصلان عن عالم الألوان؛ تصميم «منتصف الليل» داكن دائمًا للحفاظ على طابعه.","Light and dark modes are separate from color palettes. The Midnight palette always remains dark.")}</p>
+
+          <p className="noata-appearance-footnote">
+            {activePalette === "midnight"
+              ? t(
+                  "طابع «منتصف الليل» يفرض الوضع الليلي حصريًا لحماية عمق الدرجات الليلية والتباين المريح.",
+                  "The Midnight palette strictly enforces Dark Mode to protect night-time contrast and depth."
+                )
+              : activeConstraint === "dark-only"
+              ? t(
+                  "تصميم Noäta AI المخصص يفرض الوضع الليلي حصريًا بناءً على ألوانه وتناغم التباين المعتمد.",
+                  "The active Noäta AI design strictly enforces Dark Mode based on its calibrated contrast."
+                )
+              : activeConstraint === "light-only"
+              ? t(
+                  "تصميم Noäta AI المخصص يفرض الوضع النهاري حصريًا.",
+                  "The active Noäta AI design strictly enforces Light Mode."
+                )
+              : t(
+                  "الأوضاع النهارية والليلية تعمل بتناغم تام مع كافة عوالم الألوان؛ طابع «منتصف الليل» داكن بطبيعته.",
+                  "Light and dark modes operate alongside color worlds. The Midnight palette remains deep dark."
+                )}
+          </p>
+
+          <LiveDesignSystemShowcase locale={locale} t={t} />
+
           <label className="aura-settings-switch">
             <span>
-               <strong>{t("تقليل الحركة","Reduce motion")}</strong>
-               <small>{t("قلّل التحولات البصرية والرسوم المتحركة.","Limit transitions and animations.")}</small>
+              <strong>{t("تقليل الحركة والانتقالات", "Reduce Motion & Transitions")}</strong>
+              <small>
+                {t(
+                  "إيقاف التأثيرات الحركية والتحولات السريعة لتجربة قراءة هادئة.",
+                  "Limit animated transitions for a calmer reading experience."
+                )}
+              </small>
             </span>
             <input
               type="checkbox"
               checked={settings.reduced_motion}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, reduced_motion: e.target.checked }))
-              }
+              onChange={(e) => {
+                const next = { ...settings, reduced_motion: e.target.checked };
+                setSettings(next);
+                applySettings(next, false);
+              }}
             />
           </label>
         </section>
@@ -434,7 +1051,7 @@ export function SettingsLive() {
           <div className="aura-settings-section-top">
             <Icon name="ai" size={21} />
             <div>
-              <h2>Noata AI</h2>
+              <h2>Noäta AI</h2>
                <p>{t("اختر تفضيلات الدردشة والنماذج المهيأة","Choose chat and model preferences")}</p>
             </div>
           </div>
@@ -560,7 +1177,7 @@ export function SettingsLive() {
         </div>
         <div className="aura-settings-account-overview">
           <div>
-             <strong>{name.trim() || t("حساب Noata","Noata account")}</strong>
+             <strong>{name.trim() || t("حساب Noäta","Noata account")}</strong>
             <span dir="ltr">{email}</span>
           </div>
           <button type="button" className="aura-settings-signout"

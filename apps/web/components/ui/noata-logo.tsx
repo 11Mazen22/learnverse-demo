@@ -53,7 +53,7 @@ export function NoataBrand({
         <NoataLogo size={size} />
       </span>
       <span className="noata-brand-copy">
-        <strong lang="en" dir="ltr">Noata</strong>
+        <strong lang="en" dir="ltr">Noäta</strong>
         {caption && <small>{caption}</small>}
       </span>
     </span>

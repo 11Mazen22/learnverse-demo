@@ -55,7 +55,7 @@ function CheckEmailContent() {
     <AuthJourney eyebrow={t("تحقّق من بريدك","Check your email")} title={recovery ? t("افتح رسالة الاستعادة","Open the recovery email") : t("باقي خطوة لتأكيد حسابك","One more step to confirm your account")} icon="check"
       description={recovery
         ? t("أرسلنا طلب استعادة كلمة المرور. افتح الرسالة الجديدة من بريدك وانتقل إلى صفحة تعيين كلمة المرور.","A password recovery request has been sent. Open the latest email and follow the link to set your password.")
-        : t("افتح رسالة تأكيد البريد واتبع الرابط للعودة إلى Noata وتفعيل حسابك.","Open the confirmation email and follow the link to activate your Noata account.")}>
+        : t("افتح رسالة تأكيد البريد واتبع الرابط للعودة إلى Noäta وتفعيل حسابك.","Open the confirmation email and follow the link to activate your Noäta account.")}>
       <div className="auth-journey-mail-icon" aria-hidden="true"><span>✉</span></div>
       <div className="auth-journey-guidance">
         <strong>{t("نصيحة قبل ما تعيد الإرسال","Before sending another email")}</strong>

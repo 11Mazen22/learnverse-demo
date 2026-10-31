@@ -29,7 +29,7 @@ export function NoataImageStudio({url,name,sourceId,owner,onSaved,onUse}:{url:st
   let active=true;
   const timer=setTimeout(()=>{void(async()=>{
    try{
-    const font=edit.font==="editorial"?"Noata Image Lora":edit.font==="mono"?"Noata Image Mono":"Noata Image Cairo";
+    const font=edit.font==="editorial"?"Noäta Image Lora":edit.font==="mono"?"Noäta Image Mono":"Noäta Image Cairo";
     if(edit.caption)await document.fonts.load('600 32px "'+font+'"');
     if(active&&canvas.current)renderEditedImage(canvas.current,bitmap,edit,1024);
    }catch{if(active)setError(t("تعذّر تحديث المعاينة.","Could not update the preview."));}
@@ -43,7 +43,7 @@ export function NoataImageStudio({url,name,sourceId,owner,onSaved,onUse}:{url:st
   let path="",uploaded=false,recorded=false;
   const id=crypto.randomUUID();
   try{
-   if(edit.caption){const font=edit.font==="editorial"?"Noata Image Lora":edit.font==="mono"?"Noata Image Mono":"Noata Image Cairo";await document.fonts.load('600 32px "'+font+'"',edit.caption);await document.fonts.load('600 32px "Noata Image Cairo"',edit.caption);}
+   if(edit.caption){const font=edit.font==="editorial"?"Noäta Image Lora":edit.font==="mono"?"Noäta Image Mono":"Noäta Image Cairo";await document.fonts.load('600 32px "'+font+'"',edit.caption);await document.fonts.load('600 32px "Noäta Image Cairo"',edit.caption);}
    const output=document.createElement("canvas");
    renderEditedImage(output,bitmap,edit);
    const blob=await imageCanvasBlob(output);

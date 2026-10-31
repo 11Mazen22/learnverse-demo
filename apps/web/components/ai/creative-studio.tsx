@@ -99,7 +99,7 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
  const operation=useRef("");operation.current=owner+":"+(file?.id??localSource?.documentId??localSource?.localId??"");
  const onPages=useCallback((n:number)=>setPageCount(old=>old===n?old:n),[]);
  const activeFormat=file?.format??(localSource?.format==="text"?"docx":localSource?.format);
- const activeName=file?.filename??localSource?.name??"Noata document";
+ const activeName=file?.filename??localSource?.name??"Noäta document";
  const pageOrderValid=activeFormat==="pdf"&&isPdfPageOrderValid(pageOrder,pageCount);
  useEffect(()=>{
   let live=true;setLoaded(null);setInspection(null);setDraft("");setError("");setLoadError("");setStatus("");setBusy(false);setPage(1);setPageCount(1);setPageOrder("");setRotatePage(1);setRotation(0);setPdfNotes([]);setNoteText("");setNotePage(1);setNotePosition("top-right");setMode(initialMode);setPartialRevisionAcknowledged(false);setOriginalText("");setInstruction("");setSectionStart("whole");setDesign(null);
@@ -406,12 +406,12 @@ export function NoataCreativeStudio({file,localSource,owner,onClose,onAskAI,onPr
     </div>}
     {sections.length>0&&<label className="noata-creative-instruction">{t("نطاق التعديل بالذكاء الاصطناعي","AI revision scope")}<select value={sectionStart} onChange={e=>setSectionStart(e.target.value)}><option value="whole">{t("المستند كاملًا","Entire document")}</option>{sections.map(s=><option key={s.start} value={s.start} disabled={s.end-s.start>14000}>{s.label}{s.end-s.start>14000?" · "+t("اختر قسمًا فرعيًا","Choose a subsection"):""}</option>)}</select></label>}
     {sectionStart!=="whole"&&<p>{t("سنعدّل القسم المحدد ونجمعه مع بقية المصدر في نسخة كاملة جديدة.","The selected section will be revised and reassembled with the surrounding source into a complete new version.")}</p>}
-    {<label className="noata-creative-instruction">{t("اطلب تحسينًا من Noata AI","Ask Noata AI to improve this file")}
+    {<label className="noata-creative-instruction">{t("اطلب تحسينًا من Noäta AI","Ask Noäta AI to improve this file")}
      <textarea rows={2} dir="auto" placeholder={t("مثلاً: حسّن التنسيق، أضف أمثلة، وصحح الأخطاء","For example: Improve the structure, add examples, and fix errors")} value={instruction} onChange={e=>setInstruction(e.target.value)} maxLength={1200}/>
     </label>}
     <label className="noata-creative-instruction">{t("صيغة النسخة الجديدة","New version format")}<select value={outputFormat} onChange={e=>setOutputFormat(e.target.value as Format)}>{(["pdf","docx","xlsx","pptx"] as const).map(kind=><option key={kind} value={kind}>{kind.toUpperCase()}</option>)}</select></label>
     {outputFormat!=="xlsx"&&<label className="noata-creative-instruction">{t("مظهر المستند","Document style")}<select value={style} onChange={e=>setStyle(e.target.value as DocumentStyle)}><option value="classic">{t("كلاسيكي","Classic")}</option><option value="editorial">{t("تحريري دافئ","Warm editorial")}</option><option value="forest">{t("غابة هادئة","Calm forest")}</option></select></label>}
-    {outputFormat==="pdf"&&<label className="noata-creative-instruction">{t("خط PDF المضمّن","Embedded PDF font")}<select value={font} onChange={e=>setFont(e.target.value as "noata"|"editorial"|"mono")}><option value="noata">Noata · Cairo</option><option value="editorial">Lora · Serif</option><option value="mono">Roboto Mono</option></select></label>}
+    {outputFormat==="pdf"&&<label className="noata-creative-instruction">{t("خط PDF المضمّن","Embedded PDF font")}<select value={font} onChange={e=>setFont(e.target.value as "noata"|"editorial"|"mono")}><option value="noata">Noäta · Cairo</option><option value="editorial">Lora · Serif</option><option value="mono">Roboto Mono</option></select></label>}
     <div className="noata-creative-buttons">
      <button type="button" className="noata-download-original" disabled={busy||!loaded} onClick={()=>void downloadOriginal()}>
       <Icon name="download" size={15}/>{t("تنزيل الملف الأصلي","Download original")}

@@ -37,7 +37,7 @@ export function AttachmentMessage({metadata}:{metadata?:Record<string,unknown>})
             <img src={signed} alt={t("الصورة المرفقة: ","Attached image: ")+name} loading="lazy"/>
           ) : text!==null ? (
             <>
-              <p className="aura-document-disclosure">{t("النص أدناه مستخلص من المستند وأُرسل بالفعل إلى نموذج Noata AI.","The text below was extracted from the document and sent to Noata AI.")}{truncated ? t(" الملف طويل؛ جرى استخدام أول 9000 حرف فقط."," This file is long. Only the first 9,000 characters were used.") : ""}{t("لا يتم الاحتفاظ بنسخة من الملف الأصلي في التخزين في هذا الوضع.","The original file is not retained in storage in this mode.")}</p>
+              <p className="aura-document-disclosure">{t("النص أدناه مستخلص من المستند وأُرسل بالفعل إلى نموذج Noäta AI.","The text below was extracted from the document and sent to Noäta AI.")}{truncated ? t(" الملف طويل؛ جرى استخدام أول 9000 حرف فقط."," This file is long. Only the first 9,000 characters were used.") : ""}{t("لا يتم الاحتفاظ بنسخة من الملف الأصلي في التخزين في هذا الوضع.","The original file is not retained in storage in this mode.")}</p>
               <pre dir="auto">{text}</pre>
             </>
           ) : <p>{t("المعاينة غير متاحة. أعد فتح المحادثة للحصول على رابط جديد.","Preview unavailable. Reopen the conversation for a new link.")}</p>}

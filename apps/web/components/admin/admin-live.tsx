@@ -4,12 +4,14 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { confirmAction } from "@/components/ui/confirm-dialog";
 import { OperationsLive } from "./operations-live";
+import { SupportManagerAdmin } from "@/components/admin/support-manager-admin";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { boundedRead } from "@/lib/supabase/use-verified-account";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/database.types";
 import { CurriculumManager } from "@/components/admin/curriculum-manager";
+import { CurriculumCatalogAdmin } from "@/components/admin/curriculum-catalog-admin";
 import { filterStaffSearch, paginateStaffItems } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
 
@@ -44,7 +46,7 @@ export function AdminLive() {
  const t=useTranslation(),locale=useLocale();
   const supabase = useMemo(() => createClient(), []);
   const [tab, setTab] = useState<
-    "content" | "curriculum" | "users" | "classes" | "operations"
+    "content" | "curriculum" | "support" | "users" | "classes" | "operations"
   >("content");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -434,7 +436,7 @@ export function AdminLive() {
     return (
       <section className="noata-staff-studio noata-admin-studio aura-loading-state" role="status">
         <span />
-        <h2>{t("بنجهّز مساحة إدارة Noata…","Loading Noata administration…")}</h2>
+        <h2>{t("بنجهّز مساحة إدارة Noäta…","Loading Noäta administration…")}</h2>
       </section>
     );
   return (
@@ -442,7 +444,7 @@ export function AdminLive() {
       <header className="topbar" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("إدارة المحتوى والمجتمع","Manage content and community")}</div>
-          <h1 style={{ margin: "6px 0 0" }}>{t("مركز إدارة Noata","Noata administration")}</h1>
+          <h1 style={{ margin: "6px 0 0" }}>{t("مركز إدارة Noäta","Noäta administration")}</h1>
         </div>
         <span className="pill">{t("إدارة المحتوى والمجتمع","Manage content and community")}</span>
       </header>
@@ -472,7 +474,7 @@ export function AdminLive() {
 
       <div className="noata-admin-tabs" style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
         {(
-          ["content", "curriculum", "users", "classes", "operations"] as const
+          ["content", "curriculum", "support", "users", "classes", "operations"] as const
         ).map((x) => (
           <button
             key={x}
@@ -492,6 +494,7 @@ export function AdminLive() {
                 curriculum: t("المناهج","Curriculum"),
                 users: t("الحسابات","Accounts"),
                 classes: t("الصفوف","Classes"),
+                support: t("تذاكر الدعم","Support tickets"),
                 operations: t("تشغيل المنصة","Platform operations"),
               }[x]
             }
@@ -793,7 +796,13 @@ export function AdminLive() {
         </>
       )}
 
-      {tab === "curriculum" && <CurriculumManager />}
+      {tab === "curriculum" && (
+        <>
+          <CurriculumCatalogAdmin />
+          <CurriculumManager />
+        </>
+      )}
+      {tab === "support" && <SupportManagerAdmin />}
       {tab === "operations" && <OperationsLive />}
 
       {tab === "users" && (

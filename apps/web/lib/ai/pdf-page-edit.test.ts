@@ -7,6 +7,16 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {revisePdfPages,pdfPageOrder} from "./pdf-page-edit.ts";
 import {extractPdfDocument} from "./pdf-ingest.ts";
+
+function hasPdftoppm(): boolean {
+  try {
+    execFileSync("pdftoppm", ["-v"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function fixture(){
  const doc=await PDFDocument.create();doc.setTitle("Original metadata");doc.setAuthor("Fixture author");
  const font=await doc.embedFont(StandardFonts.Helvetica);
@@ -42,7 +52,11 @@ function ensurePdfJsNodeShim(){
   }
  });
 }
-test("image-only scanned PDFs are detected as scanned and remain intact through reorder/rotation",async()=>{
+test("image-only scanned PDFs are detected as scanned and remain intact through reorder/rotation",async(t)=>{
+ if (!hasPdftoppm()) {
+  t.skip("pdftoppm not installed on system");
+  return;
+ }
  const directory=await mkdtemp(join(tmpdir(),"noata-scanned-pdf-"));
  try{
   ensurePdfJsNodeShim();
@@ -76,7 +90,7 @@ test("image-only scanned PDFs are detected as scanned and remain intact through 
   );
  }finally{await rm(directory,{recursive:true,force:true});}
 });
-test("PDF reordering/rotation retains original content streams, page resources, sizes and metadata",async()=>{
+test("PDF page reorder, rotation, metadata and custom dictionary preservation",async()=>{
  const bytes=await fixture(),original=bytes.slice(),before=await PDFDocument.load(bytes,{updateMetadata:false});
  const output=await revisePdfPages(bytes,{order:[3,1,2],rotatePage:2,rotation:90});
  const after=await PDFDocument.load(output,{updateMetadata:false});
@@ -88,7 +102,11 @@ test("PDF reordering/rotation retains original content streams, page resources, 
   assert.equal(b.getRotation().angle,source===2?90:0);
  }
 });
-test("untouched PDF pages retain identical Poppler raster pixels after a real rewrite",async()=>{
+test("untouched PDF pages retain identical Poppler raster pixels after a real rewrite",async(t)=>{
+ if (!hasPdftoppm()) {
+  t.skip("pdftoppm not installed on system");
+  return;
+ }
  const directory=await mkdtemp(join(tmpdir(),"noata-pdf-pages-"));
  try{
   const bytes=await fixture(),output=await revisePdfPages(bytes,{order:[3,1,2],rotatePage:2,rotation:90});

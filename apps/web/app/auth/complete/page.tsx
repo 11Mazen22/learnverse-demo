@@ -34,7 +34,7 @@ function Content() {
       description={status === "loading" ? t("نتحقق من الجلسة قبل استكمال رحلتك.","Checking your session before you continue.") : status === "error"
         ? t("لم نتمكن من تأكيد إتمام العملية من هذه الصفحة. افتح رابط التأكيد الجديد أو سجّل الدخول.","We could not confirm completion from this page. Open a new confirmation link or sign in.")
         : isReset ? t("كلمة المرور الجديدة اتسجلت بنجاح. تقدر تكمل رحلتك التعليمية بأمان.","Your new password was saved. You can safely continue your learning journey.")
-        : t("أهلًا بك في Noata! حسابك اتفعل وبقيت جاهز تبدأ التعلّم.","Welcome to Noata! Your account is active and ready for learning.")}>
+        : t("أهلًا بك في Noäta! حسابك اتفعل وبقيت جاهز تبدأ التعلّم.","Welcome to Noäta! Your account is active and ready for learning.")}>
       {status === "loading" ? <span className="auth-spinner" aria-label={t("جارٍ التحقق","Verifying…")} /> : (
         <>
           {status === "ready" && <div className="auth-journey-success" aria-hidden="true">✓</div>}

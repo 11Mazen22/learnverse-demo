@@ -173,7 +173,7 @@ export function NoataProjectLibrary({owner,open,onPrepareEdit,onUseUpload}:{owne
   }catch{if(current.current===owner)setError(t("تعذّر نقل الملف للمشروع.","Could not move the file to that project."));}
   finally{if(current.current===owner)setBusy(false);}
  }
- return <section className="noata-library" aria-label={t("مشروعات ومكتبة Noata","Noata projects and library")}>
+ return <section className="noata-library" aria-label={t("مشروعات ومكتبة Noäta","Noäta projects and library")}>
   <h3>{t("المشروعات والملفات","Projects and files")}</h3>
   <p>{t("الملفات المرفوعة والأصول والنسخ الجديدة في مكتبتك الخاصة. المحادثات المؤقتة لا تُحفظ هنا.","Uploads, original documents and generated versions in your private library. Temporary chats are excluded.")}</p>
   {!owner?<p role="status">{t("سجّل الدخول للوصول إلى الملفات.","Sign in to access files.")}</p>:!ownerReady?<p role="status">{t("جارٍ التحميل…","Loading…")}</p>:<>

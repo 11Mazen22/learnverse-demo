@@ -7,36 +7,48 @@ import { UserMenu } from "@/components/auth/user-menu";
 import { ThemeControl } from "@/components/preferences/theme-control";
 import { LocaleControl } from "@/components/preferences/locale-control";
 import { NotificationBell } from "@/components/notifications/notification-bell";
-import { StaffNav } from "@/components/auth/staff-nav";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
 import { ContextualCoach } from "@/components/ai/contextual-coach";
+import { TourTrigger } from "@/components/tour/tour-trigger";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, hasSeenFeature, markFeatureSeen } from "@/lib/feature-seen";
 import { localized, useLocale } from "@/lib/i18n/locale";
 import { matchesStaffSearch } from "@/lib/dashboard/staff-search";
+import { Sidebar } from "@/components/sidebar/sidebar";
 
 type Route = [ar: string, en: string, href: string, icon: string, arDescription: string, enDescription: string];
+
 const navGroups: { titleAr: string; titleEn: string; routes: Route[] }[] = [
   {
-    titleAr: "التعلّم", titleEn: "Learning",
+    titleAr: "التعلّم والمناهج",
+    titleEn: "Learning & Curriculum",
     routes: [
       ["الرئيسية", "Home", "/", "home", "مساحتك اليومية", "Your daily space"],
       ["رحلة التعلّم", "Learning journey", "/learn", "book", "المواد والدروس", "Subjects and lessons"],
+      ["العلوم المتكاملة", "Integrated Science", "/learn?subject=integrated-science", "microscope", "مسار عربي وإنجليزي", "Arabic & English tracks"],
+      ["الرياضيات", "Mathematics", "/learn?subject=mathematics", "compass", "مسار عربي وإنجليزي", "Arabic & English tracks"],
+      ["تاريخ", "History", "/learn?subject=history", "landmark", "مصر الحضارة والعالم القديم", "Civilisation & Ancient world"],
+      ["اللغة العربية", "Arabic Language", "/learn?subject=arabic-language", "feather", "نصوص ونحو وقصة عنترة", "Literature, grammar & story"],
+      ["اللغة الإنجليزية", "English Language", "/learn?subject=english", "globe", "وحدات مرتبطة بالمصدر", "Source-mapped units"],
+      ["الفلسفة والمنطق", "Philosophy & Logic", "/learn?subject=philosophy-logic", "lightbulb", "التفكير والموقف الفلسفي", "Thinking & philosophical stance"],
       ["المهام", "Missions", "/missions", "target", "تحديات قصيرة", "Short challenges"],
       ["المراجعة", "Review", "/review", "review", "ثبّت ما تعلّمته", "Strengthen what you learned"],
+      ["مركز المذاكرة", "Study center", "/study", "clipboard", "مهام شخصية وبطاقات محفوظة", "Personal tasks and saved flashcards"],
       ["تحدّي الوحدة", "Unit challenge", "/boss", "boss", "اختبر إتقانك", "Check your mastery"],
     ],
   },
   {
-    titleAr: "أدوات ذكية", titleEn: "Smart tools",
+    titleAr: "أدوات ذكية",
+    titleEn: "Smart tools",
     routes: [
-      ["Noata AI", "Noata AI", "/ai", "ai", "مساعدك الذكي للمذاكرة", "Your study companion"],
+      ["Noäta AI", "Noäta AI", "/ai", "ai", "مساعدك الذكي للمذاكرة", "Your study companion"],
       ["المصحف", "Quran", "/quran", "book", "آيات موثّقة وتلاوة", "Verified verses and recitation"],
     ],
   },
   {
-    titleAr: "إنجازاتي", titleEn: "My achievements",
+    titleAr: "تقدّمي ومكافآتي",
+    titleEn: "Progress & Rewards",
     routes: [
       ["تقدّمي", "My progress", "/progress", "chart", "كل خطوة تُحتسب", "Every step counts"],
       ["المكافآت", "Rewards", "/rewards", "gift", "احتفل بتقدّمك", "Celebrate your progress"],
@@ -44,11 +56,16 @@ const navGroups: { titleAr: string; titleEn: string; routes: Route[] }[] = [
     ],
   },
 ];
+
 const utilityRoutes: Route[] = [
-  ["الإعدادات", "Settings", "/settings", "settings", "تجربتك بطريقتك", "Make Noata yours"],
+  ["الإعدادات", "Settings", "/settings", "settings", "تجربتك بطريقتك", "Make Noäta yours"],
   ["المساعدة", "Help", "/help", "help", "إجابات وإرشادات", "Answers and guidance"],
+  ["مساحة المعلّم", "Teacher workspace", "/teacher", "user", "إدارة الفصول والواجبات", "Manage classes & assignments"],
+  ["إدارة Noäta", "Manage Noäta", "/admin", "shield", "لوحة الإدارة والعمليات", "Admin operations dashboard"],
 ];
+
 const routes: Route[] = [...navGroups.flatMap((g) => g.routes), ...utilityRoutes];
+
 export function AppShell({
   children,
   active,
@@ -60,20 +77,33 @@ export function AppShell({
 }) {
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [activeResult, setActiveResult] = useState(0);
   const resultRefs = useRef<Array<HTMLAnchorElement | null>>([]);
   const router = useRouter();
   const locale = useLocale();
   const t = (ar: string, en: string) => localized(locale, ar, en);
-  const pageLabel = routes.find((route) => route[2] === active)?.[locale === "en" ? 1 : 0] ??
-    (role === "teacher" ? t("\u0645\u0633\u0627\u062d\u0629 \u0627\u0644\u0645\u0639\u0644\u0651\u0645", "Teacher workspace") : t("\u0625\u062f\u0627\u0631\u0629 Noata", "Manage Noata"));
-  useEffect(() => { document.title = pageLabel + " \u00b7 Noata"; }, [pageLabel, active]);
+
+  const pageLabel =
+    routes.find((route) => route[2] === active)?.[locale === "en" ? 1 : 0] ??
+    (role === "teacher"
+      ? t("مساحة المعلّم", "Teacher workspace")
+      : role === "admin"
+        ? t("إدارة Noäta", "Manage Noäta")
+        : t("مساحتي التعليمية", "My learning space"));
+
+  useEffect(() => {
+    document.title = pageLabel + " · Noäta";
+  }, [pageLabel, active]);
+
   const account = useVerifiedAccount();
   const [aiIsNew, setAiIsNew] = useState(false);
+
   useEffect(() => {
     if (account.loading) return;
-    const update = () => setAiIsNew(!hasSeenFeature("ai", AI_INTRO_VERSION, account.user?.id ?? null));
+    const update = () =>
+      setAiIsNew(!hasSeenFeature("ai", AI_INTRO_VERSION, account.user?.id ?? null));
     update();
     window.addEventListener("storage", update);
     window.addEventListener("noata-feature-seen", update);
@@ -82,10 +112,15 @@ export function AppShell({
       window.removeEventListener("noata-feature-seen", update);
     };
   }, [account.loading, account.user?.id]);
+
   function openRoute(href: string) {
     if (href === "/ai") markFeatureSeen("ai", AI_INTRO_VERSION, account.user?.id ?? null);
     setMenu(false);
+    if (href !== active) {
+      router.push(href);
+    }
   }
+
   const searchResults = useMemo(
     () =>
       routes.filter((route) =>
@@ -97,23 +132,27 @@ export function AppShell({
       ),
     [locale, query],
   );
+
   function closeSearch() {
     setSearch(false);
     setQuery("");
     setActiveResult(0);
   }
+
   function openSearchResult(href: string) {
     openRoute(href);
     closeSearch();
-    if (href !== active) router.push(href);
   }
+
   useEffect(() => {
     setActiveResult(0);
   }, [query]);
+
   useEffect(() => {
     if (!search) return;
     resultRefs.current[activeResult]?.scrollIntoView({ block: "nearest" });
   }, [activeResult, search, searchResults.length]);
+
   useEffect(() => {
     function key(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -124,64 +163,22 @@ export function AppShell({
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
   }, []);
-  const link = ([labelAr, labelEn, href, icon]: Route) => (
-    <Link
-      key={href}
-      className={
-        "nav-link" +
-        (active === href ? " active" : "") +
-        (href === "/ai" ? " nav-link-ai" : "")
-      }
-      aria-current={active === href ? "page" : undefined}
-      href={href}
-      onClick={() => openRoute(href)}
-    >
-      <span className="nav-icon">
-        <Icon name={icon} size={18} />
-      </span>
-      <span className="nav-label">{t(labelAr, labelEn)}</span>
-      {href === "/ai" && aiIsNew && <small className="nav-tag">{t("جديد", "New")}</small>}
-    </Link>
-  );
-  const nav = (
-    <>
-      <Link href="/" className="brand sidebar-brand" aria-label={t("Noata — الرئيسية", "Noata — Home")}>
-        <NoataBrand size={40} />
-      </Link>
-      <nav aria-label={t("التنقل الرئيسي", "Main navigation")} className="sidebar-nav">
-        {navGroups.map((group) => (
-          <div className="nav-group" key={group.titleAr}>
-            <div className="nav-title">{t(group.titleAr, group.titleEn)}</div>
-            {group.routes.map(link)}
-          </div>
-        ))}
-      </nav>
-      <StaffNav active={active} />
-      <div className="sidebar-foot">
-        <Link href="/ai" className="sidebar-ai-card" onClick={() => openRoute("/ai")}>
-          <span className="sidebar-ai-icon">
-            <Icon name="ai" size={18} />
-          </span>
-          <span>
-            <b>{t("المعرفة تبدأ بسؤال", "Knowledge begins with a question")}</b>
-            <small>{t("اسأل Noata AI أو افتح ورشة المذاكرة", "Ask Noata AI or open the study studio")}</small>
-          </span>
-          <Icon name="arrow" size={16} />
-        </Link>
-        <nav aria-label={t("الحساب والمساعدة", "Account and help")} className="sidebar-utility">
-          {utilityRoutes.map(link)}
-        </nav>
-        <div className="legal-links">
-          <Link href="/privacy">{t("الخصوصية", "Privacy")}</Link>
-          <span aria-hidden="true">·</span>
-          <Link href="/terms">{t("الشروط", "Terms")}</Link>
-        </div>
-      </div>
-    </>
-  );
+
   return (
-    <div className="noata-shell" data-workspace={role}>
-      <aside className="noata-sidebar">{nav}</aside>
+    <div
+      className="noata-shell"
+      data-workspace={role}
+      data-sidebar-collapsed={isSidebarCollapsed}
+    >
+      {/* Signature Noäta Aura Sidebar */}
+      <Sidebar
+        active={active}
+        aiIsNew={aiIsNew}
+        onNavigate={openRoute}
+        onOpenSearch={() => setSearch(true)}
+        onCollapsedChange={setIsSidebarCollapsed}
+      />
+
       <div className="noata-main">
         <header className="topbar shell-topbar">
           <div className="top-context">
@@ -202,23 +199,31 @@ export function AppShell({
               </span>
               <b>
                 {routes.find((r) => r[2] === active)?.[locale === "en" ? 1 : 0] ??
-                  (role === "teacher" ? t("مساحة المعلّم", "Teacher workspace") : t("إدارة Noata", "Manage Noata"))}
+                  (role === "teacher"
+                    ? t("مساحة المعلّم", "Teacher workspace")
+                    : t("إدارة Noäta", "Manage Noäta"))}
               </b>
             </div>
           </div>
           <div className="top-actions">
-            <button className="command-trigger" onClick={() => setSearch(true)}>
+            <button
+              className="command-trigger"
+              onClick={() => setSearch(true)}
+              aria-label={t("بحث وانتقال سريع (⌘K)", "Search and quick jump (⌘K)")}
+            >
               <Icon name="search" size={17} />
               <span>{t("انتقل إلى…", "Go to…")}</span>
               <kbd>⌘ K</kbd>
             </button>
             <ContextualCoach active={active} />
-            {!account.loading&&!account.user&&<LocaleControl />}
+            <TourTrigger />
+            {!account.loading && !account.user && <LocaleControl />}
             <ThemeControl />
             <NotificationBell />
             <UserMenu />
           </div>
         </header>
+
         <main
           id="noata-main"
           tabIndex={-1}
@@ -227,11 +232,14 @@ export function AppShell({
         >
           {children}
         </main>
+
         <footer className="page-footer">
-          {t("Noata · مساحة تكبر معك", "Noata · A space to grow")}
+          {t("Noäta · مساحة تكبر معك", "Noäta · A space to grow")}
           <span>{t("تعلّم بفضول، وتقدّم بثقة.", "Learn with curiosity. Grow with confidence.")}</span>
         </footer>
       </div>
+
+      {/* Mobile Quick Thumb Navigation Bar */}
       <nav className="mobile-nav" aria-label={t("تنقل سريع", "Quick navigation")}>
         {routes
           .filter((r) => ["/", "/learn", "/ai", "/progress"].includes(r[2]))
@@ -243,21 +251,47 @@ export function AppShell({
               aria-current={active === href ? "page" : undefined}
             >
               <Icon name={icon} />
-              <small>{locale === "en" ? ({"/":"Home","/learn":"Learn","/ai":"Noata AI","/progress":"Progress"}[href] ?? labelEn) : labelAr}</small>
+              <small>
+                {locale === "en"
+                  ? { "/": "Home", "/learn": "Learn", "/ai": "Noäta AI", "/progress": "Progress" }[
+                      href
+                    ] ?? labelEn
+                  : labelAr}
+              </small>
             </Link>
           ))}
-        <button onClick={() => setMenu(true)}>
+        <button
+          type="button"
+          onClick={() => setMenu(true)}
+          aria-label={t("المزيد من الأقسام", "More sections")}
+        >
           <Icon name="menu" />
           <small>{t("المزيد", "More")}</small>
         </button>
       </nav>
+
+      {/* Mobile Full Sidebar Drawer */}
       <Dialog
         open={menu}
         onClose={() => setMenu(false)}
-        title={t("مساحتك في Noata", "Your Noata space")}
+        title={t("مساحتك في Noäta", "Your Noäta space")}
       >
-        <div className="mobile-menu-content">{nav}</div>
+        <div className="mobile-menu-content">
+          <Sidebar
+            active={active}
+            aiIsNew={aiIsNew}
+            onNavigate={openRoute}
+            onOpenSearch={() => {
+              setMenu(false);
+              setSearch(true);
+            }}
+            isMobileDrawer={true}
+            onCloseMobileDrawer={() => setMenu(false)}
+          />
+        </div>
       </Dialog>
+
+      {/* Command Palette Jump Search */}
       <Dialog
         open={search}
         onClose={closeSearch}
@@ -276,7 +310,7 @@ export function AppShell({
               : undefined
           }
           aria-label={t("ابحث عن صفحة", "Search pages")}
-          placeholder={t("ابحث عن صفحة أو أداة…", "Search for a page or tool…")}
+          placeholder={t("ابحث عن صفحة أو أداة أو مادة دراسية…", "Search for a page, tool or subject…")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(event) => {
@@ -308,7 +342,7 @@ export function AppShell({
             <div
               className="command-results"
               role="listbox"
-              aria-label={t("الصفحات المتاحة", "Available pages")}
+              aria-label={t("الصفحات والمواد المتاحة", "Available pages & subjects")}
             >
               {searchResults.map(([labelAr, labelEn, href, icon, descriptionAr, descriptionEn], index) => (
                 <Link
@@ -322,10 +356,7 @@ export function AppShell({
                     resultRefs.current[index] = node;
                   }}
                   onMouseEnter={() => setActiveResult(index)}
-                  onClick={() => {
-                    openRoute(href);
-                    closeSearch();
-                  }}
+                  onClick={() => openSearchResult(href)}
                 >
                   <Icon name={icon} />
                   <span>

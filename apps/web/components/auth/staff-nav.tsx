@@ -7,8 +7,20 @@ import {
 } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { localized, useLocale } from "@/lib/i18n/locale";
+import { SidebarGroup } from "@/components/sidebar/sidebar-group";
+import { SidebarItem } from "@/components/sidebar/sidebar-item";
 
-export function StaffNav({ active }: { active: string }) {
+type StaffNavProps = {
+  active: string;
+  isCollapsed?: boolean;
+  onNavigate?: (href: string) => void;
+};
+
+export function StaffNav({
+  active,
+  isCollapsed = false,
+  onNavigate,
+}: StaffNavProps) {
   const locale = useLocale();
   const t = (ar: string, en: string) => localized(locale, ar, en);
   const supabase = useMemo(() => createClient(), []);
@@ -46,27 +58,50 @@ export function StaffNav({ active }: { active: string }) {
   }, [supabase, account.user, account.revision]);
 
   if (!account.user || account.loading || role === "student") return null;
-  const items =
-    role === "admin"
-      ? [
-           [t("مساحة المعلّم", "Teacher workspace"), "/teacher", "◫"],
-           [t("إدارة Noata", "Manage Noata"), "/admin", "▣"],
-        ]
-       : [[t("مساحة المعلّم", "Teacher workspace"), "/teacher", "◫"]];
+
+  const isStaffActive = active === "/teacher" || active === "/admin";
 
   return (
-    <div className="nav-group">
-       <div className="nav-title">{t("مساحات العمل", "Workspaces")}</div>
-      {items.map(([label, href, icon]) => (
-        <a
-          className={"nav-link " + (active === href ? "active" : "")}
-          href={href}
-          key={href}
-        >
-          <span>{icon}</span>
-          {label}
-        </a>
-      ))}
-    </div>
+    <SidebarGroup
+      id="staff-workspaces"
+      titleAr="مساحات العمل الخاصة"
+      titleEn="Staff Workspaces"
+      icon="shield"
+      badge={role === "admin" ? t("إدارة", "Admin") : t("معلّم", "Teacher")}
+      collapsible={true}
+      defaultExpanded={true}
+      hasActiveChild={isStaffActive}
+      isCollapsedSidebar={isCollapsed}
+    >
+      <SidebarItem
+        href="/teacher"
+        icon="user"
+        labelAr="مساحة المعلّم"
+        labelEn="Teacher Workspace"
+        descriptionAr="إدارة الفصول والواجبات والمتابعة"
+        descriptionEn="Class management & student oversight"
+        isActive={active === "/teacher"}
+        isCollapsed={isCollapsed}
+        tag={t("تعليمي", "Staff")}
+        tagVariant="warning"
+        onClick={() => onNavigate?.("/teacher")}
+      />
+
+      {role === "admin" && (
+        <SidebarItem
+          href="/admin"
+          icon="shield"
+          labelAr="إدارة Noäta"
+          labelEn="Manage Noäta"
+          descriptionAr="لوحة العمليات والتحكم المركزي"
+          descriptionEn="Platform administration & systems"
+          isActive={active === "/admin"}
+          isCollapsed={isCollapsed}
+          tag={t("مشرف", "Admin")}
+          tagVariant="warning"
+          onClick={() => onNavigate?.("/admin")}
+        />
+      )}
+    </SidebarGroup>
   );
 }

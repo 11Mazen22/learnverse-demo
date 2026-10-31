@@ -203,7 +203,7 @@ export function RewardsLive() {
     <>
       <header className="noata-section-head">
         <div><p className="noata-eyebrow">{t("رحلتك تستحق الاحتفال","Celebrate your learning journey")}</p>
-          <h1>{t("مكافآتك وإنجازاتك","Your rewards and achievements")}</h1>
+          <h1>{t("رصيدك ومكافآتك ومظهرك","Your balances, rewards, and cosmetics")}</h1>
           <p>{t("كل مكافأة هنا نتيجة لتقدم حقيقي. اجمع العملات من التعلّم واختار مظهر يعبر عنك. الجواهر 5 عند إتقان درس موثّق بنسبة 90٪، و3 إضافية عند 100٪، مرة واحدة لكل مستوى استحقاق.","Earn Coins through learning and choose a look that reflects you. Verified lesson mastery earns 5 Gems at 90% and another 3 at 100%, once for each eligibility level.")}</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -413,7 +413,7 @@ export function RewardsLive() {
               </p>
               {!isOwned ? (
                 <button
-                  disabled={mutating || loading || Boolean(account.user && !profile) || busy === "buy:" + item.id}
+                  disabled={mutating || loading || Boolean(account.user && !profile) || Boolean(profile && !canAfford) || busy === "buy:" + item.id}
                   onClick={() => void buy(item)}
                   className="btn"
                   style={{
