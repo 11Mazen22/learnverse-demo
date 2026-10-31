@@ -716,7 +716,7 @@ export function DesignStudio() {
 
       <div className="noata-design-collection-header">
         <div>
-          <h3>{t("تصاميمي المحفوظة", "My Saved Designs")}</h3>
+          <h3>{t("تصاميمي المحفوظة", "My designs")}</h3>
           <p>
             {t(
               "اختر التصميم الذي يريحك، أو عدّل عليه، أو احذف ما لا تحتاجه.",
