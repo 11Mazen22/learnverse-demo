@@ -180,7 +180,7 @@ export function Sidebar({
         tabIndex={0}
         aria-label={t("قائمة التنقل القابلة للتمرير", "Scrollable navigation list")}
       >
-        <nav className="noata-sidebar-nav" aria-label={t("أقسام المنصة", "Platform sections")}>
+        <nav className="noata-sidebar-nav sidebar-nav" aria-label={t("أقسام المنصة", "Platform sections")}>
           {/* Group 1: المساحة الرئيسية */}
           <SidebarGroup
             id="primary-hub"

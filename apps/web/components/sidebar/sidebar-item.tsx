@@ -45,6 +45,8 @@ export function SidebarItem({
       href={href}
       className={[
         "noata-nav-item",
+        "nav-link",
+        isAiSpecial && "nav-link-ai",
         isActive && "is-active",
         isAiSpecial && "is-ai-special",
         isNested && "is-nested",
@@ -67,7 +69,7 @@ export function SidebarItem({
         <span className="noata-nav-label-row">
           <span className="noata-nav-label">{label}</span>
           {tag && (
-            <span className={`noata-nav-badge noata-nav-badge--${tagVariant}`}>
+            <span className={`noata-nav-badge nav-tag noata-nav-badge--${tagVariant}`}>
               {tag}
             </span>
           )}
