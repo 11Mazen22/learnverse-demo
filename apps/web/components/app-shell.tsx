@@ -101,7 +101,6 @@ export function AppShell({
   const [aiIsNew, setAiIsNew] = useState(false);
 
   useEffect(() => {
-    if (account.loading) return;
     const update = () =>
       setAiIsNew(!hasSeenFeature("ai", AI_INTRO_VERSION, account.user?.id ?? null));
     update();
@@ -111,7 +110,13 @@ export function AppShell({
       window.removeEventListener("storage", update);
       window.removeEventListener("noata-feature-seen", update);
     };
-  }, [account.loading, account.user?.id]);
+  }, [account.user?.id]);
+
+  useEffect(() => {
+    if (active === "/ai") {
+      markFeatureSeen("ai", AI_INTRO_VERSION, account.user?.id ?? null);
+    }
+  }, [active, account.user?.id]);
 
   function openRoute(href: string) {
     if (href === "/ai") markFeatureSeen("ai", AI_INTRO_VERSION, account.user?.id ?? null);
