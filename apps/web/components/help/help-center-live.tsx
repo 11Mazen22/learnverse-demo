@@ -7,7 +7,7 @@ import { SUPPORT_CATEGORIES, type SupportCategory } from "@/lib/support/types";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 
-export function HelpCenterLive() {
+export function HelpCenterLive({ showFaq = true }: { showFaq?: boolean } = {}) {
   const t = useTranslation();
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -99,7 +99,9 @@ export function HelpCenterLive() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">
+    <div className={`max-w-6xl mx-auto px-6 ${showFaq ? "py-12 md:py-16" : "py-4 md:py-6"}`}>
+      {showFaq && (
+        <>
       {/* Hero Header */}
       <div className="text-center max-w-3xl mx-auto mb-12">
         <span className="p-eyebrow">{t("مركز المساعدة والدعم المباشر", "Help Center & Support")}</span>
@@ -256,6 +258,9 @@ export function HelpCenterLive() {
             </div>
           </div>
         </div>
+      )}
+
+              </>
       )}
 
       {/* CONTACT SUPPORT WORKFLOW (Section 12.3 & 12.4) */}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { AppShell } from "@/components/app-shell";
+import { HelpCenter } from "@/components/help/help-center";
 import { HelpCenterLive } from "@/components/help/help-center-live";
 
 export const metadata: Metadata = {
@@ -9,8 +10,9 @@ export const metadata: Metadata = {
 
 export default function HelpPage() {
   return (
-    <MarketingShell tone="dark">
-      <HelpCenterLive />
-    </MarketingShell>
+    <AppShell active="/help">
+      <HelpCenter />
+      <HelpCenterLive showFaq={false} />
+    </AppShell>
   );
 }
