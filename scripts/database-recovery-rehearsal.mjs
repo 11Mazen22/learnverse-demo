@@ -105,7 +105,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   assert.equal(schemaFingerprint(restored),originalSchema);assert.deepEqual(fingerprint(restored),original);
   pass('Injected migration failure rolls back all fixture deltas and preserves original rows/privileges');
   query(restored,'BEGIN;\n'+deltaSql.join('\n')+'\nCOMMIT;');
-  const curriculumTables=new Set(['public.lessons','public.question_keys','public.questions','public.skills','public.units']);
+  const curriculumTables=new Set(['public.courses','public.lessons','public.question_keys','public.questions','public.skills','public.units']);
    const withoutCurriculum=rows=>rows.filter(row=>!curriculumTables.has(row.table));
    assert.deepEqual(withoutCurriculum(fingerprint(restored)),withoutCurriculum(original));
    assertOriginalRowsPreserved(originalRows,rowSnapshots(restored),allowedQuestionStatusRows);
