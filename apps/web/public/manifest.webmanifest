@@ -1,7 +1,7 @@
 {
   "name": "Noata — Learn. Grow. Achieve.",
   "short_name": "Noata",
-  "description": "منصة نوتة: تعلّم وتدرّب وراجع وتابع تقدمك بمساعدة Noata AI.",
+  "description": "منصة نقطة: تعلّم وتدرّب وراجع وتابع تقدمك بمساعدة Noata AI.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

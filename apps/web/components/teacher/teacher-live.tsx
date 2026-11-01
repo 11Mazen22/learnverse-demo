@@ -420,6 +420,13 @@ export function TeacherLive() {
             {label}
           </button>
         ))}
+        <a
+          href="/study?tab=generator"
+          className="filter-chip"
+          style={{ marginInlineStart: "auto", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
+        >
+          <span>⚡ {t("مولّد QuizGecko للاختبارات والبطاقات", "QuizGecko Assessment Generator")}</span>
+        </a>
       </nav>
       {(view === "overview" || view === "create") && (
         <section className="content-grid">

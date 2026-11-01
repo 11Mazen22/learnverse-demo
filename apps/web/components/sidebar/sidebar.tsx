@@ -294,8 +294,8 @@ export function Sidebar({
               icon="clipboard"
               labelAr="مركز المذاكرة"
               labelEn="Study Center"
-              descriptionAr="مهام شخصية وبطاقات مراجعة محفوظة"
-              descriptionEn="Personal tasks & saved flashcards"
+              descriptionAr="مولّد كويزجيكو الذكي، اختبارات تفاعلية، وبطاقات 3D"
+              descriptionEn="QuizGecko generator, interactive quizzes & 3D cards"
               isActive={active === "/study"}
               isCollapsed={effectiveCollapsed}
               onClick={() => handleLinkClick("/study")}

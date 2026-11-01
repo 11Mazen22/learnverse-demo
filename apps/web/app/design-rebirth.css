@@ -214,7 +214,7 @@ html[data-theme="dark"] .auth-shell .auth-aside-points li{color:#f4f7ff}
 .noata-custom-theme-choices .noata-design-swatches{width:44px;grid-template-columns:repeat(2,1fr);gap:2px}
 .noata-custom-theme-choices .noata-design-swatches span{width:17px;height:17px}
 /* AI Design Studio — restrained glass visuals and real live previews. */
-.noata-design-studio{min-width:0;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:25px;padding:clamp(18px,3vw,30px);margin:22px 0;scroll-margin-top:110px;
+.noata-design-studio{min-width:0;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:25px;padding:clamp(18px,3vw,30px);margin:22px 0;scroll-margin-top:160px;
  background:radial-gradient(ellipse at 94% 0%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 51%),var(--surface);
  box-shadow:0 14px 45px color-mix(in srgb,var(--ink) 6%,transparent)}
 .noata-design-studio-header{display:flex;align-items:center;gap:17px;margin-bottom:22px}
@@ -293,10 +293,10 @@ html[data-reduced-motion="true"] :is(.page-content .dashboard-hero .btn,.noata-d
 .aura-settings-page .aura-settings-heading>*{position:relative;z-index:1}
 .aura-settings-page .aura-settings-heading h1{font-size:clamp(30px,3vw,43px);letter-spacing:-.065em}
 .aura-settings-page .aura-settings-email{background:var(--surface);border-color:color-mix(in srgb,var(--accent) 20%,var(--line))}
-.aura-settings-page .aura-settings-nav{border-radius:18px;min-height:57px;box-shadow:0 10px 27px color-mix(in srgb,var(--ink) 5%,transparent);scroll-padding:15px}
+.aura-settings-page .aura-settings-nav{border-radius:18px;min-height:57px;background:var(--surface);box-shadow:0 10px 27px color-mix(in srgb,var(--ink) 5%,transparent);scroll-padding:15px;margin-bottom:24px;border:1px solid var(--line)}
 .aura-settings-page .aura-settings-nav>a{display:inline-flex;align-items:center;min-height:41px;font-size:12px;border:1px solid transparent}
 .aura-settings-page .aura-settings-nav>a:hover,.aura-settings-page .aura-settings-nav>a:focus-visible{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
-.aura-settings-page .aura-settings-section{border-radius:23px;transition:border-color .22s ease,box-shadow .22s ease,transform .22s cubic-bezier(.22,1,.36,1)}
+.aura-settings-page .aura-settings-section{border-radius:23px;scroll-margin-top:160px;transition:border-color .22s ease,box-shadow .22s ease,transform .22s cubic-bezier(.22,1,.36,1)}
 .aura-settings-page .aura-settings-section:hover{border-color:color-mix(in srgb,var(--accent) 28%,var(--line));box-shadow:0 13px 33px color-mix(in srgb,var(--ink) 5%,transparent)}
 .aura-settings-page .aura-settings-section:focus-within{border-color:color-mix(in srgb,var(--accent) 43%,var(--line))}
 .aura-settings-theme-options button{min-height:82px;border-radius:16px;transition:background-color .2s ease,border-color .2s ease,transform .2s ease}
@@ -420,6 +420,16 @@ html[data-reduced-motion="true"] :is(.page-content .dashboard-hero .btn,.noata-d
   border-radius: 3px !important;
   background: currentColor !important;
   opacity: 0.18 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  color: transparent !important;
+  user-select: none !important;
+  overflow: hidden !important;
+}
+.noata-screen-center-pill::before,
+.noata-screen-center-pill::after {
+  display: none !important;
+  content: none !important;
 }
 
 /* Screen Main Layout */

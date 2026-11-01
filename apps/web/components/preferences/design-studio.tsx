@@ -24,6 +24,11 @@ import {
 import { onlyOwnedRecords } from "@/lib/appearance/account-scope";
 import { localized, useLocale } from "@/lib/i18n/locale";
 
+export function sanitizeBrandName(text: string): string {
+  if (!text) return "";
+  return text.replace(/نوت[ةه]/g, "نقطة").replace(/نوتا/g, "نقطة");
+}
+
 const MAX_DESIGNS = 8;
 
 function effectiveMode() {
@@ -101,7 +106,18 @@ export function DesignStudio() {
       modeConstraint?: PaletteModeConstraint;
     } | null
   ) {
-    setDraftRecord(value && accountId ? { owner: accountId, value } : null);
+    if (!value || !accountId) {
+      setDraftRecord(null);
+      return;
+    }
+    setDraftRecord({
+      owner: accountId,
+      value: {
+        ...value,
+        name: sanitizeBrandName(value.name),
+        description: sanitizeBrandName(value.description),
+      },
+    });
   }
   const [storedDesigns, setSaved] = useState<CustomDesign[]>([]);
   const saved = onlyOwnedRecords(storedDesigns, accountId);
@@ -142,7 +158,12 @@ export function DesignStudio() {
       );
       return;
     }
-    setSaved((data ?? []).filter(isDesignRecord));
+    const loaded = (data ?? []).filter(isDesignRecord).map((item) => ({
+      ...item,
+      name: sanitizeBrandName(item.name),
+      description: sanitizeBrandName(item.description),
+    }));
+    setSaved(loaded);
     setActiveId(settings?.active_design_id ?? null);
   }, [supabase, account.user, t]);
 
@@ -213,7 +234,7 @@ export function DesignStudio() {
     setEditingId(design.id);
     setPrompt(
       t("صمّم نسخة محسّنة من ", "Create a refined version of ") +
-        design.name +
+        sanitizeBrandName(design.name) +
         t(" بنفس الهوية الأساسية.", " while keeping its original character.")
     );
     setRefinement("");
@@ -358,8 +379,8 @@ export function DesignStudio() {
         ? supabase
             .from("user_theme_designs")
             .update({
-              name: draft.name,
-              description: draft.description,
+              name: sanitizeBrandName(draft.name),
+              description: sanitizeBrandName(draft.description),
               tokens,
               updated_at: new Date().toISOString(),
             })
@@ -367,8 +388,8 @@ export function DesignStudio() {
             .eq("user_id", owner)
         : supabase.from("user_theme_designs").insert({
             user_id: owner,
-            name: draft.name,
-            description: draft.description,
+            name: sanitizeBrandName(draft.name),
+            description: sanitizeBrandName(draft.description),
             tokens,
             visible: true,
           });
@@ -620,7 +641,7 @@ export function DesignStudio() {
                   }}
                 >
                   <span>{t("معاينة تصميم NOÄTA", "NOÄTA DESIGN PREVIEW")}</span>
-                  <strong>{draft.name}</strong>
+                  <strong>{sanitizeBrandName(draft.name)}</strong>
                   <div className="noata-design-preview-dots">
                     <span />
                     <span />
@@ -629,8 +650,8 @@ export function DesignStudio() {
                 </div>
                 <div className="noata-design-preview-bottom">
                   <DesignSwatches tokens={draft.tokens} />
-                  <strong>{draft.name}</strong>
-                  <p>{draft.description || t("نظام ألوان بتوقيعك", "A custom color signature")}</p>
+                  <strong>{sanitizeBrandName(draft.name)}</strong>
+                  <p>{sanitizeBrandName(draft.description) || t("نظام ألوان بتوقيعك", "A custom color signature")}</p>
                   <div className="noata-design-mode-indicator">
                     <span className="noata-design-constraint-badge">
                       {draft.modeConstraint === "dark-only" ? (
@@ -741,7 +762,7 @@ export function DesignStudio() {
           <article key={design.id} className="noata-design-saved-card">
             <DesignSwatches tokens={design.tokens} />
             <div className="noata-design-saved-meta">
-              <strong>{design.name}</strong>
+              <strong>{sanitizeBrandName(design.name)}</strong>
               <small>{design.description}</small>
               <span className="noata-design-constraint-badge">
                 {design.modeConstraint === "dark-only" ? (
@@ -886,7 +907,7 @@ export function SavedDesignChoices() {
             >
               <DesignSwatches tokens={design.tokens} />
               <span className="noata-palette-info">
-                <b>{design.name}</b>
+                <b>{sanitizeBrandName(design.name)}</b>
                 <span className="noata-design-constraint-badge">
                   {constraint === "dark-only" ? (
                     <>

@@ -1,0 +1,567 @@
+/* ============================================================
+   NOÄTA AURA — QUIZGECKO-GRADE STUDY & ASSESSMENT EXPERIENCE
+   ============================================================ */
+
+/* 1. Main Study Shell & Tab Navigation */
+.noata-study-hero {
+  position: relative;
+  border-radius: 28px;
+  padding: clamp(24px, 4vw, 44px);
+  background:
+    radial-gradient(ellipse at 88% -15%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
+    radial-gradient(ellipse at 12% 110%, color-mix(in srgb, var(--gold, #d97706) 12%, transparent), transparent 50%),
+    var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--ink) 6%, transparent);
+  margin-bottom: 24px;
+}
+
+.noata-study-hero h1 {
+  font-size: clamp(26px, 3.2vw, 40px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  margin: 8px 0 10px;
+  color: var(--ink);
+}
+
+.noata-study-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.noata-study-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  white-space: nowrap;
+}
+
+.noata-study-tab-btn:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.noata-study-tab-btn[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--on-accent, #ffffff);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* 2. Universal Quiz & Flashcard AI Generator */
+.noata-generator-panel {
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  padding: clamp(20px, 3vw, 36px);
+  box-shadow: 0 12px 35px color-mix(in srgb, var(--ink) 5%, transparent);
+  margin-bottom: 28px;
+}
+
+.noata-generator-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.noata-generator-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+}
+
+.noata-source-selector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 700px) {
+  .noata-source-selector {
+    grid-template-columns: 1fr;
+  }
+}
+
+.noata-source-card {
+  padding: 16px;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: start;
+}
+
+.noata-source-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.noata-source-card[aria-checked="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.noata-source-card h3 {
+  font-size: 15px;
+  margin: 6px 0 4px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.noata-source-card p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.noata-gen-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.noata-gen-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.noata-controls-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.noata-controls-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.noata-select {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+/* 3. Interactive Quiz Runner */
+.noata-quiz-container {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.noata-quiz-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.noata-quiz-progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-soft);
+  overflow: hidden;
+  position: relative;
+}
+
+.noata-quiz-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #10b981));
+  border-radius: 99px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.noata-lifeline-dock {
+  display: flex;
+  gap: 8px;
+}
+
+.noata-lifeline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.noata-lifeline-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.noata-lifeline-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.noata-quiz-card {
+  border-radius: 26px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
+  padding: clamp(24px, 4vw, 40px);
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--ink) 6%, transparent);
+  margin-bottom: 24px;
+}
+
+.noata-quiz-question-text {
+  font-size: clamp(18px, 2.2vw, 24px);
+  font-weight: 850;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 12px 0 28px;
+}
+
+.noata-quiz-options-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.noata-quiz-opt-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+  text-align: start;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  position: relative;
+}
+
+.noata-quiz-opt-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-soft));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.noata-quiz-opt-marker {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* Correct / Incorrect states */
+.noata-quiz-opt-btn.is-correct {
+  border-color: #10b981 !important;
+  background: color-mix(in srgb, #10b981 12%, var(--surface)) !important;
+  color: #065f46 !important;
+}
+
+html[data-theme="dark"] .noata-quiz-opt-btn.is-correct {
+  color: #6ee7b7 !important;
+}
+
+.noata-quiz-opt-btn.is-correct .noata-quiz-opt-marker {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.noata-quiz-opt-btn.is-wrong {
+  border-color: #ef4444 !important;
+  background: color-mix(in srgb, #ef4444 12%, var(--surface)) !important;
+  color: #991b1b !important;
+}
+
+html[data-theme="dark"] .noata-quiz-opt-btn.is-wrong {
+  color: #fca5a5 !important;
+}
+
+.noata-quiz-opt-btn.is-wrong .noata-quiz-opt-marker {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+.noata-quiz-opt-btn.is-eliminated {
+  opacity: 0.35;
+  text-decoration: line-through;
+  pointer-events: none;
+}
+
+/* 4. Socratic Pedagogical Feedback Box */
+.noata-pedagogical-box {
+  margin-top: 24px;
+  padding: 20px 24px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  animation: noataFadeIn 0.3s ease;
+}
+
+.noata-pedagogical-box h4 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 850;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.noata-pedagogical-box p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink);
+}
+
+.noata-misconception-card {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #ef4444 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, #ef4444 20%, transparent);
+  font-size: 13px;
+  color: var(--ink);
+  margin-top: 10px;
+}
+
+/* 5. Luxury 3D Spaced Repetition Flashcard Studio */
+.noata-3d-scene {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 680px;
+  margin: 20px auto;
+  min-height: 380px;
+}
+
+.noata-3d-card {
+  width: 100%;
+  min-height: 380px;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+  border-radius: 28px;
+}
+
+.noata-3d-card.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.noata-3d-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 28px;
+  padding: clamp(24px, 4vw, 44px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  box-shadow: 0 16px 45px color-mix(in srgb, var(--ink) 8%, transparent);
+  background:
+    radial-gradient(ellipse at 90% 10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+    var(--surface);
+}
+
+.noata-3d-face.is-back {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(ellipse at 10% 90%, color-mix(in srgb, #10b981 12%, transparent), transparent 60%),
+    var(--surface);
+}
+
+.noata-card-prompt {
+  font-size: clamp(20px, 2.6vw, 28px);
+  font-weight: 850;
+  line-height: 1.55;
+  color: var(--ink);
+  text-align: center;
+  margin: auto 0;
+}
+
+.noata-card-answer {
+  font-size: clamp(17px, 2.2vw, 22px);
+  line-height: 1.7;
+  color: var(--ink);
+  text-align: center;
+  margin: auto 0;
+}
+
+.noata-sm2-rating-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 680px;
+  margin: 20px auto 0;
+}
+
+@media (max-width: 580px) {
+  .noata-sm2-rating-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.noata-sm2-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.noata-sm2-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.noata-sm2-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.noata-sm2-btn.rate-again {
+  border-color: color-mix(in srgb, #ef4444 35%, var(--line));
+}
+.noata-sm2-btn.rate-again:hover:not(:disabled) {
+  background: color-mix(in srgb, #ef4444 10%, var(--surface));
+}
+
+.noata-sm2-btn.rate-hard {
+  border-color: color-mix(in srgb, #f59e0b 35%, var(--line));
+}
+.noata-sm2-btn.rate-hard:hover:not(:disabled) {
+  background: color-mix(in srgb, #f59e0b 10%, var(--surface));
+}
+
+.noata-sm2-btn.rate-good {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+.noata-sm2-btn.rate-good:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.noata-sm2-btn.rate-easy {
+  border-color: color-mix(in srgb, #10b981 35%, var(--line));
+}
+.noata-sm2-btn.rate-easy:hover:not(:disabled) {
+  background: color-mix(in srgb, #10b981 10%, var(--surface));
+}
+
+.noata-sm2-btn strong {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.noata-sm2-btn small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.noata-keyboard-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 14px;
+}
+
+.noata-keyboard-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  margin: 0 4px;
+}
+
+@keyframes noataFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

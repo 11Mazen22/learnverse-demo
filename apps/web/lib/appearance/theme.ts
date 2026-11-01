@@ -106,8 +106,10 @@ export function parseDesignSuggestion(raw:string,locale:"ar"|"en"="ar",options:{
   if(obj)break;
  }
   if(!obj)throw Error(locale==="en"?"Fanar did not return a valid design. Please try again.":"رد Fanar ليس JSON صالحًا. جرّب مرة أخرى.");
- const name=typeof obj.name==="string"?obj.name.trim():"";
- const description=typeof obj.description==="string"?obj.description.trim():"";
+ const rawName=typeof obj.name==="string"?obj.name.trim():"";
+ const rawDesc=typeof obj.description==="string"?obj.description.trim():"";
+ const name=rawName.replace(/نوت[ةه]/g,"نقطة").replace(/نوتا/g,"نقطة");
+ const description=rawDesc.replace(/نوت[ةه]/g,"نقطة").replace(/نوتا/g,"نقطة");
  if(name.length<2||name.length>50||description.length>180)
     throw Error(locale==="en"?"The design name or description is outside the permitted length.":"عنوان أو وصف التصميم خارج الحدود المسموحة.");
   const suggested=hexTokens(obj.tokens,locale);
@@ -137,18 +139,21 @@ export function isDesignRecord(value:unknown):value is CustomDesign {
  try{validateTokens(x.tokens);return true;}catch{return false;}
 }
 export const DESIGN_STUDIO_INSTRUCTION = [
- "صمّم نظام ألوان أنيقًا ومريحًا للعين لتطبيق تعليمي اسمه Noäta.",
- "لا تنشئ أكواد CSS أو HTML أو JavaScript أو أسماء ملفات أو صور.",
+  "صمّم نظام ألوان أنيقًا ومريحًا للعين لتطبيق تعليمي اسمه «نقطة» (Noäta).",
+  "تنبيه صارم: اسم المنصة بالعربية هو «نقطة» فقط (مثل: نقطة الأنيق، نقطة الهادئ، إشراقة نقطة). ممنوع إطلاقًا استخدام كلمة «نوتة» أو «نوتا».",
+  "لا تنشئ أكواد CSS أو HTML أو JavaScript أو أسماء ملفات أو صور.",
   "أرجع JSON واحدًا فقط بلا markdown وبالمفاتيح التالية:",
   "لا تكتب أي تعليقات داخل JSON؛ لا تستخدم // أو # أو /* */. استخدم الفاصلة الإنجليزية , فقط بين الحقول.",
- '{"name":"اسم قصير بالعربية","description":"وصف عربي مختصر","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"},"modeConstraint":"both"}',
- "يمكن لحقل modeConstraint أن يكون 'both' أو 'dark-only' أو 'light-only'.",
- "يجب أن تكون accent داكنة بما يكفي لتباين نص أبيض WCAG AA (4.5:1)، وأن تكون deep داكنة جدًا لتباين 7:1.",
- "اجعل bright درجة مساندة جميلة متناغمة مع accent وdeep؛ لا تخترع أسماء رمزية للألوان.",
- "لا تذكر معلومات شخصية. ألوان هذا التصميم تُعايَن قبل الموافقة والحفظ.",
+  '{"name":"اسم قصير بالعربية يتضمن كلمة نقطة (مثال: نقطة الأنيق)","description":"وصف عربي مختصر لمنصة نقطة","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"},"modeConstraint":"both"}',
+  "يمكن لحقل modeConstraint أن يكون 'both' أو 'dark-only' أو 'light-only'.",
+  "يجب أن تكون accent داكنة بما يكفي لتباين نص أبيض WCAG AA (4.5:1)، وأن تكون deep داكنة جدًا لتباين 7:1.",
+  "اجعل bright درجة مساندة جميلة متناغمة مع accent وdeep؛ لا تخترع أسماء رمزية للألوان.",
+  "لا تذكر معلومات شخصية. ألوان هذا التصميم تُعايَن قبل الموافقة والحفظ.",
 ].join("\n");
+
 export const DESIGN_STUDIO_INSTRUCTION_EN = [
-  "Suggest a refined, accessible color palette for an educational app called Noäta.",
+  "Suggest a refined, accessible color palette for an educational app called Noäta (نقطة in Arabic, never نوتة).",
+  "Strict rule: The Arabic brand name is «نقطة» (Noäta), never «نوتة». Do not use «نوتة» in any name or description.",
   "Do not produce CSS, HTML, JavaScript, file names, or images.",
   "Return exactly one JSON object with these keys, without markdown:",
   "Do not include comments using //, # or /* */. Use ASCII commas between fields.",

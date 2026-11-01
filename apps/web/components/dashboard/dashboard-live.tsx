@@ -485,6 +485,11 @@ export function DashboardLive() {
               <Icon name="arrow" size={16} />
             </Link>
 
+            <Link href="/study?tab=generator" className="db-btn-secondary">
+              <Icon name="sparkles" size={16} />
+              <span>{t("⚡ مولّد QuizGecko الذكي", "⚡ QuizGecko Generator")}</span>
+            </Link>
+
             <Link href="/ai" className="db-btn-secondary">
               <Icon name="ai" size={16} />
               <span>{t("مناقشة المفهوم مع Noäta AI", "Discuss with Noäta AI")}</span>
@@ -737,9 +742,21 @@ export function DashboardLive() {
                 <div className="db-card-progress">
                   <div className="db-card-progress-meta">
                     <span>
-                      {activeTr ? `${activeTr.done} / ${activeTr.total} ${t("درس", "lessons")}` : t("لم يبدأ", "Not started")}
+                      {activeTr
+                        ? activeTr.done === 0
+                          ? t("لم تبدأ بعد", "Not started yet")
+                          : locale === "ar"
+                            ? <span>أنجزت <bdi dir="ltr">{activeTr.done}</bdi> من <bdi dir="ltr">{activeTr.total}</bdi> درس</span>
+                            : `${activeTr.done} of ${activeTr.total} lessons`
+                        : t("لم يبدأ", "Not started")}
                     </span>
-                    <strong>{percent}%</strong>
+                    <strong>
+                      {activeTr && activeTr.done > 0
+                        ? `${percent}%`
+                        : activeTr && activeTr.done === 0
+                          ? t("جاهز للتعلّم", "Ready")
+                          : t("غير متاح", "Unavailable")}
+                    </strong>
                   </div>
                   <div className="db-card-progress-bar">
                     <div

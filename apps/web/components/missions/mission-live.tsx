@@ -343,7 +343,7 @@ export function MissionLive() {
           <h1 style={{ margin: "6px 0 0" }} dir={effectiveLang === "ar" ? "rtl" : "ltr"}>{effectiveLang === "en" ? lessonTitle.en : lessonTitle.ar}</h1>
         </div>
         <span className="pill">
-          {questions.length ? index + 1 : 0} / {questions.length || 3}
+          {locale === "en" ? `Stage ${questions.length ? index + 1 : 0} of ${questions.length || 3}` : <>المرحلة <bdi dir="ltr">{questions.length ? index + 1 : 0}</bdi> من <bdi dir="ltr">{questions.length || 3}</bdi></>}
         </span>
       </header>
 

@@ -772,7 +772,7 @@ class Renderer {
     const total = range.count;
     for (let i = 0; i < total; i++) {
       this.doc.switchToPage(range.start + i);
-      const brandSegs = this.segments([{ text: "نوتا", bold: true }, { text: " · Noata", bold: true }], 12, "rtl", true, COLORS.navy);
+      const brandSegs = this.segments([{ text: "نقطة", bold: true }, { text: " · Noata", bold: true }], 12, "rtl", true, COLORS.navy);
       const bw = brandSegs.reduce((a, s) => a + s.width, 0);
       const bx = this.margin.side + this.contentW - bw;
       let x = bx;

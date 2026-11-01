@@ -428,9 +428,16 @@ export function LearnLive() {
                 <div className="aura-subject-card-head">
                   <h3>{locale === "en" ? subject.title_en : subject.title_ar}</h3>
                   <span className="aura-subject-percent">
-                    {progressForSubject.total
-                      ? progressForSubject.percent + "%"
-                      : t("لم يبدأ", "Not started")}
+                    {progressForSubject.total === 0
+                      ? t("غير متاح", "Unavailable")
+                      : progressForSubject.done === 0
+                        ? t("لم تبدأ بعد", "Not started")
+                        : progressForSubject.done === progressForSubject.total
+                          ? t("مكتمل ✨", "Completed ✨")
+                          : t(
+                              `${progressForSubject.percent}% (قيد التعلّم)`,
+                              `${progressForSubject.percent}% (In progress)`,
+                            )}
                   </span>
                 </div>
                 <p className="aura-subject-card-desc">

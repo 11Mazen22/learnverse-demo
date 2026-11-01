@@ -1,0 +1,412 @@
+/* ==========================================================================
+   Noäta Aura — Luxury Pedagogical Lesson Experience
+   Subject-specific teaching architectures, interactive checkpoints & stepper
+   ========================================================================== */
+
+.noata-lesson-container {
+  max-width: 1120px;
+  margin-inline: auto;
+  display: grid;
+  gap: 24px;
+  width: 100%;
+  padding-bottom: 48px;
+}
+
+/* 1. Header & Breadcrumb Context */
+.noata-lesson-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.noata-lesson-breadcrumb a {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+.noata-lesson-breadcrumb a:hover {
+  color: var(--accent);
+}
+.noata-lesson-breadcrumb-sep {
+  opacity: 0.4;
+}
+
+/* 2. Luxury Hero Banner */
+.noata-lesson-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  background:
+    radial-gradient(ellipse at 88% 12%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 60%),
+    linear-gradient(135deg, var(--surface), color-mix(in srgb, var(--surface-soft) 85%, var(--surface)));
+  box-shadow: 0 16px 45px color-mix(in srgb, var(--accent) 8%, transparent);
+  padding: clamp(24px, 3.8vw, 42px);
+  display: grid;
+  gap: 16px;
+}
+
+.noata-lesson-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.noata-lesson-track-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.noata-lesson-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.noata-lesson-metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--surface-soft);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.noata-lesson-metric-chip.is-completed {
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.noata-lesson-title-area h1 {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.35;
+  margin: 6px 0 10px;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.noata-lesson-lead {
+  font-size: clamp(15px, 1.8vw, 17px);
+  line-height: 1.85;
+  color: var(--muted);
+  max-width: 82ch;
+  margin: 0;
+}
+
+/* 3. Pedagogical Stage Stepper */
+.noata-stage-stepper {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 8px;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.noata-stage-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: start;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  min-height: 48px;
+}
+
+.noata-stage-step:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.noata-stage-step.is-active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.noata-stage-num {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--surface-soft);
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.noata-stage-step.is-active .noata-stage-num {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* 4. Active Stage Card */
+.noata-stage-content-card {
+  border-radius: 26px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: clamp(24px, 3.5vw, 38px);
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--ink) 5%, transparent);
+  display: grid;
+  gap: 24px;
+}
+
+.noata-stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+  gap: 12px;
+}
+
+.noata-stage-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.noata-stage-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-soft));
+  color: var(--accent);
+}
+
+.noata-stage-header h2 {
+  font-size: 20px;
+  margin: 0;
+  color: var(--ink);
+}
+
+/* 5. Discipline-Specific Visual Modules */
+.noata-discipline-panel {
+  border-radius: 18px;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-soft) 60%, var(--surface));
+  display: grid;
+  gap: 12px;
+}
+
+.noata-discipline-panel.math {
+  border-color: color-mix(in srgb, #818cf8 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, #818cf8 8%, var(--surface)), var(--surface));
+}
+
+.noata-discipline-panel.science {
+  border-color: color-mix(in srgb, #22d3ee 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, #22d3ee 8%, var(--surface)), var(--surface));
+}
+
+.noata-discipline-panel.history {
+  border-color: color-mix(in srgb, #fbbf24 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, #fbbf24 8%, var(--surface)), var(--surface));
+}
+
+.noata-discipline-panel.arabic {
+  border-color: color-mix(in srgb, #f472b6 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, #f472b6 8%, var(--surface)), var(--surface));
+}
+
+.noata-discipline-panel.philosophy {
+  border-color: color-mix(in srgb, #a78bfa 35%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, #a78bfa 8%, var(--surface)), var(--surface));
+}
+
+.noata-discipline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+/* 6. Objectives & Checkpoints */
+.noata-objectives-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.noata-objective-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.noata-objective-bullet {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.noata-objective-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* 7. Misconceptions Shield */
+.noata-misconceptions-card {
+  border-radius: 18px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--line));
+  background: color-mix(in srgb, #f59e0b 7%, var(--surface));
+  display: grid;
+  gap: 12px;
+}
+
+.noata-misconception-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--ink);
+}
+
+/* 8. Interactive Inline Checkpoint Widget */
+.noata-checkpoint-box {
+  border-radius: 20px;
+  padding: 22px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  display: grid;
+  gap: 16px;
+}
+
+.noata-checkpoint-options {
+  display: grid;
+  gap: 10px;
+}
+
+.noata-checkpoint-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.noata-checkpoint-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.noata-checkpoint-btn.is-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.noata-checkpoint-btn.is-correct {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.noata-checkpoint-feedback {
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.noata-checkpoint-feedback.is-correct {
+  background: color-mix(in srgb, var(--success) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--success);
+}
+
+/* 9. Action Dock */
+.noata-lesson-action-dock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.noata-lesson-action-dock-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .noata-stage-stepper {
+    grid-template-columns: 1fr;
+  }
+  .noata-lesson-action-dock {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .noata-lesson-action-dock-right {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

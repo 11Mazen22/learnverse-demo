@@ -850,7 +850,7 @@ export function SettingsLive() {
     );
   if (!userId)
     return (
-      <>
+      <div className="aura-settings-guest-view" style={{ maxWidth: 960, marginInline: "auto", display: "grid", gap: 24, width: "100%" }}>
         <ModuleWelcome
            title={t("مساحتك، بطريقتك.", "Your space, your way.")}
            description={t("احفظ تفضيلات القراءة والذكاء الاصطناعي بين الأجهزة. المظهر متاح الآن على هذا الجهاز؛ بقية التفضيلات تحتاج حسابك.", "Save your reading and AI preferences across devices. Appearance works on this device now; other preferences require an account.")}
@@ -913,7 +913,7 @@ export function SettingsLive() {
           <LiveDesignSystemShowcase locale={locale} t={t} />
         </section>
         <DesignStudio />
-      </>
+      </div>
     );
 
   return (

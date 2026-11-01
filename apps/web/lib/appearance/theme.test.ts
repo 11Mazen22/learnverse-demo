@@ -57,3 +57,9 @@ test("An AI suggestion receives readable shades without weakening persisted HEX/
  assert.equal(safe.contrastAdjusted,false);
  assert.equal(safe.tokens.accent,"#24508C");
 });
+
+test("sanitizes accidental note/nota misspellings into the canonical brand name نقطة", () => {
+  const parsed = parseDesignSuggestion('{"name":"نوتة الأنيق","description":"ألوان نوتة الهادئة","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}');
+  assert.equal(parsed.name, "نقطة الأنيق");
+  assert.equal(parsed.description, "ألوان نقطة الهادئة");
+});

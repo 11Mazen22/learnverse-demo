@@ -165,8 +165,6 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
       const save = writeQueue.current.catch(() => {}).then(async () => {
         if (seq !== saveSequence.current || token !== account.revision.current)
           return { data: null, error: null };
-        const activeLocale =
-          typeof document !== "undefined" && document.documentElement.lang === "en" ? "en" : "ar";
         return await supabase
           .from("user_settings")
           .upsert(
@@ -174,7 +172,6 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
               user_id: user.id,
               palette: value,
               theme: value === "midnight" ? "dark" : undefined,
-              locale: activeLocale,
               active_design_id: null,
               updated_at: new Date().toISOString(),
             },

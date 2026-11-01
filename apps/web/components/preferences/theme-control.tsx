@@ -214,8 +214,6 @@ export function ThemeControl() {
     try {
       const user = account.user;
       if (!user) return;
-      const activeLoc =
-        typeof document !== "undefined" && document.documentElement.lang === "en" ? "en" : "ar";
       const save = themeWrite.current
         .catch(() => {})
         .then(async () => {
@@ -227,7 +225,6 @@ export function ThemeControl() {
               {
                 user_id: user.id,
                 theme: next,
-                locale: activeLoc,
                 updated_at: new Date().toISOString(),
               },
               { onConflict: "user_id" }

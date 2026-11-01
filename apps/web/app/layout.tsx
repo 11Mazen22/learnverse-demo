@@ -18,6 +18,8 @@ import "./marketing-premium.css";
 import "./premium-home.css";
 import "./aura-finish.css";
 import "./curriculum-hub.css";
+import "./lesson-experience.css";
+import "./study-experience.css";
 import "./dashboard-renaissance.css";
 import "./auth-ux.css";
 import "./palette.css";

@@ -90,6 +90,13 @@ export function ExperienceBoot() {
           localPreference = localStorage.getItem("noata-locale");
         } catch {}
 
+        if (!localPreference && typeof document !== "undefined") {
+          localPreference = document.documentElement.lang === "en" ? "en" : "ar";
+          try {
+            localStorage.setItem("noata-locale", localPreference);
+          } catch {}
+        }
+
         if (localPreference === "ar" || localPreference === "en") {
           if (data.locale !== localPreference) {
             void supabase

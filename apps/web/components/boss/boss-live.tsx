@@ -330,7 +330,7 @@ export function BossLive() {
              {(effectiveLang === "en" ? unit?.title_en : unit?.title_ar) ?? t("تحدّي الوحدة","Unit challenge")}
           </h1>
         </div>
-        <span className="pill">{questions.length ? idx + 1 : 0}/3</span>
+        <span className="pill">{locale === "en" ? `Stage ${questions.length ? idx + 1 : 0} of ${questions.length || 3}` : <>المرحلة <bdi dir="ltr">{questions.length ? idx + 1 : 0}</bdi> من <bdi dir="ltr">{questions.length || 3}</bdi></>}</span>
       </header>
       <section className="hero" style={{ padding: 28, marginBottom: 18 }}>
         <div className="eyebrow">{t("الخطوة الأخيرة في الوحدة","The unit’s final step")}</div>
