@@ -866,59 +866,6 @@ export function SettingsLive() {
           </div>
           <ThemeControl />
         </section>
-        <section id="aura-appearance" className="aura-settings-section">
-          <div className="aura-settings-section-top">
-            <Icon name="sun" size={24} />
-            <div>
-              <h2>{t("استوديو المظهر ونظام التصميم", "Appearance Studio & Design System")}</h2>
-              <p>
-                {t(
-                  "تحكم كامل في إضاءة المنصة، عوالم الألوان، وتفضيلات المظهر على هذا الجهاز.",
-                  "Full control over illumination, color worlds, and visual preferences on this device."
-                )}
-              </p>
-            </div>
-          </div>
-
-          <GrandThemeGrid
-            currentTheme={settings.theme}
-            activePalette={activePalette}
-            activeConstraint={activeConstraint}
-            systemDark={systemDark}
-            onSelectTheme={(mode) => {
-              setSettings((s) => ({ ...s, theme: mode }));
-              applyThemeOnly(mode);
-            }}
-            locale={locale}
-            t={t}
-          />
-
-          <PaletteGallery />
-
-          <p className="noata-appearance-footnote">
-            {activePalette === "midnight"
-              ? t(
-                  "طابع «منتصف الليل» يفرض الوضع الليلي حصريًا لحماية عمق الدرجات الليلية والتباين المريح.",
-                  "The Midnight palette strictly enforces Dark Mode to protect night-time contrast and depth."
-                )
-              : activeConstraint === "dark-only"
-              ? t(
-                  "تصميم Noäta AI المخصص يفرض الوضع الليلي حصريًا بناءً على ألوانه وتناغم التباين المعتمد.",
-                  "The active Noäta AI design strictly enforces Dark Mode based on its calibrated contrast."
-                )
-              : activeConstraint === "light-only"
-              ? t(
-                  "تصميم Noäta AI المخصص يفرض الوضع النهاري حصريًا.",
-                  "The active Noäta AI design strictly enforces Light Mode."
-                )
-              : t(
-                  "الأوضاع النهارية والليلية تعمل بتناغم تام مع كافة عوالم الألوان؛ طابع «منتصف الليل» داكن بطبيعته.",
-                  "Light and dark modes operate alongside color worlds. The Midnight palette remains deep dark."
-                )}
-          </p>
-
-          <LiveDesignSystemShowcase locale={locale} t={t} />
-        </section>
         <DesignStudio />
       </div>
     );
