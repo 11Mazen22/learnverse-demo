@@ -859,6 +859,13 @@ export function SettingsLive() {
           route="/settings"
            steps={[t("اختر المظهر المريح", "Choose a comfortable appearance"), t("خصّص تفضيلات المساعد", "Set your AI preferences"), t("احمِ حسابك", "Protect your account")]}
         />
+        <section className="aura-device-appearance">
+          <div>
+            <h2>{t("مظهر هذا الجهاز", "Appearance on this device")}</h2>
+            <p>{t("جرّب الوضع النهاري، الليلي أو تلقائيًا حسب جهازك.", "Choose light, dark, or your device's default appearance.")}</p>
+          </div>
+          <ThemeControl />
+        </section>
         <section id="aura-appearance" className="aura-settings-section">
           <div className="aura-settings-section-top">
             <Icon name="sun" size={24} />
