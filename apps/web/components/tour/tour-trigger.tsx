@@ -5,11 +5,11 @@ import { Icon } from "@/components/ui/icon";
 import { localized, useLocale } from "@/lib/i18n/locale";
 
 export function TourTrigger() {
-  const { replayPageTour, activeTour, hasPageTour } = useAuraTour();
+  const { replayPageTour, activeTour, hasPageTour, canUseTours } = useAuraTour();
   const locale = useLocale();
   const t = (ar: string, en: string) => localized(locale, ar, en);
 
-  if (activeTour) return null;
+  if (activeTour || !canUseTours) return null;
 
   return (
     <button

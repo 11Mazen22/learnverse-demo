@@ -34,6 +34,7 @@ import { EducationPanel } from "./education-panel";
 import { Icon } from "@/components/ui/icon";
 import { Dialog } from "@/components/ui/dialog";
 import { ThemeControl } from "@/components/preferences/theme-control";
+import { TourTrigger } from "@/components/tour/tour-trigger";
 import { ConversationHistory } from "./conversation-history";
 import { RichMessage } from "./rich-message";
 import { useAIWorkspace } from "./use-ai-workspace";
@@ -50,6 +51,12 @@ import {NoataGeneratedArtifact} from "./generated-artifact";
 
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, markFeatureSeen } from "@/lib/feature-seen";
+import { CommandPalette } from "./command-palette";
+import {
+  PALETTE_CONVERSATION_LIMIT,
+  type PaletteCommand,
+  type PaletteLocale,
+} from "@/lib/ai/command-palette";
 
 type SettingsTab = "general" | "appearance" | "models" | "voice" | "memory" | "projects" | "capabilities" | "privacy";
 
@@ -147,6 +154,9 @@ export function NoataAIClient() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  // True once the user has scrolled up past the auto-follow threshold.
+  const [driftedFromBottom, setDriftedFromBottom] = useState(false);
   const [inputMenuOpen, setInputMenuOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
@@ -203,6 +213,15 @@ export function NoataAIClient() {
       ) {
         event.preventDefault();
         composer.current?.focus();
+      } else if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "p"
+      ) {
+        // Command palette: toggle, never letting the browser print.
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
       } else if ((event.ctrlKey || event.metaKey) && event.key === ",") {
         event.preventDefault();
         setSettingsOpen(true);
@@ -216,6 +235,11 @@ export function NoataAIClient() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [composer, newChat, modelMenuOpen]);
+
+  // Switching conversations resets the follow pill; it reappears on scroll-up.
+  useEffect(() => {
+    setDriftedFromBottom(false);
+  }, [activeId]);
 
   function exportConversation(format: "markdown" | "json" | "docx") {
     const stamp = new Date().toISOString().slice(0, 10);
@@ -273,6 +297,157 @@ export function NoataAIClient() {
     setNotice(t("تم تصدير المحادثة.","Conversation exported."));
   }
 
+  const paletteLocale: PaletteLocale = locale === "en" ? "en" : "ar";
+  const lastAssistantMessage = useMemo(
+    () => messages.findLast((m) => m.role === "assistant" && m.content),
+    [messages],
+  );
+  const paletteCommands = useMemo<PaletteCommand[]>(() => {
+    const conversationCommands: PaletteCommand[] = conversations
+      .filter((c) => !c.archived && c.id !== activeId)
+      .slice(0, PALETTE_CONVERSATION_LIMIT)
+      .map((c) => ({
+        id: "conversation:" + c.id,
+        group: "conversations",
+        labelAr: c.title,
+        labelEn: c.title,
+        disabled: busy || loading,
+      }));
+    return [
+      {
+        id: "new-chat",
+        group: "quick",
+        labelAr: "محادثة جديدة",
+        labelEn: "New conversation",
+        hintAr: "ابدأ من صفحة نظيفة",
+        hintEn: "Start from a clean slate",
+        keywords: "new chat start fresh open",
+        shortcut: "Ctrl+Shift+O",
+        disabled: busy,
+      },
+      {
+        id: "focus-composer",
+        group: "quick",
+        labelAr: "التركيز على مربع الرسالة",
+        labelEn: "Focus message composer",
+        keywords: "composer input type write answer",
+        shortcut: "Ctrl+K",
+        disabled: busy || loading,
+      },
+      {
+        id: "stop",
+        group: "quick",
+        labelAr: "إيقاف الرد الجاري",
+        labelEn: "Stop the running response",
+        keywords: "stop abort cancel generation stream",
+        disabled: !busy,
+      },
+      {
+        id: "toggle-sidebar",
+        group: "quick",
+        labelAr: "إظهار أو إخفاء سجل المحادثات",
+        labelEn: "Show or hide conversation history",
+        keywords: "sidebar collapse history toggle menu",
+      },
+      {
+        id: "temporary-chat",
+        group: "quick",
+        labelAr: "بدء محادثة مؤقتة",
+        labelEn: "Start a temporary chat",
+        hintAr: "لا تُحفظ المحادثة",
+        hintEn: "Not saved to history",
+        keywords: "temporary incognito trash not saved disposable",
+        disabled: busy || temporary,
+      },
+      {
+        id: "study-workshop",
+        group: "workspace",
+        labelAr: "ورشة المذاكرة",
+        labelEn: "Study workshop",
+        hintAr: "أسئلة موجّهة ومذاكرة تفاعلية",
+        hintEn: "Guided questions and drills",
+        keywords: "study education quiz drill socratic workshop learning exam",
+        disabled: busy || loading,
+      },
+      {
+        id: "settings",
+        group: "workspace",
+        labelAr: "فتح الإعدادات",
+        labelEn: "Open settings",
+        keywords: "settings preferences models voice memory privacy",
+        shortcut: "Ctrl+,",
+      },
+      {
+        id: "shortcuts",
+        group: "workspace",
+        labelAr: "عرض اختصارات لوحة المفاتيح",
+        labelEn: "Show keyboard shortcuts",
+        keywords: "shortcuts keys help keyboard",
+      },
+      {
+        id: "export-markdown",
+        group: "workspace",
+        labelAr: "تصدير المحادثة (Markdown)",
+        labelEn: "Export conversation (Markdown)",
+        hintAr: "ملف .md للمحادثة الحالية",
+        hintEn: "A .md file of this conversation",
+        keywords: "export download save file markdown",
+        disabled: !messages.length,
+      },
+      {
+        id: "copy-latest",
+        group: "workspace",
+        labelAr: "نسخ آخر رد من Noäta",
+        labelEn: "Copy the latest Noäta response",
+        keywords: "copy answer reply response clipboard",
+        disabled: !lastAssistantMessage,
+      },
+      ...conversationCommands,
+    ];
+  }, [activeId, conversations, busy, loading, temporary, messages.length, lastAssistantMessage]);
+
+  // Palette choices map onto the same actions the workspace already exposes,
+  // so behavior here stays identical to the buttons they mirror.
+  function runPaletteCommand(id: string) {
+    const conversationPrefix = "conversation:";
+    if (id.startsWith(conversationPrefix)) {
+      const target = id.slice(conversationPrefix.length);
+      if (!busy && !loading) historyProps.onOpen(target);
+      return;
+    }
+    switch (id) {
+      case "new-chat":
+        if (!busy) newChat();
+        break;
+      case "focus-composer":
+        if (!busy && !loading) composer.current?.focus();
+        break;
+      case "stop":
+        abort.current?.abort();
+        break;
+      case "toggle-sidebar":
+        setSidebarCollapsed((x) => !x);
+        break;
+      case "temporary-chat":
+        if (!busy) historyProps.onTemporary();
+        break;
+      case "study-workshop":
+        if (!busy && !loading) setEducationOpen(true);
+        break;
+      case "settings":
+        setSettingsOpen(true);
+        break;
+      case "shortcuts":
+        setShortcutsOpen(true);
+        break;
+      case "export-markdown":
+        if (messages.length) exportConversation("markdown");
+        break;
+      case "copy-latest":
+        if (lastAssistantMessage) void copy(responseText(lastAssistantMessage.content));
+        break;
+    }
+  }
 
   const sidebar = (
     <ConversationHistory
@@ -292,6 +467,7 @@ export function NoataAIClient() {
       className={`${styles.root} owui-layout ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}
       data-typography={typography}
       data-empty={!messages.length && !loading ? "true" : "false"}
+      data-tour-page="ai"
     >
       {sidebar}
 
@@ -322,7 +498,7 @@ export function NoataAIClient() {
           </div>
         )}
 
-        <header className="owui-navbar">
+        <header className="owui-navbar" data-tour="ai-toolbar">
           <div className="owui-navbar-start">
             <button
               type="button"
@@ -333,7 +509,7 @@ export function NoataAIClient() {
               <Icon name="menu" />
             </button>
 
-            <div className="owui-model-picker" ref={modelPickerRef}>
+            <div className="owui-model-picker" data-tour="ai-model" ref={modelPickerRef}>
               <button
                 type="button"
                 className="owui-model-trigger"
@@ -492,6 +668,17 @@ export function NoataAIClient() {
           </div>
 
           <div className="owui-navbar-actions">
+            <TourTrigger />
+            <button
+              type="button"
+              className="owui-icon nk-palette-trigger"
+              onClick={() => setPaletteOpen(true)}
+              title={t("لوحة الأوامر · Ctrl+P","Command palette · Ctrl+P")}
+              aria-label={t("فتح لوحة أوامر Noäta","Open the Noäta command palette")}
+              aria-keyshortcuts="Control+P Meta+P"
+            >
+              <Icon name="target" size={19} />
+            </button>
             <details className="noata-one-actions" onKeyDown={e=>{if(e.key==="Escape"){e.currentTarget.removeAttribute("open");e.currentTarget.querySelector("summary")?.focus();}}}>
               <summary aria-label={t("خيارات المحادثة","Conversation options")}><Icon name="dots" size={19}/></summary>
               <div className="noata-one-actions-menu" onClick={e=>{if((e.target as HTMLElement).closest("button"))e.currentTarget.closest("details")?.removeAttribute("open");}}>
@@ -507,12 +694,15 @@ export function NoataAIClient() {
 
         <div
           className="owui-messages"
+          data-tour="ai-conversation"
           id="messages-container"
           ref={scroller}
           onScroll={(e) => {
             const el = e.currentTarget;
-            follow.current =
+            const atBottom =
               el.scrollHeight - el.scrollTop - el.clientHeight < 90;
+            follow.current = atBottom;
+            setDriftedFromBottom(!atBottom && el.scrollHeight > el.clientHeight);
           }}
           aria-busy={busy}
         >
@@ -733,10 +923,37 @@ export function NoataAIClient() {
                 disabled={busy} onChoose={prompt=>void send(undefined,"send",undefined,prompt)} />
             )}
           </div>
+
+          {driftedFromBottom && (
+            <button
+              type="button"
+              className="nk-jump-latest"
+              onClick={() => {
+                const el = scroller.current;
+                if (!el) return;
+                // Honor the user's motion setting on both layers.
+                const motionOff =
+                  document.documentElement.dataset.noataMotion === "off" ||
+                  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                follow.current = true;
+                el.scrollTo({
+                  top: el.scrollHeight,
+                  behavior: motionOff ? "auto" : "smooth",
+                });
+              }}
+            >
+              <Icon name="chevron" size={15} />
+              {t("انتقِل إلى آخر الرد","Jump to latest")}
+            </button>
+          )}
         </div>
 
-        <footer className="owui-composer-wrap">
-          <form onSubmit={(e) => void send(e)} className="owui-composer">
+        <footer className="owui-composer-wrap" data-tour="ai-composer">
+          <form
+            onSubmit={(e) => void send(e)}
+            className="owui-composer"
+            data-tour-critical={busy || input.trim() ? "true" : undefined}
+          >
             {workspace.revisionName&&<div className="noata-revision-context" role="status"><Icon name="file" size={16}/><span>{t("تعديل نسخة من: ","Revising: ")}{workspace.revisionName}</span><button type="button" aria-label={t("إزالة مصدر التعديل","Clear revision source")} onClick={workspace.clearRevision}><Icon name="close" size={15}/></button></div>}
             {model==="Fanar-Guard-2"&&<section className="noata-specialist-context" aria-label={t("نص مراجعة السلامة","Safety review context")}>
               <strong>{t("حارس 2 · فحص السلامة والوعي الثقافي","Guard 2 · Safety and cultural-awareness screening")}</strong>
@@ -1305,6 +1522,11 @@ export function NoataAIClient() {
             <kbd>K</kbd>
           </div>
           <div>
+            <span>{t("لوحة الأوامر","Command palette")}</span>
+            <kbd>Ctrl</kbd>
+            <kbd>P</kbd>
+          </div>
+          <div>
             <span>{t("فتح الإعدادات","Open settings")}</span>
             <kbd>Ctrl</kbd>
             <kbd>,</kbd>
@@ -1324,6 +1546,14 @@ export function NoataAIClient() {
           </div>
         </div>
       </Dialog>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        commands={paletteCommands}
+        locale={paletteLocale}
+        onRun={runPaletteCommand}
+      />
 
       <NoataCreativeStudio
         file={null}

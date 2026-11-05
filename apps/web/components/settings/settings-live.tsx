@@ -871,9 +871,9 @@ export function SettingsLive() {
     );
 
   return (
-    <div className="aura-settings-page">
+    <div className="aura-settings-page" data-tour-page="settings">
       {status && <p role="alert">{status}</p>}
-      <header className="aura-settings-heading">
+      <header className="aura-settings-heading" data-tour="settings-profile">
         <div>
            <span className="eyebrow">{t("إعدادات الحساب · Noäta Aura", "Account settings · Noäta Aura")}</span>
            <h1>{t("مساحتك، بطريقتك.", "Your space, your way.")}</h1>
@@ -885,7 +885,7 @@ export function SettingsLive() {
           {email}
         </span>
       </header>
-       <nav className="aura-settings-nav" aria-label={t("أقسام الإعدادات","Settings sections")}>
+       <nav className="aura-settings-nav" data-tour="settings-sections" aria-label={t("أقسام الإعدادات","Settings sections")}>
          <a href="#aura-profile">{t("الملف الشخصي","Profile")}</a>
          <a href="#aura-appearance">{t("المظهر","Appearance")}</a>
         <a href="#aura-ai">Noäta AI</a>
@@ -927,7 +927,7 @@ export function SettingsLive() {
              <small>{t("بعض الصفحات ما زالت عربية حتى عند اختيار الإنجليزية.","Some pages still appear in Arabic when English is selected.")}</small>
           </label>
         </section>
-        <section id="aura-appearance" className="aura-settings-section">
+        <section id="aura-appearance" className="aura-settings-section" data-tour="settings-appearance">
           <div className="aura-settings-section-top">
             <Icon name="sun" size={24} />
             <div>
@@ -1001,7 +1001,7 @@ export function SettingsLive() {
             />
           </label>
         </section>
-        <section id="aura-ai" className="aura-settings-section">
+        <section id="aura-ai" className="aura-settings-section" data-tour="settings-ai">
           <div className="aura-settings-section-top">
             <Icon name="ai" size={21} />
             <div>
@@ -1121,7 +1121,7 @@ export function SettingsLive() {
            {t("لا تشارك كلمة المرور مع أي شخص. صلاحيات حسابك تتحكم فيها سياسات قاعدة البيانات على الخادم، وليس هذه الصفحة.","Never share your password. Server-side database policies control account permissions.")}
         </p>
       </section>
-      <section id="aura-account" className="aura-settings-section aura-settings-account">
+      <section id="aura-account" className="aura-settings-section aura-settings-account" data-tour="settings-account">
         <div className="aura-settings-section-top">
           <Icon name="user" size={21} />
           <div>

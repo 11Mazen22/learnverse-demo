@@ -267,7 +267,7 @@ export function ReviewLive() {
           <h1>{t("المراجعة المتباعدة","Spaced review")}</h1>
           <p>{t("راجع اللي اتعلمته في الوقت المناسب. المواعيد بتتبني على إجاباتك الحقيقية، مش مؤقت عشوائي.","Review what you learned at the right time. Dates follow your actual answers.")}</p>
         </div>
-        <span className="pill">{due.toLocaleString(locale==="en"?"en":"ar-EG")}{t("مراجعات مستحقة","Reviews due")}</span>
+        <span className="pill">{due.toLocaleString(locale==="en"?"en":"ar-EG")} {t("مراجعات مستحقة","Reviews due")}</span>
       </header>
 
       {!questions.length ? (

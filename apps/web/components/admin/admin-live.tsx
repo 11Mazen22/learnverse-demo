@@ -84,6 +84,13 @@ export function AdminLive() {
   const [academicYear, setAcademicYear] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
+  // Same bilingual role pairs the role <select> options use (lines below).
+  const roleLabel = (role: Profile["role"]) =>
+    role === "student"
+      ? t("طالب","Student")
+      : role === "teacher"
+        ? t("معلّم","Teacher")
+        : t("إدارة","Admin");
 
   useUnsavedWork(
     Boolean(
@@ -134,14 +141,14 @@ export function AdminLive() {
       if (token !== account.revision.current) return false;
       const failed = results.find((r) => r.error);
       if (failed) throw failed.error;
-      const [q, p, c, m, t, l, s] = results,
+      const [q, p, c, m, tAccess, l, s] = results,
         classRows = (c.data ?? []) as ClassRow[],
         profileRows = (p.data ?? []) as Profile[];
       setQuestions((q.data ?? []) as Question[]);
       setProfiles(profileRows);
       setClasses(classRows);
       setMemberships((m.data ?? []) as Membership[]);
-      setTeacherAccess((t.data ?? []) as TeacherAccess[]);
+      setTeacherAccess((tAccess.data ?? []) as TeacherAccess[]);
       setLessons((l.data ?? []) as Lesson[]);
       setSkills((s.data ?? []) as Skill[]);
       if (!lessonId && l.data?.[0]) setLessonId(l.data[0].id);
@@ -315,13 +322,10 @@ export function AdminLive() {
         .single();
       check();
       if (error) throw error;
-      const success = t("تم إنشاء الصفّ ✓","Class created ✓");
-      if (!error) {
-        setClassName("");
-        setGradeLabel("");
-        setAcademicYear("");
-      }
-      return refreshMessage(check, success);
+      setClassName("");
+      setGradeLabel("");
+      setAcademicYear("");
+      return refreshMessage(check, t("تم إنشاء الصفّ ✓","Class created ✓"));
     });
   }
 
@@ -440,8 +444,8 @@ export function AdminLive() {
       </section>
     );
   return (
-    <div className="noata-staff-studio noata-admin-studio">
-      <header className="topbar" style={{ marginBottom: 18 }}>
+    <div className="noata-staff-studio noata-admin-studio" data-tour-page="admin">
+      <header className="topbar" data-tour="admin-welcome" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("إدارة المحتوى والمجتمع","Manage content and community")}</div>
           <h1 style={{ margin: "6px 0 0" }}>{t("مركز إدارة Noäta","Noäta administration")}</h1>
@@ -449,7 +453,7 @@ export function AdminLive() {
         <span className="pill">{t("إدارة المحتوى والمجتمع","Manage content and community")}</span>
       </header>
 
-      <section className="grid-4">
+      <section className="grid-4" data-tour="admin-governance-summary">
         <article className="metric-card">
           <span>{t("المسودات","Drafts")}</span>
           <strong>{counts.draft}</strong>
@@ -468,16 +472,17 @@ export function AdminLive() {
         <article className="metric-card">
           <span>{t("الحسابات","Accounts")}</span>
           <strong>{counts.users}</strong>
-          <small>{classes.length}{t("صفوف","classes")}</small>
+          <small>{classes.length} {t("صفوف","classes")}</small>
         </article>
       </section>
 
-      <div className="noata-admin-tabs" style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+      <div className="noata-admin-tabs" data-tour="admin-sections" style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
         {(
           ["content", "curriculum", "support", "users", "classes", "operations"] as const
         ).map((x) => (
           <button
             key={x}
+            data-tour={`admin-tab-${x}`}
             type="button"
             aria-pressed={tab === x}
             onClick={() => setTab(x)}
@@ -519,7 +524,12 @@ export function AdminLive() {
       {tab === "content" && (
         <>
           <section className="content-grid">
-            <form className="panel" onSubmit={createQuestion}>
+            <form
+              className="panel"
+              data-tour="admin-content-draft"
+              data-tour-critical={promptAr || promptEn || choicesAr || choicesEn || answer ? "true" : undefined}
+              onSubmit={createQuestion}
+            >
               <div className="panel-head">
                 <h2>{t("إنشاء مسودة سؤال","Create question draft")}</h2>
                 <span className="pill">{t("الإجابة الصحيحة محفوظة في الخادم","Answer keys are stored on the server")}</span>
@@ -655,10 +665,10 @@ export function AdminLive() {
             </aside>
           </section>
 
-          <section className="panel" style={{ marginTop: 18 }}>
+          <section className="panel" data-tour="admin-content-review" style={{ marginTop: 18 }}>
             <div className="panel-head">
               <h2>{t("قائمة المحتوى","Content list")}</h2>
-              <span className="pill">{visibleQuestions.length} / {questions.length} {locale==="en"?(visibleQuestions.length===1?"question":"questions"):"\u0633\u0624\u0627\u0644"}</span>
+              <span className="pill">{visibleQuestions.length} / {questions.length} {locale==="en"?(visibleQuestions.length===1?"question":"questions"):t("سؤال","question")}</span>
             </div>
             <div className="noata-staff-list-tools">
               <label className="noata-staff-search">
@@ -713,7 +723,7 @@ export function AdminLive() {
                 const action = actionFor(q);
                 return (
                   <div className="quest" key={q.id}>
-                    <div className="quest-icon">{questionPage.start + i}</div>
+                    <div className="quest-icon" aria-hidden="true">{questionPage.start + i}</div>
                     <div>
                       <h3>{locale==="en"?q.prompt_en:q.prompt_ar}</h3>
                       <p>
@@ -797,16 +807,16 @@ export function AdminLive() {
       )}
 
       {tab === "curriculum" && (
-        <>
+        <div data-tour="admin-curriculum-workspace">
           <CurriculumCatalogAdmin />
           <CurriculumManager />
-        </>
+        </div>
       )}
-      {tab === "support" && <SupportManagerAdmin />}
-      {tab === "operations" && <OperationsLive />}
+      {tab === "support" && <div data-tour="admin-support"><SupportManagerAdmin /></div>}
+      {tab === "operations" && <div data-tour="admin-operations"><OperationsLive /></div>}
 
       {tab === "users" && (
-        <section className="panel" style={{ marginTop: 18 }}>
+        <section className="panel" data-tour="admin-users" style={{ marginTop: 18 }}>
           <div className="panel-head">
             <h2>{t("الحسابات والصلاحيات","Accounts and permissions")}</h2>
             <span className="pill">{t("صلاحيات الحساب","Account permissions")}</span>
@@ -862,13 +872,13 @@ export function AdminLive() {
           <div className="quest-list">
             {profilePage.items.map((p) => (
                 <div className="quest" key={p.id}>
-                  <div className="quest-icon">
+                  <div className="quest-icon" aria-hidden="true">
                     {p.display_name?.slice(0, 1).toUpperCase() || "U"}
                   </div>
                   <div>
-                    <h3>{p.display_name || "Unnamed user"}</h3>
+                    <h3>{p.display_name || t("حساب بدون اسم","Unnamed user")}</h3>
                     <p>
-                      {p.role} · {p.xp} XP · {p.coins} Coins
+                      {roleLabel(p.role)} · {p.xp} XP · {p.coins} {t("عملة","Coins")}
                     </p>
                   </div>
                   <select
@@ -906,7 +916,7 @@ export function AdminLive() {
       )}
 
       {tab === "classes" && (
-        <>
+        <div data-tour="admin-classes">
           <section className="content-grid">
             <form className="panel" onSubmit={createClass}>
               <div className="panel-head">
@@ -974,7 +984,7 @@ export function AdminLive() {
                 >
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.display_name || "Unnamed"} · {p.role}
+                    {p.display_name || t("حساب بدون اسم","Unnamed")} · {roleLabel(p.role)}
                     </option>
                   ))}
                 </select>
@@ -1036,7 +1046,7 @@ export function AdminLive() {
                       </p>
                     </div>
                     <span className="pill">
-                      {students.length}{t("طالب ·","Student ·")}{teachers.length}{t("معلّم","Teacher")}</span>
+                      {students.length} {t("طالب ·","Student ·")} {teachers.length} {t("معلّم","Teacher")}</span>
                   </div>
                   <div
                     style={{
@@ -1047,6 +1057,11 @@ export function AdminLive() {
                   >
                     <div>
                       <b>{t("الطلاب","Students")}</b>
+                      {!students.length && (
+                        <p style={{color:"var(--muted)",margin:"6px 0 0"}}>
+                          {t("لا يوجد طلاب في هذا الصف بعد.","No students in this class yet.")}
+                        </p>
+                      )}
                       {students.map((m) => (
                         <div
                           key={m.student_id}
@@ -1060,7 +1075,7 @@ export function AdminLive() {
                         >
                           <span>
                             {profiles.find((p) => p.id === m.student_id)
-                              ?.display_name || "Student"}
+                              ?.display_name || t("طالب","Student")}
                           </span>
                           <button
                             onClick={() =>
@@ -1077,6 +1092,11 @@ export function AdminLive() {
                     </div>
                     <div>
                       <b>{t("المعلّمون","Teachers")}</b>
+                      {!teachers.length && (
+                        <p style={{color:"var(--muted)",margin:"6px 0 0"}}>
+                          {t("لا يوجد معلّمون في هذا الصف بعد.","No teachers in this class yet.")}
+                        </p>
+                      )}
                       {teachers.map((teacher) => (
                         <div
                           key={teacher.teacher_id}
@@ -1090,7 +1110,7 @@ export function AdminLive() {
                         >
                           <span>
                             {profiles.find((p) => p.id === teacher.teacher_id)
-                              ?.display_name || "Teacher"}
+                              ?.display_name || t("معلّم","Teacher")}
                           </span>
                           <button
                             onClick={() =>
@@ -1115,7 +1135,7 @@ export function AdminLive() {
                 : t("لم تُنشأ صفوف بعد.","No classes have been created yet.")}</div>
             )}
           </section>
-        </>
+        </div>
       )}
     </div>
   );

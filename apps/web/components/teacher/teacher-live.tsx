@@ -8,6 +8,7 @@ import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import { filterStaffSearch, paginateStaffItems, summarizeStudentProgress } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
+import { absoluteTimeLabel, localizedTimestamp } from "@/lib/dashboard/relative-time";
 
 type ClassRow = {
   id: string;
@@ -364,8 +365,8 @@ export function TeacherLive() {
       </section>
     );
   return (
-    <div className="noata-staff-studio noata-teacher-studio">
-      <header className="topbar" style={{ marginBottom: 18 }}>
+    <div className="noata-staff-studio noata-teacher-studio" data-tour-page="teacher">
+      <header className="topbar" data-tour="teacher-welcome" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("صفوفك وخطوات طلابك","Your classes and student progress")}</div>
           <h1 style={{ margin: "6px 0 0" }}>{t("كل طالب له خطوة جاية.","Every learner has a next step.")}</h1>
@@ -378,7 +379,7 @@ export function TeacherLive() {
           {status}
         </p>
       )}
-      <section className="grid-4">
+      <section className="grid-4" data-tour="teacher-attention">
         <article className="metric-card">
           <span>{t("الصفوف","Classes")}</span>
           <strong>{classes.length}</strong>
@@ -393,17 +394,17 @@ export function TeacherLive() {
           <span>{t("الواجبات","Assignments")}</span>
           <strong>{assignments.length}</strong>
           <small>
-            {assignments.filter((x) => x.published_at).length}{t("منشور","Published")}</small>
+            {assignments.filter((x) => x.published_at).length} {t("منشور","Published")}</small>
         </article>
         <article className="metric-card">
           <span>{t("التسليمات","Submissions")}</span>
           <strong>{submissions.length}</strong>
           <small>
-            {submissions.filter((x) => x.submitted_at && x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</small>
+            {submissions.filter((x) => x.submitted_at && x.score == null).length} {t("بانتظار التقييم","Awaiting feedback")}</small>
         </article>
       </section>
 
-      <nav className="filter-bar" aria-label={t("أقسام مساحة المعلم","Teacher workspace sections")}>
+      <nav className="filter-bar" data-tour="teacher-sections" aria-label={t("أقسام مساحة المعلم","Teacher workspace sections")}>
         {[
           ["overview", t("نظرة عامة","Overview")],
           ["students", t("الطلاب وتقدمهم","Students & progress")],
@@ -430,7 +431,12 @@ export function TeacherLive() {
       </nav>
       {(view === "overview" || view === "create") && (
         <section className="content-grid">
-          <form className="panel" onSubmit={createAssignment}>
+          <form
+            className="panel"
+            data-tour="teacher-assignment-builder"
+            data-tour-critical={title || instructions || due || selectedQuestions.length ? "true" : undefined}
+            onSubmit={createAssignment}
+          >
             <div className="panel-head">
               <h2>{t("إنشاء واجب","Create assignment")}</h2>
               <span className="pill">{t("أسئلة معتمدة فقط","Approved questions only")}</span>
@@ -551,6 +557,7 @@ export function TeacherLive() {
               >{t("إنشاء واجب","Create assignment")}</button>
               {status && (
                 <small
+                  role="status"
                   style={{
                     color: status.includes("✓")
                       ? "var(--success)"
@@ -563,7 +570,7 @@ export function TeacherLive() {
             </div>
           </form>
 
-          <aside className="panel">
+          <aside className="panel" data-tour="teacher-classes">
             <div className="panel-head">
               <h2>{t("صفوفك","Your classes")}</h2>
               <span className="pill">{classes.length}</span>
@@ -571,7 +578,7 @@ export function TeacherLive() {
             <div className="quest-list">
               {classes.map((c) => (
                 <div className="quest" key={c.id}>
-                  <div className="quest-icon">◫</div>
+                  <div className="quest-icon" aria-hidden="true">◫</div>
                   <div>
                     <h3>{c.name}</h3>
                     <p>
@@ -589,7 +596,7 @@ export function TeacherLive() {
       )}
 
       {(view === "overview" || view === "assignments") && (
-        <section className="panel" style={{ marginTop: 18 }}>
+        <section className="panel" data-tour="teacher-assignments" style={{ marginTop: 18 }}>
           <div className="panel-head">
             <h2>{t("الواجبات","Assignments")}</h2>
             <span className="pill">{visibleAssignments.length} / {assignments.length} {t("واجب","assignments")}</span>
@@ -648,14 +655,14 @@ export function TeacherLive() {
           <div className="quest-list">
             {assignmentPageData.items.map((a) => (
               <div className="quest" key={a.id}>
-                <div className="quest-icon">{a.published_at ? "✓" : "D"}</div>
+                <div className="quest-icon" aria-hidden="true">{a.published_at ? "✓" : "D"}</div>
                 <div>
                   <h3>{a.title}</h3>
                   <p>
                     {classes.find((c) => c.id === a.class_id)?.name ?? t("الصفّ","Class")}{" "}
                     ·{" "}
                     {a.due_at
-                      ? t("الموعد: ","Due: ") + new Date(a.due_at).toLocaleString(locale==="en"?"en":"ar-EG")
+                      ? t("الموعد: ","Due: ") + localizedTimestamp(a.due_at, searchLocale)
                       : t("بدون موعد محدد","No due date")}
                   </p>
                 </div>
@@ -695,7 +702,7 @@ export function TeacherLive() {
 
 
       {view === "students" && (
-        <section className="panel">
+        <section className="panel" data-tour="teacher-students">
           <div className="panel-head">
             <h2>{t("قائمة الطلاب وتقدمهم","Student roster and progress")}</h2>
             <span className="pill">{visibleRoster.length} {t("سجل طالب/صف","student-class records")}</span>
@@ -785,7 +792,7 @@ export function TeacherLive() {
                       : t("متوسط أفضل الدرجات","Average best score") + ": " + summary.averageBestScore + "%"}</p>
                   </div>
                   <span className="pill">{summary.lastUpdated
-                    ? t("آخر تحديث","Updated") + " " + new Date(summary.lastUpdated).toLocaleDateString(locale === "en" ? "en" : "ar")
+                    ? t("آخر تحديث","Updated") + " " + localizedTimestamp(summary.lastUpdated, searchLocale)
                     : t("لا يوجد نشاط مسجل","No recorded activity")}</span>
                 </article>
               );
@@ -810,11 +817,11 @@ export function TeacherLive() {
       )}
 
       {(view === "overview" || view === "grading") && (
-        <section className="panel" style={{ marginTop: 18 }}>
+        <section className="panel" data-tour="teacher-grading" style={{ marginTop: 18 }}>
           <div className="panel-head">
             <h2>{t("التسليمات والتقييم","Submissions and grading")}</h2>
             <span className="pill">
-              {submissions.filter((x) => x.submitted_at && x.score == null).length}{t("بانتظار التقييم","Awaiting feedback")}</span>
+              {submissions.filter((x) => x.submitted_at && x.score == null).length} {t("بانتظار التقييم","Awaiting feedback")}</span>
           </div>
           <nav className="filter-bar" aria-label={t("تصفية التسليمات", "Submission filters")} style={{ marginBottom: 14 }}>
             {([
@@ -875,7 +882,7 @@ export function TeacherLive() {
               );
               return (
                 <div className="quest" key={s.id}>
-                  <div className="quest-icon">
+                  <div className="quest-icon" aria-hidden="true">
                     {s.score == null ? "…" : Math.round(s.score)}
                   </div>
                   <div>
@@ -883,7 +890,7 @@ export function TeacherLive() {
                     <p>
                       {assignment?.title ?? t("واجب","Assignment")} ·{" "}
                       {s.submitted_at
-                        ? new Date(s.submitted_at).toLocaleString(locale==="en"?"en":"ar-EG")
+                        ? <time dateTime={s.submitted_at} title={absoluteTimeLabel(s.submitted_at, searchLocale)}>{localizedTimestamp(s.submitted_at, searchLocale)}</time>
                         : t("لم يُسلّم بعد","Not submitted")}
                     </p>
                   </div>

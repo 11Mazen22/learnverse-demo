@@ -7,6 +7,14 @@ import {createRequire} from 'node:module';
 import {launchQaBrowser,qaChromeArgs,processGroupMembers} from './lib/qa-browser.mjs';
 const require=createRequire(new URL('../apps/web/package.json',import.meta.url));
 
+// Fault fixtures are POSIX shebang scripts and the process-group regressions
+// need Linux process accounting, so on other hosts these cases are skipped
+// instead of failing on an unrelated spawn(2) limitation. The Linux CI runner
+// always executes every case below.
+const fixtureSkipReason=process.platform==='linux'
+  ?false
+  :'fault fixtures require the Linux CI runner (shebang scripts and POSIX process groups)';
+
 async function fakeChrome(t,name,source){
   const root=await mkdtemp(join(tmpdir(),'noata-chrome-fault-'));
   t.after(()=>rm(root,{recursive:true,force:true}));
@@ -28,7 +36,7 @@ test('missing Chrome captures the spawn error and cleans its isolated profile',a
   const result=JSON.parse(await readFile(join(dir,'browser-startup.json'),'utf8'));
   assert.equal(result.spawnError.code,'ENOENT');
 });
-test('Chrome startup crash captures its exact exit code and untruncated stderr',async t=>{
+test('Chrome startup crash captures its exact exit code and untruncated stderr',{skip:fixtureSkipReason},async t=>{
   const options=await fakeChrome(t,'exit-code',`process.stderr.write('STARTUP-BEGIN\\n'+'x'.repeat(20000)+'\\nSTARTUP-END\\n',()=>process.exit(7));`);
   await assert.rejects(launchQaBrowser(options),error=>{
     assert.match(error.message,/code=7/);assert.equal(error.diagnostics.exit.code,7);
@@ -37,13 +45,13 @@ test('Chrome startup crash captures its exact exit code and untruncated stderr',
   const log=await readFile(join(options.artifactsDir,'chromium.log'),'utf8');
   assert.ok(log.startsWith('STARTUP-BEGIN'));assert.ok(log.includes('STARTUP-END'));assert.ok(log.length>20000);
 });
-test('Chrome signal failure is distinguished from a connection timeout',async t=>{
+test('Chrome signal failure is distinguished from a connection timeout',{skip:fixtureSkipReason},async t=>{
   const options=await fakeChrome(t,'signal',`process.stderr.write('simulated abrupt browser termination\\n');process.kill(process.pid,'SIGKILL');`);
   await assert.rejects(launchQaBrowser(options),error=>{
     assert.equal(error.diagnostics.exit.signal,'SIGKILL');assert.match(error.message,/signal=SIGKILL/);return true;
   });
 });
-test('a persistent startup SIGTRAP stops after two clean attempts and retains both logs',async t=>{
+test('a persistent startup SIGTRAP stops after two clean attempts and retains both logs',{skip:fixtureSkipReason},async t=>{
   const options=await fakeChrome(t,'persistent-trap',`
 require('node:fs').writeSync(2,'persistent startup trap\\n');process.kill(process.pid,'SIGTRAP');
 `);
@@ -61,7 +69,7 @@ require('node:fs').writeSync(2,'persistent startup trap\\n');process.kill(proces
     assert.match(await readFile(join(directory,'chromium.log'),'utf8'),/persistent startup trap/);
   }
 });
-test('one startup SIGTRAP can recover to usable CDP without losing the failed attempt',async t=>{
+test('one startup SIGTRAP can recover to usable CDP without losing the failed attempt',{skip:fixtureSkipReason},async t=>{
   const options=await fakeChrome(t,'transient-trap',`
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const marker=path.join(path.dirname(process.argv[1]),'already-trapped');
@@ -93,7 +101,7 @@ server.listen(0,'127.0.0.1',()=>fs.writeFileSync(path.join(profile,'DevToolsActi
   assert.equal(final.profileRemoved,true);assert.equal(final.cleanupErrors.length,0);
   assert.match(await readFile(join(options.artifactsDir,'startup-attempt-1','chromium.log'),'utf8'),/first attempt trapped/);
 });
-test('crashed browser cleanup kills descendants that ignore SIGTERM',async t=>{
+test('crashed browser cleanup kills descendants that ignore SIGTERM',{skip:fixtureSkipReason},async t=>{
   assert.equal(process.platform,'linux','This process-group regression requires the Linux CI runner');
   const options=await fakeChrome(t,'orphan-child',`
 const {spawn}=require('node:child_process');
@@ -112,7 +120,7 @@ orphan.stdout.once('data',()=>{orphan.stdout.destroy();process.exit(9);});
   assert.equal((await processGroupMembers(result.pid)).filter(p=>p.state!=='Z'&&p.state!=='X').length,0);
   assert.ok(result.resourcesBefore.processLimits);
 });
-test('WebSocket handshake rejection retains platform error, endpoint and Chrome diagnostics',async t=>{
+test('WebSocket handshake rejection retains platform error, endpoint and Chrome diagnostics',{skip:fixtureSkipReason},async t=>{
   const options=await fakeChrome(t,'websocket-rejected',`
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const profile=process.argv.find(a=>a.startsWith('--user-data-dir=')).split('=').slice(1).join('=');
@@ -129,7 +137,7 @@ server.listen(0,'127.0.0.1',()=>fs.writeFileSync(path.join(profile,'DevToolsActi
   });
   assert.match(await readFile(join(options.artifactsDir,'chromium.log'),'utf8'),/HTTP 403/);
 });
-test('missing debugger readiness times out with the last filesystem error and exit diagnostics',async t=>{
+test('missing debugger readiness times out with the last filesystem error and exit diagnostics',{skip:fixtureSkipReason},async t=>{
   const options=await fakeChrome(t,'no-debugger',`process.stderr.write('Chrome fixture without debugger\\n');setInterval(()=>{},1000);`);
   options.startupTimeoutMs=250;
   await assert.rejects(launchQaBrowser(options),error=>{

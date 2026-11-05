@@ -370,8 +370,8 @@ export function LearnLive() {
     : "";
 
   return (
-    <>
-      <header className="topbar" style={{ marginBottom: 18 }}>
+    <div data-tour-page="learn">
+      <header className="topbar" data-tour="learn-welcome" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>
             {t("كل فكرة، خطوة في رحلتك", "Every idea is a step on your journey")}
@@ -401,7 +401,7 @@ export function LearnLive() {
         </div>
       )}
 
-      <section className="aura-subject-hub" aria-label={t("المواد الدراسية", "Subjects")}>
+      <section className="aura-subject-hub" data-tour="learn-tracks" aria-label={t("المواد الدراسية", "Subjects")}>
         <div className="aura-subject-hub-head">
           <h2>{t("المواد الدراسية", "Subjects")}</h2>
           <p>
@@ -502,7 +502,7 @@ export function LearnLive() {
         </div>
       </section>
 
-      <section className="panel" aria-busy={loading || account.loading}>
+      <section className="panel" data-tour="learn-progress" aria-busy={loading || account.loading}>
         <div className="panel-head">
           <div>
             <h2>
@@ -598,7 +598,7 @@ export function LearnLive() {
         </div>
       )}
 
-      <section style={{ display: "grid", gap: 16, marginTop: 18 }}>
+      <section data-tour="learn-units" style={{ display: "grid", gap: 16, marginTop: 18 }}>
         {trackUnits.map((unit) => {
           const unitLessons = trackLessons.filter(
             (lesson) => lesson.unit_id === unit.id && visible(lesson),
@@ -693,6 +693,6 @@ export function LearnLive() {
           );
         })}
       </section>
-    </>
+    </div>
   );
 }

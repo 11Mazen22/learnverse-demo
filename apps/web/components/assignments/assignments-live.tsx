@@ -375,8 +375,8 @@ export function AssignmentsLive() {
       );
 
     return (
-      <>
-        <header className="topbar" style={{ marginBottom: 18 }}>
+      <div data-tour-page="assignment-detail" data-tour-critical="true">
+        <header className="topbar" data-tour="assignment-context" style={{ marginBottom: 18 }}>
           <div>
             <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("من السؤال إلى التسليم","From questions to submission")}</div>
             <h1 style={{ margin: "6px 0 0" }}>{selectedAssignment?.title}</h1>
@@ -385,7 +385,7 @@ export function AssignmentsLive() {
             {idx + 1}/{items.length || 1}
           </span>
         </header>
-        <section className="panel" style={{ padding: 28 }}>
+        <section className="panel" data-tour="assignment-questions" style={{ padding: 28 }}>
           {!current ? (
             <div role={error ? "alert" : "status"}>
               <p>
@@ -512,20 +512,20 @@ export function AssignmentsLive() {
             </form>
           )}
         </section>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <header className="topbar" style={{ marginBottom: 18 }}>
+    <div data-tour-page="assignments">
+      <header className="topbar" data-tour="assignments-welcome" style={{ marginBottom: 18 }}>
         <div>
           <div className="eyebrow" style={{ color: "var(--accent)" }}>{t("واجبات صفّك","Class assignments")}</div>
           <h1 style={{ margin: "6px 0 0" }}>{t("واجباتك","Your assignments")}</h1>
         </div>
         <span className="pill">{rows.length} {locale==="en"?(rows.length===1?"available assignment":"available assignments"):"\u0648\u0627\u062c\u0628 \u0645\u062a\u0627\u062d"}</span>
       </header>
-      <section className="quest-list">
+      <section className="quest-list" data-tour="assignments-list">
         {rows.map((row) => {
           const sub = submissions.find((x) => x.assignment_id === row.id);
           const overdue =
@@ -585,6 +585,6 @@ export function AssignmentsLive() {
           >{t("مفيش واجبات منشورة ليك حاليًا.","No assignments are currently published for you.")}</section>
         )}
       </section>
-    </>
+    </div>
   );
 }

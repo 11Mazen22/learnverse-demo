@@ -1,5 +1,4 @@
 "use client";
-import { NoataBrand } from "@/components/ui/noata-logo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -100,6 +99,17 @@ export function AppShell({
   const account = useVerifiedAccount();
   const [aiIsNew, setAiIsNew] = useState(false);
 
+  const availableRoutes = useMemo(
+    () =>
+      routes.filter((route) => {
+        if (route[2] === "/admin") return account.role === "admin";
+        if (route[2] === "/teacher")
+          return account.role === "teacher" || account.role === "admin";
+        return true;
+      }),
+    [account.role],
+  );
+
   useEffect(() => {
     const update = () =>
       setAiIsNew(!hasSeenFeature("ai", AI_INTRO_VERSION, account.user?.id ?? null));
@@ -128,14 +138,14 @@ export function AppShell({
 
   const searchResults = useMemo(
     () =>
-      routes.filter((route) =>
+      availableRoutes.filter((route) =>
         matchesStaffSearch(
           query,
           [route[0], route[1], route[4], route[5]],
           locale,
         ),
       ),
-    [locale, query],
+    [availableRoutes, locale, query],
   );
 
   function closeSearch() {

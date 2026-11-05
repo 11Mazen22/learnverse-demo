@@ -40,6 +40,7 @@ import "./ai-reading-renaissance.css";
 import "./tooltip-system.css";
 import "./staff-studio.css";
 import "./tour-system.css";
+import "./ai-flow.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";

@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
+import { NoataLogo } from "@/components/ui/noata-logo";
 import { dashboardVisibility, type DashboardAvailability } from "@/lib/dashboard/visibility";
+import { localizedTimestamp } from "@/lib/dashboard/relative-time";
 import { localized, useLocale } from "@/lib/i18n/locale";
 import {
   SUBJECT_CATALOG,
@@ -93,7 +95,6 @@ export function DashboardLive() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
-  const errorRevision = useRef(-1);
   const supabase = useMemo(() => createClient(), []);
 
   const visibility = dashboardVisibility(
@@ -115,7 +116,6 @@ export function DashboardLive() {
     if (account.loading) return;
     let alive = true;
     const revision = account.revision.current;
-    errorRevision.current = revision;
     setState(initial);
 
     void (async () => {
@@ -259,7 +259,7 @@ export function DashboardLive() {
               .map((row) => ({
                 id: row.skill_id || row.skills?.id || "skill",
                 titleAr: row.skills?.title_ar || t("مفهوم قيد المراجعة", "Concept in review"),
-                titleEn: row.skills?.title_en || "Concept in review",
+                titleEn: row.skills?.title_en || t("مفهوم قيد المراجعة", "Concept in review"),
                 score: row.mastery_score,
                 state: row.state,
                 contentLanguage:
@@ -375,6 +375,7 @@ export function DashboardLive() {
   // Active Subject details
   const activeSubjectMeta =
     SUBJECT_CATALOG.find((s) => s.slug === state.activeSubject) || SUBJECT_CATALOG[0];
+  const searchLocale = locale === "en" ? "en" : "ar";
 
   // Time-of-day greeting (client-hydrated to prevent SSR timezone mismatch)
   const [greeting, setGreeting] = useState(() => t("أهلاً بك", "Welcome"));
@@ -389,10 +390,14 @@ export function DashboardLive() {
     );
   }, [t]);
 
+  const nextHref = state.nextLesson
+    ? `/lesson/${encodeURIComponent(state.nextLesson.id)}`
+    : "/learn";
+
   return (
-    <div className="db-cockpit" dir={locale === "ar" ? "rtl" : "ltr"}>
+    <div className="db-cockpit" data-tour-page="dashboard" dir={locale === "ar" ? "rtl" : "ltr"}>
       {/* 1. Dashboard Header & Greeting */}
-      <div className="db-header">
+      <div className="db-header" data-tour="dashboard-welcome">
         <div className="db-greeting">
           <div className="db-greeting-meta">
             <span className="db-badge-term">
@@ -416,7 +421,9 @@ export function DashboardLive() {
         <div className="db-header-actions">
           <div className="db-streak-pill" title={t("سلسلة أيام التعلم المتواصلة", "Continuous daily study streak")}>
             <span className="db-flame"><Icon name="flame" size={16} /></span>
-            <span>{visibility.profile ? state.streak : "—"} {t("أيام استمرارية", "Day Streak")}</span>
+            <span>{visibility.waiting ? (
+              <span className="skeleton" style={{display:"inline-block",width:"3em",height:"0.9em",verticalAlign:"middle",borderRadius:8}} aria-hidden="true" />
+            ) : visibility.profile ? state.streak : "—"} {t("أيام استمرارية", "Day Streak")}</span>
           </div>
         </div>
       </div>
@@ -438,8 +445,54 @@ export function DashboardLive() {
         </div>
       )}
 
+      <section className="hero dashboard-hero" data-tour="dashboard-brand-hero">
+        <div>
+          <div className="eyebrow">{t("نقطة · تعلّم. ابنِ. أنجز.", "NOÄTA · LEARN. GROW. ACHIEVE.")}</div>
+          <h2>
+            {signedIn && state.displayName
+              ? t("خطوة النهارده، بتفتح طريق بكرة.", "Today's step opens tomorrow's path.")
+              : t("مش بس تذاكر. افهم، جرّب، واتقدّم.", "Go beyond studying. Understand, try, and grow.")}
+          </h2>
+          <p>
+            {signedIn && state.displayName
+              ? state.nextLesson
+                ? t(
+                    `كمّل «${state.nextLesson.title_ar}» وخلّي كل فكرة جديدة خطوة في رحلتك.`,
+                    `Continue “${state.nextLesson.title_en || state.nextLesson.title_ar}” and make each new idea part of your journey.`
+                  )
+                : t("استكشف الدروس وراجع اللي اتعلمته على مهلك.", "Explore lessons and review what you have learned at your own pace.")
+              : t(
+                  "دروس واضحة، تحديات بتكبر معاك، ومساعد ذكي يفكّر معاك خطوة بخطوة.",
+                  "Clear lessons, growing challenges, and an AI companion to think things through with you."
+                )}
+          </p>
+          <div className="hero-actions">
+            <Link className="btn btn-primary" href={nextHref}>
+              {signedIn && state.displayName
+                ? t("كمّل التعلّم", "Continue learning")
+                : t("استكشف رحلتك", "Explore your journey")}
+              <Icon name="arrow" size={17} />
+            </Link>
+            <Link className="btn btn-secondary" href="/ai">
+              {t("خلّينا نسأل Noäta", "Ask Noäta")}
+              <Icon name="ai" size={16} />
+            </Link>
+          </div>
+        </div>
+        <div className="aura-brand-scene" aria-hidden="true">
+          <div className="aura-brand-halo" />
+          <NoataLogo size={174} className="noata-logo-on-navy" />
+          <span className="aura-scene-caption" dir="ltr">
+            {t("تعلّم. انمُ. أنجز.","Learn. Grow. Achieve.")}
+          </span>
+          <span className="aura-scene-note">
+            <Icon name="ai" size={16} /> {t("كل سؤال يفتح أفقًا", "Every question opens a new path")}
+          </span>
+        </div>
+      </section>
+
       {/* 2. Grand Spotlight Hero — "What to focus on now" + "Where I left off" */}
-      <section className="db-spotlight" aria-label={t("خطوتك المقترحة الآن", "Your Suggested Focus Now")}>
+      <section className="db-spotlight" data-tour="next-action" aria-label={t("خطوتك المقترحة الآن", "Your Suggested Focus Now")}>
         <div className="db-spotlight-content">
           <div className="db-spotlight-eyebrow">
             <span className="inline-flex items-center gap-1.5"><Icon name="zap" size={14} /> {t("خطوتك التالية ذات الأولوية القصوى", "High-Priority Learning Focus")}</span>
@@ -514,14 +567,18 @@ export function DashboardLive() {
       </section>
 
       {/* 3. Metrics Grid — The 4 Grand Learning Pillars */}
-      <section className="db-metrics-grid" aria-label={t("مؤشرات الأداء والإتقان", "Performance Metrics")}>
+      <section className="db-metrics-grid" data-tour="learning-evidence" aria-label={t("مؤشرات الأداء والإتقان", "Performance Metrics")} aria-busy={visibility.waiting}>
         {/* Metric 1: Level & XP */}
         <article className="db-metric-card">
           <div className="db-metric-top">
             <span>{t("المستوى وخبرة التعلم", "Level & Learning XP")}</span>
             <div className="db-metric-icon"><Icon name="star" size={18} /></div>
           </div>
-          <p className="db-metric-value">{visibility.profile ? t(`المستوى ${level}`, `Level ${level}`) : "—"}</p>
+          <p className="db-metric-value">
+            {visibility.waiting ? (
+              <span className="skeleton" style={{display:"inline-block",width:"5.4em",height:"1.05em",verticalAlign:"middle",borderRadius:8}} aria-hidden="true" />
+            ) : visibility.profile ? t(`المستوى ${level}`, `Level ${level}`) : "—"}
+          </p>
           <div className="db-card-progress" style={{ marginTop: 8 }}>
             <div className="db-card-progress-bar">
               <div className="db-card-progress-fill" style={{ width: `${visibility.profile ? levelProgress : 0}%`, background: "#818cf8" }} />
@@ -541,7 +598,9 @@ export function DashboardLive() {
             </div>
           </div>
           <p className="db-metric-value" style={{ color: dueReviews > 0 ? "#fde68a" : "#6ee7b7" }}>
-            {visibility.evidence ? (dueReviews > 0 ? dueReviews : t("لا شيء مستحق", "Nothing due")) : "—"}
+            {visibility.waiting ? (
+              <span className="skeleton" style={{display:"inline-block",width:"4.2em",height:"1.05em",verticalAlign:"middle",borderRadius:8}} aria-hidden="true" />
+            ) : visibility.evidence ? (dueReviews > 0 ? dueReviews : t("لا شيء مستحق", "Nothing due")) : "—"}
           </p>
           <span className="db-metric-sub">
             {!visibility.evidence
@@ -563,7 +622,11 @@ export function DashboardLive() {
             <span>{t("معدل إتقان المهارات", "Skill Mastery Rate")}</span>
             <div className="db-metric-icon"><Icon name="target" size={18} /></div>
           </div>
-          <p className="db-metric-value">{visibility.evidence && state.masteryRows.length ? mastery + "%" : "—"}</p>
+          <p className="db-metric-value">
+            {visibility.waiting ? (
+              <span className="skeleton" style={{display:"inline-block",width:"4.6em",height:"1.05em",verticalAlign:"middle",borderRadius:8}} aria-hidden="true" />
+            ) : visibility.evidence && state.masteryRows.length ? mastery + "%" : "—"}
+          </p>
           <span className="db-metric-sub">
             {state.masteryRows.length} {t("مهارات مقاسة بنظام التصحيح الحتمي", "skills measured by deterministic engine")}
           </span>
@@ -575,7 +638,11 @@ export function DashboardLive() {
             <span>{t("الدروس المكتملة", "Lessons Completed")}</span>
             <div className="db-metric-icon"><Icon name="book" size={18} /></div>
           </div>
-          <p className="db-metric-value">{visibility.progress ? `${state.completedLessons} / ${state.lessons}` : "—"}</p>
+          <p className="db-metric-value">
+            {visibility.waiting ? (
+              <span className="skeleton" style={{display:"inline-block",width:"5em",height:"1.05em",verticalAlign:"middle",borderRadius:8}} aria-hidden="true" />
+            ) : visibility.progress ? `${state.completedLessons} / ${state.lessons}` : "—"}
+          </p>
           <span className="db-metric-sub">
             {visibility.progress ? t("عبر الدروس المنشورة في المصدر المتصل", "across lessons in the connected published source") : t("لم يتم التحقق من التقدّم", "Progress not verified")}
           </span>
@@ -583,7 +650,7 @@ export function DashboardLive() {
       </section>
 
       {/* 4. Two-Column Working Grid: Daily Focus & Weak Areas Radar */}
-      <section className="db-two-col">
+      <section className="db-two-col" data-tour="study-plan">
         {/* Col 1: persisted plan and evidence-based actions */}
         <div className="db-panel">
           <div className="db-panel-head">
@@ -617,7 +684,7 @@ export function DashboardLive() {
               <div className="db-target-check">3</div>
               <div className="db-target-copy">
                 <strong>{state.nextTask?.title || t("أنشئ مهمة مذاكرة شخصية", "Create a personal study task")}</strong>
-                <small>{state.nextTask?.due_at ? `${t("الموعد: ", "Due: ")}${new Date(state.nextTask.due_at).toLocaleString(locale === "en" ? "en" : "ar-EG")}` : t("مهمة محفوظة بحسابك، منفصلة عن واجبات المعلم", "Saved to your account, separate from teacher assignments")}</small>
+                <small>{state.nextTask?.due_at ? `${t("الموعد: ", "Due: ")}${localizedTimestamp(state.nextTask.due_at, searchLocale)}` : t("مهمة محفوظة بحسابك، منفصلة عن واجبات المعلم", "Saved to your account, separate from teacher assignments")}</small>
               </div>
               <span className="db-target-time">→</span>
             </Link>
@@ -670,7 +737,7 @@ export function DashboardLive() {
       </section>
 
       {/* 5. Curriculum Cockpit — 6 Subjects & 8 Tracks */}
-      <section className="db-section">
+      <section className="db-section" data-tour="curriculum-tracks">
         <div className="db-section-heading">
           <h3>
             <span className="inline-flex items-center text-indigo-400"><Icon name="book" size={20} /></span>
@@ -714,6 +781,8 @@ export function DashboardLive() {
                             key={tr.slug}
                             type="button"
                             className={`db-track-toggle-btn ${isSelected ? "is-active" : ""}`}
+                            aria-pressed={isSelected}
+                            aria-label={isEn ? t("مسار المحتوى الإنجليزي", "English-content track") : t("مسار المحتوى العربي", "Arabic-content track")}
                             onClick={() => handleSelectTrack(tr.slug)}
                             title={isEn ? t("مسار المحتوى الإنجليزي", "English-content track") : t("مسار المحتوى العربي", "Arabic-content track")}
                           >
@@ -794,7 +863,7 @@ export function DashboardLive() {
       </section>
 
       {/* 6. Quick Action Command Launcher */}
-      <section className="db-section" style={{ marginTop: 10 }}>
+      <section className="db-section" data-tour="learning-tools" style={{ marginTop: 10 }}>
         <div className="db-section-heading">
           <h3>
             <span className="inline-flex items-center text-amber-400"><Icon name="zap" size={20} /></span>

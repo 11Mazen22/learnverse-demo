@@ -1,11 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  boundedRead,
-  useVerifiedAccount,
-} from "@/lib/supabase/use-verified-account";
-import { createClient } from "@/lib/supabase/client";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { localized, useLocale } from "@/lib/i18n/locale";
 import { SidebarGroup } from "@/components/sidebar/sidebar-group";
 import { SidebarItem } from "@/components/sidebar/sidebar-item";
@@ -23,41 +18,18 @@ export function StaffNav({
 }: StaffNavProps) {
   const locale = useLocale();
   const t = (ar: string, en: string) => localized(locale, ar, en);
-  const supabase = useMemo(() => createClient(), []);
   const account = useVerifiedAccount();
-  const [role, setRole] = useState<"student" | "teacher" | "admin">("student");
+  const role = account.role;
 
-  useEffect(() => {
-    let alive = true;
-    const token = account.revision.current;
-    setRole("student");
-    if (account.user)
-      void (async () => {
-        try {
-          const result = await boundedRead(
-            supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", account.user!.id)
-              .single(),
-          );
-          if (
-            alive &&
-            token === account.revision.current &&
-            !result.error &&
-            result.data?.role
-          )
-            setRole(result.data.role);
-        } catch {
-          /* Permissions remain enforced by RoleGate and database RLS. */
-        }
-      })();
-    return () => {
-      alive = false;
-    };
-  }, [supabase, account.user, account.revision]);
-
-  if (!account.user || account.loading || role === "student") return null;
+  if (
+    !account.user ||
+    account.loading ||
+    account.profileLoading ||
+    account.profileError ||
+    !role ||
+    role === "student"
+  )
+    return null;
 
   const isStaffActive = active === "/teacher" || active === "/admin";
 

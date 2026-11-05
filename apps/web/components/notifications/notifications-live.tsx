@@ -148,8 +148,8 @@ export function NotificationsLive() {
       />
     );
   return (
-    <div className="aura-inbox">
-      <header className="topbar">
+    <div className="aura-inbox" data-tour-page="notifications">
+      <header className="topbar" data-tour="notifications-summary">
         <div>
           <p className="eyebrow">{t("صندوقك الشخصي","Your personal inbox")}</p>
           <h1>{t("الإشعارات","Notifications")}</h1>
@@ -171,7 +171,7 @@ export function NotificationsLive() {
           <button type="button" disabled={busy} onClick={() => void load()}>{t("تحديث القائمة","Refresh list")}</button>
         </div>
       )}
-      <div className="filter-bar" role="group" aria-label={t("تصفية الإشعارات","Filter notifications")}>
+      <div className="filter-bar" data-tour="notifications-filters" role="group" aria-label={t("تصفية الإشعارات","Filter notifications")}>
         <button
           className="filter-chip"
           aria-pressed={!unreadOnly}
@@ -183,7 +183,7 @@ export function NotificationsLive() {
           onClick={() => setUnreadOnly(true)}
         >{t("غير المقروء","Unread")}</button>
       </div>
-      <section className="panel" aria-label={t("قائمة الإشعارات","Notification list")} aria-busy={busy}>
+      <section className="panel" data-tour="notifications-list" aria-label={t("قائمة الإشعارات","Notification list")} aria-busy={busy}>
         <div className="aura-inbox-list">
           {shown.map((row) => (
             <article

@@ -193,8 +193,8 @@ const LABELS: Record<string, string> = {
     );
 
   return (
-    <div className="aura-progress-page">
-      <header className="aura-progress-hero">
+    <div className="aura-progress-page" data-tour-page="progress">
+      <header className="aura-progress-hero" data-tour="progress-summary">
         <div className="aura-progress-intro">
           <span className="eyebrow">{t("لوحة الإتقان · دليل حقيقي من التعلم","Mastery dashboard · Evidence from learning")}</span>
           <h1>{t("تقدّمك مش رقم. دي مهارات بتكبر معاك.","Your progress is a growing set of skills.")}</h1>
@@ -247,7 +247,7 @@ const LABELS: Record<string, string> = {
         </div>
       </header>
       <p className="aura-progress-ai-disclosure">{t("مساعد Noata AI هيفتح رسالة قابلة للتعديل بملخص مهاراتك الحقيقية، لو التخزين المؤقت متاح. مش هتتبعت للمزوّد إلا لو اخترت إرسالها بنفسك. التحليل إرشادي ولا يغيّر درجاتك أو نقاطك.","Noata AI opens an editable summary of your actual skills when temporary storage is available. It is sent to the provider only when you choose to send it. The analysis is guidance and does not change your grades or points.")}</p>
-      <section className="aura-progress-statstrip" aria-label={t("مؤشرات إتقانك","Your mastery indicators")}>
+      <section className="aura-progress-statstrip" data-tour="progress-evidence" aria-label={t("مؤشرات إتقانك","Your mastery indicators")}>
         <div>
           <span>{t("المهارات المتتبعة","Skills tracked")}</span>
           <strong>{rows.length}</strong>
@@ -269,7 +269,7 @@ const LABELS: Record<string, string> = {
           <small>{t("أسئلة متنوعة","Distinct questions")}</small>
         </div>
       </section>
-      <section className="aura-progress-map" aria-labelledby="aura-skill-title">
+      <section className="aura-progress-map" data-tour="progress-skills" aria-labelledby="aura-skill-title">
         <div className="aura-progress-map-heading">
           <div>
             <span className="eyebrow">{t("تفاصيل التعلم","Learning details")}</span>

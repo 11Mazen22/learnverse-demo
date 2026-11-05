@@ -519,9 +519,9 @@ export function StudyLive() {
   }
 
   return (
-    <>
+    <div data-tour-page="study">
       {/* 1. Header Hero */}
-      <header className="noata-study-hero">
+      <header className="noata-study-hero" data-tour="study-welcome">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
           <div>
             <p className="noata-eyebrow">{t("بيئة الاستذكار الفائق (QuizGecko-Grade)", "Universal AI Learning Engine")}</p>
@@ -546,7 +546,7 @@ export function StudyLive() {
       </header>
 
       {/* 2. Top Navigation Tabs */}
-      <nav className="noata-study-tabs" aria-label={t("أقسام مركز المذاكرة", "Study Center Tabs")}>
+      <nav className="noata-study-tabs" data-tour="study-sections" aria-label={t("أقسام مركز المذاكرة", "Study Center Tabs")}>
         <button
           type="button"
           className="noata-study-tab-btn"
@@ -621,7 +621,7 @@ export function StudyLive() {
           TAB 1: AI GENERATOR (QUIZGECKO GRADE)
           ============================================================ */}
       {view === "generator" && (
-        <section className="noata-generator-panel">
+        <section className="noata-generator-panel" data-tour="study-generator">
           <div className="noata-generator-header">
             <span className="noata-generator-icon">⚡</span>
             <div>
@@ -851,7 +851,7 @@ export function StudyLive() {
           TAB 2: INTERACTIVE QUIZ RUNNER (QUIZGECKO GRADE)
           ============================================================ */}
       {view === "quiz" && (
-        <section>
+        <section data-tour="study-quiz" data-tour-critical="true">
           {activeBundle ? (
             <InteractiveQuizRunner
               bundle={activeBundle}
@@ -906,7 +906,7 @@ export function StudyLive() {
           TAB 3: 3D SPACED REPETITION REVIEW STUDIO (ANKI / SM-2)
           ============================================================ */}
       {view === "review" && (
-        <section>
+        <section data-tour="study-review" data-tour-critical="true">
           {dueCards.length > 0 ? (
             <FlashcardReviewStudio
               deckTitle={decks.find((d) => d.id === dueCards[0]?.deck_id)?.title}
@@ -967,7 +967,7 @@ export function StudyLive() {
           TAB 4: FLASHCARD DECKS & CARDS MANAGEMENT
           ============================================================ */}
       {view === "decks" && (
-        <section className="content-grid">
+        <section className="content-grid" data-tour="study-decks">
           <div style={{ display: "grid", gap: 16 }}>
             {/* Create new deck form */}
             <form className="panel" onSubmit={createDeck}>
@@ -1187,7 +1187,7 @@ export function StudyLive() {
           TAB 5: STUDY TASKS & PLANNER
           ============================================================ */}
       {view === "tasks" && (
-        <section className="content-grid">
+        <section className="content-grid" data-tour="study-tasks">
           <form className="panel" onSubmit={createTask}>
             <div className="panel-head">
               <h2>{t("مهمة مذاكرة شخصية جديدة", "New Personal Study Task")}</h2>
@@ -1278,6 +1278,6 @@ export function StudyLive() {
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }

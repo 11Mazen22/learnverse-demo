@@ -1,0 +1,237 @@
+/*
+ * Noäta AI flow layer — the Aura command palette (Ctrl/Cmd+P) and the
+ * jump-to-latest pill in the message scroller. All colors, radii and shadows
+ * come from the globals.css tokens, so the light and dark themes both work
+ * without component-specific overrides.
+ */
+
+dialog.nk-palette {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  width: min(580px, 94vw);
+  max-height: min(76vh, 660px);
+}
+
+dialog.nk-palette::backdrop {
+  background: color-mix(in srgb, #05101f 55%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.nk-palette-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: inherit;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft), 0 30px 70px #04122b33;
+  overflow: hidden;
+}
+
+.nk-palette-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px 8px;
+}
+
+.nk-palette-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+.nk-palette-panel kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35em;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.nk-palette-kbd {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.nk-palette-input {
+  flex: none;
+  margin: 0 14px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.nk-palette-input::placeholder {
+  color: var(--muted);
+}
+
+.nk-palette-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.nk-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 10px 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  min-height: 0;
+}
+
+.nk-palette-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.nk-palette-option.active {
+  background: var(--accent-soft);
+}
+
+.nk-palette-option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nk-palette-label {
+  display: block;
+  font-size: 0.93rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nk-palette-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nk-palette-shortcut {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.nk-palette-group {
+  margin-block: 10px 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.nk-palette-empty {
+  margin: 6px 16px 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.nk-palette-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.nk-palette-foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Jump-to-latest pill: sticky inside the message scroller. */
+.nk-jump-latest {
+  position: sticky;
+  bottom: 18px;
+  z-index: 5;
+  align-self: center;
+  margin-block-start: 12px;
+  margin-inline: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-soft), 0 14px 30px #04122b2e;
+  cursor: pointer;
+}
+
+.nk-jump-latest:hover {
+  border-color: var(--accent);
+}
+
+.nk-jump-latest:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  dialog.nk-palette {
+    width: 96vw;
+  }
+
+  /* The palette is a keyboard-first launcher (Ctrl/Cmd+P); its action set
+     overlaps the ⋮ conversation menu, the model menu and message actions. */
+  .owui-navbar-actions > .nk-palette-trigger {
+    display: none;
+  }
+
+  .nk-jump-latest {
+    bottom: 10px;
+    font-size: 0.8rem;
+    padding: 7px 13px;
+  }
+}
+
+html[data-noata-motion="off"] .nk-palette *,
+html[data-noata-motion="off"] .nk-jump-latest {
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

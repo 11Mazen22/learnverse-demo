@@ -200,8 +200,8 @@ export function RewardsLive() {
       </section>
     );
   return (
-    <>
-      <header className="noata-section-head">
+    <div data-tour-page="rewards">
+      <header className="noata-section-head" data-tour="rewards-balances">
         <div><p className="noata-eyebrow">{t("رحلتك تستحق الاحتفال","Celebrate your learning journey")}</p>
           <h1>{t("رصيدك ومكافآتك ومظهرك","Your balances, rewards, and cosmetics")}</h1>
           <p>{t("كل مكافأة هنا نتيجة لتقدم حقيقي. اجمع العملات من التعلّم واختار مظهر يعبر عنك. الجواهر 5 عند إتقان درس موثّق بنسبة 90٪، و3 إضافية عند 100٪، مرة واحدة لكل مستوى استحقاق.","Earn Coins through learning and choose a look that reflects you. Verified lesson mastery earns 5 Gems at 90% and another 3 at 100%, once for each eligibility level.")}</p>
@@ -223,7 +223,7 @@ export function RewardsLive() {
         </div>
       </header>
 
-      <section className="hero noata-rewards-hero">
+      <section className="hero noata-rewards-hero" data-tour="rewards-purpose">
         <div>
           <div className="eyebrow">{t("مكافآت التعلّم","Learning rewards")}</div>
           <h2 style={{ fontSize: 34, margin: "8px 0" }}>{t("تعلّم أكتر. افتح مكافآت أكتر.","Keep learning. Unlock more rewards.")}</h2>
@@ -266,7 +266,7 @@ export function RewardsLive() {
         <div className="panel" style={{ marginTop: 14, textAlign: "center" }}>
           <b>🎁 {lastReward.tier?.toUpperCase()} BOX</b>
           <p>
-            +{lastReward.coins ?? 0}{t("عملات · +","Coins · +")}{lastReward.xp ?? 0} XP
+            +{lastReward.coins ?? 0} {t("عملات · +","Coins · +")} {lastReward.xp ?? 0} XP
           </p>
         </div>
       )}
@@ -287,10 +287,10 @@ export function RewardsLive() {
         </section>
       )}
       {unclaimed.length > 0 && (
-        <section className="panel" style={{ marginTop: 18 }}>
+        <section className="panel" data-tour="reward-boxes" style={{ marginTop: 18 }}>
           <div className="panel-head">
             <h2>{t("صناديق المكافآت","Reward boxes")}</h2>
-            <span className="pill">{unclaimed.length}{t("غير مفتوحة","unopened")}</span>
+            <span className="pill">{unclaimed.length} {t("غير مفتوحة","unopened")}</span>
           </div>
           <div className="quest-list">
             {unclaimed.map((box) => (
@@ -319,10 +319,10 @@ export function RewardsLive() {
         </section>
       )}
 
-      <section className="panel" style={{ marginTop: 18 }}>
+      <section className="panel" data-tour="rewards-inventory" style={{ marginTop: 18 }}>
         <div className="panel-head">
           <h2>{t("مظهرك الحالي","Your current look")}</h2>
-          <span className="pill">{equipped.size}{t("خيارات مفعّلة","items equipped")}</span>
+          <span className="pill">{equipped.size} {t("خيارات مفعّلة","items equipped")}</span>
         </div>
         <div
           style={{
@@ -367,7 +367,7 @@ export function RewardsLive() {
       </section>
 
       {!loading && account.user && (
-        <section className="panel noata-ledger-section" aria-labelledby="noata-ledger-title">
+        <section className="panel noata-ledger-section" data-tour="rewards-ledger" aria-labelledby="noata-ledger-title">
           <div className="panel-head">
             <div>
               <h2 id="noata-ledger-title">{t("سجل نقاطك ومكافآتك","Your points and rewards history")}</h2>
@@ -397,7 +397,7 @@ export function RewardsLive() {
       )}
 
       {!loading && items.length === 0 && !error && <section className="noata-empty"><h2>{t("متجر المظاهر قيد التجهيز","The cosmetic shop is being prepared")}</h2><p>{t("لسه مفيش عناصر منشورة للشراء. مكافآتك الحالية محفوظة في حسابك.","No items are available to buy yet. Your rewards remain saved in your account.")}</p></section>}
-      <section className="noata-reward-grid" aria-label={t("متجر المظاهر","Cosmetic shop")}>
+      <section className="noata-reward-grid" data-tour="rewards-shop" aria-label={t("متجر المظاهر","Cosmetic shop")}>
         {items.map((item) => {
           const isOwned = owned.has(item.id);
           const isEquipped = equipped.get(item.item_type) === item.id;
@@ -455,6 +455,6 @@ export function RewardsLive() {
           );
         })}
       </section>
-    </>
+    </div>
   );
 }

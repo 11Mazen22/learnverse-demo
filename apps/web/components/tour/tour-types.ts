@@ -30,7 +30,8 @@ export type TourProgress = {
   stepIndex: number;
   version: number;
   updatedAt: string;
-  dontShowAgain?: boolean;
+  automaticDismissed: boolean;
+  completedAt?: string | null;
 };
 
 export type TourStateMap = Record<string, TourProgress>;

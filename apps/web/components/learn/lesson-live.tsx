@@ -331,7 +331,7 @@ export function LessonLive({ id }: { id: string }) {
   ];
 
   return (
-    <div className="noata-lesson-container">
+    <div className="noata-lesson-container" data-tour-page="lesson">
       {/* 1. Breadcrumbs */}
       <nav className="noata-lesson-breadcrumb" aria-label={t("مسار التنقل", "Breadcrumb navigation")}>
         <Link href="/learn">{t("رحلة التعلّم", "Learning journey")}</Link>
@@ -342,7 +342,7 @@ export function LessonLive({ id }: { id: string }) {
       </nav>
 
       {/* 2. Hero Header */}
-      <section className="noata-lesson-hero">
+      <section className="noata-lesson-hero" data-tour="lesson-context">
         <div className="noata-lesson-meta-bar">
           <span className="noata-lesson-track-tag">
             <Icon name="book" size={14} />
@@ -391,7 +391,7 @@ export function LessonLive({ id }: { id: string }) {
       </section>
 
       {/* 3. Pedagogical Stepper */}
-      <nav className="noata-stage-stepper" aria-label={t("مراحل تعلم الدرس", "Lesson learning stages")}>
+      <nav className="noata-stage-stepper" data-tour="lesson-stages" aria-label={t("مراحل تعلم الدرس", "Lesson learning stages")}>
         {STAGES.map((st, idx) => {
           const isActive = activeStage === idx;
           return (
@@ -410,7 +410,7 @@ export function LessonLive({ id }: { id: string }) {
       </nav>
 
       {/* 4. Active Stage Card */}
-      <section className="noata-stage-content-card">
+      <section className="noata-stage-content-card" data-tour="lesson-content">
         {/* STAGE 0: Objectives & Foundations */}
         {activeStage === 0 && (
           <>
@@ -683,7 +683,7 @@ export function LessonLive({ id }: { id: string }) {
       </section>
 
       {/* 5. Action Dock */}
-      <footer className="noata-lesson-action-dock">
+      <footer className="noata-lesson-action-dock" data-tour="lesson-actions">
         <div>
           <strong style={{ fontSize: 14, display: "block", color: "var(--ink)" }}>
             {t("أدوات الدعم الذكي والتكرار المتباعد", "Smart AI Tools & Spaced Review")}

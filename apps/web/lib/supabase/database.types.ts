@@ -1598,6 +1598,53 @@ export type Database = {
           {foreignKeyName:"flashcard_reviews_card_id_fkey";columns:["card_id"];isOneToOne:false;referencedRelation:"flashcards";referencedColumns:["id"]},
         ]
       }
+      user_tour_progress: {
+        Row: {
+          automatic_dismissed: boolean
+          completed_at: string | null
+          created_at: string
+          role: Database["public"]["Enums"]["noata_role"]
+          status: string
+          step_index: number
+          tour_id: string
+          tour_version: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          automatic_dismissed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          role: Database["public"]["Enums"]["noata_role"]
+          status?: string
+          step_index?: number
+          tour_id: string
+          tour_version: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          automatic_dismissed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          role?: Database["public"]["Enums"]["noata_role"]
+          status?: string
+          step_index?: number
+          tour_id?: string
+          tour_version?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tour_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_settings: {
         Row: {
           active_design_id: string | null

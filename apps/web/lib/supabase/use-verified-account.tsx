@@ -5,6 +5,13 @@ import { createClient } from "./client";
 import { supabaseConfiguration } from "./config";
 import { localized, useLocale } from "@/lib/i18n/locale";
 
+export type VerifiedRole = "student" | "teacher" | "admin";
+
+export type VerifiedProfile = {
+  displayName: string;
+  role: VerifiedRole;
+};
+
 export async function boundedRead<T>(
   work: PromiseLike<T>,
   milliseconds = 10000,
@@ -29,6 +36,10 @@ type VerifiedAccountValue = {
   user: User | null;
   loading: boolean;
   error: string;
+  profile: VerifiedProfile | null;
+  profileLoading: boolean;
+  profileError: string;
+  role: VerifiedRole | null;
   refresh: () => Promise<void>;
   revision: { current: number };
 };
@@ -42,6 +53,9 @@ export function VerifiedAccountProvider({ children }: { children: React.ReactNod
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [profile, setProfile] = useState<VerifiedProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileFailed, setProfileFailed] = useState(false);
   const revision = useRef(0),
     candidate = useRef<string | null>(null),
     mounted = useRef(false);
@@ -113,12 +127,78 @@ export function VerifiedAccountProvider({ children }: { children: React.ReactNod
       subscription.unsubscribe();
     };
   }, [client, refresh]);
+
+  useEffect(() => {
+    let alive = true;
+    const token = revision.current;
+    setProfile(null);
+    setProfileFailed(false);
+
+    if (loading) {
+      setProfileLoading(true);
+      return () => {
+        alive = false;
+      };
+    }
+    if (!user) {
+      setProfileLoading(false);
+      return () => {
+        alive = false;
+      };
+    }
+
+    setProfileLoading(true);
+    void (async () => {
+      try {
+        const result = await boundedRead(
+          client
+            .from("profiles")
+            .select("display_name,role")
+            .eq("id", user.id)
+            .maybeSingle(),
+        );
+        if (!alive || token !== revision.current) return;
+        if (result.error || !result.data) throw result.error ?? Error("Profile unavailable");
+        if (!(["student", "teacher", "admin"] as const).includes(result.data.role)) {
+          throw Error("Invalid profile role");
+        }
+        setProfile({
+          displayName: result.data.display_name || "",
+          role: result.data.role,
+        });
+      } catch {
+        if (alive && token === revision.current) setProfileFailed(true);
+      } finally {
+        if (alive && token === revision.current) setProfileLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [client, loading, user]);
+
   const error = failed ? localized(locale,
     "تعذّر التحقق من حسابك. أعد المحاولة عند عودة الاتصال.",
     "Could not verify your account. Try again when your connection returns.") : "";
+  const profileError = profileFailed ? localized(
+    locale,
+    "تعذّر التحقق من دور الحساب. لن نعرض أي مساحة مقيّدة حتى تنجح المحاولة.",
+    "Could not verify the account role. Restricted workspaces stay hidden until verification succeeds.",
+  ) : "";
   const value = useMemo<VerifiedAccountValue>(
-    () => ({ user, loading, error, refresh, revision }),
-    [user, loading, error, refresh],
+    () => ({
+      user,
+      loading,
+      error,
+      profile,
+      profileLoading,
+      profileError,
+      role: profile?.role ?? null,
+      refresh,
+      revision,
+    }),
+    [user, loading, error, profile, profileLoading, profileError, refresh],
   );
   return <VerifiedAccountContext.Provider value={value}>{children}</VerifiedAccountContext.Provider>;
 }

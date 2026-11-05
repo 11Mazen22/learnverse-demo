@@ -39,6 +39,15 @@
   z-index: 10000;
   animation: auraTourPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   color: var(--ink);
+  max-height: min(680px, calc(100dvh - 32px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  outline: none;
+}
+
+.aura-tour-card:focus-visible {
+  box-shadow: 0 28px 72px -12px rgba(0, 0, 0, 0.45),
+              0 0 0 3px color-mix(in srgb, var(--accent) 72%, white);
 }
 
 .aura-tour-card.is-centered {
@@ -114,6 +123,15 @@
 .aura-tour-close-btn:hover {
   background: color-mix(in srgb, var(--line) 80%, transparent);
   color: var(--ink);
+}
+
+.aura-tour-close-btn:focus-visible,
+.aura-tour-btn-ghost:focus-visible,
+.aura-tour-btn-primary:focus-visible,
+.aura-tour-trigger-btn:focus-visible,
+.aura-tour-dont-show input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 62%, white);
+  outline-offset: 3px;
 }
 
 /* Body */
@@ -278,6 +296,21 @@
     border-radius: 18px;
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
     animation: auraTourSheet 0.3s ease-out;
+    max-height: min(74dvh, 620px);
+  }
+
+  .aura-tour-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .aura-tour-actions {
+    width: 100%;
+  }
+
+  .aura-tour-actions > button {
+    flex: 1;
+    min-height: 44px;
   }
 
   @keyframes auraTourSheet {
