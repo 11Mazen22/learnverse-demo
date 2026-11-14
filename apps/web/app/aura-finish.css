@@ -1,5 +1,6 @@
 /* Noata Aura finishing layer: deliberately scoped components and fluid layouts.
    A single scroll container powers the study workshop at every viewport size. */
+@layer components {
 .noata-dialog.noata-dialog--workshop {
   box-sizing: border-box;
   width: min(1000px, calc(100vw - 36px));
@@ -274,7 +275,9 @@
     font-size: 10px;
   }
 }
+}
 
+@layer sections {
 /* Authentication experience: distinct, balanced, legible and responsive. */
 .auth-shell:not(.is-centered) {
   grid-template-columns: minmax(0,1fr) minmax(0,1.08fr);
@@ -422,9 +425,13 @@
   .auth-shell .auth-form { gap: 13px; }
   .auth-shell .auth-google { margin-top: 4px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .noata-dialog--workshop *, .auth-shell * { animation: none !important; transition: none !important; transform: none !important; }
 }
+@layer utilities {
+@media (prefers-reduced-motion: reduce) {
+  .noata-dialog--workshop *, .auth-shell * { animation: none; transition: none; transform: none; }
+}
+}
+@layer sections {
 
 /* Real Noata mark as the hero focal point; no fabricated student data. */
 .auth-shell .auth-aside-stage {
@@ -489,7 +496,7 @@
   .mobile-nav > a,
   .mobile-nav > button,
   .mobile-nav > :is(a,button) > small {
-    transition: none !important;
+    transition: none;
   }
   .mobile-nav > :is(a,button) > small {
     font-size: 10.5px;
@@ -610,6 +617,15 @@
   cursor: pointer;
 }
 .aura-settings-signout:hover { background: color-mix(in srgb, #dc455c 7%, var(--surface)); }
+html[data-theme="dark"] .aura-settings-signout,
+html[data-palette="midnight"] .aura-settings-signout {
+  color: #fda4af;
+  border-color: color-mix(in srgb, #fb7185 52%, var(--line));
+}
+html[data-theme="dark"] .aura-settings-signout:hover,
+html[data-palette="midnight"] .aura-settings-signout:hover {
+  background: color-mix(in srgb, #fb7185 16%, var(--surface));
+}
 .aura-settings-signout:disabled { opacity: .55; cursor: wait; }
 .aura-settings-signout:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 @media(max-width:520px) {
@@ -942,12 +958,16 @@ html[data-theme="dark"] a.notification-bell b {
   .auth-journey-steps span { font-size:10px; }
   .auth-journey-footer { align-items:flex-start; }
 }
+}
+@layer utilities {
 @media(prefers-reduced-motion:reduce) {
   .auth-journey-shell *, .auth-journey-shell *::before, .auth-journey-shell *::after {
-    animation-duration:.01ms!important;
-    transition-duration:.01ms!important;
+    animation: none;
+    transition: none;
   }
 }
+}
+@layer sections {
 
 /* 2026-10-09 — Noata original identity, consistent login and Arabic modules. */
 .noata-logo,
@@ -1052,3 +1072,4 @@ html[data-theme="dark"] a.notification-bell b {
 .noata-rewards-hero>div:last-child{height:130px!important;min-width:0}
 .noata-rewards-hero p{line-height:1.9;font-size:14px}
 @media(max-width:660px){.noata-rewards-hero{grid-template-columns:1fr;min-height:0;gap:16px}.noata-rewards-hero>div:last-child{height:75px!important;font-size:36px!important}.noata-rewards-hero>div:last-child svg{width:37px;height:37px}}
+}

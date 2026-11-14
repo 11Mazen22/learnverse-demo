@@ -53,3 +53,12 @@ test("task completion and deck-card ownership have database constraints", async 
   assert.ok(sql.includes("constraint flashcards_owner_deck_fkey"));
   assert.ok(sql.includes("references public.flashcard_decks(id, user_id) on delete cascade"));
 });
+
+test("M2 study ecosystem tables remain strictly isolated from ledger, skill_evidence, and lesson_progress", async () => {
+  const m2 = await readFile(
+    new URL("../supabase/migrations/20261114000100_study_ecosystem_v2.sql", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(m2, /insert\s+into\s+public\.(ledger|skill_evidence|lesson_progress)/i);
+  assert.doesNotMatch(m2, /update\s+public\.(ledger|skill_evidence|lesson_progress)/i);
+});

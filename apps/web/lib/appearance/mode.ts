@@ -4,6 +4,7 @@
  * All other palettes respect light/dark/system; switching back restores the user's prior preference.
  */
 export type AppearanceMode = "light" | "dark" | "system";
+export type ResolvedAppearance = "light" | "dark";
 export type PaletteModeConstraint = "both" | "dark-only" | "light-only";
 
 export function getPaletteModeConstraint(
@@ -56,4 +57,19 @@ export function getActiveModeConstraint(): PaletteModeConstraint {
   const custom = document.documentElement.dataset.modeConstraint;
   if (custom === "dark-only" || custom === "light-only") return custom;
   return "both";
+}
+
+/**
+ * Resolve the concrete browser `color-scheme` keyword for the active Noäta
+ * appearance. Never returns `"light dark"` so native controls, scrollbars, and
+ * form popups always match Noäta's active theme even when OS dark mode differs.
+ */
+export function resolveBrowserColorScheme(
+  resolvedTheme: string | null | undefined,
+  palette?: string | null | undefined
+): ResolvedAppearance {
+  if (palette === "midnight" || resolvedTheme === "dark") {
+    return "dark";
+  }
+  return "light";
 }

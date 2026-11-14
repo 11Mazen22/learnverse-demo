@@ -1,6 +1,6 @@
 "use client";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
 import { safeStorageLink } from "@/lib/ai/workspace";
@@ -9,6 +9,7 @@ import { SUPABASE_URL } from "@/lib/supabase/config";
 export function AttachmentMessage({metadata}:{metadata?:Record<string,unknown>}) {
  const t=useTranslation(),locale=useLocale();
   const [open,setOpen] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
   if (typeof metadata?.attachmentName !== "string") return null;
   const name = metadata.attachmentName.slice(0,160);
   const mime = typeof metadata.attachmentMime === "string" ? metadata.attachmentMime : "";
@@ -16,6 +17,9 @@ export function AttachmentMessage({metadata}:{metadata?:Record<string,unknown>})
   const truncated = metadata.documentTruncated === true;
   const signed = safeStorageLink(metadata.attachmentUrl, SUPABASE_URL);
   const isImage = mime.startsWith("image/");
+  useEffect(() => {
+    setImgFailed(false);
+  }, [signed]);
   return (
     <>
       <div className="aura-attachment-card">
@@ -33,8 +37,13 @@ export function AttachmentMessage({metadata}:{metadata?:Record<string,unknown>})
       </div>
       <Dialog open={open} onClose={()=>setOpen(false)} title={t("معاينة المرفق: ","Attachment preview: ")+name}>
         <div className="aura-attachment-viewer">
-          {isImage && signed ? (
-            <img src={signed} alt={t("الصورة المرفقة: ","Attached image: ")+name} loading="lazy"/>
+          {isImage && signed && !imgFailed ? (
+            <img src={signed} alt={t("الصورة المرفقة: ","Attached image: ")+name} loading="lazy" onError={() => setImgFailed(true)}/>
+          ) : isImage && signed && imgFailed ? (
+            <div className="noata-attachment-fallback" role="alert">
+              <strong>{t("تعذّر تحميل معاينة الصورة هنا","Could not render the image preview here")}</strong>
+              <span>{t("قد تكون صلاحية الرابط المؤقت انتهت أو حُظر العرض المضمّن. استخدم رابط الفتح أدناه أو أعد فتح المحادثة لتجديد الرابط.","The temporary link may have expired or inline preview was blocked. Use the link below or reopen the conversation to refresh it.")}</span>
+            </div>
           ) : text!==null ? (
             <>
               <p className="aura-document-disclosure">{t("النص أدناه مستخلص من المستند وأُرسل بالفعل إلى نموذج Noäta AI.","The text below was extracted from the document and sent to Noäta AI.")}{truncated ? t(" الملف طويل؛ جرى استخدام أول 9000 حرف فقط."," This file is long. Only the first 9,000 characters were used.") : ""}{t("لا يتم الاحتفاظ بنسخة من الملف الأصلي في التخزين في هذا الوضع.","The original file is not retained in storage in this mode.")}</p>

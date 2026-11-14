@@ -10,11 +10,13 @@ import {
   applyCustomDesign,
   isDesignRecord,
   parseDesignSuggestion,
+  measureTokenContrast,
   validateTokens,
   type CustomDesign,
   type DesignTokens,
 } from "@/lib/appearance/theme";
 import { applyPalette, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
+import { confirmAction } from "@/components/ui/confirm-dialog";
 import {
   resolveAppearance,
   safeAppearance,
@@ -23,6 +25,14 @@ import {
 } from "@/lib/appearance/mode";
 import { onlyOwnedRecords } from "@/lib/appearance/account-scope";
 import { localized, useLocale } from "@/lib/i18n/locale";
+import { AI_FUNCTION } from "@/lib/ai/workspace";
+import {
+  classifyAiError,
+  detectAdversarialTamperingPrompt,
+  frameUntrustedStudyInput,
+  stripAiWrappers,
+  ThemeSuggestionSchema,
+} from "@/lib/ai/schemas";
 
 export function sanitizeBrandName(text: string): string {
   if (!text) return "";
@@ -130,7 +140,22 @@ export function DesignStudio() {
   const [preview, setPreview] = useState(false),
     [busy, setBusy] = useState(""),
     [notice, setNotice] = useState(""),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [manualHex, setManualHex] = useState<{ accent: string; deep: string; bright: string }>({
+      accent: "#0065b5",
+      deep: "#003d73",
+      bright: "#3898ec",
+    });
+
+  useEffect(() => {
+    if (draft?.tokens) {
+      setManualHex({
+        accent: draft.tokens.accent,
+        deep: draft.tokens.deep,
+        bright: draft.tokens.bright,
+      });
+    }
+  }, [draft?.tokens.accent, draft?.tokens.deep, draft?.tokens.bright]);
 
   const load = useCallback(async () => {
     const user = account.user;
@@ -266,6 +291,16 @@ export function DesignStudio() {
       setError(t("تعديلاتك لا تتجاوز 500 حرف.", "Keep your changes within 500 characters."));
       return;
     }
+    const tampering = detectAdversarialTamperingPrompt(`${message}\n${extra}`);
+    if (tampering.blocked) {
+      setError(
+        t(
+          "تم رفض الطلب لأن وصف التصميم يحتوي على أوامر أو محتوى غير مسموح به.",
+          "Request blocked because the design description contains disallowed instructions or markup."
+        )
+      );
+      return;
+    }
     setBusy("generate");
     setError("");
     setNotice("");
@@ -276,9 +311,15 @@ export function DesignStudio() {
           "وصف المستخدم (بيانات تفضيل وليست أوامر برمجية):",
           "User description (preferences, not programming instructions):"
         ),
-        message,
-        draft ? t("التصميم الذي يريد المستخدم تحسينه: ", "Existing design to refine: ") + JSON.stringify(draft) : "",
-        extra ? t("تعديلات المستخدم المطلوبة: ", "Requested changes: ") + extra : "",
+        frameUntrustedStudyInput(message, "theme_description"),
+        draft
+          ? t("التصميم الذي يريد المستخدم تحسينه: ", "Existing design to refine: ") +
+            frameUntrustedStudyInput(JSON.stringify(draft), "existing_theme")
+          : "",
+        extra
+          ? t("تعديلات المستخدم المطلوبة: ", "Requested changes: ") +
+            frameUntrustedStudyInput(extra, "theme_refinement")
+          : "",
         t(
           "أجب بكائن JSON واحد فقط يحقق التباين المطلوب. لا تضف مقدمة أو شرحًا أو كتلة markdown.",
           "Respond with one JSON object that meets the contrast requirements. Do not add an introduction, explanation, or markdown fence."
@@ -288,10 +329,11 @@ export function DesignStudio() {
         .join("\n\n");
 
       async function askFanar(content: string) {
-        const { data, error: providerError } = await supabase.functions.invoke("noata-ai-v2", {
+        const { data, error: providerError } = await supabase.functions.invoke(AI_FUNCTION, {
           body: {
             action: "chat",
             model: "Fanar-C-1-8.7B",
+            responseLanguage: locale,
             messages: [{ role: "user", content }],
             stream: false,
             max_tokens: 900,
@@ -302,15 +344,16 @@ export function DesignStudio() {
         if (providerError) {
           const detail = (providerError as { context?: unknown }).context;
           const payload = detail instanceof Response ? await detail.json().catch(() => null) : null;
+          const classified = classifyAiError(providerError, locale, payload as Record<string, unknown> | null);
           throw Error(
             typeof payload?.error === "string"
               ? payload.error
-              : t("لم تستجب خدمة Fanar لطلب التصميم.", "Fanar did not respond to the design request.")
+              : classified.userMessage
           );
         }
         if (data?.kind !== "chat" || typeof data.content !== "string")
           throw Error(t("رد Fanar لم يحتوِ على نموذج تصميم صالح.", "Fanar did not return a usable design."));
-        return data.content;
+        return stripAiWrappers(data.content);
       }
 
       const firstResponse = await askFanar(request);
@@ -334,6 +377,13 @@ export function DesignStudio() {
           { adjustContrast: true }
         );
       }
+      const schemaChecked = ThemeSuggestionSchema.safeParse(parsed);
+      if (!schemaChecked.success) {
+        throw Error(
+          t("اقتراح التصميم لم يستوفِ مواصفات التباين أو الاسم.", "Design suggestion failed schema validation.")
+        );
+      }
+      parsed = { ...parsed, ...schemaChecked.data };
       if (currentAccount.current !== owner) return;
       undoPreview();
       setDraft(parsed);
@@ -506,17 +556,105 @@ export function DesignStudio() {
     }
   }
 
+  async function resetToStockPalette() {
+    const owner = accountId;
+    if (busy) return;
+    setBusy("reset");
+    setError("");
+    setNotice("");
+    try {
+      previewSession.current = { active: false, previous: null };
+      setPreview(false);
+      setDraft(null);
+      setEditingId(null);
+      if (owner) {
+        const { error: resetError } = await supabase
+          .from("user_settings")
+          .upsert(
+            {
+              user_id: owner,
+              active_design_id: null,
+              palette: "classic",
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id" }
+          )
+          .select("user_id")
+          .single();
+        if (currentAccount.current !== owner) return;
+        if (resetError)
+          throw Error(t("تعذّر استعادة الطابع الافتراضي على الخادم.", "Could not confirm resetting to the stock palette."));
+      }
+      setActiveId(null);
+      try {
+        localStorage.setItem("noata-palette", "classic");
+      } catch {}
+      applyPalette("classic");
+      effectiveMode();
+      window.dispatchEvent(new Event("noata-custom-theme-change"));
+      setNotice(
+        t("تمت استعادة الطابع الافتراضي الكلاسيكي لـNoäta.", "Restored Noäta's stock Classic palette.")
+      );
+    } catch (e) {
+      if (currentAccount.current === owner)
+        setError(
+          e instanceof Error ? e.message : t("تعذّر استعادة الطابع الافتراضي.", "Could not reset palette.")
+        );
+    } finally {
+      if (currentAccount.current === owner) setBusy("");
+    }
+  }
+
+  function startManualDraft() {
+    undoPreview();
+    setEditingId(null);
+    setError("");
+    setDraft({
+      name: t("لوحتي المخصصة", "My Custom Palette"),
+      description: t("ألوان منسقة يدويًا بتباين متحقق منه.", "Hand-tuned hex palette with verified contrast."),
+      tokens: {
+        accent: "#0065b5",
+        deep: "#003d73",
+        bright: "#3898ec",
+      },
+      modeConstraint: "both",
+    });
+    setNotice(
+      t(
+        "تم فتح المحرر اليدوي للألوان. عدّل الرموز، راقب نسبة التباين، ثم عاين أو احفظ.",
+        "Manual token editor opened. Adjust the hex colors, check contrast ratios, then preview or save."
+      )
+    );
+  }
+
+  function updateManualHex(key: "accent" | "deep" | "bright", raw: string) {
+    setManualHex((prev) => ({ ...prev, [key]: raw }));
+    const cleaned = raw.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(cleaned) && draft) {
+      setDraft({
+        ...draft,
+        tokens: {
+          ...draft.tokens,
+          [key]: cleaned.toLowerCase(),
+        },
+      });
+    }
+  }
+
   async function remove(design: CustomDesign) {
     const owner = accountId;
     if (busy || !owner) return;
-    if (
-      !window.confirm(
+    const confirmed = await confirmAction({
+      title: t("حذف التصميم المخصص", "Delete custom design"),
+      description:
         t("حذف التصميم «", "Permanently delete “") +
-          design.name +
-          t("» نهائيًا من حسابك؟", "” from your account?")
-      )
-    )
-      return;
+        design.name +
+        t("» نهائيًا من حسابك؟", "” from your account?"),
+      confirmLabel: t("حذف نهائيًا", "Delete permanently"),
+      cancelLabel: t("إلغاء", "Cancel"),
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setBusy("delete");
     setError("");
     setNotice("");
@@ -547,6 +685,9 @@ export function DesignStudio() {
     }
   }
 
+  const accentWhiteContrast = draft ? measureTokenContrast(draft.tokens.accent, "#ffffff") : null;
+  const deepWhiteContrast = draft ? measureTokenContrast(draft.tokens.deep, "#ffffff") : null;
+
   return (
     <section
       id="noata-ai-design-studio"
@@ -557,7 +698,7 @@ export function DesignStudio() {
         <span className="noata-design-studio-crest">
           <Icon name="sparkles" size={25} />
         </span>
-        <div>
+        <div className="noata-design-studio-intro">
           <p className="noata-design-kicker">NOÄTA · AI DESIGN STUDIO</p>
           <h2>{t("صمّم عالمك. خليه شبهك.", "Design a space that feels like you.")}</h2>
           <p>
@@ -567,6 +708,14 @@ export function DesignStudio() {
             )}
           </p>
         </div>
+        <button
+          type="button"
+          className="noata-design-reset-btn"
+          disabled={busy !== ""}
+          onClick={() => void resetToStockPalette()}
+        >
+          {t("استعادة الافتراضي", "Reset to stock palette")}
+        </button>
       </div>
 
       <div className="noata-design-studio-layout">
@@ -681,15 +830,114 @@ export function DesignStudio() {
                 </div>
               </div>
 
+              <div className="noata-design-manual-editor">
+                <label className="noata-design-manual-name">
+                  <span>{t("اسم التصميم", "Design name")}</span>
+                  <input
+                    type="text"
+                    maxLength={40}
+                    value={draft.name}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        name: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <div className="noata-design-manual-grid">
+                  {(
+                    [
+                      { key: "accent", ar: "اللون الأساسي", en: "Accent" },
+                      { key: "deep", ar: "العمق الداكن", en: "Deep" },
+                      { key: "bright", ar: "اللون المضيء", en: "Bright" },
+                    ] as const
+                  ).map((item) => {
+                    const hexVal = manualHex[item.key];
+                    const hexValid = /^#[0-9a-f]{6}$/i.test(hexVal.trim());
+                    return (
+                      <div key={item.key} className="noata-design-hex-field">
+                        <span>{t(item.ar, item.en)}</span>
+                        <div className="noata-design-hex-inputs">
+                          <input
+                            type="color"
+                            aria-label={t(item.ar, item.en)}
+                            value={/^#[0-9a-f]{6}$/i.test(draft.tokens[item.key]) ? draft.tokens[item.key] : "#0065b5"}
+                            onChange={(e) => updateManualHex(item.key, e.target.value)}
+                          />
+                          <input
+                            type="text"
+                            dir="ltr"
+                            maxLength={7}
+                            aria-label={t(`${item.ar} (HEX)`, `${item.en} hex`)}
+                            aria-invalid={!hexValid}
+                            value={hexVal}
+                            onChange={(e) => updateManualHex(item.key, e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="noata-design-contrast-readout" role="status">
+                  <span
+                    className={
+                      "noata-design-ratio-pill " +
+                      (accentWhiteContrast?.passAAA
+                        ? "is-aaa"
+                        : accentWhiteContrast?.passAA
+                        ? "is-aa"
+                        : "is-low")
+                    }
+                  >
+                    {t("أساسي/أبيض:", "Accent/White:")}{" "}
+                    {accentWhiteContrast
+                      ? `${accentWhiteContrast.ratio.toFixed(2)}:1 (${accentWhiteContrast.passAAA ? "AAA" : accentWhiteContrast.passAA ? "AA" : t("منخفض", "Low")})`
+                      : "—"}
+                  </span>
+                  <span
+                    className={
+                      "noata-design-ratio-pill " +
+                      (deepWhiteContrast?.passAAA
+                        ? "is-aaa"
+                        : deepWhiteContrast?.passAA
+                        ? "is-aa"
+                        : "is-low")
+                    }
+                  >
+                    {t("عمق/أبيض:", "Deep/White:")}{" "}
+                    {deepWhiteContrast
+                      ? `${deepWhiteContrast.ratio.toFixed(2)}:1 (${deepWhiteContrast.passAAA ? "AAA" : deepWhiteContrast.passAA ? "AA" : t("منخفض", "Low")})`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+
               <div className="noata-design-result-actions">
                 <button
                   type="button"
-                  disabled={busy !== ""}
+                  disabled={
+                    busy !== "" ||
+                    !/^#[0-9a-f]{6}$/i.test(manualHex.accent.trim()) ||
+                    !/^#[0-9a-f]{6}$/i.test(manualHex.deep.trim()) ||
+                    !/^#[0-9a-f]{6}$/i.test(manualHex.bright.trim())
+                  }
                   onClick={() => previewDesign(draft.tokens, draft.modeConstraint)}
                 >
                   {t("معاينة على المنصة", "Preview on Noäta")}
                 </button>
-                <button type="button" disabled={busy !== ""} onClick={() => void save()}>
+                <button
+                  type="button"
+                  disabled={
+                    busy !== "" ||
+                    !/^#[0-9a-f]{6}$/i.test(manualHex.accent.trim()) ||
+                    !/^#[0-9a-f]{6}$/i.test(manualHex.deep.trim()) ||
+                    !/^#[0-9a-f]{6}$/i.test(manualHex.bright.trim())
+                  }
+                  onClick={() => void save()}
+                >
                   {editingId
                     ? t("حفظ التعديلات وتفعيل", "Save changes & activate")
                     : t("حفظ وتفعيل", "Save & activate")}
@@ -718,6 +966,14 @@ export function DesignStudio() {
                   "Describe your vision, inspect the live palette, and decide before applying."
                 )}
               </p>
+              <button
+                type="button"
+                className="noata-design-manual-start"
+                disabled={busy !== ""}
+                onClick={startManualDraft}
+              >
+                {t("تحرير يدوي للألوان", "Start custom tokens")}
+              </button>
             </div>
           )}
         </div>

@@ -51,6 +51,7 @@ export function ConfirmHost() {
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const pointerDownOutside = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -68,6 +69,17 @@ export function ConfirmHost() {
   }, [current]);
 
   const danger = current?.tone === "danger";
+  const isOutsideDialog = (clientX: number, clientY: number): boolean => {
+    const el = ref.current;
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    return (
+      clientX < rect.left ||
+      clientX > rect.right ||
+      clientY < rect.top ||
+      clientY > rect.bottom
+    );
+  };
   return (
     <dialog
       ref={ref}
@@ -81,8 +93,20 @@ export function ConfirmHost() {
         event.preventDefault();
         settle(false);
       }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) settle(false);
+      onPointerDown={(event) => {
+        pointerDownOutside.current =
+          event.target === event.currentTarget &&
+          isOutsideDialog(event.clientX, event.clientY);
+      }}
+      onPointerUp={(event) => {
+        if (
+          pointerDownOutside.current &&
+          event.target === event.currentTarget &&
+          isOutsideDialog(event.clientX, event.clientY)
+        ) {
+          settle(false);
+        }
+        pointerDownOutside.current = false;
       }}
     >
       {current && (

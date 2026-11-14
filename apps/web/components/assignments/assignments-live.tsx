@@ -4,6 +4,7 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
+import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
 import {
   boundedRead,
   useVerifiedAccount,
@@ -73,6 +74,7 @@ export function AssignmentsLive() {
   const [grade, setGrade] = useState<Grade | null>(null);
   const [results, setResults] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
+  const [filter, setFilter] = useState<"all" | "due" | "overdue" | "submitted">("all");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -406,33 +408,15 @@ export function AssignmentsLive() {
             <form onSubmit={check}>
               <h2 style={{ lineHeight: 1.6 }}>{(locale==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
               {current.question_type === "multiple-choice" ? (
-                <div style={{ display: "grid", gap: 10 }}>
-                  {choices((locale==="en" ? current.choices_en : current.choices_ar)).map((x, i) => (
-                    <button
-                      type="button"
-                      disabled={Boolean(grade) || busy}
-                      key={x}
-                      onClick={() => setAnswer(String(i))}
-                      style={{
-                        textAlign: "start",
-                        padding: 14,
-                        borderRadius: 14,
-                        border:
-                          "1px solid " +
-                          (answer === String(i)
-                            ? "var(--accent)"
-                            : "var(--line)"),
-                        background:
-                          answer === String(i)
-                            ? "rgba(47,124,255,.08)"
-                            : "var(--surface)",
-                        color: "var(--ink)",
-                      }}
-                    >
-                      {String.fromCharCode(65 + i)}. {x}
-                    </button>
-                  ))}
-                </div>
+                <ChoiceCardGroup
+                  legend={locale === "en" ? current.prompt_en ?? "Question options" : current.prompt_ar}
+                  options={choices(locale === "en" ? current.choices_en : current.choices_ar)}
+                  value={answer}
+                  onChange={setAnswer}
+                  disabled={Boolean(grade) || busy}
+                  contentDir={locale === "en" ? "ltr" : "rtl"}
+                  locale={locale === "en" ? "en" : "ar"}
+                />
               ) : (
                 <input
                   className="search"
@@ -449,14 +433,8 @@ export function AssignmentsLive() {
               )}
               {grade && (
                 <div
-                  style={{
-                    marginTop: 16,
-                    padding: 16,
-                    borderRadius: 15,
-                    background: grade.correct
-                      ? "rgba(24,166,106,.09)"
-                      : "rgba(227,87,87,.08)",
-                  }}
+                  className="noata-grade-feedback"
+                  data-correct={grade.correct ? "true" : "false"}
                 >
                   <b>{grade.correct ? t("صح","Correct") : t("راجع الفكرة","Review the idea")}</b>
                   <p>{(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
@@ -487,11 +465,12 @@ export function AssignmentsLive() {
                 >{t("خروج","Exit")}</button>
                 {!grade ? (
                   <button
+                    type="submit"
                     disabled={!answer || busy}
                     className="btn"
                     style={{
                       background: "var(--accent)",
-                      color: "var(--surface)",
+                      color: "var(--on-accent)",
                     }}
                   >{t("تحقق","Check answer")}</button>
                 ) : (
@@ -525,59 +504,99 @@ export function AssignmentsLive() {
         </div>
         <span className="pill">{rows.length} {locale==="en"?(rows.length===1?"available assignment":"available assignments"):"\u0648\u0627\u062c\u0628 \u0645\u062a\u0627\u062d"}</span>
       </header>
+      <div className="noata-assignments-tabs" role="group" aria-label={t("تصفية الواجبات","Filter assignments")}>
+        {(() => {
+          const classify = (row: Assignment) => {
+            const sub = submissions.find((x) => x.assignment_id === row.id);
+            const overdue = Boolean(row.due_at && new Date(row.due_at) < new Date() && !sub?.submitted_at);
+            return { sub, overdue, status: sub?.submitted_at ? ("submitted" as const) : overdue ? ("overdue" as const) : ("due" as const) };
+          };
+          const classified = rows.map((row) => ({ row, ...classify(row) }));
+          const tabs = [
+            { id: "all" as const, label: t("الكل","All"), count: classified.length },
+            { id: "due" as const, label: t("متاحة الآن","Due & open"), count: classified.filter((x) => x.status === "due").length },
+            { id: "overdue" as const, label: t("متأخرة","Overdue"), count: classified.filter((x) => x.status === "overdue").length },
+            { id: "submitted" as const, label: t("مُسلّمة","Submitted"), count: classified.filter((x) => x.status === "submitted").length },
+          ];
+          return tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className="filter-chip"
+              aria-pressed={filter === tab.id}
+              onClick={() => setFilter(tab.id)}
+            >
+              {tab.label} ({tab.count.toLocaleString(locale === "en" ? "en" : "ar-EG")})
+            </button>
+          ));
+        })()}
+      </div>
       <section className="quest-list" data-tour="assignments-list">
-        {rows.map((row) => {
-          const sub = submissions.find((x) => x.assignment_id === row.id);
-          const overdue =
-            row.due_at &&
-            new Date(row.due_at) < new Date() &&
-            !sub?.submitted_at;
+        {(() => {
+          const filtered = rows
+            .map((row) => {
+              const sub = submissions.find((x) => x.assignment_id === row.id);
+              const overdue = Boolean(row.due_at && new Date(row.due_at) < new Date() && !sub?.submitted_at);
+              const status = sub?.submitted_at ? ("submitted" as const) : overdue ? ("overdue" as const) : ("due" as const);
+              return { row, sub, overdue, status };
+            })
+            .filter((entry) => filter === "all" || entry.status === filter);
           return (
-            <article className="panel" key={row.id} style={{ padding: 18 }}>
-              <div className="panel-head">
-                <div>
-                  <h2>{row.title}</h2>
-                  <p style={{ color: "var(--muted)", margin: "5px 0" }}>
-                    {row.classes?.name ?? t("الصفّ","Class")} · {row.instructions}
-                  </p>
-                </div>
-                <span className="pill">
-                  {sub?.submitted_at
-                    ? sub.score == null
-                      ? t("تم التسليم","Submitted")
-                      : t("الدرجة: ","Grade: ") + sub.score + "%"
-                    : overdue
-                      ? t("فات الموعد","Overdue")
-                      : t("متاح","Available")}
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
-                }}
-              >
-                <small style={{ color: "var(--muted)" }}>
-                  {row.due_at
-                    ? t("الموعد: ","Due: ") + new Date(row.due_at).toLocaleString(locale==="en"?"en":"ar-EG")
-                    : t("بدون موعد محدد","No due date")}
-                </small>
-                <button
-                  className="btn"
-                  onClick={() => void openAssignment(row.id)}
-                  style={{
-                    background: "var(--accent)",
-                    color: "var(--surface)",
-                  }}
-                >
-                  {sub?.submitted_at ? t("عرض التسليم","View submission") : t("ابدأ الواجب","Start assignment")}
-                </button>
-              </div>
-            </article>
+            <>
+              {filtered.map(({ row, sub, overdue }) => (
+                <article className="panel" key={row.id} style={{ padding: 18 }}>
+                  <div className="panel-head">
+                    <div>
+                      <h2>{row.title}</h2>
+                      <p style={{ color: "var(--muted)", margin: "5px 0" }}>
+                        {row.classes?.name ?? t("الصفّ","Class")} · {row.instructions}
+                      </p>
+                    </div>
+                    <span className="pill">
+                      {sub?.submitted_at
+                        ? sub.score == null
+                          ? t("تم التسليم","Submitted")
+                          : t("الدرجة: ","Grade: ") + sub.score + "%"
+                        : overdue
+                          ? t("فات الموعد","Overdue")
+                          : t("متاح","Available")}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <small style={{ color: "var(--muted)" }}>
+                      {row.due_at
+                        ? t("الموعد: ","Due: ") + new Date(row.due_at).toLocaleString(locale==="en"?"en":"ar-EG")
+                        : t("بدون موعد محدد","No due date")}
+                    </small>
+                    <button
+                      className="btn"
+                      onClick={() => void openAssignment(row.id)}
+                      style={{
+                        background: "var(--accent)",
+                        color: "var(--on-accent)",
+                      }}
+                    >
+                      {sub?.submitted_at ? t("عرض التسليم","View submission") : t("ابدأ الواجب","Start assignment")}
+                    </button>
+                  </div>
+                </article>
+              ))}
+              {rows.length > 0 && filtered.length === 0 && (
+                <section
+                  className="panel"
+                  style={{ padding: 30, textAlign: "center", color: "var(--muted)" }}
+                >{t("لا توجد واجبات في هذا التصنيف حاليًا.","No assignments match this filter.")}</section>
+              )}
+            </>
           );
-        })}
+        })()}
         {!rows.length && (
           <section
             className="panel"

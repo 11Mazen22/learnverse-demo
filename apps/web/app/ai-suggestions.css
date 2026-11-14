@@ -1,4 +1,5 @@
 /* Noata AI Renaissance: quiet, palette-aware, interruptible motion. */
+@layer study {
 .noata-suggested-actions { width:100%;max-width:760px;margin:14px auto 6px; }
 .noata-suggested-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
 .noata-suggested-item {min-width:0;display:flex;align-items:center;gap:10px;text-align:start;
@@ -34,10 +35,14 @@
 @media(max-width:550px){.noata-suggested-grid{grid-template-columns:1fr;gap:8px;}
  .noata-suggested-item{min-height:51px;padding:10px 12px;}
  .noata-suggested-actions.followup .noata-suggested-grid{display:flex;}}
+}
+@layer utilities {
 @media(prefers-reduced-motion:reduce){.noata-suggested-item{animation:none;transition:none;}
  .noata-suggested-item:hover,.noata-suggested-item:active{transform:none;}}
 html[data-reduced-motion="true"] .noata-suggested-item,
-html[data-noata-motion="off"] .noata-suggested-item{animation:none!important;transition:none!important;transform:none!important;}
+html[data-noata-motion="off"] .noata-suggested-item{animation:none;transition:none;transform:none;}
+}
+@layer study {
 
 /* Accessible, palette-aware search activity backed by actual returned research metadata. */
 .noata-research-trace{border:1px solid var(--line);border-radius:15px;background:var(--surface);color:var(--ink);margin:12px 0 16px;overflow:hidden;max-width:800px;}
@@ -61,8 +66,12 @@ html[data-noata-motion="off"] .noata-suggested-item{animation:none!important;tra
 .noata-research-links p{color:var(--muted);font-size:11px;line-height:1.6;margin:5px 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 .noata-research-disclaimer{font-size:11px;color:var(--muted);margin:11px 0 0;}
 @keyframes noata-research-appear{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:translateY(0);}}
+}
+@layer utilities {
 @media(prefers-reduced-motion:reduce){.noata-research-detail{animation:none;}}
-html[data-reduced-motion="true"] .noata-research-detail,html[data-noata-motion="off"] .noata-research-detail{animation:none!important;}
+html[data-reduced-motion="true"] .noata-research-detail,html[data-noata-motion="off"] .noata-research-detail{animation:none;}
+}
+@layer study {
 
 /* User-selectable motion intensity, with platform accessibility taking priority. */
 .noata-motion-field{border:1px solid var(--line);border-radius:15px;background:var(--surface-soft);padding:15px;margin:14px 0;color:var(--ink);}
@@ -74,9 +83,12 @@ html[data-reduced-motion="true"] .noata-research-detail,html[data-noata-motion="
 .noata-motion-options label.active{border-color:var(--accent);background:var(--accent-soft);}
 .noata-motion-options input{accent-color:var(--accent);}
 .noata-motion-options label:focus-within{outline:2px solid var(--accent);outline-offset:2px;}
+}
+@layer utilities {
 html[data-noata-motion="reduce"] .owui-layout :is(button,aside,article,dialog,section,div,span),
 html[data-noata-motion="reduce"] .owui-layout :is(button,aside,article,dialog,section,div,span)::before{
- animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:90ms!important;}
+ animation:none;transition-duration:90ms;scroll-behavior:auto;}
 html[data-noata-motion="off"] .owui-layout *,html[data-noata-motion="off"] .owui-layout *::before,
-html[data-noata-motion="off"] .owui-layout *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
-@media(prefers-reduced-motion:reduce){.owui-layout *,.owui-layout *::before,.owui-layout *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}}
+html[data-noata-motion="off"] .owui-layout *::after{animation:none;transition:none;scroll-behavior:auto;}
+@media(prefers-reduced-motion:reduce){.owui-layout *,.owui-layout *::before,.owui-layout *::after{animation:none;transition:none;scroll-behavior:auto;}}
+}

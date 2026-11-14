@@ -13,6 +13,7 @@
    Imported by components/marketing/marketing-shell.tsx.
    ========================================================================== */
 
+@layer sections {
 .marketing-page {
   /* ---- brand + semantic tokens (Midnight Ink Dark Theme Standard) ---- */
   --mp-ink: #f8fafc;
@@ -629,13 +630,18 @@
   color: #f8fafc !important;
 }
 
+}
+@layer utilities {
 @media (prefers-reduced-motion: reduce) {
   .mp-card, .mp-btn, .mp-card:hover, .mp-btn-primary:hover { transition: none; transform: none; }
   .mk-reveal { opacity: 1; }
 }
+}
+@layer sections {
 
 @media (max-width: 640px) {
   .mp-cards, .mp-steps { grid-template-columns: 1fr; }
   .mp-metrics { grid-template-columns: repeat(2, 1fr); }
   .mp-section { padding-block: var(--mp-space-5); }
+}
 }

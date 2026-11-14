@@ -1,4 +1,5 @@
 /* Actual AI interaction surfaces — palette-aware, responsive, reduced-motion safe. */
+@layer study {
 .noata-study-deck,.noata-series{display:grid;gap:14px}
 .noata-study-meta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px;font-weight:700}
 .noata-study-track{height:7px;background:var(--line);border-radius:99px;overflow:hidden}
@@ -34,5 +35,8 @@
 .noata-series-table :is(th,td){padding:10px;border-bottom:1px solid var(--line);text-align:start}
 .noata-series-table th{position:sticky;top:0;background:var(--surface-soft)}
 @media(max-width:550px){.noata-series-insights{grid-template-columns:1fr}.noata-study-review{flex-direction:column}.noata-series-actions button{flex:1}}
+}
+@layer utilities {
 @media(prefers-reduced-motion:reduce){.noata-flip-card,.noata-study-track span{transition:none}.noata-flip-card:hover{transform:none}}
-html[data-noata-motion="off"] .noata-flip-card,html[data-noata-motion="off"] .noata-study-track span{transition:none!important;transform:none!important}
+html[data-noata-motion="off"] .noata-flip-card,html[data-noata-motion="off"] .noata-study-track span{transition:none;transform:none}
+}

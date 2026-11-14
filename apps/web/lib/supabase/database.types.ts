@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_terms: {
+        Row: {
+          academic_year: string
+          created_at: string
+          ends_on: string
+          id: string
+          is_active: boolean
+          slug: string
+          starts_on: string
+          title_ar: string
+          title_en: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year: string
+          created_at?: string
+          ends_on: string
+          id?: string
+          is_active?: boolean
+          slug: string
+          starts_on: string
+          title_ar: string
+          title_en: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string
+          created_at?: string
+          ends_on?: string
+          id?: string
+          is_active?: boolean
+          slug?: string
+          starts_on?: string
+          title_ar?: string
+          title_en?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_document_files: {
         Row: {id:string;user_id:string;conversation_id:string|null;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at:string;expires_at:string;library_saved:boolean}
         Insert: {id:string;user_id:string;conversation_id:string;name:string;storage_path:string;mime_type:string;size_bytes:number;created_at?:string;expires_at?:string;library_saved?:boolean}
@@ -306,6 +345,7 @@ export type Database = {
           due_at: string | null
           id: string
           instructions: string
+          metadata: Json
           published_at: string | null
           title: string
         }
@@ -316,6 +356,7 @@ export type Database = {
           due_at?: string | null
           id?: string
           instructions?: string
+          metadata?: Json
           published_at?: string | null
           title: string
         }
@@ -326,6 +367,7 @@ export type Database = {
           due_at?: string | null
           id?: string
           instructions?: string
+          metadata?: Json
           published_at?: string | null
           title?: string
         }
@@ -474,6 +516,115 @@ export type Database = {
           {
             foreignKeyName: "boss_runs_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_announcements: {
+        Row: {
+          author_id: string
+          body: string
+          class_id: string | null
+          created_at: string
+          id: string
+          pinned: boolean
+          published_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          published_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          published_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_announcements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_announcements_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_attendance: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          notes: string
+          recorded_by: string | null
+          session_date: string
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          notes?: string
+          recorded_by?: string | null
+          session_date: string
+          status: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          recorded_by?: string | null
+          session_date?: string
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_attendance_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_attendance_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_attendance_student_id_fkey"
+            columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1570,10 +1721,57 @@ export type Database = {
         Update: {id?:string;ticket_code?:string;user_id?:string|null;name?:string;email?:string;subject?:string;category?:string;message?:string;status?:string;email_delivery_status?:string;email_destination?:string;provider_response?:Json;delivery_token_hash?:string;admin_notes?:string|null;created_at?:string;updated_at?:string}
         Relationships: [{foreignKeyName:"support_tickets_user_id_fkey";columns:["user_id"];isOneToOne:false;referencedRelation:"profiles";referencedColumns:["id"]}]
       }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description_ar: string
+          description_en: string
+          enabled: boolean
+          flag_key: string
+          rollout_scope: string
+          title_ar: string
+          title_en: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description_ar?: string
+          description_en?: string
+          enabled?: boolean
+          flag_key: string
+          rollout_scope?: string
+          title_ar?: string
+          title_en?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description_ar?: string
+          description_en?: string
+          enabled?: boolean
+          flag_key?: string
+          rollout_scope?: string
+          title_ar?: string
+          title_en?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flashcard_decks: {
-        Row: {id:string;user_id:string;title:string;description:string;status:string;source_type:string;source_id:string|null;source_version:string|null;lesson_id:string|null;track_id:string|null;created_at:string;updated_at:string}
-        Insert: {id?:string;user_id:string;title:string;description?:string;status?:string;source_type?:string;source_id?:string|null;source_version?:string|null;lesson_id?:string|null;track_id?:string|null;created_at?:string;updated_at?:string}
-        Update: {id?:string;user_id?:string;title?:string;description?:string;status?:string;source_type?:string;source_id?:string|null;source_version?:string|null;lesson_id?:string|null;track_id?:string|null;created_at?:string;updated_at?:string}
+        Row: {id:string;user_id:string;title:string;description:string;status:string;source_type:string;source_id:string|null;source_version:string|null;lesson_id:string|null;track_id:string|null;metadata:Json;created_at:string;updated_at:string}
+        Insert: {id?:string;user_id:string;title:string;description?:string;status?:string;source_type?:string;source_id?:string|null;source_version?:string|null;lesson_id?:string|null;track_id?:string|null;metadata?:Json;created_at?:string;updated_at?:string}
+        Update: {id?:string;user_id?:string;title?:string;description?:string;status?:string;source_type?:string;source_id?:string|null;source_version?:string|null;lesson_id?:string|null;track_id?:string|null;metadata?:Json;created_at?:string;updated_at?:string}
         Relationships: [
           {foreignKeyName:"flashcard_decks_user_id_fkey";columns:["user_id"];isOneToOne:false;referencedRelation:"profiles";referencedColumns:["id"]},
           {foreignKeyName:"flashcard_decks_lesson_id_fkey";columns:["lesson_id"];isOneToOne:false;referencedRelation:"lessons";referencedColumns:["id"]},
@@ -1581,9 +1779,9 @@ export type Database = {
         ]
       }
       flashcards: {
-        Row: {id:string;deck_id:string;user_id:string;card_type:string;front:string;back:string;cloze_text:string|null;position:number;state:string;ease_factor:number;interval_days:number;repetitions:number;lapses:number;last_reviewed_at:string|null;due_at:string;suspended:boolean;created_at:string;updated_at:string}
-        Insert: {id?:string;deck_id:string;user_id:string;card_type?:string;front:string;back:string;cloze_text?:string|null;position?:number;state?:string;ease_factor?:number;interval_days?:number;repetitions?:number;lapses?:number;last_reviewed_at?:string|null;due_at?:string;suspended?:boolean;created_at?:string;updated_at?:string}
-        Update: {id?:string;deck_id?:string;user_id?:string;card_type?:string;front?:string;back?:string;cloze_text?:string|null;position?:number;state?:string;ease_factor?:number;interval_days?:number;repetitions?:number;lapses?:number;last_reviewed_at?:string|null;due_at?:string;suspended?:boolean;created_at?:string;updated_at?:string}
+        Row: {id:string;deck_id:string;user_id:string;card_type:string;front:string;back:string;cloze_text:string|null;position:number;state:string;ease_factor:number;interval_days:number;repetitions:number;lapses:number;last_reviewed_at:string|null;due_at:string;suspended:boolean;metadata:Json;created_at:string;updated_at:string}
+        Insert: {id?:string;deck_id:string;user_id:string;card_type?:string;front:string;back:string;cloze_text?:string|null;position?:number;state?:string;ease_factor?:number;interval_days?:number;repetitions?:number;lapses?:number;last_reviewed_at?:string|null;due_at?:string;suspended?:boolean;metadata?:Json;created_at?:string;updated_at?:string}
+        Update: {id?:string;deck_id?:string;user_id?:string;card_type?:string;front?:string;back?:string;cloze_text?:string|null;position?:number;state?:string;ease_factor?:number;interval_days?:number;repetitions?:number;lapses?:number;last_reviewed_at?:string|null;due_at?:string;suspended?:boolean;metadata?:Json;created_at?:string;updated_at?:string}
         Relationships: [
           {foreignKeyName:"flashcards_owner_deck_fkey";columns:["deck_id","user_id"];isOneToOne:false;referencedRelation:"flashcard_decks";referencedColumns:["id","user_id"]},
           {foreignKeyName:"flashcards_user_id_fkey";columns:["user_id"];isOneToOne:false;referencedRelation:"profiles";referencedColumns:["id"]},
@@ -1596,6 +1794,25 @@ export type Database = {
         Relationships: [
           {foreignKeyName:"flashcard_reviews_user_id_fkey";columns:["user_id"];isOneToOne:false;referencedRelation:"profiles";referencedColumns:["id"]},
           {foreignKeyName:"flashcard_reviews_card_id_fkey";columns:["card_id"];isOneToOne:false;referencedRelation:"flashcards";referencedColumns:["id"]},
+        ]
+      }
+      study_mistake_logs: {
+        Row: {id:string;user_id:string;source_type:string;deck_id:string|null;card_id:string|null;lesson_id:string|null;topic:string;prompt:string;user_answer:string;expected_answer:string;explanation:string;mistake_count:number;resolved_at:string|null;last_missed_at:string;metadata:Json;created_at:string;updated_at:string}
+        Insert: {id?:string;user_id:string;source_type?:string;deck_id?:string|null;card_id?:string|null;lesson_id?:string|null;topic:string;prompt:string;user_answer?:string;expected_answer:string;explanation?:string;mistake_count?:number;resolved_at?:string|null;last_missed_at?:string;metadata?:Json;created_at?:string;updated_at?:string}
+        Update: {id?:string;user_id?:string;source_type?:string;deck_id?:string|null;card_id?:string|null;lesson_id?:string|null;topic?:string;prompt?:string;user_answer?:string;expected_answer?:string;explanation?:string;mistake_count?:number;resolved_at?:string|null;last_missed_at?:string;metadata?:Json;created_at?:string;updated_at?:string}
+        Relationships: [
+          {foreignKeyName:"study_mistake_logs_user_id_fkey";columns:["user_id"];isOneToOne:false;referencedRelation:"profiles";referencedColumns:["id"]},
+          {foreignKeyName:"study_mistake_logs_deck_id_fkey";columns:["deck_id"];isOneToOne:false;referencedRelation:"flashcard_decks";referencedColumns:["id"]},
+          {foreignKeyName:"study_mistake_logs_card_id_fkey";columns:["card_id"];isOneToOne:false;referencedRelation:"flashcards";referencedColumns:["id"]},
+          {foreignKeyName:"study_mistake_logs_lesson_id_fkey";columns:["lesson_id"];isOneToOne:false;referencedRelation:"lessons";referencedColumns:["id"]},
+        ]
+      }
+      study_sessions: {
+        Row: {id:string;user_id:string;session_mode:string;title:string;deck_ids:string[];status:string;total_items:number;completed_items:number;correct_items:number;checkpoint:Json;started_at:string;completed_at:string|null;updated_at:string}
+        Insert: {id?:string;user_id:string;session_mode:string;title:string;deck_ids?:string[];status?:string;total_items?:number;completed_items?:number;correct_items?:number;checkpoint?:Json;started_at?:string;completed_at?:string|null;updated_at?:string}
+        Update: {id?:string;user_id?:string;session_mode?:string;title?:string;deck_ids?:string[];status?:string;total_items?:number;completed_items?:number;correct_items?:number;checkpoint?:Json;started_at?:string;completed_at?:string|null;updated_at?:string}
+        Relationships: [
+          {foreignKeyName:"study_sessions_user_id_fkey";columns:["user_id"];isOneToOne:false;referencedRelation:"profiles";referencedColumns:["id"]},
         ]
       }
       user_tour_progress: {
@@ -1650,6 +1867,7 @@ export type Database = {
           active_design_id: string | null
           ai_memory_enabled: boolean
           created_at: string
+          dashboard_preferences: Json
           default_ai_model: string
           locale: string
           palette: string | null
@@ -1662,6 +1880,7 @@ export type Database = {
           active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
+          dashboard_preferences?: Json
           default_ai_model?: string
           locale?: string
           palette?: string | null
@@ -1674,6 +1893,7 @@ export type Database = {
           active_design_id?: string | null
           ai_memory_enabled?: boolean
           created_at?: string
+          dashboard_preferences?: Json
           default_ai_model?: string
           locale?: string
           palette?: string | null
@@ -1747,6 +1967,10 @@ export type Database = {
       equip_cosmetic: { Args: { p_item_id: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      log_staff_export: {
+        Args: { p_details?: Json; p_entity_type: string; p_row_count?: number }
+        Returns: number
+      }
       purchase_shop_item: {
         Args: { p_idempotency_key: string; p_item_id: string }
         Returns: Json

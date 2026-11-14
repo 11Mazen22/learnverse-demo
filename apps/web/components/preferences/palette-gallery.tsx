@@ -5,6 +5,7 @@ import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import {
   resolveAppearance,
+  resolveBrowserColorScheme,
   safeAppearance,
   getPaletteModeConstraint,
 } from "@/lib/appearance/mode";
@@ -31,10 +32,22 @@ function valid(p: string | null | undefined): p is Palette {
   return PRESETS.some((item) => item.id === p);
 }
 
-/** Keep browser/PWA chrome aligned with the selected page palette where supported. */
+/** Keep browser/PWA chrome aligned with the selected page palette and resolved theme. */
 export function syncBrowserThemeColor() {
   if (typeof document === "undefined") return;
-  const color = getComputedStyle(document.documentElement)
+  const root = document.documentElement;
+  const scheme = resolveBrowserColorScheme(root.dataset.theme, root.dataset.palette);
+  root.style.colorScheme = scheme;
+
+  let schemeMeta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
+  if (!schemeMeta) {
+    schemeMeta = document.createElement("meta");
+    schemeMeta.name = "color-scheme";
+    document.head?.appendChild(schemeMeta);
+  }
+  schemeMeta.content = scheme;
+
+  const color = getComputedStyle(root)
     .getPropertyValue("--surface-soft")
     .trim();
   if (!color) return;

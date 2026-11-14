@@ -3,6 +3,7 @@
    Subject-specific teaching architectures, interactive checkpoints & stepper
    ========================================================================== */
 
+@layer sections {
 .noata-lesson-container {
   max-width: 1120px;
   margin-inline: auto;
@@ -409,4 +410,205 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* Sticky 2-Column Pedagogical Outline & Content Grid */
+.noata-lesson-layout {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.noata-lesson-outline {
+  position: sticky;
+  top: 84px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.noata-lesson-outline-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+}
+
+.noata-lesson-prereq {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+}
+
+/* Accessible <label>:has(:checked) Choice Cards (/missions, /review, /boss, /lesson) */
+.noata-choice-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.noata-choice-list {
+  display: grid;
+  gap: 10px;
+}
+
+.noata-choice-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.14s ease;
+}
+
+.noata-choice-radio {
+  position: absolute;
+  opacity: 0;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.noata-choice-card:hover:not([data-disabled="true"]) {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  transform: translateY(-1px);
+}
+
+.noata-choice-card:has(:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.noata-choice-card:has(:focus-visible) {
+  outline: 3px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+
+.noata-choice-card[data-disabled="true"] {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.noata-choice-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--surface-soft);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.noata-choice-card:has(:checked) .noata-choice-badge {
+  background: var(--accent);
+  color: var(--accent-ink, var(--surface));
+  border-color: var(--accent);
+}
+
+.noata-choice-text {
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.noata-choice-indicator {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  color: var(--accent-ink, var(--surface));
+}
+
+.noata-choice-card:has(:checked) .noata-choice-indicator {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Grade & Misconception Feedback + Retry State */
+.noata-grade-feedback {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1.5px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+
+.noata-grade-feedback[data-correct="true"] {
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+}
+
+.noata-grade-feedback[data-correct="false"] {
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+
+.noata-grade-misconception {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface-soft));
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.noata-retry-banner {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 960px) {
+  .noata-lesson-layout {
+    grid-template-columns: 1fr;
+  }
+  .noata-lesson-outline {
+    position: static;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .noata-stage-step,
+  .noata-choice-card {
+    transition: none;
+  }
+}
 }

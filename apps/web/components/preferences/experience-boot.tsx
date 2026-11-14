@@ -32,6 +32,30 @@ export function ExperienceBoot() {
       /* Device storage can be disabled; OS appearance remains usable. */
     }
 
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleOsSchemeChange = () => {
+      try {
+        const storedTheme = localStorage.getItem("noata-theme");
+        if (storedTheme && storedTheme !== "system") return;
+      } catch {
+        /* Proceed with system fallback when localStorage is unavailable. */
+      }
+      const palette = document.documentElement.dataset.palette;
+      const customConstraint =
+        document.documentElement.dataset.modeConstraint === "dark-only" ||
+        document.documentElement.dataset.modeConstraint === "light-only"
+          ? document.documentElement.dataset.modeConstraint
+          : undefined;
+      document.documentElement.dataset.theme = resolveAppearance(
+        "system",
+        palette,
+        media.matches,
+        customConstraint
+      );
+      syncBrowserThemeColor();
+    };
+    media.addEventListener("change", handleOsSchemeChange);
+
     void (async () => {
       try {
         const user = account.user;
@@ -42,15 +66,6 @@ export function ExperienceBoot() {
           .eq("user_id", user.id)
           .maybeSingle();
         if (!alive || !data) return;
-
-        localStorage.setItem("noata-theme", data.theme);
-
-        document.documentElement.dataset.theme = resolveAppearance(
-          safeAppearance(data.theme),
-          document.documentElement.dataset.palette,
-          window.matchMedia("(prefers-color-scheme: dark)").matches
-        );
-        syncBrowserThemeColor();
 
         if (
           typeof data.palette === "string" &&
@@ -64,6 +79,15 @@ export function ExperienceBoot() {
           }
           window.dispatchEvent(new Event("noata-palette-change"));
         }
+
+        localStorage.setItem("noata-theme", data.theme);
+
+        document.documentElement.dataset.theme = resolveAppearance(
+          safeAppearance(data.theme),
+          document.documentElement.dataset.palette,
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+        );
+        syncBrowserThemeColor();
 
         if (data.active_design_id) {
           const response = await supabase
@@ -119,6 +143,7 @@ export function ExperienceBoot() {
 
     return () => {
       alive = false;
+      media.removeEventListener("change", handleOsSchemeChange);
     };
   }, [supabase, account.user]);
 

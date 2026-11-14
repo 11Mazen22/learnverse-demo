@@ -1,4 +1,5 @@
 /* Genesis 3.0: real, account-owned file delivery inside the assistant response. */
+@layer study {
 .noata-generated-file{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin:16px 0;
  padding:15px 16px;border:1px solid var(--line);border-radius:17px;color:var(--ink);
  background:linear-gradient(135deg,var(--surface),var(--surface-soft));
@@ -15,6 +16,9 @@
 .noata-generated-file-actions button:last-child{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
 .noata-generated-file-actions button:disabled{opacity:.5;cursor:wait}
 .noata-generated-file-actions button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-.noata-generated-file>[role="alert"]{width:100%;margin:0;color:#bb4058;font-size:12px}
+.noata-generated-file>[role="alert"]{width:100%;margin:0;color:var(--danger);font-size:12px}
 @media(max-width:520px){.noata-generated-file-actions{width:100%}.noata-generated-file-actions button{flex:1}}
-@media(prefers-reduced-motion:reduce){.noata-generated-file *{transition:none!important;animation:none!important}}
+}
+@layer utilities {
+@media(prefers-reduced-motion:reduce){.noata-generated-file *{transition:none;animation:none}}
+}

@@ -9,6 +9,7 @@ import { ThemeControl } from "@/components/preferences/theme-control";
 import { PaletteGallery, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { Icon } from "@/components/ui/icon";
+import { Tabs, type TabItem } from "@/components/ui/tabs";
 import { confirmAction } from "@/components/ui/confirm-dialog";
 import { CHAT_MODEL_CARDS } from "@/lib/ai/model-routing";
 import {
@@ -17,8 +18,47 @@ import {
   getActiveModeConstraint,
   type PaletteModeConstraint,
 } from "@/lib/appearance/mode";
-import {DesignStudio} from "@/components/preferences/design-studio";
+import { measureTokenContrast, normalizeCssColorToHex } from "@/lib/appearance/theme";
+import {
+  ALL_DASHBOARD_WIDGET_IDS,
+  DEFAULT_DASHBOARD_PREFERENCES,
+  moveWidgetOrder,
+  parseDashboardPreferences,
+  scopedDashboardPreferencesKey,
+  serializeDashboardPreferences,
+  toggleWidgetVisibility,
+  type DashboardPreferences,
+  type DashboardWidgetId,
+} from "@/lib/dashboard/preferences";
+import { DesignStudio } from "@/components/preferences/design-studio";
 import { applyLocale, localized, useLocale } from "@/lib/i18n/locale";
+import type { Json } from "@/lib/supabase/database.types";
+
+type SettingsTabId = "appearance" | "profile" | "ai" | "account";
+
+const WIDGET_LABELS: Record<DashboardWidgetId, { ar: string; en: string }> = {
+  metrics: { ar: "مؤشرات التقدّم", en: "Learning Metrics" },
+  consistency: { ar: "السلسلة والأهداف الأسبوعية", en: "Consistency & Weekly Goals" },
+  next_steps: { ar: "الخطوات القادمة", en: "Next Recommended Steps" },
+  weak_radar: { ar: "رادار نقاط التركيز", en: "Focus & Weak Radar" },
+  curriculum: { ar: "استكشاف المنهج", en: "Curriculum Explorer" },
+  quick_launcher: { ar: "الإطلاق السريع", en: "Quick Launcher" },
+};
+
+const SETTINGS_TAB_HASHES: Record<SettingsTabId, string> = {
+  appearance: "aura-appearance",
+  profile: "aura-profile",
+  ai: "aura-ai",
+  account: "aura-account",
+};
+
+function resolveTabFromHash(hash: string): SettingsTabId {
+  const clean = hash.replace(/^#/, "").toLowerCase();
+  if (clean === "aura-ai") return "ai";
+  if (clean === "aura-profile" || clean === "aura-goals") return "profile";
+  if (clean === "aura-security" || clean === "aura-account") return "account";
+  return "appearance";
+}
 
 type Settings = {
   theme: "system" | "light" | "dark";
@@ -270,18 +310,26 @@ function LiveDesignSystemShowcase({
   const [clickedAction, setClickedAction] = useState<string | null>(null);
   const [tokens, setTokens] = useState({
     accent: "#0065b5",
+    onAccent: "#ffffff",
     surface: "#ffffff",
     ink: "#0a0a0a",
+    muted: "#526072",
   });
 
   useEffect(() => {
     const updateTokens = () => {
       if (typeof window === "undefined") return;
       const cs = window.getComputedStyle(document.documentElement);
+      const readHex = (prop: string, fallback: string) => {
+        const raw = cs.getPropertyValue(prop).trim();
+        return normalizeCssColorToHex(raw) ?? (raw || fallback);
+      };
       setTokens({
-        accent: cs.getPropertyValue("--accent").trim() || "#0065b5",
-        surface: cs.getPropertyValue("--surface").trim() || "#ffffff",
-        ink: cs.getPropertyValue("--ink").trim() || "#0a0a0a",
+        accent: readHex("--accent", "#0065b5"),
+        onAccent: readHex("--on-accent", "#ffffff"),
+        surface: readHex("--surface", "#ffffff"),
+        ink: readHex("--ink", "#0a0a0a"),
+        muted: readHex("--muted", "#526072"),
       });
     };
     updateTokens();
@@ -298,6 +346,10 @@ function LiveDesignSystemShowcase({
       observer.disconnect();
     };
   }, []);
+
+  const inkContrast = measureTokenContrast(tokens.ink, tokens.surface);
+  const mutedContrast = measureTokenContrast(tokens.muted, tokens.surface);
+  const accentBtnContrast = measureTokenContrast(tokens.onAccent, tokens.accent);
 
   const triggerFeedback = (name: string) => {
     setClickedAction(name);
@@ -402,47 +454,43 @@ function LiveDesignSystemShowcase({
 
           <div className="aura-preview-pillar-content">
             <div className="aura-preview-badges-wrap">
-              <span
+              <button
+                type="button"
                 className="noata-ds-pill noata-ds-pill-success"
                 onClick={() => triggerFeedback(t("شارة الإتقان 100%", "100% Mastery"))}
-                role="button"
-                tabIndex={0}
               >
                 <span className="noata-pill-check-icon">
                   <Icon name="check" size={11} />
                 </span>
                 <span>{t("مكتمل ومتقن", "Mastered 100%")}</span>
-              </span>
+              </button>
 
-              <span
+              <button
+                type="button"
                 className="noata-ds-pill noata-ds-pill-ai"
                 onClick={() => triggerFeedback(t("شارة ذكاء Noäta", "Noäta AI"))}
-                role="button"
-                tabIndex={0}
               >
                 <Icon name="sparkles" size={13} />
                 <span>{t("ذكاء Noäta", "Noäta AI")}</span>
-              </span>
+              </button>
 
-              <span
+              <button
+                type="button"
                 className="noata-ds-pill noata-ds-pill-streak"
                 onClick={() => triggerFeedback(t("شارة النشاط المستمر", "Daily Streak"))}
-                role="button"
-                tabIndex={0}
               >
                 <Icon name="flame" size={13} />
                 <span>{t("نشاط مستمر 7 أيام", "7-Day Streak")}</span>
-              </span>
+              </button>
 
-              <span
+              <button
+                type="button"
                 className="noata-ds-pill noata-ds-pill-challenge"
                 onClick={() => triggerFeedback(t("شارة تحدّي الوحدة", "Boss Challenge"))}
-                role="button"
-                tabIndex={0}
               >
                 <Icon name="shield" size={13} />
                 <span>{t("تحدّي الوحدة", "Unit Boss")}</span>
-              </span>
+              </button>
             </div>
             <small className="noata-ds-pillar-note">
               {t("شارات مصممة بأيقونات SVG موجهة ومتباينة بالكامل.", "Badges oriented cleanly in Arabic RTL & English LTR.")}
@@ -531,15 +579,29 @@ function LiveDesignSystemShowcase({
               </div>
             </div>
 
-            <div className="noata-ds-contrast-banner">
+            <div className="noata-ds-contrast-banner" role="status">
               <span className="noata-ds-contrast-check">
                 <Icon name="check" size={12} />
               </span>
-              <span>
-                {t(
-                  "معاينة بصرية للتباين. لا تمثل شهادة WCAG؛ يلزم قياس كل تركيبة لون وحالة تفاعل.",
-                  "Visual contrast preview only. This is not WCAG certification; every color and interaction state still requires measurement."
-                )}
+              <span className="noata-ds-contrast-metrics">
+                {t("قياس تباين WCAG الفعلي للرموز النشطة:", "Live WCAG contrast for active tokens:")}{" "}
+                <b dir="ltr">
+                  {inkContrast
+                    ? `${t("النص/السطح", "Ink/Surface")} ${inkContrast.ratio.toFixed(2)}:1 (${inkContrast.passAAA ? "AAA" : inkContrast.passAA ? "AA" : "Fail"})`
+                    : "Ink/Surface —"}
+                </b>
+                {" · "}
+                <b dir="ltr">
+                  {accentBtnContrast
+                    ? `${t("زر الأساس", "Button")} ${accentBtnContrast.ratio.toFixed(2)}:1 (${accentBtnContrast.passAAA ? "AAA" : accentBtnContrast.passAA ? "AA" : "Fail"})`
+                    : "Button —"}
+                </b>
+                {" · "}
+                <b dir="ltr">
+                  {mutedContrast
+                    ? `${t("الثانوي/السطح", "Muted/Surface")} ${mutedContrast.ratio.toFixed(2)}:1 (${mutedContrast.passAAA ? "AAA" : mutedContrast.passAA ? "AA" : "Fail"})`
+                    : "Muted/Surface —"}
+                </b>
               </span>
             </div>
           </div>
@@ -570,6 +632,8 @@ export function SettingsLive() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [settings, setSettings] = useState<Settings>(DEFAULT);
+  const [dashPrefs, setDashPrefs] = useState<DashboardPreferences>(DEFAULT_DASHBOARD_PREFERENCES);
+  const [activeTab, setActiveTab] = useState<SettingsTabId>("appearance");
   const [initial, setInitial] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -668,7 +732,7 @@ export function SettingsLive() {
           supabase
             .from("user_settings")
             .select(
-              "theme,locale,reduced_motion,default_ai_model,ai_memory_enabled",
+              "theme,locale,reduced_motion,default_ai_model,ai_memory_enabled,dashboard_preferences",
             )
             .eq("user_id", user.id)
             .maybeSingle(),
@@ -676,19 +740,41 @@ export function SettingsLive() {
         if (profile.error || preferences.error)
           throw profile.error ?? preferences.error;
         if (!active) return;
+        const fallbackLoc =
+          typeof document !== "undefined" && document.documentElement.lang === "en"
+            ? "en"
+            : "ar";
         const next = normalizeSettings(
           preferences.data as Record<string, unknown> | null,
-          locale === "en" ? "en" : "ar"
+          fallbackLoc
         );
+        let storedDashRaw: unknown = preferences.data?.dashboard_preferences;
+        if (!storedDashRaw) {
+          try {
+            const localRaw = localStorage.getItem(scopedDashboardPreferencesKey(user.id));
+            if (localRaw) storedDashRaw = JSON.parse(localRaw);
+          } catch {}
+        }
+        const nextDashPrefs = parseDashboardPreferences(storedDashRaw);
         const displayName = profile.data?.display_name ?? "";
         setName(displayName);
         setSettings(next);
-        setInitial(JSON.stringify({ name: displayName, settings: next }));
+        setDashPrefs(nextDashPrefs);
+        setInitial(JSON.stringify({ name: displayName, settings: next, dashPrefs: nextDashPrefs }));
       } catch {
-        if (active)
+        if (active) {
+          const errLoc =
+            typeof document !== "undefined" && document.documentElement.lang === "en"
+              ? "en"
+              : "ar";
           setError(
-             t("تعذّر تحميل إعدادات حسابك. حاول مجددًا بعد التحقق من الاتصال.","Could not load your account settings. Check your connection and try again."),
+            localized(
+              errLoc,
+              "تعذّر تحميل إعدادات حسابك. حاول مجددًا بعد التحقق من الاتصال.",
+              "Could not load your account settings. Check your connection and try again.",
+            ),
           );
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -696,12 +782,38 @@ export function SettingsLive() {
     return () => {
       active = false;
     };
-  }, [supabase, reload, account.user, account.loading, t]);
+  }, [supabase, reload, account.user, account.loading]);
 
-  const dirty = JSON.stringify({ name, settings }) !== initial;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncHash = () => {
+      if (window.location.hash) {
+        setActiveTab(resolveTabFromHash(window.location.hash));
+      }
+    };
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, []);
+
+  const handleSelectTab = useCallback((nextId: string) => {
+    const resolved: SettingsTabId =
+      nextId === "profile" || nextId === "ai" || nextId === "account"
+        ? nextId
+        : "appearance";
+    setActiveTab(resolved);
+    if (typeof window !== "undefined") {
+      const targetHash = `#${SETTINGS_TAB_HASHES[resolved]}`;
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState(null, "", targetHash);
+      }
+    }
+  }, []);
+
+  const dirty = JSON.stringify({ name, settings, dashPrefs }) !== initial;
   useUnsavedWork(Boolean(userId && dirty));
-  async function save(e: FormEvent) {
-    e.preventDefault();
+  async function save(e?: FormEvent) {
+    e?.preventDefault();
     if (!userId || saving || mutating) return;
     const cleanName = name.trim();
     if (cleanName.length < 2 || cleanName.length > 80) {
@@ -714,6 +826,8 @@ export function SettingsLive() {
     setSaving(true);
     setNotice(null);
     const token = account.revision.current;
+    const cleanDashPrefs = parseDashboardPreferences(dashPrefs);
+    const serializedDashPrefs = serializeDashboardPreferences(cleanDashPrefs);
     await run(async (check) => {
       try {
         // Two distinct RLS-protected records. Never report success if either write fails.
@@ -735,6 +849,7 @@ export function SettingsLive() {
             {
               user_id: userId,
               ...settings,
+              dashboard_preferences: serializedDashPrefs as Json,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" },
@@ -746,9 +861,19 @@ export function SettingsLive() {
           throw Error(
              t("اتحفظ الاسم، لكن تفضيلات الجهاز والذكاء الاصطناعي لم تُحفظ. حاول مرة أخرى.","Your name was saved, but your device and AI preferences were not. Please try again."),
           );
+        try {
+          localStorage.setItem(
+            scopedDashboardPreferencesKey(userId),
+            JSON.stringify(serializedDashPrefs),
+          );
+        } catch {}
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("noata-dashboard-preferences-change"));
+        }
         applySettings(settings, true);
         setName(cleanName);
-        setInitial(JSON.stringify({ name: cleanName, settings }));
+        setDashPrefs(cleanDashPrefs);
+        setInitial(JSON.stringify({ name: cleanName, settings, dashPrefs: cleanDashPrefs }));
         setNotice({
           kind: "success",
            message: t("تم حفظ إعداداتك في حسابك بنجاح.","Your settings were saved to your account."),
@@ -870,6 +995,417 @@ export function SettingsLive() {
       </div>
     );
 
+  const saveBar = (
+    <>
+      <div className="aura-settings-savebar">
+        <div>
+          <strong>
+            {dirty
+              ? t("عندك تغييرات لسه متحفظتش", "You have unsaved changes")
+              : t("تفضيلاتك الحالية", "Your current preferences")}
+          </strong>
+          <small>
+            {t(
+              "الحفظ يتأكد من تحديث حسابك قبل ظهور رسالة النجاح.",
+              "A success message appears only after your account confirms the update.",
+            )}
+          </small>
+        </div>
+        <button type="submit" disabled={!dirty || saving}>
+          {saving ? t("جارٍ الحفظ…", "Saving…") : t("حفظ التغييرات", "Save changes")}
+        </button>
+      </div>
+      {notice && (
+        <div
+          className={"aura-settings-notice " + notice.kind}
+          role={notice.kind === "error" ? "alert" : "status"}
+        >
+          {notice.message}
+        </div>
+      )}
+    </>
+  );
+
+  const settingsTabs: TabItem[] = [
+    {
+      id: "appearance",
+      label: t("المظهر والتصميم", "Appearance & Studio"),
+      icon: "sun",
+      content: (
+        <>
+          <form className="aura-settings-content" onSubmit={(e) => void save(e)}>
+            <section id="aura-appearance" className="aura-settings-section" data-tour="settings-appearance">
+              <div className="aura-settings-section-top">
+                <Icon name="sun" size={24} />
+                <div>
+                  <h2>{t("استوديو المظهر ونظام التصميم", "Appearance Studio & Design System")}</h2>
+                  <p>
+                    {t(
+                      "تحكم كامل في إضاءة المنصة، عوالم الألوان، تفضيلات الحركة، ومعاينة حية لمكونات النظام البصري.",
+                      "Full control over platform illumination, color worlds, motion preferences, and a live design system preview."
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <GrandThemeGrid
+                currentTheme={settings.theme}
+                activePalette={activePalette}
+                activeConstraint={activeConstraint}
+                systemDark={systemDark}
+                onSelectTheme={(mode) => {
+                  setSettings((s) => ({ ...s, theme: mode }));
+                  applyThemeOnly(mode);
+                }}
+                locale={locale}
+                t={t}
+              />
+
+              <PaletteGallery />
+
+              <p className="noata-appearance-footnote">
+                {activePalette === "midnight"
+                  ? t(
+                      "طابع «منتصف الليل» يفرض الوضع الليلي حصريًا لحماية عمق الدرجات الليلية والتباين المريح.",
+                      "The Midnight palette strictly enforces Dark Mode to protect night-time contrast and depth."
+                    )
+                  : activeConstraint === "dark-only"
+                  ? t(
+                      "تصميم Noäta AI المخصص يفرض الوضع الليلي حصريًا بناءً على ألوانه وتناغم التباين المعتمد.",
+                      "The active Noäta AI design strictly enforces Dark Mode based on its calibrated contrast."
+                    )
+                  : activeConstraint === "light-only"
+                  ? t(
+                      "تصميم Noäta AI المخصص يفرض الوضع النهاري حصريًا.",
+                      "The active Noäta AI design strictly enforces Light Mode."
+                    )
+                  : t(
+                      "الأوضاع النهارية والليلية تعمل بتناغم تام مع كافة عوالم الألوان؛ طابع «منتصف الليل» داكن بطبيعته.",
+                      "Light and dark modes operate alongside color worlds. The Midnight palette remains deep dark."
+                    )}
+              </p>
+
+              <LiveDesignSystemShowcase locale={locale} t={t} />
+
+              <label className="aura-settings-switch">
+                <span>
+                  <strong>{t("تقليل الحركة والانتقالات", "Reduce Motion & Transitions")}</strong>
+                  <small>
+                    {t(
+                      "إيقاف التأثيرات الحركية والتحولات السريعة لتجربة قراءة هادئة.",
+                      "Limit animated transitions for a calmer reading experience."
+                    )}
+                  </small>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={settings.reduced_motion}
+                  onChange={(e) => {
+                    const next = { ...settings, reduced_motion: e.target.checked };
+                    setSettings(next);
+                    applySettings(next, false);
+                  }}
+                />
+              </label>
+            </section>
+            {saveBar}
+          </form>
+          <DesignStudio />
+        </>
+      ),
+    },
+    {
+      id: "profile",
+      label: t("الملف الشخصي والأهداف", "Profile & Goals"),
+      icon: "settings",
+      content: (
+        <form className="aura-settings-content" onSubmit={(e) => void save(e)}>
+          <section id="aura-profile" className="aura-settings-section">
+            <div className="aura-settings-section-top">
+              <Icon name="settings" size={21} />
+              <div>
+                <h2>{t("الملف الشخصي وأهداف لوحة التحكم", "Profile & Dashboard Goals")}</h2>
+                <p>{t("الاسم واللغة الأساسية والأهداف الأسبوعية وترتيب بطاقات الرئيسية", "Your name, interface language, weekly study targets, and dashboard widgets")}</p>
+              </div>
+            </div>
+            <label className="aura-settings-label">
+              <span>{t("اسم العرض", "Display name")}</span>
+              <input
+                maxLength={80}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("اسمك داخل Noäta", "Your name in Noata")}
+              />
+            </label>
+            <label className="aura-settings-label">
+              <span>{t("لغة الواجهة", "Interface language")}</span>
+              <select
+                value={settings.locale}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    locale: e.target.value === "en" ? "en" : "ar",
+                  }))
+                }
+              >
+                <option value="ar">{t("العربية — الواجهة الأساسية", "Arabic")}</option>
+                <option value="en">{t("English — جزئية", "English — partial")}</option>
+              </select>
+              <small>{t("بعض الصفحات ما زالت عربية حتى عند اختيار الإنجليزية.", "Some pages still appear in Arabic when English is selected.")}</small>
+            </label>
+
+            <div id="aura-goals" className="noata-settings-subpanel">
+              <h3>{t("أهداف التعلم الأسبوعية واليومية", "Weekly & daily learning goals")}</h3>
+              <div className="noata-settings-goals-grid">
+                <label className="aura-settings-label">
+                  <span>{t("هدف البطاقات أسبوعيًا", "Weekly cards target")}</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={500}
+                    value={dashPrefs.goals.weeklyCardsTarget}
+                    onChange={(e) =>
+                      setDashPrefs((p) =>
+                        parseDashboardPreferences({
+                          ...p,
+                          goals: { ...p.goals, weeklyCardsTarget: Number(e.target.value) || p.goals.weeklyCardsTarget },
+                        }),
+                      )
+                    }
+                  />
+                </label>
+                <label className="aura-settings-label">
+                  <span>{t("هدف الدروس أسبوعيًا", "Weekly lessons target")}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={dashPrefs.goals.weeklyLessonsTarget}
+                    onChange={(e) =>
+                      setDashPrefs((p) =>
+                        parseDashboardPreferences({
+                          ...p,
+                          goals: { ...p.goals, weeklyLessonsTarget: Number(e.target.value) || p.goals.weeklyLessonsTarget },
+                        }),
+                      )
+                    }
+                  />
+                </label>
+                <label className="aura-settings-label">
+                  <span>{t("دقائق المراجعة يوميًا", "Daily study minutes")}</span>
+                  <input
+                    type="number"
+                    min={10}
+                    max={240}
+                    value={dashPrefs.goals.dailyMinutesTarget}
+                    onChange={(e) =>
+                      setDashPrefs((p) =>
+                        parseDashboardPreferences({
+                          ...p,
+                          goals: { ...p.goals, dailyMinutesTarget: Number(e.target.value) || p.goals.dailyMinutesTarget },
+                        }),
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="noata-settings-subpanel">
+              <h3>{t("ظهور وترتيب بطاقات الرئيسية", "Dashboard widgets order & visibility")}</h3>
+              <div className="noata-settings-widgets-list">
+                {dashPrefs.widgetOrder.map((id, idx) => {
+                  const visible = !dashPrefs.hiddenWidgets.includes(id);
+                  const copy = WIDGET_LABELS[id] ?? { ar: id, en: id };
+                  return (
+                    <div key={id} className="noata-settings-widget-row">
+                      <label className="noata-settings-widget-toggle">
+                        <input
+                          type="checkbox"
+                          checked={visible}
+                          onChange={() => setDashPrefs((p) => toggleWidgetVisibility(p, id))}
+                        />
+                        <span>{t(copy.ar, copy.en)}</span>
+                      </label>
+                      <div className="noata-settings-widget-actions">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          aria-label={t(`تحريك ${copy.ar} لأعلى`, `Move ${copy.en} up`)}
+                          onClick={() => setDashPrefs((p) => moveWidgetOrder(p, id, "up"))}
+                        >
+                          {t("أعلى", "Up")}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === ALL_DASHBOARD_WIDGET_IDS.length - 1}
+                          aria-label={t(`تحريك ${copy.ar} لأسفل`, `Move ${copy.en} down`)}
+                          onClick={() => setDashPrefs((p) => moveWidgetOrder(p, id, "down"))}
+                        >
+                          {t("أسفل", "Down")}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+          {saveBar}
+        </form>
+      ),
+    },
+    {
+      id: "ai",
+      label: "Noäta AI",
+      icon: "ai",
+      content: (
+        <form className="aura-settings-content" onSubmit={(e) => void save(e)}>
+          <section id="aura-ai" className="aura-settings-section" data-tour="settings-ai">
+            <div className="aura-settings-section-top">
+              <Icon name="ai" size={21} />
+              <div>
+                <h2>Noäta AI</h2>
+                <p>{t("اختر تفضيلات الدردشة والنماذج المهيأة", "Choose chat and model preferences")}</p>
+              </div>
+            </div>
+            <label className="aura-settings-label">
+              <span>{t("نموذج الذكاء الاصطناعي الافتراضي", "Default AI model")}</span>
+              <select
+                value={settings.default_ai_model}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, default_ai_model: e.target.value }))
+                }
+              >
+                <option value="auto">{t("تلقائي · توجيه حسب نوع السؤال", "Auto · selected by question type")}</option>
+                {CHAT_MODEL_CARDS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {locale === "en" ? o.id : o.arabic} · {locale === "en" ? MODEL_SUBTITLE_EN[o.id] : o.subtitle}
+                  </option>
+                ))}
+              </select>
+              <small>
+                {t("وجود النموذج في القائمة يعني أنه مهيّأ؛ توفّره الفعلي يعتمد على الخدمة.", "Listed models are configured; actual availability depends on the provider.")}
+              </small>
+            </label>
+            <label className="aura-settings-switch">
+              <span>
+                <strong>{t("حفظ محادثات الذكاء الاصطناعي", "Save AI conversations")}</strong>
+                <small>
+                  {t("عند إيقافها تستخدم المحادثات الجديدة الوضع المؤقت. لا تُحذف المحادثات القديمة تلقائيًا.", "When off, new chats use temporary mode. Existing conversations are not deleted automatically.")}
+                </small>
+              </span>
+              <input
+                type="checkbox"
+                checked={settings.ai_memory_enabled}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    ai_memory_enabled: e.target.checked,
+                  }))
+                }
+              />
+            </label>
+          </section>
+          {saveBar}
+        </form>
+      ),
+    },
+    {
+      id: "account",
+      label: t("الأمان والحساب", "Security & Account"),
+      icon: "user",
+      content: (
+        <div className="aura-settings-content">
+          <section
+            id="aura-security"
+            className="aura-settings-section aura-settings-security"
+          >
+            <div className="aura-settings-section-top">
+              <Icon name="pin" size={21} />
+              <div>
+                <h2>{t("حماية الحساب", "Account security")}</h2>
+                <p>{t("تغيير كلمة المرور بشكل مستقل عن بقية التفضيلات", "Change your password separately from other settings")}</p>
+              </div>
+            </div>
+            <label className="aura-settings-label">
+              <span>{t("كلمة مرور جديدة", "New password")}</span>
+              <span className="aura-settings-password">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  minLength={8}
+                  value={password}
+                  aria-invalid={password.length > 0 && password.length < 8}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void updatePassword();
+                    }
+                  }}
+                  placeholder={t("٨ أحرف على الأقل", "At least 8 characters")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((x) => !x)}
+                  aria-label={
+                    showPassword ? t("إخفاء كلمة المرور", "Hide password") : t("إظهار كلمة المرور", "Show password")
+                  }
+                >
+                  {showPassword ? t("إخفاء", "Hide") : t("إظهار", "Show")}
+                </button>
+              </span>
+            </label>
+            <button
+              type="button"
+              className="aura-settings-password-action"
+              disabled={password.length < 8 || passwordBusy}
+              onClick={() => void updatePassword()}
+            >
+              {passwordBusy ? t("جارٍ التحديث…", "Updating…") : t("تحديث كلمة المرور", "Update password")}
+            </button>
+            {securityNotice && (
+              <p
+                role={securityNotice.kind === "error" ? "alert" : "status"}
+                className={"aura-settings-notice " + securityNotice.kind}
+              >
+                {securityNotice.message}
+              </p>
+            )}
+            <p className="aura-settings-security-foot">
+              {t("لا تشارك كلمة المرور مع أي شخص. صلاحيات حسابك تتحكم فيها سياسات قاعدة البيانات على الخادم، وليس هذه الصفحة.", "Never share your password. Server-side database policies control account permissions.")}
+            </p>
+          </section>
+          <section id="aura-account" className="aura-settings-section aura-settings-account" data-tour="settings-account">
+            <div className="aura-settings-section-top">
+              <Icon name="user" size={21} />
+              <div>
+                <h2>{t("الحساب والجلسة", "Account and session")}</h2>
+                <p>{t("اطّلع على حسابك وتحكم في تسجيل الخروج بشكل واضح وآمن", "Review your account and sign out securely")}</p>
+              </div>
+            </div>
+            <div className="aura-settings-account-overview">
+              <div>
+                <strong>{name.trim() || t("حساب Noäta", "Noata account")}</strong>
+                <span dir="ltr">{email}</span>
+              </div>
+              <button type="button" className="aura-settings-signout"
+                onClick={() => void logoutFromSettings()} disabled={logoutBusy}>
+                <Icon name="arrow" size={18} />
+                {logoutBusy ? t("جارٍ تسجيل الخروج…", "Signing out…") : t("تسجيل الخروج من حسابي", "Sign out of my account")}
+              </button>
+            </div>
+            {logoutError && <p role="alert" className="aura-settings-notice error">{logoutError}</p>}
+            <p className="aura-settings-security-foot">
+              {t("الضغط على صورتك الشخصية يفتح قائمة الحساب؛ لا يُسجل الخروج تلقائيًا.", "Select your profile picture to open the account menu. This does not sign you out.")}
+            </p>
+          </section>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="aura-settings-page" data-tour-page="settings">
       {status && <p role="alert">{status}</p>}
@@ -885,266 +1421,14 @@ export function SettingsLive() {
           {email}
         </span>
       </header>
-       <nav className="aura-settings-nav" data-tour="settings-sections" aria-label={t("أقسام الإعدادات","Settings sections")}>
-         <a href="#aura-profile">{t("الملف الشخصي","Profile")}</a>
-         <a href="#aura-appearance">{t("المظهر","Appearance")}</a>
-        <a href="#aura-ai">Noäta AI</a>
-         <a href="#aura-security">{t("الأمان","Security")}</a>
-         <a href="#aura-account">{t("الحساب والجلسة","Account and session")}</a>
-      </nav>
-      <form className="aura-settings-content" onSubmit={(e) => void save(e)}>
-        <section id="aura-profile" className="aura-settings-section">
-          <div className="aura-settings-section-top">
-            <Icon name="settings" size={21} />
-            <div>
-               <h2>{t("الملف الشخصي","Profile")}</h2>
-               <p>{t("الاسم واللغة الأساسية لحسابك","Your name and interface language")}</p>
-            </div>
-          </div>
-          <label className="aura-settings-label">
-             <span>{t("اسم العرض","Display name")}</span>
-            <input
-              maxLength={80}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-               placeholder={t("اسمك داخل Noäta","Your name in Noata")}
-            />
-          </label>
-          <label className="aura-settings-label">
-             <span>{t("لغة الواجهة","Interface language")}</span>
-            <select
-              value={settings.locale}
-              onChange={(e) =>
-                setSettings((s) => ({
-                  ...s,
-                  locale: e.target.value === "en" ? "en" : "ar",
-                }))
-              }
-            >
-               <option value="ar">{t("العربية — الواجهة الأساسية","Arabic")}</option>
-               <option value="en">{t("English — جزئية","English — partial")}</option>
-            </select>
-             <small>{t("بعض الصفحات ما زالت عربية حتى عند اختيار الإنجليزية.","Some pages still appear in Arabic when English is selected.")}</small>
-          </label>
-        </section>
-        <section id="aura-appearance" className="aura-settings-section" data-tour="settings-appearance">
-          <div className="aura-settings-section-top">
-            <Icon name="sun" size={24} />
-            <div>
-              <h2>{t("استوديو المظهر ونظام التصميم", "Appearance Studio & Design System")}</h2>
-              <p>
-                {t(
-                  "تحكم كامل في إضاءة المنصة، عوالم الألوان، تفضيلات الحركة، ومعاينة حية لمكونات النظام البصري.",
-                  "Full control over platform illumination, color worlds, motion preferences, and a live design system preview."
-                )}
-              </p>
-            </div>
-          </div>
-
-          <GrandThemeGrid
-            currentTheme={settings.theme}
-            activePalette={activePalette}
-            activeConstraint={activeConstraint}
-            systemDark={systemDark}
-            onSelectTheme={(mode) => {
-              setSettings((s) => ({ ...s, theme: mode }));
-              applyThemeOnly(mode);
-            }}
-            locale={locale}
-            t={t}
-          />
-
-          <PaletteGallery />
-
-          <p className="noata-appearance-footnote">
-            {activePalette === "midnight"
-              ? t(
-                  "طابع «منتصف الليل» يفرض الوضع الليلي حصريًا لحماية عمق الدرجات الليلية والتباين المريح.",
-                  "The Midnight palette strictly enforces Dark Mode to protect night-time contrast and depth."
-                )
-              : activeConstraint === "dark-only"
-              ? t(
-                  "تصميم Noäta AI المخصص يفرض الوضع الليلي حصريًا بناءً على ألوانه وتناغم التباين المعتمد.",
-                  "The active Noäta AI design strictly enforces Dark Mode based on its calibrated contrast."
-                )
-              : activeConstraint === "light-only"
-              ? t(
-                  "تصميم Noäta AI المخصص يفرض الوضع النهاري حصريًا.",
-                  "The active Noäta AI design strictly enforces Light Mode."
-                )
-              : t(
-                  "الأوضاع النهارية والليلية تعمل بتناغم تام مع كافة عوالم الألوان؛ طابع «منتصف الليل» داكن بطبيعته.",
-                  "Light and dark modes operate alongside color worlds. The Midnight palette remains deep dark."
-                )}
-          </p>
-
-          <LiveDesignSystemShowcase locale={locale} t={t} />
-
-          <label className="aura-settings-switch">
-            <span>
-              <strong>{t("تقليل الحركة والانتقالات", "Reduce Motion & Transitions")}</strong>
-              <small>
-                {t(
-                  "إيقاف التأثيرات الحركية والتحولات السريعة لتجربة قراءة هادئة.",
-                  "Limit animated transitions for a calmer reading experience."
-                )}
-              </small>
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.reduced_motion}
-              onChange={(e) => {
-                const next = { ...settings, reduced_motion: e.target.checked };
-                setSettings(next);
-                applySettings(next, false);
-              }}
-            />
-          </label>
-        </section>
-        <section id="aura-ai" className="aura-settings-section" data-tour="settings-ai">
-          <div className="aura-settings-section-top">
-            <Icon name="ai" size={21} />
-            <div>
-              <h2>Noäta AI</h2>
-               <p>{t("اختر تفضيلات الدردشة والنماذج المهيأة","Choose chat and model preferences")}</p>
-            </div>
-          </div>
-          <label className="aura-settings-label">
-             <span>{t("نموذج الذكاء الاصطناعي الافتراضي","Default AI model")}</span>
-            <select
-              value={settings.default_ai_model}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, default_ai_model: e.target.value }))
-              }
-            >
-               <option value="auto">{t("تلقائي · توجيه حسب نوع السؤال","Auto · selected by question type")}</option>
-              {CHAT_MODEL_CARDS.map((o) => (
-                <option key={o.id} value={o.id}>
-                   {locale === "en" ? o.id : o.arabic} · {locale === "en" ? MODEL_SUBTITLE_EN[o.id] : o.subtitle}
-                </option>
-              ))}
-            </select>
-            <small>
-               {t("وجود النموذج في القائمة يعني أنه مهيّأ؛ توفّره الفعلي يعتمد على الخدمة.","Listed models are configured; actual availability depends on the provider.")}
-            </small>
-          </label>
-          <label className="aura-settings-switch">
-            <span>
-               <strong>{t("حفظ محادثات الذكاء الاصطناعي","Save AI conversations")}</strong>
-              <small>
-                 {t("عند إيقافها تستخدم المحادثات الجديدة الوضع المؤقت. لا تُحذف المحادثات القديمة تلقائيًا.","When off, new chats use temporary mode. Existing conversations are not deleted automatically.")}
-              </small>
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.ai_memory_enabled}
-              onChange={(e) =>
-                setSettings((s) => ({
-                  ...s,
-                  ai_memory_enabled: e.target.checked,
-                }))
-              }
-            />
-          </label>
-        </section>
-        <div className="aura-settings-savebar">
-          <div>
-            <strong>
-               {dirty ? t("عندك تغييرات لسه متحفظتش","You have unsaved changes") : t("تفضيلاتك الحالية","Your current preferences")}
-            </strong>
-             <small>{t("الحفظ يتأكد من تحديث حسابك قبل ظهور رسالة النجاح.","A success message appears only after your account confirms the update.")}</small>
-          </div>
-          <button type="submit" disabled={!dirty || saving}>
-             {saving ? t("جارٍ الحفظ…","Saving…") : t("حفظ التغييرات","Save changes")}
-          </button>
-        </div>
-        {notice && (
-          <div
-            className={"aura-settings-notice " + notice.kind}
-            role={notice.kind === "error" ? "alert" : "status"}
-          >
-            {notice.message}
-          </div>
-        )}
-      </form>
-      <DesignStudio />
-      <section
-        id="aura-security"
-        className="aura-settings-section aura-settings-security"
-      >
-        <div className="aura-settings-section-top">
-          <Icon name="pin" size={21} />
-          <div>
-             <h2>{t("حماية الحساب","Account security")}</h2>
-             <p>{t("تغيير كلمة المرور بشكل مستقل عن بقية التفضيلات","Change your password separately from other settings")}</p>
-          </div>
-        </div>
-        <label className="aura-settings-label">
-           <span>{t("كلمة مرور جديدة","New password")}</span>
-          <span className="aura-settings-password">
-            <input
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-               placeholder={t("٨ أحرف على الأقل","At least 8 characters")}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((x) => !x)}
-              aria-label={
-                 showPassword ? t("إخفاء كلمة المرور","Hide password") : t("إظهار كلمة المرور","Show password")
-              }
-            >
-               {showPassword ? t("إخفاء","Hide") : t("إظهار","Show")}
-            </button>
-          </span>
-        </label>
-        <button
-          type="button"
-          className="aura-settings-password-action"
-          disabled={password.length < 8 || passwordBusy}
-          onClick={() => void updatePassword()}
-        >
-           {passwordBusy ? t("جارٍ التحديث…","Updating…") : t("تحديث كلمة المرور","Update password")}
-        </button>
-        {securityNotice && (
-          <p
-            role={securityNotice.kind === "error" ? "alert" : "status"}
-            className={"aura-settings-notice " + securityNotice.kind}
-          >
-            {securityNotice.message}
-          </p>
-        )}
-        <p className="aura-settings-security-foot">
-           {t("لا تشارك كلمة المرور مع أي شخص. صلاحيات حسابك تتحكم فيها سياسات قاعدة البيانات على الخادم، وليس هذه الصفحة.","Never share your password. Server-side database policies control account permissions.")}
-        </p>
-      </section>
-      <section id="aura-account" className="aura-settings-section aura-settings-account" data-tour="settings-account">
-        <div className="aura-settings-section-top">
-          <Icon name="user" size={21} />
-          <div>
-             <h2>{t("الحساب والجلسة","Account and session")}</h2>
-             <p>{t("اطّلع على حسابك وتحكم في تسجيل الخروج بشكل واضح وآمن","Review your account and sign out securely")}</p>
-          </div>
-        </div>
-        <div className="aura-settings-account-overview">
-          <div>
-             <strong>{name.trim() || t("حساب Noäta","Noata account")}</strong>
-            <span dir="ltr">{email}</span>
-          </div>
-          <button type="button" className="aura-settings-signout"
-            onClick={() => void logoutFromSettings()} disabled={logoutBusy}>
-            <Icon name="arrow" size={18} />
-             {logoutBusy ? t("جارٍ تسجيل الخروج…","Signing out…") : t("تسجيل الخروج من حسابي","Sign out of my account")}
-          </button>
-        </div>
-        {logoutError && <p role="alert" className="aura-settings-notice error">{logoutError}</p>}
-        <p className="aura-settings-security-foot">
-           {t("الضغط على صورتك الشخصية يفتح قائمة الحساب؛ لا يُسجل الخروج تلقائيًا.","Select your profile picture to open the account menu. This does not sign you out.")}
-        </p>
-      </section>
+      <div className="aura-settings-tabs-wrap" data-tour="settings-sections">
+        <Tabs
+          items={settingsTabs}
+          activeId={activeTab}
+          onChange={handleSelectTab}
+          label={t("أقسام الإعدادات", "Settings sections")}
+        />
+      </div>
     </div>
   );
 }

@@ -82,6 +82,8 @@ export function LearnLive() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
+  const [enrolledTrackIds, setEnrolledTrackIds] = useState<Set<string>>(new Set());
+  const [mediumFilter, setMediumFilter] = useState<"all" | "ar" | "en" | "enrolled">("all");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [catalogReady, setCatalogReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -164,12 +166,22 @@ export function LearnLive() {
                 .select("track_id,updated_at")
                 .eq("user_id", account.user.id)
                 .order("updated_at", { ascending: false })
-                .limit(1)
                 .abortSignal(controller.signal),
             ]);
             if (pRes.error || eRes.error) throw pRes.error ?? eRes.error;
             if (pRes.data) progressRows = pRes.data as Progress[];
-            if (eRes.data?.length) enrolledTrackId = eRes.data[0]?.track_id as string | undefined;
+            if (eRes.data?.length) {
+              enrolledTrackId = eRes.data[0]?.track_id as string | undefined;
+              setEnrolledTrackIds(
+                new Set(
+                  eRes.data
+                    .map((row) => row.track_id)
+                    .filter((id): id is string => Boolean(id)),
+                ),
+              );
+            } else {
+              setEnrolledTrackIds(new Set());
+            }
           }
         } catch {
           catalogFailure = true;
@@ -277,8 +289,11 @@ export function LearnLive() {
           { onConflict: "user_id,track_id" },
         )
         .then(({ error: writeError }) => {
-          if (writeError)
+          if (writeError) {
             setError(t("تعذّر تأكيد حفظ المسار. أعد المحاولة.", "Could not confirm the track selection. Please retry."));
+          } else {
+            setEnrolledTrackIds((prev) => new Set(prev).add(track.id));
+          }
         });
     },
     [account.user, supabase, tracks, t],
@@ -410,14 +425,43 @@ export function LearnLive() {
               "Pick a subject, then its track. Every track keeps its own lessons and progress, and switching the interface language never changes your track.",
             )}
           </p>
+          <div className="aura-medium-filters" role="group" aria-label={t("تصفية المسارات", "Filter tracks by medium")}>
+            {[
+              ["all", t("كل المسارات", "All tracks")],
+              ["ar", t("المسارات العربية", "Arabic-medium")],
+              ["en", t("المسارات الإنجليزية", "English-medium")],
+              ["enrolled", t("المسجّلة لك", "Enrolled")],
+            ].map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                className="aura-medium-tab"
+                aria-pressed={mediumFilter === val}
+                onClick={() => setMediumFilter(val as "all" | "ar" | "en" | "enrolled")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="aura-subject-grid">
           {subjects.map((subject) => {
             const definition = subjectDefinition(subject.slug);
-            const subjectTracks = tracks.filter((row) => row.subjects?.slug === subject.slug);
-            const dual = definition?.dualLanguage ?? subjectTracks.length > 1;
+            const allSubjectTracks = tracks.filter((row) => row.subjects?.slug === subject.slug);
+            const subjectTracks = allSubjectTracks.filter((row) => {
+              if (mediumFilter === "ar") return row.content_language === "ar";
+              if (mediumFilter === "en") return row.content_language === "en";
+              if (mediumFilter === "enrolled") return enrolledTrackIds.has(row.id) || row.slug === selectedSlug;
+              return true;
+            });
+            const matchesFallbackMedium =
+              allSubjectTracks.length === 0 &&
+              (mediumFilter === "ar" || mediumFilter === "en") &&
+              Boolean(definition?.dualLanguage || definition?.contentLanguage === mediumFilter);
+            if (!subjectTracks.length && mediumFilter !== "all" && !matchesFallbackMedium) return null;
+            const dual = definition?.dualLanguage ?? allSubjectTracks.length > 1;
             const progressForSubject = subjectProgress(subject.slug);
-            const active = subjectTracks.some((row) => row.slug === selectedSlug);
+            const active = allSubjectTracks.some((row) => row.slug === selectedSlug);
             return (
               <article
                 className="aura-subject-card"
@@ -457,6 +501,11 @@ export function LearnLive() {
                         >
                           <span className="aura-track-language">
                             {contentLanguageLabel(row.content_language, locale)}
+                            {enrolledTrackIds.has(row.id) && (
+                              <span className="aura-track-enrolled-badge" style={{ marginInlineStart: 6 }}>
+                                {t("مسجّل", "Enrolled")}
+                              </span>
+                            )}
                           </span>
                           <span className="aura-track-name">
                             {locale === "en" ? row.title_en : row.title_ar}
@@ -475,6 +524,11 @@ export function LearnLive() {
                         >
                           <span className="aura-track-language">
                             {contentLanguageLabel(row.content_language, locale)}
+                            {enrolledTrackIds.has(row.id) && (
+                              <span className="aura-track-enrolled-badge" style={{ marginInlineStart: 6 }}>
+                                {t("مسجّل", "Enrolled")}
+                              </span>
+                            )}
                           </span>
                         </button>
                       ))}
@@ -640,23 +694,34 @@ export function LearnLive() {
                   </div>
                 </div>
                 <span className="pill">
-                  {isLocked ? t("قريبًا", "Coming soon") : unitProgress + "%"}
+                  {isLocked ? t("مقفل (متطلب سابق)", "Locked · Prerequisite") : unitProgress + "%"}
                 </span>
               </div>
+              {isLocked && (
+                <div className="aura-unit-prereq-note">
+                  <span aria-hidden="true">🔒</span>
+                  <span>
+                    {unit.position > 1
+                      ? t(
+                          `متطلب الفتح: إتمام الوحدة ${(unit.position - 1).toLocaleString("ar-EG")} أو تفعيل النشر`,
+                          `Prerequisite: Complete Unit ${unit.position - 1} first`,
+                        )
+                      : t("قريبًا فور مراجعة ونشر مصدر الوحدة", "Available once published from source")}
+                  </span>
+                </div>
+              )}
               <div className="quest-list">
                 {unitLessons.map((lesson) => {
                   const row = progress.find((item) => item.lesson_id === lesson.id);
+                  const rowTitle =
+                    selected?.content_language === "en" ? lesson.title_en : lesson.title_ar;
                   return (
                     <div className="quest" key={lesson.id}>
                       <div className="quest-icon">
                         {completed.has(lesson.id) ? "✓" : lesson.position}
                       </div>
                       <div>
-                        <h3>
-                          {selected?.content_language === "en"
-                            ? lesson.title_en
-                            : lesson.title_ar}
-                        </h3>
+                        <h3>{rowTitle}</h3>
                         <p>
                           {row?.completed_at
                             ? t("مكتمل · أفضل نتيجة ", "Completed · Best score ") +
@@ -665,21 +730,31 @@ export function LearnLive() {
                             : t("جاهز للتعلّم", "Ready to learn")}
                         </p>
                       </div>
-                      <a
-                        aria-disabled={isLocked}
-                        tabIndex={isLocked ? -1 : undefined}
-                        onClick={(e) => {
-                          if (isLocked) e.preventDefault();
-                        }}
-                        className="btn"
-                        style={{
-                          background: isLocked ? "var(--surface-soft)" : "var(--accent)",
-                          color: isLocked ? "var(--muted)" : "var(--surface)",
-                        }}
-                        href={isLocked ? "#" : "/lesson/" + lesson.id}
-                      >
-                        {completed.has(lesson.id) ? t("راجع", "Review") : t("ابدأ", "Start")}
-                      </a>
+                      <div className="aura-lesson-actions">
+                        {!isLocked && (
+                          <a
+                            className="btn btn-secondary"
+                            href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(rowTitle)}&tab=generator`}
+                          >
+                            {t("بطاقات ذكية", "Study Deck")}
+                          </a>
+                        )}
+                        <a
+                          aria-disabled={isLocked}
+                          tabIndex={isLocked ? -1 : undefined}
+                          onClick={(e) => {
+                            if (isLocked) e.preventDefault();
+                          }}
+                          className="btn"
+                          style={{
+                            background: isLocked ? "var(--surface-soft)" : "var(--accent)",
+                            color: isLocked ? "var(--muted)" : "var(--surface)",
+                          }}
+                          href={isLocked ? "#" : "/lesson/" + lesson.id}
+                        >
+                          {completed.has(lesson.id) ? t("راجع", "Review") : t("ابدأ", "Start")}
+                        </a>
+                      </div>
                     </div>
                   );
                 })}

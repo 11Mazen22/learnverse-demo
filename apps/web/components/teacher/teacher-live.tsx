@@ -9,6 +9,9 @@ import { createClient } from "@/lib/supabase/client";
 import { filterStaffSearch, paginateStaffItems, summarizeStudentProgress } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
 import { absoluteTimeLabel, localizedTimestamp } from "@/lib/dashboard/relative-time";
+import { DataTable, type DataColumn } from "@/components/ui/table";
+import { Drawer } from "@/components/ui/drawer";
+import { TeacherOperationsPanel } from "./teacher-operations-panel";
 
 type ClassRow = {
   id: string;
@@ -74,6 +77,11 @@ export function TeacherLive() {
   const [studentSearch, setStudentSearch] = useState("");
   const [studentClassFilter, setStudentClassFilter] = useState("all");
   const [studentPage, setStudentPage] = useState(0);
+  const [atRiskOnly, setAtRiskOnly] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<ClassMembership | null>(null);
+  const [rubricNotes, setRubricNotes] = useState("");
+  const [maxPoints, setMaxPoints] = useState("100");
+  const [latePolicy, setLatePolicy] = useState<"accept" | "deduct" | "strict">("accept");
 
   useUnsavedWork(
     Boolean(
@@ -169,18 +177,38 @@ export function TeacherLive() {
       return;
     }
     await run(async (check) => {
-      const created = await supabase
+      const hasRubricMetadata = Boolean(
+        rubricNotes.trim() || maxPoints !== "100" || latePolicy !== "accept",
+      );
+      const baseAssignment = {
+        class_id: classId,
+        created_by: userId,
+        title: title.trim(),
+        instructions: instructions.trim(),
+        due_at: due ? new Date(due).toISOString() : null,
+        published_at: null,
+      };
+      let created = await supabase
         .from("assignments")
         .insert({
-          class_id: classId,
-          created_by: userId,
-          title: title.trim(),
-          instructions: instructions.trim(),
-          due_at: due ? new Date(due).toISOString() : null,
-          published_at: null,
+          ...baseAssignment,
+          metadata: hasRubricMetadata
+            ? {
+                rubric: rubricNotes.trim(),
+                max_points: Math.max(1, Number(maxPoints) || 100),
+                late_policy: latePolicy,
+              }
+            : undefined,
         })
         .select("id")
         .single();
+      if (created.error && created.error.code === "42703") {
+        created = await supabase
+          .from("assignments")
+          .insert(baseAssignment)
+          .select("id")
+          .single();
+      }
       check();
       if (created.error || !created.data)
         throw created.error ?? Error("No saved assignment");
@@ -231,6 +259,9 @@ export function TeacherLive() {
       setInstructions("");
       setDue("");
       setSelectedQuestions([]);
+      setRubricNotes("");
+      setMaxPoints("100");
+      setLatePolicy("accept");
       setPublishNow(true);
       return refreshMessage(check, message);
     });
@@ -342,7 +373,88 @@ export function TeacherLive() {
     const rightClass = classes.find((row) => row.id === right.class_id)?.name ?? "";
     return leftClass.localeCompare(rightClass, searchLocale);
   });
-  const studentPageData = paginateStaffItems(visibleRoster, studentPage, 20);
+  const interventionStudentIds = new Set<string>();
+  for (const member of visibleRoster) {
+    const summary = summarizeStudentProgress(progressByStudent.get(member.student_id) ?? []);
+    if (summary.trackedLessons === 0 || (summary.averageBestScore !== null && summary.averageBestScore < 60)) {
+      interventionStudentIds.add(member.student_id);
+    }
+  }
+  const effectiveRoster = atRiskOnly
+    ? visibleRoster.filter((member) => interventionStudentIds.has(member.student_id))
+    : visibleRoster;
+  const studentPageData = paginateStaffItems(effectiveRoster, studentPage, 20);
+  const studentColumns: readonly DataColumn<ClassMembership>[] = [
+    {
+      key: "student",
+      header: t("الطالب", "Student"),
+      isRowHeader: true,
+      cell: (member) => {
+        const classRow = classes.find((row) => row.id === member.class_id);
+        return (
+          <div>
+            <strong>{profiles.get(member.student_id) ?? t("طالب", "Student")}</strong>
+            <div>
+              <small style={{ color: "var(--muted)" }}>
+                {classRow ? `${classRow.name} · ${classRow.grade_label}` : "—"}
+              </small>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "lessons",
+      header: t("الدروس", "Lessons"),
+      cell: (member) => {
+        const summary = summarizeStudentProgress(progressByStudent.get(member.student_id) ?? []);
+        return `${summary.completedLessons} / ${summary.trackedLessons}`;
+      },
+    },
+    {
+      key: "score",
+      header: t("المتوسط والحالة", "Score & Status"),
+      cell: (member) => {
+        const summary = summarizeStudentProgress(progressByStudent.get(member.student_id) ?? []);
+        const needsHelp = interventionStudentIds.has(member.student_id);
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            <span>
+              {summary.averageBestScore === null
+                ? t("بلا درجات", "No scores")
+                : `${summary.averageBestScore}%`}
+            </span>
+            <span className="noata-staff-badge" data-tone={needsHelp ? "warning" : "success"}>
+              {needsHelp ? t("يحتاج متابعة", "Needs support") : t("منتظم", "On track")}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "updated",
+      header: t("آخر نشاط", "Last activity"),
+      cell: (member) => {
+        const summary = summarizeStudentProgress(progressByStudent.get(member.student_id) ?? []);
+        return summary.lastUpdated
+          ? localizedTimestamp(summary.lastUpdated, searchLocale)
+          : t("لا يوجد نشاط مسجل", "No recorded activity");
+      },
+    },
+    {
+      key: "inspect",
+      header: t("التفاصيل", "Inspect"),
+      cell: (member) => (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setSelectedMember(member)}
+        >
+          {t("معاينة", "Inspect")}
+        </button>
+      ),
+    },
+  ];
 
   if (account.error || loadError)
     return (
@@ -408,6 +520,7 @@ export function TeacherLive() {
         {[
           ["overview", t("نظرة عامة","Overview")],
           ["students", t("الطلاب وتقدمهم","Students & progress")],
+          ["attendance", t("الحضور والإعلانات","Attendance & notices")],
           ["create", t("واجب جديد","New assignment")],
           ["assignments", t("الواجبات","Assignments")],
           ["grading", t("التصحيح","Grading")],
@@ -426,7 +539,7 @@ export function TeacherLive() {
           className="filter-chip"
           style={{ marginInlineStart: "auto", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
         >
-          <span>⚡ {t("مولّد QuizGecko للاختبارات والبطاقات", "QuizGecko Assessment Generator")}</span>
+          <span>⚡ {t("مولّد الاختبارات والبطاقات الذكي", "Smart Assessment & Flashcard Studio")}</span>
         </a>
       </nav>
       {(view === "overview" || view === "create") && (
@@ -528,6 +641,43 @@ export function TeacherLive() {
                   ))}
                 </div>
               </div>
+              <div className="panel-subgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+                <label>
+                  <small>{t("الدرجة العظمى (اختياري)", "Max points (optional)")}</small>
+                  <input
+                    className="search"
+                    type="number"
+                    min={1}
+                    max={1000}
+                    style={{ width: "100%", marginTop: 6 }}
+                    value={maxPoints}
+                    onChange={(e) => setMaxPoints(e.target.value)}
+                  />
+                </label>
+                <label>
+                  <small>{t("سياسة التسليم المتأخر", "Late submission policy")}</small>
+                  <select
+                    className="model-select"
+                    style={{ width: "100%", marginTop: 6 }}
+                    value={latePolicy}
+                    onChange={(e) => setLatePolicy(e.target.value as "accept" | "deduct" | "strict")}
+                  >
+                    <option value="accept">{t("مقبول مع ملاحظة", "Accept with note")}</option>
+                    <option value="deduct">{t("خصم نسبة تأخير", "Grace with penalty")}</option>
+                    <option value="strict">{t("إغلاق عند الموعد", "Lock at deadline")}</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                <small>{t("معايير التقييم / سلم الدرجات (اختياري)", "Grading rubric criteria (optional)")}</small>
+                <input
+                  className="search"
+                  style={{ width: "100%", marginTop: 6 }}
+                  value={rubricNotes}
+                  onChange={(e) => setRubricNotes(e.target.value)}
+                  placeholder={t("مثال: ٥٠٪ دقة الخطوات، ٣٠٪ المفهوم، ٢٠٪ التحقق", "e.g., 50% method accuracy, 30% reasoning, 20% verification")}
+                />
+              </label>
               <label
                 style={{
                   display: "flex",
@@ -648,7 +798,16 @@ export function TeacherLive() {
                     assignment.published_at ? t("منشور","Published") : t("مسودة","Draft"),
                   ]),
                 );
-                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                if (started) {
+                  void Promise.resolve(
+                    supabase.rpc("log_staff_export", {
+                      p_entity_type: "teacher_assignments",
+                      p_row_count: visibleAssignments.length,
+                    }),
+                  ).catch(() => {});
+                } else {
+                  setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                }
               }}
             >{t("تصدير CSV", "Export CSV")}</button>
           </div>
@@ -701,12 +860,46 @@ export function TeacherLive() {
       )}
 
 
+      {view === "attendance" && (
+        <TeacherOperationsPanel
+          classes={classes}
+          memberships={memberships}
+          profiles={profiles}
+          teacherId={account.user?.id}
+        />
+      )}
+
       {view === "students" && (
         <section className="panel" data-tour="teacher-students">
           <div className="panel-head">
             <h2>{t("قائمة الطلاب وتقدمهم","Student roster and progress")}</h2>
             <span className="pill">{visibleRoster.length} {t("سجل طالب/صف","student-class records")}</span>
           </div>
+          {interventionStudentIds.size > 0 && (
+            <div className="noata-intervention-banner" role="region" aria-label={t("تنبيهات التدخل الأكاديمي", "Academic intervention alerts")}>
+              <div>
+                <strong>
+                  {t(
+                    `يحتاج ${interventionStudentIds.size} طلاب إلى متابعة أكاديمية (متوسط أقل من ٦٠٪ أو بلا دروس مسجلة)`,
+                    `${interventionStudentIds.size} student(s) need academic follow-up (average below 60% or 0 tracked lessons)`,
+                  )}
+                </strong>
+              </div>
+              <button
+                type="button"
+                className="btn"
+                aria-pressed={atRiskOnly}
+                onClick={() => {
+                  setAtRiskOnly((current) => !current);
+                  setStudentPage(0);
+                }}
+              >
+                {atRiskOnly
+                  ? t("عرض كل الطلاب", "Show all students")
+                  : t("تصفية المحتاجين للمتابعة", "Filter needing support")}
+              </button>
+            </div>
+          )}
           <div className="noata-staff-list-tools">
             <label className="noata-staff-search">
               <span>{t("البحث عن طالب أو صف","Search students or classes")}</span>
@@ -771,39 +964,36 @@ export function TeacherLive() {
                     ];
                   }),
                 );
-                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                if (started) {
+                  void Promise.resolve(
+                    supabase.rpc("log_staff_export", {
+                      p_entity_type: "teacher_student_progress",
+                      p_row_count: visibleRoster.length,
+                      p_details: {
+                        class_id: studentClassFilter === "all" ? null : studentClassFilter,
+                      },
+                    }),
+                  ).catch(() => {});
+                } else {
+                  setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                }
               }}
             >{t("تصدير تقدم الطلاب CSV","Export student progress CSV")}</button>
           </div>
-          <div className="quest-list">
-            {studentPageData.items.map((member) => {
-              const classRow = classes.find((row) => row.id === member.class_id);
-              const displayName = profiles.get(member.student_id) ?? t("طالب","Student");
-              const summary = summarizeStudentProgress(progressByStudent.get(member.student_id) ?? []);
-              return (
-                <article className="quest" key={member.class_id + ":" + member.student_id}>
-                  <div className="quest-icon" aria-hidden="true">{displayName.trim().slice(0, 1) || "•"}</div>
-                  <div>
-                    <h3>{displayName}</h3>
-                    <p>{classRow ? classRow.name + " · " + classRow.grade_label + " · " + classRow.academic_year : "—"}</p>
-                    <p>{t("الدروس المكتملة","Completed lessons")}: {summary.completedLessons} / {summary.trackedLessons} {t("مسجل","tracked")}</p>
-                    <p>{summary.averageBestScore === null
-                      ? t("لا توجد درجات مسجلة","No recorded scores")
-                      : t("متوسط أفضل الدرجات","Average best score") + ": " + summary.averageBestScore + "%"}</p>
-                  </div>
-                  <span className="pill">{summary.lastUpdated
-                    ? t("آخر تحديث","Updated") + " " + localizedTimestamp(summary.lastUpdated, searchLocale)
-                    : t("لا يوجد نشاط مسجل","No recorded activity")}</span>
-                </article>
-              );
-            })}
-            {!visibleRoster.length && (
-              <div className="noata-staff-empty">{studentSearch.trim() || studentClassFilter !== "all"
-                ? t("لا يوجد طلاب مطابقون للبحث أو الصف المحدد.","No students match this search or class.")
-                : t("لا توجد سجلات طلاب متاحة ضمن صفوفك حتى الآن.","No student roster records are available in your assigned classes yet.")}</div>
-            )}
-          </div>
-          {visibleRoster.length > 0 && (
+          <DataTable
+            caption={t("قائمة الطلاب وتقدمهم", "Student roster and progress")}
+            columns={studentColumns}
+            rows={studentPageData.items}
+            getRowKey={(member) => `${member.class_id}:${member.student_id}`}
+            empty={
+              <div className="noata-staff-empty">
+                {studentSearch.trim() || studentClassFilter !== "all" || atRiskOnly
+                  ? t("لا يوجد طلاب مطابقون للبحث أو التصفية الحالية.", "No students match the current search or filter.")
+                  : t("لا توجد سجلات طلاب متاحة ضمن صفوفك حتى الآن.", "No student roster records are available in your assigned classes yet.")}
+              </div>
+            }
+          />
+          {effectiveRoster.length > 0 && (
             <nav className="noata-staff-pagination" aria-label={t("صفحات الطلاب","Student pages")}>
               <span>{t("النتائج","Results")} {studentPageData.start}–{studentPageData.end} {t("من","of")} {studentPageData.total}</span>
               <div>
@@ -813,6 +1003,71 @@ export function TeacherLive() {
               </div>
             </nav>
           )}
+          <Drawer
+            open={Boolean(selectedMember)}
+            onClose={() => setSelectedMember(null)}
+            title={
+              selectedMember
+                ? `${profiles.get(selectedMember.student_id) ?? t("طالب", "Student")} · ${
+                    classes.find((c) => c.id === selectedMember.class_id)?.name ?? ""
+                  }`
+                : t("ملف الطالب", "Student profile")
+            }
+          >
+            {selectedMember && (() => {
+              const rows = progressByStudent.get(selectedMember.student_id) ?? [];
+              const summary = summarizeStudentProgress(rows);
+              const studentSubmissions = submissions.filter((s) => s.student_id === selectedMember.student_id);
+              return (
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <span className="pill">{t("الدروس المكتملة", "Completed")}: {summary.completedLessons}/{summary.trackedLessons}</span>
+                    <span className="pill">
+                      {t("المتوسط", "Average")}: {summary.averageBestScore === null ? "—" : `${summary.averageBestScore}%`}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 style={{ margin: "0 0 8px", fontSize: "0.95rem" }}>{t("التسليمات المرتبطة", "Assignment submissions")}</h3>
+                    {studentSubmissions.length === 0 ? (
+                      <p style={{ color: "var(--muted)", margin: 0 }}>{t("لا توجد تسليمات مسجلة لهذا الطالب.", "No recorded assignment submissions for this student.")}</p>
+                    ) : (
+                      <ul style={{ margin: 0, paddingInlineStart: 18, display: "grid", gap: 6 }}>
+                        {studentSubmissions.slice(0, 8).map((sub) => {
+                          const assignTitle = assignments.find((a) => a.id === sub.assignment_id)?.title ?? sub.assignment_id;
+                          return (
+                            <li key={sub.id}>
+                              <strong>{assignTitle}</strong>{" "}
+                              <small style={{ color: "var(--muted)" }}>
+                                {sub.score == null ? t("بانتظار التصحيح", "Pending score") : `${sub.score}%`}
+                              </small>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: "0 0 8px", fontSize: "0.95rem" }}>{t("سجل إتقان الدروس", "Tracked lesson activity")}</h3>
+                    {rows.length === 0 ? (
+                      <p style={{ color: "var(--muted)", margin: 0 }}>{t("لا توجد دروس مسجلة حتى الآن.", "No tracked lessons yet.")}</p>
+                    ) : (
+                      <ul style={{ margin: 0, paddingInlineStart: 18, display: "grid", gap: 6 }}>
+                        {rows.slice(0, 10).map((row) => (
+                          <li key={row.lesson_id}>
+                            <span>{row.lesson_id}</span>{" — "}
+                            <strong>{row.best_score}%</strong>{" "}
+                            <small style={{ color: "var(--muted)" }}>
+                              {row.completed_at ? t("مكتمل", "Completed") : t("قيد الدراسة", "In progress")}
+                            </small>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </Drawer>
         </section>
       )}
 
@@ -871,7 +1126,16 @@ export function TeacherLive() {
                     submission.score ?? "",
                   ]),
                 );
-                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                if (started) {
+                  void Promise.resolve(
+                    supabase.rpc("log_staff_export", {
+                      p_entity_type: "teacher_submissions",
+                      p_row_count: visibleSubmissions.length,
+                    }),
+                  ).catch(() => {});
+                } else {
+                  setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                }
               }}
             >{t("تصدير CSV", "Export CSV")}</button>
           </div>

@@ -18,7 +18,7 @@ export async function runFixtureRecovery({postgres,pgDump,directory,revision,dir
   assert.equal(before.length,18);
   assert.ok(delta.includes('20261017175911_respiratory_system_learning_pathway.sql'));
   assert.ok(delta.includes('20261019193000_submission_grading_integrity.sql'));
-  assert.equal(delta.length,28); // Includes the 10 first-secondary curriculum, catalog, support tickets, and smart study migrations.
+  assert.equal(delta.length,34); // Includes curriculum, catalog, support, smart study, tour progress, language, covering indexes, M1 dashboard_preferences, M2 study_ecosystem_v2, and M3 school_operations_v2.
   outcome.baselineMigrations=before;outcome.deltaMigrations=[];
   const infrastructure=(await readFile('scripts/sql/local-supabase-fixture.sql','utf8')).replace(/^create role .*;\r?\n/gm,'');
   query('postgres',`CREATE DATABASE ${baseline} TEMPLATE template0;`);created.push(baseline);

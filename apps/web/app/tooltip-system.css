@@ -1,5 +1,6 @@
 /* Noata's single, viewport-aware caption surface.
    Rendered at document.body level, beyond clipped/scrollable menus. */
+@layer components {
 .noata-global-tooltip{
   position:fixed;
   inset:auto auto auto auto;
@@ -57,11 +58,15 @@
   from{opacity:0;transform:translateY(3px) scale(.985)}
   to{opacity:1;transform:translateY(0) scale(1)}
 }
+}
+@layer utilities {
 @media(prefers-reduced-motion:reduce){
-  .noata-global-tooltip{animation:none!important}
+  .noata-global-tooltip{animation:none}
 }
 html[data-reduced-motion="true"] .noata-global-tooltip,
-html[data-noata-motion="off"] .noata-global-tooltip{animation:none!important}
+html[data-noata-motion="off"] .noata-global-tooltip{animation:none}
+}
+@layer components {
 
 /* Tooltip refinement: a restrained neutral caption, not a full-size action card. */
 .noata-global-tooltip{
@@ -91,3 +96,4 @@ html[data-noata-motion="off"] .noata-global-tooltip{animation:none!important}
  to{opacity:1;transform:translateY(0)}
 }
 @media(hover:none) and (pointer:coarse){.noata-global-tooltip{display:none}}
+}

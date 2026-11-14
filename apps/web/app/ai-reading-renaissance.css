@@ -4,6 +4,7 @@
 @font-face{font-family:NoataVerseLatin;src:url("/fonts/lora.ttf") format("truetype");font-weight:400 700;font-display:swap}
 @font-face{font-family:NoataBodyArabic;src:url("/fonts/noto-sans-arabic.woff2") format("woff2");font-weight:100 900;font-display:swap}
 
+@layer study {
 .owui-layout .owui-message.assistant .ai-rich-message{
   min-width:0;width:100%;max-width:100%;
   font-family:NoataBodyArabic,system-ui,sans-serif;
@@ -106,6 +107,9 @@ html[dir="ltr"] .owui-mobile-sidebar .noata-temporary-toggle.active .noata-tempo
   .noata-literary-verses{gap:15px}
   .owui-layout .owui-message.assistant .ai-rich-message{font-size:14px;line-height:1.9}
 }
+}
+@layer utilities {
 @media(prefers-reduced-motion:reduce){
-  .noata-literary-piece *,.noata-literary-note *,.owui-mobile-sidebar *{animation:none!important;transition:none!important}
+  .noata-literary-piece *,.noata-literary-note *,.owui-mobile-sidebar *{animation:none;transition:none}
+}
 }

@@ -9,6 +9,7 @@ import {
   useVerifiedAccount,
 } from "@/lib/supabase/use-verified-account";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
+import { confirmAction } from "@/components/ui/confirm-dialog";
 import {notificationCopy} from "@/lib/i18n/content-labels";
 import { Icon } from "@/components/ui/icon";
 
@@ -21,6 +22,22 @@ type Notice = {
   read_at: string | null;
   created_at: string;
 };
+type InboxCategory = "all" | "assignments" | "feedback" | "rewards" | "platform";
+
+function notificationCategory(type: string): Exclude<InboxCategory, "all"> {
+  const normalized = type.toLowerCase();
+  if (normalized === "assignment" || normalized === "assignment_published") {
+    return "assignments";
+  }
+  if (normalized === "assignment_graded" || normalized === "grade") {
+    return "feedback";
+  }
+  if (["reward", "box", "achievement", "coins", "xp"].some((k) => normalized.includes(k))) {
+    return "rewards";
+  }
+  return "platform";
+}
+
 export function NotificationsLive() {
  const t=useTranslation(),locale=useLocale();
  const types: Record<string, string> = {
@@ -39,6 +56,7 @@ export function NotificationsLive() {
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
   const [unreadOnly, setUnreadOnly] = useState(false),
+    [category, setCategory] = useState<InboxCategory>("all"),
     [busy, setBusy] = useState(false);
   const sequence = useRef(0),
     lock = useRef(false);
@@ -117,7 +135,35 @@ export function NotificationsLive() {
     }
   }
   const unread = rows.filter((r) => !r.read_at),
-    shown = unreadOnly ? unread : rows;
+    shown = rows.filter(
+      (r) =>
+        (!unreadOnly || !r.read_at) &&
+        (category === "all" || notificationCategory(r.type) === category),
+    );
+  const categoryOptions: { id: InboxCategory; label: string; count: number }[] = [
+    { id: "all", label: t("كل الأنواع","All categories"), count: rows.length },
+    { id: "assignments", label: t("الواجبات","Assignments"), count: rows.filter((r) => notificationCategory(r.type) === "assignments").length },
+    { id: "feedback", label: t("التقييمات","Feedback"), count: rows.filter((r) => notificationCategory(r.type) === "feedback").length },
+    { id: "rewards", label: t("المكافآت","Rewards"), count: rows.filter((r) => notificationCategory(r.type) === "rewards").length },
+    { id: "platform", label: t("المنصة","Platform"), count: rows.filter((r) => notificationCategory(r.type) === "platform").length },
+  ];
+  async function confirmMarkAll() {
+    if (!unread.length || busy) return;
+    const confirmed = await confirmAction({
+      title: t("تحديد كل الإشعارات كمقروءة؟","Mark all notifications as read?"),
+      description:
+        locale === "en"
+          ? `This marks all ${unread.length} unread notifications in your inbox as read.`
+          : `سيتم تحديد كل الإشعارات غير المقروءة (${unread.length.toLocaleString("ar-EG")}) كمقروءة دفعة واحدة.`,
+      confirmLabel: t("نعم، تحديد الكل كمقروء","Yes, mark all read"),
+      cancelLabel: t("إلغاء","Cancel"),
+      tone: "default",
+      icon: "check",
+    });
+    if (confirmed) {
+      await mark(unread.map((r) => r.id));
+    }
+  }
   if (account.loading || loading)
     return (
       <section className="aura-loading-state" role="status">
@@ -162,7 +208,7 @@ export function NotificationsLive() {
         <button
           className="btn"
           disabled={busy || !unread.length}
-          onClick={() => void mark(unread.map((r) => r.id))}
+          onClick={() => void confirmMarkAll()}
         >{t("تحديد الكل كمقروء","Mark all as read")}</button>
       </header>
       {error && (
@@ -182,6 +228,19 @@ export function NotificationsLive() {
           aria-pressed={unreadOnly}
           onClick={() => setUnreadOnly(true)}
         >{t("غير المقروء","Unread")}</button>
+      </div>
+      <div className="noata-inbox-categories" role="group" aria-label={t("تصفية حسب النوع","Filter by category")}>
+        {categoryOptions.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            className="filter-chip"
+            aria-pressed={category === opt.id}
+            onClick={() => setCategory(opt.id)}
+          >
+            {opt.label} ({opt.count.toLocaleString(locale === "en" ? "en" : "ar-EG")})
+          </button>
+        ))}
       </div>
       <section className="panel" data-tour="notifications-list" aria-label={t("قائمة الإشعارات","Notification list")} aria-busy={busy}>
         <div className="aura-inbox-list">
@@ -239,10 +298,16 @@ export function NotificationsLive() {
         {!shown.length && !error && (
           <div className="aura-inbox-empty">
             <Icon name="bell" size={32} />
-            <h2>{unreadOnly ? t("قرأت كل جديد","You’re caught up") : t("صندوقك جاهز","Your inbox is ready")}</h2>
-            <p>
+            <h2>
               {unreadOnly
-                ? t("يمكنك الرجوع إلى جميع الإشعارات من تبويب الكل.","View all notifications in the All tab.")
+                ? t("قرأت كل جديد","You’re caught up")
+                : category !== "all"
+                  ? t("لا توجد إشعارات في هذا التصنيف","No notifications in this category")
+                  : t("صندوقك جاهز","Your inbox is ready")}
+            </h2>
+            <p>
+              {unreadOnly || category !== "all"
+                ? t("يمكنك الرجوع إلى جميع الإشعارات من الفلاتر أعلاه.","Reset filters above to view all notifications.")
                 : t("تظهر إشعارات الواجبات والتقييمات هنا عند وصولها.","Assignment and feedback notifications appear here when they arrive.")}
             </p>
           </div>

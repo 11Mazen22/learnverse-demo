@@ -4,6 +4,9 @@ import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import type { SupportCategory, SupportTicketRecord } from "@/lib/support/types";
+import { DataTable, type DataColumn } from "@/components/ui/table";
+import { Drawer } from "@/components/ui/drawer";
+import { localizedTimestamp } from "@/lib/dashboard/relative-time";
 
 export function SupportManagerAdmin() {
   const t = useTranslation();
@@ -110,6 +113,120 @@ export function SupportManagerAdmin() {
     }
   };
 
+  const ticketColumns: readonly DataColumn<SupportTicketRecord>[] = [
+    {
+      key: "code",
+      header: t("الكود", "Code"),
+      isRowHeader: true,
+      cell: (tkt) => (
+        <span style={{ fontWeight: 700, fontFamily: "monospace", color: "var(--accent)" }}>
+          #{tkt.ticket_code}
+        </span>
+      ),
+    },
+    {
+      key: "sender",
+      header: t("المرسل", "Sender"),
+      cell: (tkt) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{tkt.name}</div>
+          <small style={{ color: "var(--muted)", fontSize: "0.75rem" }}>{tkt.email}</small>
+        </div>
+      ),
+    },
+    {
+      key: "subject",
+      header: t("الموضوع", "Subject"),
+      cell: (tkt) => (
+        <span style={{ display: "inline-block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {tkt.subject}
+        </span>
+      ),
+    },
+    {
+      key: "category",
+      header: t("التصنيف", "Category"),
+      cell: (tkt) => {
+        const categoryLabels: Record<string, string> = {
+          curriculum: t("المنهج والمواد", "Curriculum"),
+          tracks: t("المسارات اللغوية", "Tracks"),
+          lessons: t("الدروس والأسئلة", "Lessons"),
+          ai: t("المساعد الذكي", "AI Companion"),
+          account: t("الحساب والبيانات", "Account"),
+          bug: t("أخطاء تقنية", "Bugs"),
+          general: t("عام", "General"),
+        };
+        return (
+          <span className="noata-staff-badge" data-tone="neutral">
+            {categoryLabels[tkt.category] || tkt.category}
+          </span>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: t("الحالة", "Status"),
+      cell: (tkt) => {
+        const statusLabels: Record<string, string> = {
+          open: t("مفتوح", "Open"),
+          in_progress: t("قيد المتابعة", "In progress"),
+          resolved: t("محلول", "Resolved"),
+          closed: t("مغلق", "Closed"),
+        };
+        return (
+          <span
+            className="noata-staff-badge"
+            data-tone={
+              tkt.status === "open"
+                ? "info"
+                : tkt.status === "resolved"
+                  ? "success"
+                  : tkt.status === "in_progress"
+                    ? "warning"
+                    : "neutral"
+            }
+          >
+            {statusLabels[tkt.status] || tkt.status}
+          </span>
+        );
+      },
+    },
+    {
+      key: "email",
+      header: t("البريد", "Email"),
+      cell: (tkt) => {
+        const deliveryLabels: Record<string, string> = {
+          sent: t("مُرسَل", "Sent"),
+          failed: t("تعذّر", "Failed"),
+          pending: t("قيد الإرسال", "Pending"),
+          skipped: t("مؤجّل", "Skipped"),
+        };
+        return (
+          <span
+            className="noata-staff-badge"
+            data-tone={tkt.email_delivery_status === "sent" ? "success" : "warning"}
+          >
+            {deliveryLabels[tkt.email_delivery_status] || tkt.email_delivery_status}
+          </span>
+        );
+      },
+    },
+    {
+      key: "inspect",
+      header: t("إجراء", "Action"),
+      cell: (tkt) => (
+        <button
+          type="button"
+          className="btn"
+          aria-pressed={selectedTicket?.id === tkt.id}
+          onClick={() => selectTicketForInspection(tkt)}
+        >
+          {t("معاينة", "Inspect")}
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="panel" style={{ marginTop: 18, padding: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -135,6 +252,7 @@ export function SupportManagerAdmin() {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <input
           type="search"
+          aria-label={t("بحث بالكود أو البريد أو الموضوع", "Search tickets by code, email, or subject")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("بحث بالكود أو البريد أو الموضوع...", "Search code, email or subject...")}
@@ -142,18 +260,20 @@ export function SupportManagerAdmin() {
           style={{ flex: "1 1 240px", minWidth: 200 }}
         />
         <select
+          aria-label={t("تصفية التذاكر حسب الحالة", "Filter tickets by status")}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="input"
           style={{ width: "auto" }}
         >
           <option value="all">{t("كل الحالات", "All Statuses")}</option>
-          <option value="open">{t("مفتوح (Open)", "Open")}</option>
-          <option value="in_progress">{t("قيد المتابعة (In Progress)", "In Progress")}</option>
-          <option value="resolved">{t("محلول (Resolved)", "Resolved")}</option>
-          <option value="closed">{t("مغلق (Closed)", "Closed")}</option>
+          <option value="open">{t("مفتوح", "Open")}</option>
+          <option value="in_progress">{t("قيد المتابعة", "In Progress")}</option>
+          <option value="resolved">{t("محلول", "Resolved")}</option>
+          <option value="closed">{t("مغلق", "Closed")}</option>
         </select>
         <select
+          aria-label={t("تصفية التذاكر حسب التصنيف", "Filter tickets by category")}
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="input"
@@ -179,128 +299,45 @@ export function SupportManagerAdmin() {
         </div>
       )}
 
-      {/* Main Grid: Ticket List + Ticket Inspector */}
-      <div style={{ display: "grid", gridTemplateColumns: selectedTicket ? "1fr 1.2fr" : "1fr", gap: 16 }}>
-        {/* List */}
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--line)", textAlign: isRtl ? "right" : "left" }}>
-                <th style={{ padding: "8px 10px" }}>{t("الكود", "Code")}</th>
-                <th style={{ padding: "8px 10px" }}>{t("المرسل", "Sender")}</th>
-                <th style={{ padding: "8px 10px" }}>{t("الموضوع", "Subject")}</th>
-                <th style={{ padding: "8px 10px" }}>{t("التصنيف", "Category")}</th>
-                <th style={{ padding: "8px 10px" }}>{t("الحالة", "Status")}</th>
-                <th style={{ padding: "8px 10px" }}>{t("البريد", "Email")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.map((tkt) => {
-                const isSelected = selectedTicket?.id === tkt.id;
-                return (
-                  <tr
-                    key={tkt.id}
-                    onClick={() => selectTicketForInspection(tkt)}
-                    style={{
-                      borderBottom: "1px solid var(--line)",
-                      cursor: "pointer",
-                      background: isSelected ? "var(--surface-soft)" : "transparent",
-                    }}
-                  >
-                    <td style={{ padding: "10px", fontWeight: 700, fontFamily: "monospace", color: "var(--accent)" }}>
-                      #{tkt.ticket_code}
-                    </td>
-                    <td style={{ padding: "10px" }}>
-                      <div style={{ fontWeight: 600 }}>{tkt.name}</div>
-                      <small style={{ color: "var(--muted)", fontSize: "0.75rem" }}>{tkt.email}</small>
-                    </td>
-                    <td style={{ padding: "10px", maxWidth: 200, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {tkt.subject}
-                    </td>
-                    <td style={{ padding: "10px" }}>
-                      <span style={{ fontSize: "0.75rem", padding: "2px 6px", borderRadius: 4, background: "var(--surface-soft)" }}>
-                        {tkt.category}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px" }}>
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          fontWeight: 700,
-                          background: tkt.status === "open" ? "rgba(59,130,246,0.15)" : tkt.status === "resolved" ? "rgba(16,185,129,0.15)" : "var(--surface-soft)",
-                          color: tkt.status === "open" ? "#3b82f6" : tkt.status === "resolved" ? "#10b981" : "var(--ink)",
-                        }}
-                      >
-                        {tkt.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: "10px" }}>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          padding: "2px 5px",
-                          borderRadius: 4,
-                          background: tkt.email_delivery_status === "sent" ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
-                          color: tkt.email_delivery_status === "sent" ? "#10b981" : "#f59e0b",
-                        }}
-                      >
-                        {tkt.email_delivery_status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredTickets.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={6} style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>
-                    {t("لا توجد تذاكر دعم مسجلة تطابق التصفية الحالية.", "No support tickets match the current filters.")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Inspection Drawer */}
-        {selectedTicket && (
-          <div
-            style={{
-              padding: 18,
-              borderRadius: 12,
-              border: "1px solid var(--line)",
-              background: "var(--surface)",
-              boxShadow: "var(--shadow-soft)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 800 }}>
-                {t("تفاصيل التذكرة", "Ticket Inspection")} #{selectedTicket.ticket_code}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setSelectedTicket(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: "1rem" }}
-              >
-                ✕
-              </button>
+      <DataTable
+        caption={t("تذاكر الدعم الفني", "Support tickets queue")}
+        columns={ticketColumns}
+        rows={filteredTickets}
+        getRowKey={(tkt) => tkt.id}
+        empty={
+          !loading ? (
+            <div className="noata-staff-empty">
+              {t("لا توجد تذاكر دعم مسجلة تطابق التصفية الحالية.", "No support tickets match the current filters.")}
             </div>
+          ) : undefined
+        }
+      />
 
-            <div style={{ fontSize: "0.85rem", lineHeight: 1.6, marginBottom: 16 }}>
+      <Drawer
+        open={Boolean(selectedTicket)}
+        onClose={() => setSelectedTicket(null)}
+        title={
+          selectedTicket
+            ? `${t("تفاصيل التذكرة", "Ticket Inspection")} #${selectedTicket.ticket_code}`
+            : t("تفاصيل التذكرة", "Ticket Inspection")
+        }
+      >
+        {selectedTicket && (
+          <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ fontSize: "0.88rem", lineHeight: 1.7 }}>
               <div><strong>{t("المرسل:", "Sender:")}</strong> {selectedTicket.name} ({selectedTicket.email})</div>
               <div><strong>{t("الموضوع:", "Subject:")}</strong> {selectedTicket.subject}</div>
               <div><strong>{t("التصنيف:", "Category:")}</strong> {selectedTicket.category}</div>
-              <div><strong>{t("التاريخ:", "Created At:")}</strong> {new Date(selectedTicket.created_at).toLocaleString()}</div>
+              <div><strong>{t("التاريخ:", "Created At:")}</strong> {localizedTimestamp(selectedTicket.created_at, locale)}</div>
               <div>
                 <strong>{t("إشعار البريد الإلكتروني:", "Email Delivery:")}</strong>{" "}
-                <span style={{ fontWeight: 600, color: selectedTicket.email_delivery_status === "sent" ? "#10b981" : "#f59e0b" }}>
+                <span style={{ fontWeight: 700, color: selectedTicket.email_delivery_status === "sent" ? "var(--success)" : "var(--ink)" }}>
                   {selectedTicket.email_delivery_status} → {selectedTicket.email_destination}
                 </span>
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
+            <div>
               <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: 4 }}>
                 {t("نص رسالة المستخدم:", "User Message:")}
               </label>
@@ -310,7 +347,7 @@ export function SupportManagerAdmin() {
                   borderRadius: 8,
                   background: "var(--surface-soft)",
                   border: "1px solid var(--line)",
-                  fontSize: "0.85rem",
+                  fontSize: "0.86rem",
                   whiteSpace: "pre-wrap",
                   lineHeight: 1.6,
                 }}
@@ -319,13 +356,13 @@ export function SupportManagerAdmin() {
               </div>
             </div>
 
-            {/* Action Bar: Status & Admin Notes */}
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}>
               <div style={{ marginBottom: 10 }}>
-                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: 4 }}>
+                <label htmlFor="support-ticket-status" style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: 4 }}>
                   {t("تحديث حالة التذكرة:", "Update Status:")}
                 </label>
                 <select
+                  id="support-ticket-status"
                   value={editingStatus}
                   onChange={(e) => setEditingStatus(e.target.value as SupportTicketRecord["status"])}
                   className="input"
@@ -339,11 +376,12 @@ export function SupportManagerAdmin() {
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: 4 }}>
+                <label htmlFor="support-ticket-notes" style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, marginBottom: 4 }}>
                   {t("ملاحظات إدارية داخلية (خاصة بفريق العمل):", "Internal Admin Notes (Staff only):")}
                 </label>
                 <textarea
-                  rows={3}
+                  id="support-ticket-notes"
+                  rows={4}
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder={t("اكتب ملخص الإجراء المتخذ أو ملاحظات للمشرفين...", "Action taken, supervisor notes...")}
@@ -353,7 +391,7 @@ export function SupportManagerAdmin() {
               </div>
 
               {saveStatus && (
-                <div style={{ fontSize: "0.8rem", marginBottom: 10, color: saveStatus.includes("✓") ? "var(--success)" : "var(--danger)" }}>
+                <div role="status" style={{ fontSize: "0.82rem", marginBottom: 10, color: saveStatus.includes("✓") ? "var(--success)" : "var(--danger)" }}>
                   {saveStatus}
                 </div>
               )}
@@ -370,7 +408,7 @@ export function SupportManagerAdmin() {
             </div>
           </div>
         )}
-      </div>
+      </Drawer>
     </div>
   );
 }

@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {contrastRatio,parseDesignSuggestion,validateTokens,isDesignRecord} from "./theme.ts";
+import {
+  contrastRatio,
+  measureTokenContrast,
+  normalizeCssColorToHex,
+  parseDesignSuggestion,
+  validateTokens,
+  isDesignRecord,
+} from "./theme.ts";
 test("contrast rejects bright accent and unsafe night text",()=>{
  assert.ok(contrastRatio("#235492","#ffffff")>=4.5);
  assert.throws(()=>validateTokens({accent:"#f5f5f5",deep:"#09162f",bright:"#aaaaaa"}),/فاتحة/);
@@ -62,4 +69,20 @@ test("sanitizes accidental note/nota misspellings into the canonical brand name 
   const parsed = parseDesignSuggestion('{"name":"نوتة الأنيق","description":"ألوان نوتة الهادئة","tokens":{"accent":"#24508C","deep":"#132B4D","bright":"#5194CD"}}');
   assert.equal(parsed.name, "نقطة الأنيق");
   assert.equal(parsed.description, "ألوان نقطة الهادئة");
+});
+
+test("normalizes CSS rgb() / shorthand hex tokens and measures real WCAG AA/AAA ratios", () => {
+  assert.equal(normalizeCssColorToHex("rgb(0, 101, 181)"), "#0065b5");
+  assert.equal(normalizeCssColorToHex("rgba(16, 36, 69, 0.9)"), "#102445");
+  assert.equal(normalizeCssColorToHex("#fff"), "#ffffff");
+  assert.equal(normalizeCssColorToHex("oklch(0.6 0.2 250)"), null);
+
+  const highContrast = measureTokenContrast("#ffffff", "rgb(0, 101, 181)");
+  assert.ok(highContrast);
+  assert.ok(highContrast.ratio >= 5.5);
+  assert.equal(highContrast.passAA, true);
+
+  const lowContrast = measureTokenContrast("#7fa6c9", "#ffffff");
+  assert.ok(lowContrast);
+  assert.equal(lowContrast.passAA, false);
 });

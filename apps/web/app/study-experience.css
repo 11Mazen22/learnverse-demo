@@ -1,567 +1,1626 @@
-/* ============================================================
-   NOÄTA AURA — QUIZGECKO-GRADE STUDY & ASSESSMENT EXPERIENCE
-   ============================================================ */
+/* ==========================================================================
+   NOÄTA 2.0 — STAGE 04 STUDY & ACTIVE RECALL ECOSYSTEM STYLESHEET
+   Strict @layer study cascade · Zero !important · Full semantic tokens
+   ========================================================================== */
 
-/* 1. Main Study Shell & Tab Navigation */
-.noata-study-hero {
-  position: relative;
-  border-radius: 28px;
-  padding: clamp(24px, 4vw, 44px);
-  background:
-    radial-gradient(ellipse at 88% -15%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
-    radial-gradient(ellipse at 12% 110%, color-mix(in srgb, var(--gold, #d97706) 12%, transparent), transparent 50%),
-    var(--surface);
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
-  box-shadow: 0 16px 40px color-mix(in srgb, var(--ink) 6%, transparent);
-  margin-bottom: 24px;
-}
-
-.noata-study-hero h1 {
-  font-size: clamp(26px, 3.2vw, 40px);
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  margin: 8px 0 10px;
-  color: var(--ink);
-}
-
-.noata-study-tabs {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  padding: 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  margin-bottom: 28px;
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--ink) 4%, transparent);
-}
-
-.noata-study-tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 20px;
-  border-radius: 14px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 13.5px;
-  cursor: pointer;
-  transition: all 0.22s ease;
-  white-space: nowrap;
-}
-
-.noata-study-tab-btn:hover {
-  background: var(--surface-soft);
-  color: var(--ink);
-}
-
-.noata-study-tab-btn[aria-selected="true"] {
-  background: var(--accent);
-  color: var(--on-accent, #ffffff);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent);
-}
-
-/* 2. Universal Quiz & Flashcard AI Generator */
-.noata-generator-panel {
-  border-radius: 24px;
-  background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
-  padding: clamp(20px, 3vw, 36px);
-  box-shadow: 0 12px 35px color-mix(in srgb, var(--ink) 5%, transparent);
-  margin-bottom: 28px;
-}
-
-.noata-generator-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
-}
-
-.noata-generator-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  display: grid;
-  place-items: center;
-  font-size: 24px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
-}
-
-.noata-source-selector {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-@media (max-width: 700px) {
-  .noata-source-selector {
-    grid-template-columns: 1fr;
+@layer study {
+  .noata-study-muted {
+    color: var(--muted);
+    font-size: var(--text-sm);
+    line-height: 1.55;
   }
-}
 
-.noata-source-card {
-  padding: 16px;
-  border-radius: 16px;
-  border: 2px solid var(--line);
-  background: var(--surface-soft);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: start;
-}
+  /* Hero & Top Banners */
+  .noata-study-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: clamp(1rem, 2.5vw, 1.75rem);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
+      var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--space-4);
+  }
 
-.noata-source-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-}
+  .noata-study-hero-copy {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 68ch;
+    min-width: 0;
+  }
 
-.noata-source-card[aria-checked="true"] {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 15%, transparent);
-}
+  .noata-study-hero-copy h1 {
+    margin: 0;
+    font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+    line-height: var(--leading-tight);
+    color: var(--ink);
+  }
 
-.noata-source-card h3 {
-  font-size: 15px;
-  margin: 6px 0 4px;
-  font-weight: 800;
-  color: var(--ink);
-}
+  .noata-study-hero-kicker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
 
-.noata-source-card p {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0;
-  line-height: 1.5;
-}
+  .noata-study-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
 
-.noata-gen-textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: var(--surface-soft);
-  color: var(--ink);
-  font-size: 14px;
-  line-height: 1.7;
-  resize: vertical;
-  font-family: inherit;
-  transition: border-color 0.2s;
-}
+  .noata-preview-banner,
+  .noata-study-error-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
 
-.noata-gen-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
-}
+  .noata-preview-banner {
+    background: var(--info-soft);
+    border: 1px solid color-mix(in srgb, var(--info) 32%, var(--line));
+    color: var(--ink);
+  }
 
-.noata-controls-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin: 20px 0;
-}
+  .noata-study-error-banner {
+    background: var(--danger-soft);
+    border: 1px solid color-mix(in srgb, var(--danger) 38%, var(--line));
+    color: var(--danger);
+    font-weight: 600;
+  }
 
-.noata-controls-group label {
-  display: block;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--muted);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+  /* Navigation Tabs (tablist + tab) */
+  .noata-study-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+    border: 1px solid var(--line);
+    margin-bottom: var(--space-5);
+  }
 
-.noata-select {
-  width: 100%;
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface-soft);
-  color: var(--ink);
-  font-size: 13.5px;
-  font-family: inherit;
-  font-weight: 600;
-}
+  .noata-study-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--target-min);
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
 
-/* 3. Interactive Quiz Runner */
-.noata-quiz-container {
-  max-width: 860px;
-  margin: 0 auto;
-}
+  .noata-study-tab-btn:hover {
+    color: var(--ink);
+    background: var(--hover-bg);
+  }
 
-.noata-quiz-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 22px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--ink) 4%, transparent);
-}
+  .noata-study-tab-btn[aria-selected="true"] {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: var(--accent);
+    box-shadow: var(--shadow-xs);
+  }
 
-.noata-quiz-progress-track {
-  flex: 1;
-  height: 8px;
-  border-radius: 99px;
-  background: var(--surface-soft);
-  overflow: hidden;
-  position: relative;
-}
+  .noata-study-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding-inline: var(--space-1);
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    background: color-mix(in srgb, var(--ink) 12%, transparent);
+    color: inherit;
+  }
 
-.noata-quiz-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #10b981));
-  border-radius: 99px;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+  .noata-study-tab-btn[aria-selected="true"] .noata-study-tab-badge {
+    background: color-mix(in srgb, var(--on-accent) 22%, transparent);
+    color: var(--on-accent);
+  }
 
-.noata-lifeline-dock {
-  display: flex;
-  gap: 8px;
-}
+  /* Shared Compact Controls & Chips */
+  .noata-chip-btn,
+  .noata-pill-choice {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 36px;
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
+  }
 
-.noata-lifeline-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface-soft);
-  color: var(--ink);
-  font-size: 12.5px;
-  font-weight: 750;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+  .noata-chip-btn:hover:not(:disabled),
+  .noata-pill-choice:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+  }
 
-.noata-lifeline-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
+  .noata-chip-btn.is-active,
+  .noata-pill-choice.is-selected {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: var(--accent);
+  }
 
-.noata-lifeline-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+  .noata-chip-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
-.noata-quiz-card {
-  border-radius: 26px;
-  background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line));
-  padding: clamp(24px, 4vw, 40px);
-  box-shadow: 0 14px 40px color-mix(in srgb, var(--ink) 6%, transparent);
-  margin-bottom: 24px;
-}
+  .noata-field-block {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
 
-.noata-quiz-question-text {
-  font-size: clamp(18px, 2.2vw, 24px);
-  font-weight: 850;
-  line-height: 1.6;
-  color: var(--ink);
-  margin: 12px 0 28px;
-}
+  .noata-field-block > span {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--muted);
+  }
 
-.noata-quiz-options-grid {
-  display: grid;
-  gap: 12px;
-}
+  .nk-input,
+  .noata-input-compact {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0.55rem 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-sm);
+    font-family: inherit;
+    transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  }
 
-.noata-quiz-opt-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  border-radius: 16px;
-  border: 2px solid var(--line);
-  background: var(--surface-soft);
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 650;
-  text-align: start;
-  cursor: pointer;
-  transition: all 0.22s ease;
-  position: relative;
-}
+  .nk-input:focus-visible,
+  .noata-input-compact:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--focus-ring-soft);
+  }
 
-.noata-quiz-opt-btn:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
-  background: color-mix(in srgb, var(--accent) 5%, var(--surface-soft));
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--ink) 5%, transparent);
-}
+  .noata-empty-actions,
+  .noata-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
 
-.noata-quiz-opt-marker {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  display: grid;
-  place-items: center;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--muted);
-  flex-shrink: 0;
-}
+  /* ========================================================================
+     GENERATOR PANEL
+     ======================================================================== */
+  .noata-generator-panel {
+    display: grid;
+    gap: var(--space-4);
+    padding: clamp(1rem, 2.5vw, 1.75rem);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
 
-/* Correct / Incorrect states */
-.noata-quiz-opt-btn.is-correct {
-  border-color: #10b981 !important;
-  background: color-mix(in srgb, #10b981 12%, var(--surface)) !important;
-  color: #065f46 !important;
-}
+  .noata-gen-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
 
-html[data-theme="dark"] .noata-quiz-opt-btn.is-correct {
-  color: #6ee7b7 !important;
-}
+  .noata-gen-head h2 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-xl);
+    color: var(--ink);
+  }
 
-.noata-quiz-opt-btn.is-correct .noata-quiz-opt-marker {
-  background: #10b981;
-  color: #ffffff;
-  border-color: #10b981;
-}
+  .noata-gen-source-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
 
-.noata-quiz-opt-btn.is-wrong {
-  border-color: #ef4444 !important;
-  background: color-mix(in srgb, #ef4444 12%, var(--surface)) !important;
-  color: #991b1b !important;
-}
+  .noata-gen-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: var(--space-3);
+  }
 
-html[data-theme="dark"] .noata-quiz-opt-btn.is-wrong {
-  color: #fca5a5 !important;
-}
+  .noata-gen-submit-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
 
-.noata-quiz-opt-btn.is-wrong .noata-quiz-opt-marker {
-  background: #ef4444;
-  color: #ffffff;
-  border-color: #ef4444;
-}
+  .noata-bundle-preview-card {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  }
 
-.noata-quiz-opt-btn.is-eliminated {
-  opacity: 0.35;
-  text-decoration: line-through;
-  pointer-events: none;
-}
+  .noata-bundle-preview-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
 
-/* 4. Socratic Pedagogical Feedback Box */
-.noata-pedagogical-box {
-  margin-top: 24px;
-  padding: 20px 24px;
-  border-radius: 20px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
-  animation: noataFadeIn 0.3s ease;
-}
+  .noata-bundle-preview-head h3 {
+    margin: var(--space-2) 0 var(--space-1);
+    color: var(--ink);
+  }
 
-.noata-pedagogical-box h4 {
-  margin: 0 0 10px;
-  font-size: 15px;
-  font-weight: 850;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--ink);
-}
+  .noata-bundle-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
 
-.noata-pedagogical-box p {
-  margin: 0 0 12px;
-  font-size: 14px;
-  line-height: 1.75;
-  color: var(--ink);
-}
+  .noata-bundle-takeaways {
+    margin: 0;
+    padding-inline-start: 1.25rem;
+    display: grid;
+    gap: var(--space-1);
+    color: var(--ink);
+    font-size: var(--text-sm);
+  }
 
-.noata-misconception-card {
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: color-mix(in srgb, #ef4444 8%, var(--surface));
-  border: 1px solid color-mix(in srgb, #ef4444 20%, transparent);
-  font-size: 13px;
-  color: var(--ink);
-  margin-top: 10px;
-}
+  /* ========================================================================
+     QUIZ & STRICT EXAM RUNNER
+     ======================================================================== */
+  .noata-quiz-container {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 960px;
+    margin-inline: auto;
+  }
 
-/* 5. Luxury 3D Spaced Repetition Flashcard Studio */
-.noata-3d-scene {
-  perspective: 1200px;
-  width: 100%;
-  max-width: 680px;
-  margin: 20px auto;
-  min-height: 380px;
-}
+  .noata-quiz-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
 
-.noata-3d-card {
-  width: 100%;
-  min-height: 380px;
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-  cursor: pointer;
-  border-radius: 28px;
-}
+  .nk-quiz-meta-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
 
-.noata-3d-card.is-flipped {
-  transform: rotateY(180deg);
-}
+  .nk-quiz-qnum {
+    font-size: var(--text-sm);
+    color: var(--ink);
+  }
 
-.noata-3d-face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  border-radius: 28px;
-  padding: clamp(24px, 4vw, 44px);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
-  box-shadow: 0 16px 45px color-mix(in srgb, var(--ink) 8%, transparent);
-  background:
-    radial-gradient(ellipse at 90% 10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
-    var(--surface);
-}
+  .noata-quiz-progress-track {
+    width: 100%;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-subtle);
+    overflow: hidden;
+  }
 
-.noata-3d-face.is-back {
-  transform: rotateY(180deg);
-  background:
-    radial-gradient(ellipse at 10% 90%, color-mix(in srgb, #10b981 12%, transparent), transparent 60%),
-    var(--surface);
-}
+  .nk-quiz-track-inline {
+    flex: 1 1 160px;
+    min-width: 110px;
+  }
 
-.noata-card-prompt {
-  font-size: clamp(20px, 2.6vw, 28px);
-  font-weight: 850;
-  line-height: 1.55;
-  color: var(--ink);
-  text-align: center;
-  margin: auto 0;
-}
+  .noata-quiz-progress-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 72%, var(--success)));
+    transition: width var(--dur-base) var(--ease);
+  }
 
-.noata-card-answer {
-  font-size: clamp(17px, 2.2vw, 22px);
-  line-height: 1.7;
-  color: var(--ink);
-  text-align: center;
-  margin: auto 0;
-}
+  .noata-lifeline-dock {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
 
-.noata-sm2-rating-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  max-width: 680px;
-  margin: 20px auto 0;
-}
+  .noata-lifeline-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 36px;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+    color: var(--ink);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
 
-@media (max-width: 580px) {
+  .noata-lifeline-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+  }
+
+  .noata-lifeline-btn.is-active {
+    background: var(--warning-soft);
+    border-color: var(--warning);
+    color: var(--warning);
+  }
+
+  .noata-lifeline-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .nk-quiz-nav-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .nk-quiz-dot {
+    min-width: 34px;
+    height: 34px;
+    padding-inline: 0.45rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .nk-quiz-dot.is-answered {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .nk-quiz-dot.is-flagged {
+    border-color: var(--warning);
+    color: var(--warning);
+  }
+
+  .nk-quiz-dot.is-current {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .noata-quiz-card {
+    display: grid;
+    gap: var(--space-4);
+    padding: clamp(1.1rem, 2.8vw, 1.85rem);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nk-quiz-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .nk-mode-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .noata-quiz-question-text {
+    font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+    font-weight: 700;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+
+  .nk-study-hint-banner {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-sm);
+    background: var(--warning-soft);
+    border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--line));
+    color: var(--ink);
+    font-size: var(--text-sm);
+  }
+
+  .noata-quiz-options-grid {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .noata-quiz-opt-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-strong);
+    background: var(--surface-soft);
+    color: var(--ink);
+    text-align: start;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
+  }
+
+  .noata-quiz-opt-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+  }
+
+  .noata-quiz-opt-btn.is-selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+
+  .noata-quiz-opt-btn.is-correct {
+    border-color: var(--success);
+    background: var(--success-soft);
+    color: var(--ink);
+  }
+
+  .noata-quiz-opt-btn.is-wrong {
+    border-color: var(--danger);
+    background: var(--danger-soft);
+    color: var(--ink);
+  }
+
+  .noata-quiz-opt-btn.is-eliminated {
+    opacity: 0.38;
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+
+  .noata-quiz-opt-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-xs);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    font-size: var(--text-xs);
+    font-weight: 800;
+  }
+
+  .nk-quiz-opt-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .noata-pedagogical-box {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-size: var(--text-sm);
+  }
+
+  .noata-misconception-card {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xs);
+    background: var(--danger-soft);
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--line));
+  }
+
+  .nk-quiz-nav-footer,
+  .nk-report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .nk-study-center-card {
+    text-align: center;
+    align-items: center;
+  }
+
+  .nk-study-complete-score {
+    margin: 0;
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    color: var(--accent);
+    line-height: 1.1;
+  }
+
+  .nk-study-complete-label {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .nk-study-complete-sub {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+
+  .nk-diagnostic-breakdown {
+    width: 100%;
+    text-align: start;
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+
+  .nk-diagnostic-list {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .nk-diagnostic-item {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+  }
+
+  .nk-diagnostic-item.is-correct {
+    border-inline-start: 4px solid var(--success);
+  }
+
+  .nk-diagnostic-item.is-wrong {
+    border-inline-start: 4px solid var(--danger);
+  }
+
+  .nk-diagnostic-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  /* ========================================================================
+     REVIEW HUB MODE SELECTOR & 3D FLASHCARD STUDIO (CSS GRID AUTO-GROW)
+     ======================================================================== */
+  .noata-review-mode-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  .noata-mode-card-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--target-min);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    text-align: start;
+    transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+  }
+
+  .noata-mode-card-btn:hover {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+  }
+
+  .noata-mode-card-btn.is-active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .noata-custom-session-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+    margin-bottom: var(--space-4);
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .nk-studio-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .nk-studio-title-group {
+    display: grid;
+    gap: 2px;
+  }
+
+  .nk-studio-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .nk-studio-counter {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-base);
+    color: var(--ink);
+  }
+
+  .nk-studio-controls-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .nk-studio-preview-note {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  .nk-card-action-bar {
+    display: flex;
+    justify-content: center;
+    margin-block: var(--space-3);
+  }
+
+  /* CRITICAL STAGE 04 REQUIREMENT:
+     CSS Grid stacking allows tall Arabic / KaTeX / Cloze cards to expand naturally
+     with zero absolute-positioning overlap or text clipping. */
+  .noata-3d-scene {
+    perspective: 1200px;
+    width: 100%;
+    cursor: pointer;
+    margin-block: var(--space-3);
+  }
+
+  .noata-3d-card {
+    display: grid;
+    width: 100%;
+    min-height: 260px;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .noata-3d-card.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  .noata-3d-face {
+    grid-area: 1 / 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: clamp(1.2rem, 3vw, 2rem);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .noata-3d-face.is-back {
+    transform: rotateY(180deg);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, var(--surface)), var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  }
+
+  /* Reduced motion / Instant flip preference uses clean crossfade instead of 3D rotation */
+  @media (prefers-reduced-motion: reduce) {
+    .noata-3d-card {
+      transition: opacity var(--dur-fast) var(--ease);
+      transform: none;
+    }
+
+    .noata-3d-card.is-flipped {
+      transform: none;
+    }
+
+    .noata-3d-face.is-back {
+      transform: none;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .noata-3d-card.is-flipped .noata-3d-face.is-front {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .noata-3d-card.is-flipped .noata-3d-face.is-back {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  html[data-noata-motion="off"] .noata-3d-card {
+    transition: none;
+    transform: none;
+  }
+
+  html[data-noata-motion="off"] .noata-3d-card.is-flipped {
+    transform: none;
+  }
+
+  html[data-noata-motion="off"] .noata-3d-face.is-back {
+    transform: none;
+    display: none;
+  }
+
+  html[data-noata-motion="off"] .noata-3d-card.is-flipped .noata-3d-face.is-front {
+    display: none;
+  }
+
+  html[data-noata-motion="off"] .noata-3d-card.is-flipped .noata-3d-face.is-back {
+    display: flex;
+  }
+
+  .nk-card-face-head,
+  .nk-card-face-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .nk-card-concept-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.7rem;
+    border-radius: var(--radius-pill);
+    background: var(--surface-subtle);
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+
+  .nk-card-concept-pill.is-answer {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .nk-card-flip-note {
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  .noata-card-prompt,
+  .noata-card-answer {
+    font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+    font-weight: 700;
+    line-height: 1.75;
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .nk-cloze-paragraph {
+    margin: 0;
+    line-height: 2;
+  }
+
+  .nk-cloze-blank {
+    display: inline-block;
+    padding: 0.1rem 0.55rem;
+    margin-inline: 0.2rem;
+    border-radius: var(--radius-xs);
+    background: var(--accent-soft);
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .nk-cloze-revealed {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--radius-xs);
+    background: var(--success-soft);
+    color: var(--success);
+  }
+
+  .nk-card-meta-notes {
+    display: grid;
+    gap: var(--space-2);
+    border-top: 1px solid var(--line);
+    padding-top: var(--space-3);
+  }
+
+  .nk-card-note-box {
+    display: grid;
+    gap: 4px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xs);
+    background: var(--surface-soft);
+    font-size: var(--text-sm);
+    color: var(--ink);
+  }
+
+  /* Typed Recall Panel */
+  .nk-typed-recall-box {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    margin-top: var(--space-3);
+  }
+
+  .nk-typed-recall-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .nk-typed-recall-form .nk-input {
+    flex: 1 1 220px;
+  }
+
+  .nk-match-feedback {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+  }
+
+  .nk-match-feedback.is-exact {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid color-mix(in srgb, var(--success) 35%, var(--line));
+  }
+
+  .nk-match-feedback.is-close {
+    background: var(--warning-soft);
+    color: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--line));
+  }
+
+  .nk-match-feedback.is-wrong {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+  }
+
+  .nk-close-match-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  /* SM-2 4-Button Rating Bar */
   .noata-sm2-rating-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  @media (max-width: 600px) {
+    .noata-sm2-rating-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .noata-sm2-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 54px;
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
+
+  .noata-sm2-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .noata-sm2-btn.rate-again {
+    border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+    background: var(--danger-soft);
+  }
+
+  .noata-sm2-btn.rate-hard {
+    border-color: color-mix(in srgb, var(--warning) 45%, var(--line));
+    background: var(--warning-soft);
+  }
+
+  .noata-sm2-btn.rate-good {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    background: var(--accent-soft);
+  }
+
+  .noata-sm2-btn.rate-easy {
+    border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+    background: var(--success-soft);
+  }
+
+  .noata-keyboard-hint {
+    text-align: center;
+    margin-top: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  .noata-keyboard-badge {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface-subtle);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+  }
+
+  /* ========================================================================
+     SPEED MATCH SPRINT
+     ======================================================================== */
+  .noata-speed-match-shell {
+    display: grid;
+    gap: var(--space-4);
+    padding: clamp(1rem, 2.5vw, 1.5rem);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .noata-speed-match-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .noata-speed-match-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .noata-speed-match-title h3 {
+    margin: 0;
+  }
+
+  .noata-speed-match-controls,
+  .noata-speed-size-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .noata-speed-grid {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
   }
-}
 
-.noata-sm2-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 8px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--ink) 4%, transparent);
-}
-
-.noata-sm2-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.noata-sm2-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.noata-sm2-btn.rate-again {
-  border-color: color-mix(in srgb, #ef4444 35%, var(--line));
-}
-.noata-sm2-btn.rate-again:hover:not(:disabled) {
-  background: color-mix(in srgb, #ef4444 10%, var(--surface));
-}
-
-.noata-sm2-btn.rate-hard {
-  border-color: color-mix(in srgb, #f59e0b 35%, var(--line));
-}
-.noata-sm2-btn.rate-hard:hover:not(:disabled) {
-  background: color-mix(in srgb, #f59e0b 10%, var(--surface));
-}
-
-.noata-sm2-btn.rate-good {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
-}
-.noata-sm2-btn.rate-good:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
-}
-
-.noata-sm2-btn.rate-easy {
-  border-color: color-mix(in srgb, #10b981 35%, var(--line));
-}
-.noata-sm2-btn.rate-easy:hover:not(:disabled) {
-  background: color-mix(in srgb, #10b981 10%, var(--surface));
-}
-
-.noata-sm2-btn strong {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--ink);
-  margin-bottom: 2px;
-}
-
-.noata-sm2-btn small {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.noata-keyboard-hint {
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 14px;
-}
-
-.noata-keyboard-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
-  font-size: 11px;
-  font-family: monospace;
-  font-weight: 700;
-  margin: 0 4px;
-}
-
-@keyframes noataFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+  @media (max-width: 680px) {
+    .noata-speed-grid {
+      grid-template-columns: 1fr;
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .noata-speed-column {
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+  }
+
+  .noata-speed-col-label {
+    font-size: var(--text-xs);
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+
+  .noata-speed-tile {
+    width: 100%;
+    min-height: 54px;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-strong);
+    background: var(--surface-soft);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    text-align: start;
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+  }
+
+  .noata-speed-tile:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+  }
+
+  .noata-speed-tile.is-selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .noata-speed-tile.is-matched {
+    border-color: var(--success);
+    background: var(--success-soft);
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  .noata-speed-tile.is-wrong {
+    border-color: var(--danger);
+    background: var(--danger-soft);
+  }
+
+  .noata-speed-complete-banner {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: var(--space-3);
+    padding: var(--space-6);
+    border-radius: var(--radius-md);
+    background: var(--success-soft);
+    color: var(--ink);
+  }
+
+  .noata-speed-complete-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  /* ========================================================================
+     MISTAKE HUB, INTERLEAVED & SESSIONS
+     ======================================================================== */
+  .noata-mistake-hub {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .noata-hub-strategies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-4);
+  }
+
+  .noata-strategy-card {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+  }
+
+  .noata-strategy-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .noata-interleave-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .noata-strategy-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .noata-mistake-library,
+  .noata-sessions-card {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .noata-mistake-lib-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .noata-mistake-filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .noata-mistake-list,
+  .noata-sessions-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .noata-mistake-item {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+  }
+
+  .noata-mistake-item.is-resolved {
+    opacity: 0.72;
+  }
+
+  .noata-mistake-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .noata-mistake-topic {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .noata-mistake-comparison {
+    display: grid;
+    gap: 4px;
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+  }
+
+  .noata-mistake-wrong-ans {
+    color: var(--danger);
+  }
+
+  .noata-mistake-expected-ans {
+    color: var(--success);
+  }
+
+  .noata-mistake-explanation {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  .noata-mistake-actions,
+  .noata-session-row,
+  .noata-session-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .noata-session-row {
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+  }
+
+  .noata-session-sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: 4px;
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  /* ========================================================================
+     DECKS, COMPOSER, IMPORT/EXPORT & TASKS
+     ======================================================================== */
+  .noata-decks-sidebar,
+  .noata-decks-main {
+    display: grid;
+    gap: var(--space-4);
+    align-content: start;
+    min-width: 0;
+  }
+
+  .noata-deck-create-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-block: var(--space-3);
+  }
+
+  .noata-deck-create-form .nk-input {
+    flex: 1 1 160px;
+  }
+
+  .noata-deck-list,
+  .noata-deck-card-list,
+  .noata-task-list,
+  .noata-preview-card-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .noata-deck-item-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 52px;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+    color: var(--ink);
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .noata-deck-item-btn.is-selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .noata-deck-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .noata-deck-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .noata-deck-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .noata-card-composer {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    margin-bottom: var(--space-4);
+  }
+
+  .noata-composer-type-row,
+  .noata-composer-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .noata-composer-type-row {
+    justify-content: flex-start;
+  }
+
+  .noata-composer-pair-grid,
+  .noata-composer-meta-grid,
+  .noata-import-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .noata-inline-check {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .noata-live-katex-preview {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+    border: 1px dashed var(--accent);
+    margin-bottom: var(--space-4);
+  }
+
+  .noata-deck-cards-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  .noata-deck-search {
+    max-width: 260px;
+  }
+
+  .noata-deck-card-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+  }
+
+  .noata-deck-card-row.is-suspended {
+    opacity: 0.6;
+  }
+
+  .noata-deck-card-content {
+    flex: 1 1 240px;
+    min-width: 0;
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .noata-deck-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .noata-deck-card-front {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .noata-deck-card-back {
+    font-size: var(--text-sm);
+    color: var(--muted);
+  }
+
+  .noata-card-edit-form {
+    width: 100%;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  /* Import / Export */
+  .noata-import-export-box {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .noata-import-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .noata-import-export-actions,
+  .noata-import-submit-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .noata-import-editor,
+  .noata-import-preview {
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+  }
+
+  .noata-import-file-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .noata-file-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 40px;
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .noata-file-upload-label input {
+    display: none;
+  }
+
+  .noata-preview-card-item {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    font-size: var(--text-xs);
+  }
+
+  .noata-preview-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .noata-preview-more {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* Tasks */
+  .noata-task-form {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .noata-task-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+  }
+
+  .noata-task-row.is-done span {
+    text-decoration: line-through;
+    opacity: 0.65;
+  }
+
+  .noata-task-check {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .noata-study-empty-panel {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: var(--space-3);
+    padding: var(--space-8);
+    border-radius: var(--radius-lg);
+    border: 1px dashed var(--line-strong);
+    background: var(--surface-soft);
+  }
+
+  /* Print-friendly deck handout */
+  @media print {
+    .noata-study-tabs,
+    .noata-study-hero-actions,
+    .noata-card-composer,
+    .noata-import-export-box,
+    .noata-row-actions,
+    .noata-review-mode-strip {
+      display: none;
+    }
+
+    .noata-deck-card-row {
+      break-inside: avoid;
+      border: 1px solid #999;
+      background: #fff;
+      color: #000;
+    }
   }
 }

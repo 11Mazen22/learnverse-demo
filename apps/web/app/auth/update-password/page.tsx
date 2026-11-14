@@ -101,6 +101,7 @@ export default function UpdatePasswordPage() {
                <span className="auth-password">
                  <input type={showPassword ? "text" : "password"} autoComplete="new-password" dir="ltr" minLength={MIN_NEW_PASSWORD_LENGTH}
                    maxLength={128} placeholder={t("١٢ حرفًا على الأقل","At least 12 characters")} required value={password} disabled={busy}
+                   aria-invalid={Boolean(error)} aria-describedby={error ? "auth-update-error" : undefined}
                    onChange={(event) => setPassword(event.target.value)} />
                  <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword(x=>!x)}>
                    {showPassword ? t("إخفاء","Hide") : t("إظهار","Show")}
@@ -111,10 +112,11 @@ export default function UpdatePasswordPage() {
                <span>{t("تأكيد كلمة المرور الجديدة","Confirm new password")}</span>
                <input type={showPassword ? "text" : "password"} dir="ltr" autoComplete="new-password" minLength={MIN_NEW_PASSWORD_LENGTH}
                  maxLength={128} placeholder={t("أعد كتابة كلمة المرور","Re-enter your password")} required value={confirm} disabled={busy}
+                 aria-invalid={Boolean(error)} aria-describedby={error ? "auth-update-error" : undefined}
                  onChange={(event) => setConfirm(event.target.value)} />
              </label>
              <p className="auth-journey-note">{t("اختر كلمة مرور مختلفة عن القديمة وتجنّب استخدام بيانات يسهل تخمينها.","Choose a different password and avoid information that is easy to guess.")}</p>
-             {error && <p className="auth-alert is-error" role="alert">{error}</p>}
+             {error && <p id="auth-update-error" className="auth-alert is-error" role="alert">{error}</p>}
              <button type="submit" className="auth-primary" disabled={busy}>
                {busy ? t("جارٍ تحديث كلمة المرور…","Updating your password…") : t("تأكيد كلمة المرور الجديدة","Confirm new password")}
              </button>

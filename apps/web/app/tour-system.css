@@ -1,6 +1,7 @@
 /* ==========================================================================
    Noäta Aura — Intelligent Role-Aware Guided Tour System
    ========================================================================== */
+@layer components {
 
 .aura-tour-backdrop {
   position: fixed;
@@ -334,13 +335,16 @@
     justify-content: center;
   }
 }
+}
 
 /* Reduced motion preference */
+@layer utilities {
 @media (prefers-reduced-motion: reduce) {
   .aura-tour-card,
   .aura-tour-spotlight,
   .aura-tour-btn-primary {
-    transition: none !important;
-    animation: none !important;
+    transition: none;
+    animation: none;
   }
+}
 }

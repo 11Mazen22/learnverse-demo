@@ -2,6 +2,7 @@
    authenticated product, but a dedicated shell and storytelling layout.
    Motion is subtle, non-blocking and fully disabled under reduced motion. */
 
+@layer sections {
 .marketing-page{min-height:100vh;display:flex;flex-direction:column;background:
   radial-gradient(1200px 600px at 85% -10%, rgba(99,102,241,0.12), transparent 60%),
   radial-gradient(900px 500px at 15% 40%, rgba(34,211,238,0.08), transparent 60%),
@@ -46,14 +47,14 @@
 .mk-brand .noata-brand-copy strong,
 .mk-footer .noata-brand-copy strong,
 html[data-theme="dark"] .noata-brand-copy strong {
-  color: #ffffff !important;
-  font-weight: 800 !important;
+  color: #ffffff;
+  font-weight: 800;
 }
 .marketing-page .noata-brand-copy small,
 .mk-brand .noata-brand-copy small,
 .mk-footer .noata-brand-copy small,
 html[data-theme="dark"] .noata-brand-copy small {
-  color: #94a3b8 !important;
+  color: #a5b6d1;
 }
 .mk-nav {
   display: flex;
@@ -107,7 +108,7 @@ html[data-theme="dark"] .noata-brand-copy small {
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
 }
@@ -348,4 +349,5 @@ html[data-theme="dark"] .noata-brand-copy small {
 
 @media print{
   .mk-header,.mk-footer,.mk-band{display:none}
+}
 }

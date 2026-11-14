@@ -241,6 +241,11 @@ set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000003';
 select public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','submit_review');
 select public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','approve');
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
+select qa.artifact_constraint_denied($s$select public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','publish')$s$,'unscoped draft question cannot be published','23514');
+reset role;
+update public.questions set lesson_id='29ea460d-92fc-570b-942a-c80fe012be22' where id='92286df0-8362-52fa-9f3c-233111d9e388';
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000005';
 select qa.check((public.transition_question('92286df0-8362-52fa-9f3c-233111d9e388','publish')->>'publication_status')='published','admin can publish reviewed question');
 select qa.check((public.set_user_role('00000000-0000-0000-0000-000000000002','teacher')->>'role')='teacher','admin role change succeeds');
 select qa.check((select count(*)=1 from public.audit_events where action='ROLE_CHANGED'),'role change has audit evidence');
@@ -376,6 +381,60 @@ set local role authenticated;
 set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
 select qa.check((select count(*)=1 from storage.objects where bucket_id='noata-documents'),'retained original survives removal of its conversation association');
 select qa.check((select count(*)=1 from public.ai_document_files where id='98000000-0000-4000-8000-000000000001'),'retained original cleanup metadata survives');
+reset role;
+
+-- Study Ecosystem v2 (M2): column-level SM-2 immutability & strict cross-student isolation
+set local role authenticated;
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+insert into public.flashcard_decks(id,user_id,title,status,metadata)
+values('99100000-0000-4000-8000-000000000001',auth.uid(),'QA Study Deck','active','{"version":1,"subject_slug":"mathematics"}'::jsonb);
+insert into public.flashcards(id,deck_id,user_id,card_type,front,back,cloze_text,position,metadata)
+values('99100000-0000-4000-8000-000000000002','99100000-0000-4000-8000-000000000001',auth.uid(),'cloze','Derivative of x^2','2x','The derivative of x^2 is {{c1::2x}}.',1,'{"version":1,"matching_mode":"normalized"}'::jsonb);
+insert into public.study_mistake_logs(id,user_id,source_type,deck_id,card_id,topic,prompt,user_answer,expected_answer)
+values('99100000-0000-4000-8000-000000000003',auth.uid(),'quiz','99100000-0000-4000-8000-000000000001','99100000-0000-4000-8000-000000000002','Calculus','Derivative of x^2','x','2x');
+insert into public.study_sessions(id,user_id,session_mode,title,deck_ids,total_items,completed_items,correct_items)
+values('99100000-0000-4000-8000-000000000004',auth.uid(),'spaced','Morning Drill',array['99100000-0000-4000-8000-000000000001'::uuid],1,1,1);
+select qa.denied($s$update public.flashcards set ease_factor=3.00 where id='99100000-0000-4000-8000-000000000002'$s$,'authenticated cannot mutate flashcard ease_factor');
+select qa.denied($s$update public.flashcards set interval_days=365 where id='99100000-0000-4000-8000-000000000002'$s$,'authenticated cannot mutate flashcard interval_days');
+select qa.denied($s$update public.flashcards set state='review' where id='99100000-0000-4000-8000-000000000002'$s$,'authenticated cannot mutate flashcard SM-2 state');
+set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select qa.check((select count(*)=0 from public.flashcard_decks where id='99100000-0000-4000-8000-000000000001'),'cross-student deck read denied');
+select qa.check((select count(*)=0 from public.flashcards where id='99100000-0000-4000-8000-000000000002'),'cross-student flashcard read denied');
+select qa.check((select count(*)=0 from public.study_mistake_logs where id='99100000-0000-4000-8000-000000000003'),'cross-student mistake log read denied');
+select qa.check((select count(*)=0 from public.study_sessions where id='99100000-0000-4000-8000-000000000004'),'cross-student study session read denied');
+reset role;
+
+-- Stage 08 (M3) School Operations & RBAC Verification:
+-- Fixture identities: ...001 Student A, ...003 Assigned Teacher, ...004 Unrelated Teacher, ...005 Admin
+insert into public.academic_terms (id, slug, title_ar, title_en, academic_year, starts_on, ends_on, is_active)
+values ('99200000-0000-4000-8000-000000000001', 'qa-term-1', 'الفصل الأول', 'Term 1', '2026-2027', '2026-09-01', '2027-01-15', false);
+insert into public.class_announcements (id, class_id, author_id, title, body, published_at)
+values ('99200000-0000-4000-8000-000000000002', null, '00000000-0000-0000-0000-000000000005', 'Draft Admin Note', 'Unpublished draft announcement', null);
+
+select qa.check(
+  (select exists(select 1 from pg_indexes where schemaname = 'public' and indexname = 'class_attendance_class_date_idx')),
+  'M3 class_attendance index exists'
+);
+
+-- Zero staff/admin bypass onto Student A's private decks, cards, mistake logs, or sessions
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-000000000005';
+select qa.check((select count(*)=0 from public.flashcard_decks where id='99100000-0000-4000-8000-000000000001'),'admin denied read on student private deck');
+select qa.check((select count(*)=0 from public.flashcards where id='99100000-0000-4000-8000-000000000002'),'admin denied read on student private card');
+select qa.check((select count(*)=0 from public.study_mistake_logs where id='99100000-0000-4000-8000-000000000003'),'admin denied read on student mistake log');
+select qa.check((select public.log_staff_export('students', 5, '{"scope":"qa"}'::jsonb) is not null),'admin log_staff_export succeeds');
+
+-- Assigned teacher (...003) cannot read private decks or modify global admin terms/flags
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-000000000003';
+select qa.check((select count(*)=0 from public.flashcard_decks where id='99100000-0000-4000-8000-000000000001'),'teacher denied read on student private deck');
+select qa.denied($s$insert into public.academic_terms (slug,title_ar,title_en,academic_year,starts_on,ends_on) values ('bad-t','أ','B','2026-2027','2026-09-01','2026-12-01')$s$,'teacher denied academic term insert');
+select qa.denied($s$update public.feature_flags set enabled=false where flag_key='ai_study_studio'$s$,'teacher denied feature flag mutation');
+
+-- Student A (...001) cannot read unpublished admin announcements, create terms, or call log_staff_export
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-000000000001';
+select qa.check((select count(*)=0 from public.class_announcements where id='99200000-0000-4000-8000-000000000002'),'student denied unpublished school announcement');
+select qa.denied($s$insert into public.academic_terms (slug,title_ar,title_en,academic_year,starts_on,ends_on) values ('bad-s','أ','B','2026-2027','2026-09-01','2026-12-01')$s$,'student denied academic term insert');
+select qa.denied($s$select public.log_staff_export('students', 5, '{}'::jsonb)$s$,'student denied log_staff_export RPC');
 reset role;
 
 rollback;

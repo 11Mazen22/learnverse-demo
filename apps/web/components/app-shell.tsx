@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,64 +7,26 @@ import { UserMenu } from "@/components/auth/user-menu";
 import { ThemeControl } from "@/components/preferences/theme-control";
 import { LocaleControl } from "@/components/preferences/locale-control";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { Badge } from "@/components/ui/badge";
+import { Drawer } from "@/components/ui/drawer";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Icon } from "@/components/ui/icon";
-import { Dialog } from "@/components/ui/dialog";
 import { ContextualCoach } from "@/components/ai/contextual-coach";
 import { TourTrigger } from "@/components/tour/tour-trigger";
+import { CommandPalette } from "@/components/shell/command-palette";
+import { Sidebar } from "@/components/sidebar/sidebar";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { AI_INTRO_VERSION, hasSeenFeature, markFeatureSeen } from "@/lib/feature-seen";
 import { localized, useLocale } from "@/lib/i18n/locale";
-import { matchesStaffSearch } from "@/lib/dashboard/staff-search";
-import { Sidebar } from "@/components/sidebar/sidebar";
-
-type Route = [ar: string, en: string, href: string, icon: string, arDescription: string, enDescription: string];
-
-const navGroups: { titleAr: string; titleEn: string; routes: Route[] }[] = [
-  {
-    titleAr: "التعلّم والمناهج",
-    titleEn: "Learning & Curriculum",
-    routes: [
-      ["الرئيسية", "Home", "/", "home", "مساحتك اليومية", "Your daily space"],
-      ["رحلة التعلّم", "Learning journey", "/learn", "book", "المواد والدروس", "Subjects and lessons"],
-      ["العلوم المتكاملة", "Integrated Science", "/learn?subject=integrated-science", "microscope", "مسار عربي وإنجليزي", "Arabic & English tracks"],
-      ["الرياضيات", "Mathematics", "/learn?subject=mathematics", "compass", "مسار عربي وإنجليزي", "Arabic & English tracks"],
-      ["تاريخ", "History", "/learn?subject=history", "landmark", "مصر الحضارة والعالم القديم", "Civilisation & Ancient world"],
-      ["اللغة العربية", "Arabic Language", "/learn?subject=arabic-language", "feather", "نصوص ونحو وقصة عنترة", "Literature, grammar & story"],
-      ["اللغة الإنجليزية", "English Language", "/learn?subject=english", "globe", "وحدات مرتبطة بالمصدر", "Source-mapped units"],
-      ["الفلسفة والمنطق", "Philosophy & Logic", "/learn?subject=philosophy-logic", "lightbulb", "التفكير والموقف الفلسفي", "Thinking & philosophical stance"],
-      ["المهام", "Missions", "/missions", "target", "تحديات قصيرة", "Short challenges"],
-      ["المراجعة", "Review", "/review", "review", "ثبّت ما تعلّمته", "Strengthen what you learned"],
-      ["مركز المذاكرة", "Study center", "/study", "clipboard", "مهام شخصية وبطاقات محفوظة", "Personal tasks and saved flashcards"],
-      ["تحدّي الوحدة", "Unit challenge", "/boss", "boss", "اختبر إتقانك", "Check your mastery"],
-    ],
-  },
-  {
-    titleAr: "أدوات ذكية",
-    titleEn: "Smart tools",
-    routes: [
-      ["Noäta AI", "Noäta AI", "/ai", "ai", "مساعدك الذكي للمذاكرة", "Your study companion"],
-      ["المصحف", "Quran", "/quran", "book", "آيات موثّقة وتلاوة", "Verified verses and recitation"],
-    ],
-  },
-  {
-    titleAr: "تقدّمي ومكافآتي",
-    titleEn: "Progress & Rewards",
-    routes: [
-      ["تقدّمي", "My progress", "/progress", "chart", "كل خطوة تُحتسب", "Every step counts"],
-      ["المكافآت", "Rewards", "/rewards", "gift", "احتفل بتقدّمك", "Celebrate your progress"],
-      ["الواجبات", "Assignments", "/assignments", "check", "من معلّمك", "From your teacher"],
-    ],
-  },
-];
-
-const utilityRoutes: Route[] = [
-  ["الإعدادات", "Settings", "/settings", "settings", "تجربتك بطريقتك", "Make Noäta yours"],
-  ["المساعدة", "Help", "/help", "help", "إجابات وإرشادات", "Answers and guidance"],
-  ["مساحة المعلّم", "Teacher workspace", "/teacher", "user", "إدارة الفصول والواجبات", "Manage classes & assignments"],
-  ["إدارة Noäta", "Manage Noäta", "/admin", "shield", "لوحة الإدارة والعمليات", "Admin operations dashboard"],
-];
-
-const routes: Route[] = [...navGroups.flatMap((g) => g.routes), ...utilityRoutes];
+import {
+  getEffectiveRole,
+  getMobileDockRoutes,
+  getWorkspaceLabel,
+  pushRecentDestination,
+  recentRoutesStorageKey,
+  resolvePageTitle,
+  type ShellRole,
+} from "@/lib/shell/navigation";
 
 export function AppShell({
   children,
@@ -72,43 +35,66 @@ export function AppShell({
 }: {
   children: React.ReactNode;
   active: string;
-  role?: "student" | "teacher" | "admin";
+  role?: ShellRole;
 }) {
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [query, setQuery] = useState("");
-  const [activeResult, setActiveResult] = useState(0);
-  const resultRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const [recentHrefs, setRecentHrefs] = useState<string[]>([]);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const wasMenuOpen = useRef(false);
   const router = useRouter();
   const locale = useLocale();
   const t = (ar: string, en: string) => localized(locale, ar, en);
 
-  const pageLabel =
-    routes.find((route) => route[2] === active)?.[locale === "en" ? 1 : 0] ??
-    (role === "teacher"
-      ? t("مساحة المعلّم", "Teacher workspace")
-      : role === "admin"
-        ? t("إدارة Noäta", "Manage Noäta")
-        : t("مساحتي التعليمية", "My learning space"));
+  const account = useVerifiedAccount();
+  const [aiIsNew, setAiIsNew] = useState(false);
+
+  const effectiveRole = useMemo(
+    () => getEffectiveRole(account.role, Boolean(account.user), role),
+    [account.role, account.user, role]
+  );
+
+  const workspaceMeta = useMemo(
+    () => getWorkspaceLabel(role, effectiveRole, locale),
+    [role, effectiveRole, locale]
+  );
+
+  const pageLabel = useMemo(
+    () => resolvePageTitle(active, role, locale),
+    [active, role, locale]
+  );
+
+  const mobileDockRoutes = useMemo(
+    () => getMobileDockRoutes(effectiveRole),
+    [effectiveRole]
+  );
 
   useEffect(() => {
     document.title = pageLabel + " · Noäta";
   }, [pageLabel, active]);
 
-  const account = useVerifiedAccount();
-  const [aiIsNew, setAiIsNew] = useState(false);
+  // Restore focus to mobile drawer opener on drawer close
+  useEffect(() => {
+    if (wasMenuOpen.current && !menu) {
+      requestAnimationFrame(() => menuTriggerRef.current?.focus());
+    }
+    wasMenuOpen.current = menu;
+  }, [menu]);
 
-  const availableRoutes = useMemo(
-    () =>
-      routes.filter((route) => {
-        if (route[2] === "/admin") return account.role === "admin";
-        if (route[2] === "/teacher")
-          return account.role === "teacher" || account.role === "admin";
-        return true;
-      }),
-    [account.role],
-  );
+  // Load and update per-user recent route history
+  useEffect(() => {
+    const key = recentRoutesStorageKey(account.user?.id);
+    try {
+      const raw = sessionStorage.getItem(key);
+      const parsed: string[] = raw ? JSON.parse(raw) : [];
+      const next = pushRecentDestination(Array.isArray(parsed) ? parsed : [], active);
+      setRecentHrefs(next);
+      sessionStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      setRecentHrefs((curr) => pushRecentDestination(curr, active));
+    }
+  }, [active, account.user?.id]);
 
   useEffect(() => {
     const update = () =>
@@ -131,53 +117,27 @@ export function AppShell({
   function openRoute(href: string) {
     if (href === "/ai") markFeatureSeen("ai", AI_INTRO_VERSION, account.user?.id ?? null);
     setMenu(false);
-    if (href !== active) {
+    const currentWithQuery =
+      typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : active;
+    if (href !== currentWithQuery) {
       router.push(href);
     }
   }
 
-  const searchResults = useMemo(
-    () =>
-      availableRoutes.filter((route) =>
-        matchesStaffSearch(
-          query,
-          [route[0], route[1], route[4], route[5]],
-          locale,
-        ),
-      ),
-    [availableRoutes, locale, query],
-  );
-
-  function closeSearch() {
-    setSearch(false);
-    setQuery("");
-    setActiveResult(0);
-  }
-
-  function openSearchResult(href: string) {
-    openRoute(href);
-    closeSearch();
-  }
-
-  useEffect(() => {
-    setActiveResult(0);
-  }, [query]);
-
-  useEffect(() => {
-    if (!search) return;
-    resultRefs.current[activeResult]?.scrollIntoView({ block: "nearest" });
-  }, [activeResult, search, searchResults.length]);
-
+  // Global shortcut: ⌘K / Ctrl+K opens Command Center unless another modal dialog is blocking or IME is composing
   useEffect(() => {
     function key(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if (e.isComposing) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        const openDialogs = document.querySelectorAll("dialog[open]");
+        if (!search && openDialogs.length > 0) return;
         e.preventDefault();
-        setSearch((x) => !x);
+        setSearch((prev) => !prev);
       }
     }
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
-  }, []);
+  }, [search]);
 
   return (
     <div
@@ -196,38 +156,48 @@ export function AppShell({
 
       <div className="noata-main">
         <header className="topbar shell-topbar">
+          {/* Zone 1: Start — Mobile Drawer Toggle + Breadcrumbs + Workspace Badge */}
           <div className="top-context">
             <button
+              ref={menuTriggerRef}
+              type="button"
               className="top-icon mobile-menu"
               onClick={() => setMenu(true)}
               aria-label={t("فتح القائمة", "Open menu")}
+              aria-expanded={menu}
             >
               <Icon name="menu" />
             </button>
-            <div>
-              <span className="tiny-label">
-                {role === "student"
-                  ? t("مساحتي التعليمية", "My learning space")
-                  : role === "teacher"
-                    ? t("مساحة المعلّم", "Teacher workspace")
-                    : t("مساحة الإدارة", "Admin workspace")}
-              </span>
-              <b>
-                {routes.find((r) => r[2] === active)?.[locale === "en" ? 1 : 0] ??
-                  (role === "teacher"
-                    ? t("مساحة المعلّم", "Teacher workspace")
-                    : t("إدارة Noäta", "Manage Noäta"))}
-              </b>
+            <div className="nk-topbar-crumbs">
+              <div className="nk-topbar-workspace-row">
+                <span className="tiny-label">{workspaceMeta.label}</span>
+                <Badge
+                  tone={
+                    effectiveRole === "admin" || effectiveRole === "teacher"
+                      ? "warning"
+                      : effectiveRole === "student"
+                        ? "accent"
+                        : "neutral"
+                  }
+                  className="nk-workspace-badge"
+                >
+                  {t(workspaceMeta.badgeAr, workspaceMeta.badgeEn)}
+                </Badge>
+              </div>
+              <b className="nk-topbar-title">{pageLabel}</b>
             </div>
           </div>
+
+          {/* Zone 2 & 3: Command Center Trigger + Quick Utilities & Account */}
           <div className="top-actions">
             <button
+              type="button"
               className="command-trigger"
               onClick={() => setSearch(true)}
               aria-label={t("بحث وانتقال سريع (⌘K)", "Search and quick jump (⌘K)")}
             >
               <Icon name="search" size={17} />
-              <span>{t("انتقل إلى…", "Go to…")}</span>
+              <span className="nk-command-label">{t("انتقل إلى…", "Go to…")}</span>
               <kbd>⌘ K</kbd>
             </button>
             <ContextualCoach active={active} />
@@ -245,7 +215,12 @@ export function AppShell({
           className="page-content"
           key={active}
         >
-          {children}
+          <ErrorBoundary
+            fallbackTitleAr="تعذّر عرض هذه الصفحة"
+            fallbackTitleEn="Could not render this section"
+          >
+            {children}
+          </ErrorBoundary>
         </main>
 
         <footer className="page-footer">
@@ -256,25 +231,48 @@ export function AppShell({
 
       {/* Mobile Quick Thumb Navigation Bar */}
       <nav className="mobile-nav" aria-label={t("تنقل سريع", "Quick navigation")}>
-        {routes
-          .filter((r) => ["/", "/learn", "/ai", "/progress"].includes(r[2]))
-          .map(([labelAr, labelEn, href, icon]) => (
+        {mobileDockRoutes.map((route) => {
+          const shortEn =
+            route.href === "/"
+              ? "Home"
+              : route.href === "/learn"
+                ? "Learn"
+                : route.href === "/progress"
+                  ? "Progress"
+                  : route.href === "/assignments"
+                    ? "Tasks"
+                    : route.href === "/teacher"
+                      ? "Teacher"
+                      : route.href === "/admin"
+                        ? "Admin"
+                        : route.labelEn;
+          const shortAr =
+            route.href === "/"
+              ? "الرئيسية"
+              : route.href === "/learn"
+                ? "رحلة التعلّم"
+                : route.href === "/progress"
+                  ? "تقدّمي"
+                  : route.href === "/assignments"
+                    ? "الواجبات"
+                    : route.href === "/teacher"
+                      ? "المعلّم"
+                      : route.href === "/admin"
+                        ? "الإدارة"
+                        : route.labelAr;
+
+          return (
             <Link
-              href={href}
-              key={href}
-              className={active === href ? "active" : ""}
-              aria-current={active === href ? "page" : undefined}
+              href={route.href}
+              key={route.href}
+              className={active === route.href ? "active" : ""}
+              aria-current={active === route.href ? "page" : undefined}
             >
-              <Icon name={icon} />
-              <small>
-                {locale === "en"
-                  ? { "/": "Home", "/learn": "Learn", "/ai": "Noäta AI", "/progress": "Progress" }[
-                      href
-                    ] ?? labelEn
-                  : labelAr}
-              </small>
+              <Icon name={route.icon} />
+              <small>{locale === "en" ? shortEn : shortAr}</small>
             </Link>
-          ))}
+          );
+        })}
         <button
           type="button"
           onClick={() => setMenu(true)}
@@ -285,11 +283,13 @@ export function AppShell({
         </button>
       </nav>
 
-      {/* Mobile Full Sidebar Drawer */}
-      <Dialog
+      {/* Mobile Full Sidebar Drawer (Stage 01 Tier 3 RTL/LTR Drawer) */}
+      <Drawer
         open={menu}
         onClose={() => setMenu(false)}
+        side="start"
         title={t("مساحتك في Noäta", "Your Noäta space")}
+        className="nk-drawer-mobile-nav"
       >
         <div className="mobile-menu-content">
           <Sidebar
@@ -304,94 +304,16 @@ export function AppShell({
             onCloseMobileDrawer={() => setMenu(false)}
           />
         </div>
-      </Dialog>
+      </Drawer>
 
-      {/* Command Palette Jump Search */}
-      <Dialog
+      {/* Universal Command Center (⌘K) */}
+      <CommandPalette
         open={search}
-        onClose={closeSearch}
-        title={t("رايح فين النهارده؟", "Where would you like to go?")}
-      >
-        <input
-          className="search command-input"
-          autoFocus
-          role="combobox"
-          aria-expanded="true"
-          aria-autocomplete="list"
-          aria-controls="noata-command-results"
-          aria-activedescendant={
-            searchResults[activeResult]
-              ? `noata-command-option-${activeResult}`
-              : undefined
-          }
-          aria-label={t("ابحث عن صفحة", "Search pages")}
-          placeholder={t("ابحث عن صفحة أو أداة أو مادة دراسية…", "Search for a page, tool or subject…")}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-              event.preventDefault();
-              if (!searchResults.length) return;
-              const direction = event.key === "ArrowDown" ? 1 : -1;
-              setActiveResult(
-                (current) =>
-                  (current + direction + searchResults.length) %
-                  searchResults.length,
-              );
-            } else if (event.key === "Home") {
-              event.preventDefault();
-              setActiveResult(0);
-            } else if (event.key === "End") {
-              event.preventDefault();
-              setActiveResult(Math.max(0, searchResults.length - 1));
-            } else if (event.key === "Enter") {
-              const result = searchResults[activeResult];
-              if (!result) return;
-              event.preventDefault();
-              openSearchResult(result[2]);
-            }
-          }}
-        />
-        <div id="noata-command-results">
-          {searchResults.length ? (
-            <div
-              className="command-results"
-              role="listbox"
-              aria-label={t("الصفحات والمواد المتاحة", "Available pages & subjects")}
-            >
-              {searchResults.map(([labelAr, labelEn, href, icon, descriptionAr, descriptionEn], index) => (
-                <Link
-                  href={href}
-                  key={href}
-                  id={`noata-command-option-${index}`}
-                  role="option"
-                  aria-selected={index === activeResult}
-                  tabIndex={-1}
-                  ref={(node) => {
-                    resultRefs.current[index] = node;
-                  }}
-                  onMouseEnter={() => setActiveResult(index)}
-                  onClick={() => openSearchResult(href)}
-                >
-                  <Icon name={icon} />
-                  <span>
-                    <b>{t(labelAr, labelEn)}</b>
-                    <small>{t(descriptionAr, descriptionEn)}</small>
-                  </span>
-                  <Icon name="arrow" size={16} />
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="command-results command-empty" role="status">
-              {t(
-                "لا توجد صفحة تطابق هذا البحث. جرّب كلمة أخرى.",
-                "No page matches that search. Try another word.",
-              )}
-            </p>
-          )}
-        </div>
-      </Dialog>
+        onClose={() => setSearch(false)}
+        onNavigate={openRoute}
+        effectiveRole={effectiveRole}
+        recentHrefs={recentHrefs}
+      />
     </div>
   );
 }

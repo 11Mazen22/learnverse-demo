@@ -4,8 +4,12 @@ import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
-import { createOperationKeys } from "@/lib/ai/operation-keys";
 import { createClient } from "@/lib/supabase/client";
+import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
+import {
+  AttemptIdempotencyController,
+  extractDistractorFeedback,
+} from "@/lib/curriculum/attempt-guard";
 
 type BossQuestion = {
   id: string;
@@ -50,7 +54,7 @@ export function BossLive() {
   const [bossResult, setBossResult] = useState<BossResult | null>(null);
   const [box, setBox] = useState<BoxResult | null>(null);
   const { account, busy, status, run } = useConfirmedMutation();
-  const operationKeys = useRef(createOperationKeys());
+  const attemptGuard = useRef(new AttemptIdempotencyController());
   const signedIn = account.loading ? null : Boolean(account.user);
   const [error, setError] = useState("");
 
@@ -59,7 +63,7 @@ export function BossLive() {
   useEffect(() => {
     if (account.loading) return;
     let active = true;
-    operationKeys.current.clear();
+    attemptGuard.current.resetAll();
     setQuestions([]);
     setAnswer("");
     setGrade(null);
@@ -143,86 +147,94 @@ export function BossLive() {
 
   const current = questions[idx];
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!current || !answer.trim() || busy) return;
-    await run(async (check) => {
-      setError("");
-      const { data, error } = await supabase.rpc("submit_attempt", {
-        p_question_id: current.id,
-        p_response: { value: answer },
-        p_assisted: false,
-        p_idempotency_key: operationKeys.current.get(
-          JSON.stringify([current.id, answer]),
-        ),
-        p_practice_repeat: false,
-      });
-      check();
-      if (error) throw error;
-      if (typeof (data as Grade | null)?.correct !== "boolean")
-        throw Error("Missing grade");
-      setGrade(data as Grade);
-    }, "");
+  async function submit(e?: FormEvent) {
+    e?.preventDefault();
+    if (!current || !answer.trim() || busy || attemptGuard.current.isBusy()) return;
+    await attemptGuard.current.runExclusive(async () => {
+      await run(async (check) => {
+        setError("");
+        const { data, error } = await supabase.rpc("submit_attempt", {
+          p_question_id: current.id,
+          p_response: { value: answer },
+          p_assisted: false,
+          p_idempotency_key: attemptGuard.current.getAttemptKey(current.id, answer),
+          p_practice_repeat: false,
+        });
+        check();
+        if (error) throw error;
+        if (typeof (data as Grade | null)?.correct !== "boolean")
+          throw Error("Missing grade");
+        attemptGuard.current.clearAttempt(current.id);
+        setGrade(data as Grade);
+      }, "");
+    });
   }
 
   async function advance() {
-    if (!current || !grade) return;
-    await run(async (check) => {
-      if (!grade.correct) {
-        const { data: variant, error: variantError } = await supabase
-          .from("questions")
-          .select("id,unit_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
-          .eq("variant_of", current.id)
-          .in("publication_status", ["published_demo", "published"])
-          .limit(1)
-          .maybeSingle();
-        check();
-        if (variantError) throw variantError;
-        if (variant) {
-          setQuestions((list) =>
-            list.map((q, i) => (i === idx ? (variant as BossQuestion) : q)),
-          );
+    if (!current || !grade || busy || attemptGuard.current.isBusy()) return;
+    await attemptGuard.current.runExclusive(async () => {
+      await run(async (check) => {
+        if (!grade.correct) {
+          const { data: variant, error: variantError } = await supabase
+            .from("questions")
+            .select("id,unit_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
+            .eq("variant_of", current.id)
+            .in("publication_status", ["published_demo", "published"])
+            .limit(1)
+            .maybeSingle();
+          check();
+          if (variantError) throw variantError;
+          if (variant) {
+            setQuestions((list) =>
+              list.map((q, i) => (i === idx ? (variant as BossQuestion) : q)),
+            );
+            setAnswer("");
+            setGrade(null);
+            return;
+          }
           setAnswer("");
           setGrade(null);
           return;
         }
-        setAnswer("");
-        setGrade(null);
-        return;
-      }
-      if (idx < questions.length - 1) {
-        setIdx((x) => x + 1);
-        setAnswer("");
-        setGrade(null);
-        return;
-      }
+        if (idx < questions.length - 1) {
+          setIdx((x) => x + 1);
+          setAnswer("");
+          setGrade(null);
+          return;
+        }
 
-      if (!unit) return;
-      const { data, error } = await supabase.rpc("complete_unit_boss", {
-        p_unit_id: unit.id,
-        p_question_ids: questions.map((q) => q.id),
-      });
-      check();
-      if (error) throw error;
-      if (typeof (data as BossResult | null)?.passed !== "boolean")
-        throw Error("Missing confirmed boss result");
-      setBossResult(data as BossResult);
-    }, "");
+        if (!unit || attemptGuard.current.hasCompleted("complete_unit_boss", unit.id)) return;
+        const { data, error } = await supabase.rpc("complete_unit_boss", {
+          p_unit_id: unit.id,
+          p_question_ids: questions.map((q) => q.id),
+        });
+        check();
+        if (error) throw error;
+        if (typeof (data as BossResult | null)?.passed !== "boolean")
+          throw Error("Missing confirmed boss result");
+        attemptGuard.current.markCompleted("complete_unit_boss", unit.id);
+        setBossResult(data as BossResult);
+      }, "");
+    });
   }
 
   async function openBox() {
-    if (!bossResult?.reward_box_id) return;
+    if (!bossResult?.reward_box_id || busy || attemptGuard.current.isBusy()) return;
     const boxId = bossResult.reward_box_id;
-    await run(async (check) => {
-      setError("");
-      const { data, error } = await supabase.rpc("claim_reward_box", {
-        p_box_id: boxId,
-      });
-      check();
-      if (error) throw error;
-      if (!data) throw Error("Missing reward result");
-      setBox(data as BoxResult);
-    }, "");
+    if (attemptGuard.current.hasCompleted("claim_reward_box", boxId)) return;
+    await attemptGuard.current.runExclusive(async () => {
+      await run(async (check) => {
+        setError("");
+        const { data, error } = await supabase.rpc("claim_reward_box", {
+          p_box_id: boxId,
+        });
+        check();
+        if (error) throw error;
+        if (!data) throw Error("Missing reward result");
+        attemptGuard.current.markCompleted("claim_reward_box", boxId);
+        setBox(data as BoxResult);
+      }, "");
+    });
   }
 
   if (account.error)
@@ -341,36 +353,17 @@ export function BossLive() {
         {!current ? (
           <p>{t("لا يوجد تحدّي منشور لهذه الوحدة بعد.","No challenge has been published for this unit yet.")}</p>
         ) : (
-          <form onSubmit={submit}>
+          <form onSubmit={(e) => void submit(e)}>
              <h2 style={{ lineHeight: 1.6 }} dir={effectiveLang === "ar" ? "rtl" : "ltr"}>{(effectiveLang === "en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
             {current.question_type === "multiple-choice" ? (
-              <div style={{ display: "grid", gap: 10 }}>
-                 {opts((effectiveLang === "en" ? current.choices_en : current.choices_ar)).map((x, i) => (
-                  <button
-                    key={x}
-                    type="button"
-                    disabled={Boolean(grade) || busy}
-                    onClick={() => setAnswer(String(i))}
-                    style={{
-                      textAlign: "start",
-                      padding: 14,
-                      borderRadius: 14,
-                      border:
-                        "1px solid " +
-                        (answer === String(i)
-                          ? "var(--accent)"
-                          : "var(--line)"),
-                      background:
-                        answer === String(i)
-                          ? "rgba(47,124,255,.08)"
-                          : "var(--surface)",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {String.fromCharCode(65 + i)}. {x}
-                  </button>
-                ))}
-              </div>
+              <ChoiceCardGroup
+                legend={t("خيارات تحدي الوحدة", "Unit challenge choices")}
+                options={opts((effectiveLang === "en" ? current.choices_en : current.choices_ar))}
+                value={answer}
+                disabled={Boolean(grade) || busy}
+                contentDir={effectiveLang === "ar" ? "rtl" : "ltr"}
+                onChange={(val) => setAnswer(val)}
+              />
             ) : (
               <input
                 className="search"
@@ -386,24 +379,35 @@ export function BossLive() {
               />
             )}
             {grade && (
-              <div
-                style={{
-                  marginTop: 16,
-                  padding: 16,
-                  borderRadius: 15,
-                  background: grade.correct
-                    ? "rgba(24,166,106,.09)"
-                    : "rgba(227,87,87,.08)",
-                }}
-              >
+              <div className="noata-grade-feedback" data-correct={grade.correct ? "true" : "false"}>
                 <b>{grade.correct ? t("صح","Correct") : t("حاول مرة أخرى","Try again")}</b>
-                 <p>{(effectiveLang === "en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
+                <p style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
+                  {(effectiveLang === "en" ? grade.explanation_en ?? "" : grade.explanation_ar)}
+                </p>
+                {!grade.correct &&
+                  (() => {
+                    const tip = extractDistractorFeedback(current.metadata, answer, effectiveLang);
+                    return tip ? (
+                      <div className="noata-grade-misconception">
+                        <strong>{t("تنبيه حول هذا الخيار: ", "Misconception note: ")}</strong>
+                        {tip}
+                      </div>
+                    ) : null;
+                  })()}
               </div>
             )}
             {(error || status) && (
-              <p role="alert" style={{ color: "var(--danger)" }}>
-                {error || status}
-              </p>
+              <div className="noata-retry-banner" role="alert">
+                <span>{error || status}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={busy}
+                  onClick={() => void (grade ? advance() : submit())}
+                >
+                  {t("إعادة المحاولة بنفس الإجابة", "Retry safely")}
+                </button>
+              </div>
             )}
             <div
               style={{
@@ -424,6 +428,7 @@ export function BossLive() {
               ) : (
                 <button
                   type="button"
+                  disabled={busy}
                   onClick={() => void advance()}
                   className="btn"
                   style={{
@@ -433,9 +438,9 @@ export function BossLive() {
                 >
                   {grade.correct
                     ? idx === questions.length - 1
-                      ? "Finish Boss"
+                      ? t("إنهاء تحدّي الوحدة", "Finish Challenge")
                       : t("التالي","Next")
-                    : "Parallel recovery"}
+                    : t("جرّب سؤالًا موازيًا", "Try similar question")}
                 </button>
               )}
             </div>

@@ -16,15 +16,22 @@ export type ScheduleResult = {
   dueAt: string;
 };
 
+export type IntervalPreview = {
+  rating: RecallRating;
+  intervalDays: number;
+  nextState: "learning" | "review";
+  label: string;
+  title: string;
+};
+
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(maximum, Math.max(minimum, value));
 
 /**
- * Pure counterpart to public.review_flashcard.
+ * Pure counterpart to `private.review_flashcard`.
  *
- * This is intentionally described as SM-2-inspired rather than proof of
- * mastery. The database RPC is authoritative; this helper exists so the rule
- * is documented and testable without trusting client-side scheduling.
+ * Keeps math bit-for-bit identical to the PostgreSQL RPC (which remains
+ * authoritative at runtime). Never awards XP, Coins, or Skill Mastery.
  */
 export function scheduleFlashcard(
   input: ScheduleInput,
@@ -79,4 +86,46 @@ export function scheduleFlashcard(
     state,
     dueAt: new Date(dueAt).toISOString(),
   };
+}
+
+/**
+ * Formats estimated server scheduling intervals directly from the card's
+ * current state so rating buttons reflect genuine per-card intervals.
+ */
+export function formatIntervalLabel(intervalDays: number, locale: "ar" | "en"): string {
+  if (intervalDays <= 0) {
+    return locale === "en" ? "< 10 mins" : "أقل من 10 دقائق";
+  }
+  if (intervalDays === 1) {
+    return locale === "en" ? "1 day" : "يوم واحد";
+  }
+  if (locale === "en") {
+    return `${intervalDays} days`;
+  }
+  if (intervalDays === 2) return "يومان";
+  if (intervalDays <= 10) return `${intervalDays} أيام`;
+  return `${intervalDays} يومًا`;
+}
+
+export function previewIntervalsForCard(
+  input: ScheduleInput,
+  locale: "ar" | "en",
+  now = Date.now(),
+): IntervalPreview[] {
+  const ratings: Array<{ rating: RecallRating; titleAr: string; titleEn: string }> = [
+    { rating: 0, titleAr: "مرة أخرى", titleEn: "Again" },
+    { rating: 1, titleAr: "صعب", titleEn: "Hard" },
+    { rating: 2, titleAr: "جيد", titleEn: "Good" },
+    { rating: 3, titleAr: "سهل", titleEn: "Easy" },
+  ];
+  return ratings.map(({ rating, titleAr, titleEn }) => {
+    const projected = scheduleFlashcard(input, rating, now);
+    return {
+      rating,
+      intervalDays: projected.intervalDays,
+      nextState: projected.state,
+      title: locale === "en" ? titleEn : titleAr,
+      label: formatIntervalLabel(projected.intervalDays, locale),
+    };
+  });
 }

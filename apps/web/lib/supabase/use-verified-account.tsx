@@ -1,9 +1,16 @@
 "use client";
+import {
+  purgeForeignOrExpiredStudyDrafts,
+  wipeAllStudyDrafts,
+} from "@/lib/study/draft-storage";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { boundedRead } from "./bounded-read";
 import { createClient } from "./client";
 import { supabaseConfiguration } from "./config";
 import { localized, useLocale } from "@/lib/i18n/locale";
+
+export { boundedRead };
 
 export type VerifiedRole = "student" | "teacher" | "admin";
 
@@ -11,26 +18,6 @@ export type VerifiedProfile = {
   displayName: string;
   role: VerifiedRole;
 };
-
-export async function boundedRead<T>(
-  work: PromiseLike<T>,
-  milliseconds = 10000,
-): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      Promise.resolve(work),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(
-          () => reject(Error("Session read timed out")),
-          milliseconds,
-        );
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
 
 type VerifiedAccountValue = {
   user: User | null;
@@ -107,12 +94,16 @@ export function VerifiedAccountProvider({ children }: { children: React.ReactNod
       if (event === "SIGNED_OUT") {
         ++revision.current;
         candidate.current = null;
+        if (typeof window !== "undefined") wipeAllStudyDrafts(window.localStorage);
         setUser(null);
         setFailed(false);
         setLoading(false);
       } else if (session?.user.id && session.user.id !== candidate.current) {
         ++revision.current;
         candidate.current = session.user.id;
+        if (typeof window !== "undefined") {
+          purgeForeignOrExpiredStudyDrafts(window.localStorage, session.user.id, revision.current);
+        }
         setUser(null);
         setLoading(true);
         queueMicrotask(() => {

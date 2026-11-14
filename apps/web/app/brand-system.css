@@ -3,84 +3,87 @@
  * palette sheets. It introduces semantic brand/hero tokens to remove the fixed
  * navy/blue islands shown in the Forest screenshot. No UI state is faked.
  */
-:root {
-  --hero-deep: #09214d;
-  --hero-middle: #0e4683;
-  --hero-bright: #0d73b5;
-  --hero-glint: #b6e6ff;
-  --hero-copy: #e8f3ff;
-  --hero-action: #e3f2ff;
-  --hero-action-ink: #09315e;
-  --on-accent: #ffffff;
-  --brand-mark-ink: var(--ink);
-  --brand-mark-paper: var(--surface);
-  --brand-mark-accent: var(--accent);
-  --identity-shadow: 0 22px 70px color-mix(in srgb, var(--accent) 16%, transparent);
-}
-html[data-theme="dark"] {
-  --on-accent: #071327;
-  --hero-action: #f1f6ff;
-  --hero-action-ink: #082a54;
-}
-html[data-palette="aura"] {
-  --hero-deep: #20163e;
-  --hero-middle: #483187;
-  --hero-bright: #775cc2;
-  --hero-glint: #e0cdff;
-  --hero-copy: #f3ebff;
-  --hero-action: #f1e6ff;
-  --hero-action-ink: #332153;
-}
-html[data-palette="ocean"] {
-  --hero-deep: #073348;
-  --hero-middle: #0a627c;
-  --hero-bright: #0f969b;
-  --hero-glint: #b6f6ed;
-  --hero-copy: #e3faf8;
-  --hero-action: #d8fffa;
-  --hero-action-ink: #0b4256;
-}
-html[data-palette="forest"] {
-  --hero-deep: #123a30;
-  --hero-middle: #1f654c;
-  --hero-bright: #3a906c;
-  --hero-glint: #d3f3bb;
-  --hero-copy: #ecf9eb;
-  --hero-action: #e5f8d6;
-  --hero-action-ink: #163d2e;
-}
-html[data-palette="sunset"] {
-  --hero-deep: #4c2a38;
-  --hero-middle: #954e4c;
-  --hero-bright: #cb8050;
-  --hero-glint: #ffe7b9;
-  --hero-copy: #fff1e9;
-  --hero-action: #ffeed9;
-  --hero-action-ink: #522a32;
-}
-html[data-palette="rose"] {
-  --hero-deep: #3d223a;
-  --hero-middle: #873960;
-  --hero-bright: #bb678f;
-  --hero-glint: #ffe0ea;
-  --hero-copy: #fff0f6;
-  --hero-action: #ffe7f3;
-  --hero-action-ink: #492542;
-}
-html[data-palette="midnight"] {
-  --hero-deep: #0d1632;
-  --hero-middle: #25265a;
-  --hero-bright: #5267a6;
-  --hero-glint: #c9d6ff;
-  --hero-copy: #eef1ff;
-  --hero-action: #dce5ff;
-  --hero-action-ink: #182447;
-  --on-accent: #111b36;
+@layer theme {
+  :root {
+    --hero-deep: #09214d;
+    --hero-middle: #0e4683;
+    --hero-bright: #0d73b5;
+    --hero-glint: #b6e6ff;
+    --hero-copy: #e8f3ff;
+    --hero-action: #e3f2ff;
+    --hero-action-ink: #09315e;
+    --on-accent: #ffffff;
+    --brand-mark-ink: var(--ink);
+    --brand-mark-paper: var(--surface);
+    --brand-mark-accent: var(--accent);
+    --identity-shadow: 0 22px 70px color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+  html[data-theme="dark"] {
+    --on-accent: #071327;
+    --hero-action: #f1f6ff;
+    --hero-action-ink: #082a54;
+  }
+  html[data-palette="aura"] {
+    --hero-deep: #20163e;
+    --hero-middle: #483187;
+    --hero-bright: #775cc2;
+    --hero-glint: #e0cdff;
+    --hero-copy: #f3ebff;
+    --hero-action: #f1e6ff;
+    --hero-action-ink: #332153;
+  }
+  html[data-palette="ocean"] {
+    --hero-deep: #073348;
+    --hero-middle: #0a627c;
+    --hero-bright: #0f969b;
+    --hero-glint: #b6f6ed;
+    --hero-copy: #e3faf8;
+    --hero-action: #d8fffa;
+    --hero-action-ink: #0b4256;
+  }
+  html[data-palette="forest"] {
+    --hero-deep: #123a30;
+    --hero-middle: #1f654c;
+    --hero-bright: #3a906c;
+    --hero-glint: #d3f3bb;
+    --hero-copy: #ecf9eb;
+    --hero-action: #e5f8d6;
+    --hero-action-ink: #163d2e;
+  }
+  html[data-palette="sunset"] {
+    --hero-deep: #4c2a38;
+    --hero-middle: #954e4c;
+    --hero-bright: #cb8050;
+    --hero-glint: #ffe7b9;
+    --hero-copy: #fff1e9;
+    --hero-action: #ffeed9;
+    --hero-action-ink: #522a32;
+  }
+  html[data-palette="rose"] {
+    --hero-deep: #3d223a;
+    --hero-middle: #873960;
+    --hero-bright: #bb678f;
+    --hero-glint: #ffe0ea;
+    --hero-copy: #fff0f6;
+    --hero-action: #ffe7f3;
+    --hero-action-ink: #492542;
+  }
+  html[data-palette="midnight"] {
+    --hero-deep: #0d1632;
+    --hero-middle: #25265a;
+    --hero-bright: #5267a6;
+    --hero-glint: #c9d6ff;
+    --hero-copy: #eef1ff;
+    --hero-action: #dce5ff;
+    --hero-action-ink: #182447;
+    --on-accent: #111b36;
+  }
 }
 /* Palette and contrast both influence the live VECTOR mark, including its N
  * ribbon, cap and book. Preserves supplied geometry instead of introducing a
  * generic lettermark, filtering images, or fabricating a new brand.
  */
+@layer components {
 .noata-logo {
   --brand-mark-ink: var(--ink);
   --brand-mark-paper: var(--surface);
@@ -102,18 +105,17 @@ html[data-palette="midnight"] {
 .noata-logo .noata-mark-paper { fill: var(--brand-mark-paper); }
 .noata-logo .noata-mark-ribbon { fill: var(--brand-mark-accent); }
 .noata-brand-copy strong { color: var(--ink, #0c192c); }
-.noata-brand-copy small { color: var(--muted, #64748b); }
+.noata-brand-copy small { color: var(--muted, #5a6b84); }
 html[data-theme="light"] .noata-brand-copy strong,
 html:not([data-theme="dark"]) .noata-brand-copy strong {
-  color: var(--ink, #0c192c) !important;
+  color: var(--ink, #0c192c);
 }
 html[data-theme="light"] .noata-brand-copy small,
 html:not([data-theme="dark"]) .noata-brand-copy small {
-  color: var(--muted, #64748b) !important;
+  color: var(--muted, #5a6b84);
 }
-.marketing-page .noata-brand-copy strong, .mk-footer .noata-brand-copy strong, html[data-theme="dark"] .noata-brand-copy strong { color: #ffffff !important; }
-.marketing-page .noata-brand-copy small, .mk-footer .noata-brand-copy small, html[data-theme="dark"] .noata-brand-copy small { color: #94a3b8 !important; }
-.noata-brand-copy small { color: var(--muted); }
+html[data-theme="dark"] .noata-brand-copy strong { color: #ffffff; }
+html[data-theme="dark"] .noata-brand-copy small { color: #a5b6d1; }
 :is(.hero, .auth-aside, .noata-legal-hero) .noata-logo,
 .noata-logo-on-navy {
   --brand-mark-ink: #f9fbff;
@@ -123,9 +125,11 @@ html:not([data-theme="dark"]) .noata-brand-copy small {
 .auth-aside .noata-brand-copy :is(strong,small) {
   color: var(--hero-copy);
 }
+}
 /* Make every hero adopt the selected world. The original hard-coded blue
  * gradient in globals.css has higher specificity than a bare .hero selector.
  */
+@layer sections {
 .page-content .hero,
 .page-content .dashboard-hero,
 .page-content .noata-rewards-hero {
@@ -177,7 +181,9 @@ html:not([data-theme="dark"]) .noata-brand-copy small {
   border-color: color-mix(in srgb, var(--hero-glint) 36%, transparent);
   background: color-mix(in srgb, var(--hero-deep) 24%, transparent);
 }
+}
 /* Universal shells and controls */
+@layer shell {
 .noata-shell,
 .noata-main,
 .noata-sidebar,
@@ -219,6 +225,8 @@ html:not([data-theme="dark"]) .noata-brand-copy small {
 .noata-palette-gallery button:focus-visible {
   outline-color: var(--accent);
 }
+}
+@layer sections {
 .page-content .aura-learning-paths a,
 .page-content .quick-card,
 .page-content .metric-card,
@@ -258,12 +266,16 @@ html:not([data-theme="dark"]) .noata-brand-copy small {
   background: color-mix(in srgb, var(--surface) 82%, var(--accent-soft));
   border-color: color-mix(in srgb, var(--accent) 20%, var(--line));
 }
+}
+@layer study {
 .owui-new-chat,.owui-send,
 html[data-theme="dark"] .owui-new-chat,
 html[data-theme="dark"] .owui-send {
   background: var(--accent);
   color: var(--on-accent);
 }
+}
+@layer shell {
 .noata-shell a.noata-sign-in,
 html[data-theme="dark"] .noata-shell a.noata-sign-in {
   background: var(--accent);
@@ -276,11 +288,17 @@ html[data-theme="dark"] .noata-shell a.noata-sign-in:hover {
   border-color: var(--accent);
   color: var(--on-accent);
 }
-.noata-shell .nav-tag,
+.noata-shell .nav-tag {
+  color: var(--accent);
+}
+}
+@layer sections {
 .aura-learning-paths > a > span,
 .aura-module-steps li > span {
   color: var(--accent);
 }
+}
+@layer study {
 .aura-quran :is(button,input[type="range"],select):focus-visible {
   outline-color: var(--accent);
 }
@@ -301,7 +319,9 @@ html[data-theme="dark"] .noata-shell a.noata-sign-in:hover {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent),
               0 12px 36px color-mix(in srgb, var(--accent) 11%, transparent);
 }
+}
 /* Dynamic theme-aware card surfaces */
+@layer sections {
 .page-content :is(.aura-module-welcome, .aura-next-step, .aura-settings-section, .aura-inbox-item) {
   transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }
@@ -334,6 +354,8 @@ html[data-theme="dark"] .noata-shell a.noata-sign-in:hover {
     align-items: flex-start;
   }
 }
+}
+@layer utilities {
 @media (prefers-reduced-motion: reduce) {
   .noata-logo .noata-logo-vector,
   .page-content .aura-learning-paths a,
@@ -341,19 +363,21 @@ html[data-theme="dark"] .noata-shell a.noata-sign-in:hover {
   .page-content .metric-card,
   .page-content .panel,
   .page-content .aura-next-step {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
+    animation: none;
+    transition: none;
+    transform: none;
   }
 }
 html[data-reduced-motion="true"] :is(.noata-logo .noata-logo-vector,.page-content .aura-learning-paths a,.page-content .quick-card,.page-content .metric-card,.page-content .panel) {
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
+  animation: none;
+  transition: none;
+  transform: none;
+}
 }
 
 /* Honest, nonblocking guest experience when public curriculum is temporarily
  * unreachable. Keep authenticated failures in their existing alert state. */
+@layer sections {
 .aura-guest-service-notice {
   display: flex;
   flex-wrap: wrap;
@@ -423,3 +447,4 @@ html[data-reduced-motion="true"] :is(.noata-logo .noata-logo-vector,.page-conten
 .noata-ledger-value.credit{color:var(--accent)}
 .noata-ledger-message{border:1px dashed var(--line);border-radius:13px;padding:18px;background:var(--surface-soft);color:var(--muted);line-height:1.85;font-size:13px}
 @media(max-width:430px){.noata-ledger-entry{gap:9px}.noata-ledger-symbol{flex-basis:33px;height:33px}.noata-ledger-value{font-size:11px}.noata-ledger-detail small{font-size:10px}}
+}

@@ -4,6 +4,7 @@ function installCatalogFixture() {
   const units = [
     {
       id: "ci-open",
+      course_id: "ci-course",
       position: 1,
       title_ar: "وحدة تجريبية متاحة",
       title_en: "Fixture open unit",
@@ -12,6 +13,7 @@ function installCatalogFixture() {
     },
     {
       id: "ci-locked-empty",
+      course_id: "ci-course",
       position: 2,
       title_ar: "وحدة تجريبية قيد المراجعة",
       title_en: "Fixture locked unit",
@@ -20,6 +22,7 @@ function installCatalogFixture() {
     },
     {
       id: "ci-locked",
+      course_id: "ci-course",
       position: 3,
       title_ar: "وحدة تجريبية مغلقة",
       title_en: "Fixture locked lessons",
@@ -67,6 +70,46 @@ function installCatalogFixture() {
         ? {
             "/rest/v1/courses": [
               { id: "ci-course", title_ar: "مسار اصطناعي لاختبار الواجهة" },
+            ],
+            "/rest/v1/curriculum_tracks": [
+              {
+                id: "ci-track-science-ar",
+                slug: "integrated-science-ar",
+                content_language: "ar",
+                title_ar: "علوم متكاملة — المسار العربي",
+                title_en: "Integrated Science — Arabic track",
+                publication_status: "published",
+                course_id: "ci-course",
+                subjects: {
+                  id: "ci-subject-science",
+                  slug: "integrated-science",
+                  title_ar: "العلوم المتكاملة",
+                  title_en: "Integrated Science",
+                  position: 1,
+                  accent: "cyan",
+                  description_ar: "مسار اصطناعي لاختبار الواجهة.",
+                  description_en: "Synthetic track fixture.",
+                },
+              },
+              {
+                id: "ci-track-science-en",
+                slug: "integrated-science-en",
+                content_language: "en",
+                title_ar: "علوم متكاملة — المسار الإنجليزي",
+                title_en: "Integrated Science — English track",
+                publication_status: "published",
+                course_id: "ci-course",
+                subjects: {
+                  id: "ci-subject-science",
+                  slug: "integrated-science",
+                  title_ar: "العلوم المتكاملة",
+                  title_en: "Integrated Science",
+                  position: 1,
+                  accent: "cyan",
+                  description_ar: "مسار اصطناعي لاختبار الواجهة.",
+                  description_en: "Synthetic track fixture.",
+                },
+              },
             ],
             "/rest/v1/units": units,
             "/rest/v1/lessons": lessons,

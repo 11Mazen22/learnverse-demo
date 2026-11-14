@@ -4,8 +4,12 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
-import { createOperationKeys } from "@/lib/ai/operation-keys";
 import { createClient } from "@/lib/supabase/client";
+import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
+import {
+  AttemptIdempotencyController,
+  extractDistractorFeedback,
+} from "@/lib/curriculum/attempt-guard";
 
 type Question = {
   id: string;
@@ -44,7 +48,7 @@ export function MissionLive() {
   const [answer, setAnswer] = useState("");
   const [grade, setGrade] = useState<Grade | null>(null);
   const { account, busy, status, run } = useConfirmedMutation();
-  const operationKeys = useRef(createOperationKeys());
+  const attemptGuard = useRef(new AttemptIdempotencyController());
   const signedIn = account.loading ? null : Boolean(account.user);
   const [firstTryWins, setFirstTryWins] = useState(0);
   const [attempted, setAttempted] = useState<Set<string>>(new Set());
@@ -61,7 +65,7 @@ export function MissionLive() {
   useEffect(() => {
     if (account.loading) return;
     let active = true;
-    operationKeys.current.clear();
+    attemptGuard.current.resetAll();
     setQuestions([]);
     setAnswer("");
     setGrade(null);
@@ -181,105 +185,114 @@ export function MissionLive() {
     ? Math.round((index / questions.length) * 100)
     : 0;
 
-  async function gradeCurrent(e: FormEvent) {
-    e.preventDefault();
-    if (!current || !answer.trim() || busy) return;
+  async function gradeCurrent(e?: FormEvent) {
+    e?.preventDefault();
+    if (!current || !answer.trim() || busy || attemptGuard.current.isBusy()) return;
     if (!signedIn) {
       window.location.href = "/login";
       return;
     }
-    await run(async (check) => {
-      setError("");
-      const firstAttempt = !attempted.has(current.id);
-      const nextAttempted = new Set(attempted);
-      nextAttempted.add(current.id);
+    await attemptGuard.current.runExclusive(async () => {
+      await run(async (check) => {
+        setError("");
+        const firstAttempt = !attempted.has(current.id);
+        const nextAttempted = new Set(attempted);
+        nextAttempted.add(current.id);
 
-      const { data, error } = await supabase.rpc("submit_attempt", {
-        p_question_id: current.id,
-        p_response: { value: answer },
-        p_assisted: false,
-        p_idempotency_key: operationKeys.current.get(
-          JSON.stringify([current.id, answer]),
-        ),
-        p_practice_repeat: false,
-      });
+        const { data, error } = await supabase.rpc("submit_attempt", {
+          p_question_id: current.id,
+          p_response: { value: answer },
+          p_assisted: false,
+          p_idempotency_key: attemptGuard.current.getAttemptKey(current.id, answer),
+          p_practice_repeat: false,
+        });
 
-      check();
-      if (error) throw error;
-      if (typeof (data as Grade | null)?.correct !== "boolean")
-        throw Error("Missing grade");
-      setAttempted(nextAttempted);
-      const result = data as Grade;
-      setGrade(result);
-      if (result.correct && firstAttempt) setFirstTryWins((x) => x + 1);
-    }, "");
+        check();
+        if (error) throw error;
+        if (typeof (data as Grade | null)?.correct !== "boolean")
+          throw Error("Missing grade");
+        attemptGuard.current.clearAttempt(current.id);
+        setAttempted(nextAttempted);
+        const result = data as Grade;
+        setGrade(result);
+        if (result.correct && firstAttempt) setFirstTryWins((x) => x + 1);
+      }, "");
+    });
   }
 
   async function continueMission() {
-    if (!current || !grade) return;
-    await run(async (check) => {
-      setError("");
+    if (!current || !grade || busy || attemptGuard.current.isBusy()) return;
+    await attemptGuard.current.runExclusive(async () => {
+      await run(async (check) => {
+        setError("");
 
-      if (!grade.correct) {
-        const { data, error: variantError } = await supabase
-          .from("questions")
-          .select(
-            "id,lesson_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
-          )
-          .eq("variant_of", current.id)
-          .in("publication_status", ["published_demo", "published"])
-          .limit(1)
-          .maybeSingle();
-        check();
-        if (variantError) throw variantError;
-        if (data) {
-          setQuestions((list) =>
-            list.map((q, i) => (i === index ? (data as Question) : q)),
-          );
+        if (!grade.correct) {
+          const { data, error: variantError } = await supabase
+            .from("questions")
+            .select(
+              "id,lesson_id,variant_of,position,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
+            )
+            .eq("variant_of", current.id)
+            .in("publication_status", ["published_demo", "published"])
+            .limit(1)
+            .maybeSingle();
+          check();
+          if (variantError) throw variantError;
+          if (data) {
+            setQuestions((list) =>
+              list.map((q, i) => (i === index ? (data as Question) : q)),
+            );
+            setAnswer("");
+            setGrade(null);
+            return;
+          }
           setAnswer("");
           setGrade(null);
           return;
         }
-        setAnswer("");
-        setGrade(null);
-        return;
-      }
 
-      if (index < questions.length - 1) {
-        setIndex((x) => x + 1);
-        setAnswer("");
-        setGrade(null);
-        return;
-      }
+        if (index < questions.length - 1) {
+          setIndex((x) => x + 1);
+          setAnswer("");
+          setGrade(null);
+          return;
+        }
 
-      const score = Math.round(
-        ((firstTryWins +
-          (grade.correct && !attempted.has(current.id) ? 1 : 0)) /
-          questions.length) *
-          100,
-      );
-      if (lessonId) {
-        const { data, error } = await supabase.rpc("complete_lesson", {
-          p_lesson_id: lessonId,
-          p_score: score,
-        });
-        check();
-        if (error) throw error;
-        if (!data || typeof data !== "object")
-          throw Error("Missing completion receipt");
-        const receipt = data as { xp_reward?: number; coin_reward?: number };
-        const { data: earned, error: gemsError } = await supabase.from("ledger")
-          .select("amount").eq("user_id", account.user!.id)
-          .eq("currency","GEM").eq("reference_type","lesson").eq("reference_id",lessonId);
-        check();
-        setReward({
-          ...receipt,
-          verified_lesson_gems: gemsError ? null :
-            (earned ?? []).reduce((total, row) => total + Number(row.amount), 0),
-        });
-      }
-      setComplete(true);
-    }, "");
+        const score = Math.round(
+          ((firstTryWins +
+            (grade.correct && !attempted.has(current.id) ? 1 : 0)) /
+            questions.length) *
+            100,
+        );
+        if (lessonId && !attemptGuard.current.hasCompleted("complete_lesson", lessonId)) {
+          const { data, error } = await supabase.rpc("complete_lesson", {
+            p_lesson_id: lessonId,
+            p_score: score,
+          });
+          check();
+          if (error) throw error;
+          if (!data || typeof data !== "object")
+            throw Error("Missing completion receipt");
+          attemptGuard.current.markCompleted("complete_lesson", lessonId);
+          const receipt = data as { xp_reward?: number; coin_reward?: number };
+          const { data: earned, error: gemsError } = await supabase
+            .from("ledger")
+            .select("amount")
+            .eq("user_id", account.user!.id)
+            .eq("currency", "GEM")
+            .eq("reference_type", "lesson")
+            .eq("reference_id", lessonId);
+          check();
+          setReward({
+            ...receipt,
+            verified_lesson_gems: gemsError
+              ? null
+              : (earned ?? []).reduce((total, row) => total + Number(row.amount), 0),
+          });
+        }
+        setComplete(true);
+      }, "");
+    });
   }
 
   if (account.error)
@@ -404,35 +417,18 @@ export function MissionLive() {
               {(effectiveLang === "en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}
             </h2>
 
-            <form onSubmit={gradeCurrent}>
+            <form onSubmit={(e) => void gradeCurrent(e)}>
               {current.question_type === "multiple-choice" ? (
-                <div style={{ display: "grid", gap: 10 }}>
-                  {opts.map((option, i) => (
-                    <button
-                      type="button"
-                      key={option}
-                      onClick={() => !grade && setAnswer(String(i))}
-                      style={{
-                        textAlign: "start",
-                        padding: "15px 16px",
-                        borderRadius: 14,
-                        border:
-                          "1px solid " +
-                          (answer === String(i)
-                            ? "var(--accent)"
-                            : "var(--line)"),
-                        background:
-                          answer === String(i)
-                            ? "rgba(47,124,255,.08)"
-                            : "var(--surface)",
-                        color: "var(--ink)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {String.fromCharCode(65 + i)}. {option}
-                    </button>
-                  ))}
-                </div>
+                <ChoiceCardGroup
+                  legend={t("خيارات السؤال", "Question choices")}
+                  options={opts}
+                  value={answer}
+                  disabled={Boolean(grade) || busy}
+                  contentDir={effectiveLang === "ar" ? "rtl" : "ltr"}
+                  onChange={(val) => {
+                    if (!grade) setAnswer(val);
+                  }}
+                />
               ) : (
                 <input
                   className="search"
@@ -449,27 +445,25 @@ export function MissionLive() {
               )}
 
               {grade && (
-                <div
-                  style={{
-                    marginTop: 18,
-                    padding: 16,
-                    borderRadius: 16,
-                    background: grade.correct
-                      ? "var(--accent-soft)"
-                      : "var(--surface-soft)",
-                    border:
-                      "1px solid " +
-                      (grade.correct ? "var(--line)" : "var(--line)"),
-                  }}
-                >
+                <div className="noata-grade-feedback" data-correct={grade.correct ? "true" : "false"}>
                   <b>
                     {grade.correct
                       ? t("صح 👏","Correct 👏")
                       : t("قريب منها — خلّينا نحاول بطريقة تانية","Not quite. Let’s try a different approach.")}
                   </b>
-                  <p style={{ margin: "7px 0 0", lineHeight: 1.7 }}>
+                  <p style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
                     {(effectiveLang === "en" ? grade.explanation_en ?? "" : grade.explanation_ar) || ""}
                   </p>
+                  {!grade.correct &&
+                    (() => {
+                      const tip = extractDistractorFeedback(current.metadata, answer, effectiveLang);
+                      return tip ? (
+                        <div className="noata-grade-misconception">
+                          <strong>{t("تنبيه حول هذا الخيار: ", "Misconception note: ")}</strong>
+                          {tip}
+                        </div>
+                      ) : null;
+                    })()}
                   {grade.mastery_score != null && (
                     <small>
                       {t("درجة الإتقان:","Mastery:")} {Math.round(Number(grade.mastery_score))}% ·{" "}
@@ -479,8 +473,16 @@ export function MissionLive() {
                 </div>
               )}
               {(error || status) && (
-                <div style={{ marginTop: 12, color: "var(--danger)" }}>
-                  {error || status}
+                <div className="noata-retry-banner" role="alert">
+                  <span>{error || status}</span>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busy}
+                    onClick={() => void (grade ? continueMission() : gradeCurrent())}
+                  >
+                    {t("إعادة المحاولة بنفس الإجابة", "Retry safely")}
+                  </button>
                 </div>
               )}
               <div

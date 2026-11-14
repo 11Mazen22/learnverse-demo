@@ -5,6 +5,7 @@
  * without component-specific overrides.
  */
 
+@layer study {
 dialog.nk-palette {
   border: 0;
   padding: 0;
@@ -15,7 +16,7 @@ dialog.nk-palette {
 }
 
 dialog.nk-palette::backdrop {
-  background: color-mix(in srgb, #05101f 55%, transparent);
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
   backdrop-filter: blur(3px);
 }
 
@@ -27,7 +28,7 @@ dialog.nk-palette::backdrop {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft), 0 30px 70px #04122b33;
+  box-shadow: var(--shadow-soft), 0 30px 70px color-mix(in srgb, var(--ink) 20%, transparent);
   overflow: hidden;
 }
 
@@ -199,7 +200,7 @@ dialog.nk-palette::backdrop {
   font: inherit;
   font-size: 0.85rem;
   font-weight: 700;
-  box-shadow: var(--shadow-soft), 0 14px 30px #04122b2e;
+  box-shadow: var(--shadow-soft), 0 14px 30px color-mix(in srgb, var(--ink) 18%, transparent);
   cursor: pointer;
 }
 
@@ -230,8 +231,11 @@ dialog.nk-palette::backdrop {
   }
 }
 
+}
+@layer utilities {
 html[data-noata-motion="off"] .nk-palette *,
 html[data-noata-motion="off"] .nk-jump-latest {
-  transition: none !important;
-  scroll-behavior: auto !important;
+  transition: none;
+  scroll-behavior: auto;
+}
 }

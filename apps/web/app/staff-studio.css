@@ -1,4 +1,5 @@
 /* Noata Staff Experience — unified visual refinement for the real staff workspaces. */
+@layer staff {
 .noata-staff-studio {
   --staff-radius-xl: 24px;
   --staff-radius-lg: 18px;
@@ -367,9 +368,13 @@
   .noata-staff-studio .quest { align-items: flex-start; padding: 11px; }
   .noata-staff-studio .quest > div:last-child { flex: 1 1 100%; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .noata-staff-studio :where(*, *::before, *::after) { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+@layer utilities {
+@media (prefers-reduced-motion: reduce) {
+  .noata-staff-studio :where(*, *::before, *::after) { scroll-behavior: auto; animation: none; transition: none; }
+}
+}
+@layer staff {
 
 .noata-staff-studio .noata-staff-list-note {
   margin: 8px 2px 0;
@@ -407,4 +412,91 @@
 @media (max-width: 620px) {
   .noata-staff-studio .noata-staff-pagination { align-items: stretch; flex-direction: column; }
   .noata-staff-studio .noata-staff-pagination > div { justify-content: space-between; }
+}
+
+.noata-staff-studio .noata-staff-warning-btn {
+  border: 1px solid color-mix(in srgb, var(--warning) 36%, var(--line));
+  background: color-mix(in srgb, var(--warning) 14%, var(--surface));
+  color: var(--ink);
+  min-height: 38px;
+  padding: 0 12px;
+  font-weight: 760;
+}
+
+.noata-staff-studio .noata-staff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 780;
+}
+
+.noata-staff-studio .noata-staff-badge[data-tone="success"] {
+  border-color: color-mix(in srgb, var(--success) 35%, var(--line));
+  background: color-mix(in srgb, var(--success) 13%, var(--surface));
+  color: var(--success);
+}
+
+.noata-staff-studio .noata-staff-badge[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--line));
+  background: color-mix(in srgb, var(--warning) 13%, var(--surface));
+  color: var(--ink);
+}
+
+.noata-staff-studio .noata-staff-badge[data-tone="info"] {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.noata-staff-studio .noata-staff-badge[data-tone="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  color: var(--danger);
+}
+
+.noata-staff-studio .noata-intervention-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: 1px solid color-mix(in srgb, var(--warning) 36%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  color: var(--ink);
+}
+
+.noata-staff-studio .noata-attendance-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.noata-staff-studio .noata-attendance-pills .filter-chip {
+  min-height: 36px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+}
+
+.noata-staff-studio .noata-attendance-pills .filter-chip[data-status="absent"][aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+  color: var(--danger);
+}
+
+.noata-staff-studio .noata-gov-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
 }

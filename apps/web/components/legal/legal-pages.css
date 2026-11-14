@@ -1,3 +1,4 @@
+@layer sections {
 .noata-legal { min-height: 100vh; background: var(--surface-soft); color: var(--ink); }
 .noata-legal-header, .noata-legal-footer { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:18px clamp(20px,5vw,74px); }
 .noata-legal-header { background:color-mix(in srgb,var(--surface) 94%,transparent); border-bottom:1px solid var(--line); }
@@ -40,5 +41,8 @@
 .noata-legal a:focus-visible,.noata-legal button:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
 @media(max-width:800px) { .noata-legal-columns { grid-template-columns:1fr; } .noata-legal-sidebar { position:static; max-height:none; } .noata-legal-sidebar nav { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); } .noata-legal-hero-mark { width:100px; height:100px; } .noata-legal-hero-mark span:first-child { font-size:35px; } }
 @media(max-width:560px) { .noata-legal-header,.noata-legal-footer { padding:15px 18px; } .noata-legal-header .noata-brand-copy small { display:none; } .noata-legal-header .noata-brand-copy strong { font-size:18px; } .noata-legal-topnav a:first-child { display:none; } .noata-legal-hero-mark { display:none; } .noata-legal-hero { border-radius:23px; } .noata-legal-section { border-radius:18px; } .noata-legal-footer { align-items:flex-start; flex-direction:column; } }
-@media(prefers-reduced-motion:reduce) { .noata-legal *, .noata-legal *::before, .noata-legal *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
-html[data-reduced-motion="true"] .noata-legal * { transition:none !important; animation:none !important; scroll-behavior:auto !important; }
+}
+@layer utilities {
+@media(prefers-reduced-motion:reduce) { .noata-legal *, .noata-legal *::before, .noata-legal *::after { scroll-behavior:auto; animation:none; transition:none; } }
+html[data-reduced-motion="true"] .noata-legal * { transition:none; animation:none; scroll-behavior:auto; }
+}

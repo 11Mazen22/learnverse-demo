@@ -5,6 +5,9 @@ on:
     branches: [master, noata-v1-rebuild, noata-v2-total-redesign, noata-aura-platform-overhaul-20261008, noata-ai-reading-experience-20261014, fix-noata-tooltip-intent-20261014, noata-genesis-capabilities-20261015]
   pull_request:
     branches: [master, noata-aura-platform-overhaul-20261008]
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,7 +31,36 @@ jobs:
           node-version: 24
       - name: Verify the live production domain serves this commit
         run: node scripts/verify-production.mjs "${{ github.sha }}"
+  fast-gate:
+    name: Fast PR Gate (text, types, tests, edge, web build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://vpfpjvhafkmygetjkfcp.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_network_isolation_fixture_only
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:text
+      - run: pnpm typecheck
+      - run: deno check --config supabase/functions/noata-ai/deno.json supabase/functions/noata-ai/index.ts
+      - run: pnpm modern:test
+      - run: pnpm legacy:check
+      - run: node --test scripts/pwa-cache.test.mjs
+      - run: pnpm --filter @noata/web build
   verify:
+    needs: [fast-gate]
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -156,6 +188,8 @@ jobs:
 
   tooltip:
     name: Intentional tooltip interactions
+    needs: [fast-gate]
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 17
     env:

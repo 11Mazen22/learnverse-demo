@@ -4,11 +4,12 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/client";
 import { confirmAction } from "@/components/ui/confirm-dialog";
-import { localized, useLocale } from "@/lib/i18n/locale";
+import { applyLocale, localized, useLocale } from "@/lib/i18n/locale";
 import {
   boundedRead,
   useVerifiedAccount,
 } from "@/lib/supabase/use-verified-account";
+import { wipeAllStudyDrafts } from "@/lib/study/draft-storage";
 
 type Profile = {
   display_name: string;
@@ -115,6 +116,7 @@ export function UserMenu() {
       if (!approved || revision !== account.revision.current) return;
       setBusy(true);
       setMenuOpen(false);
+      wipeAllStudyDrafts(typeof window !== "undefined" ? window.localStorage : null);
       const { error } = await createClient().auth.signOut();
       if (error) throw error;
       window.location.href = "/login";
@@ -179,6 +181,31 @@ export function UserMenu() {
           <Link href="/settings" role="menuitem" tabIndex={-1} onClick={() => setMenuOpen(false)}>
              <Icon name="settings" size={18} /> {t("إعدادات الحساب", "Account settings")}
           </Link>
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={() => {
+              const nextLocale = locale === "ar" ? "en" : "ar";
+              applyLocale(nextLocale);
+              if (account.user) {
+                void createClient()
+                  .from("user_settings")
+                  .upsert(
+                    {
+                      user_id: account.user.id,
+                      locale: nextLocale,
+                      updated_at: new Date().toISOString(),
+                    },
+                    { onConflict: "user_id" }
+                  );
+              }
+              setMenuOpen(false);
+            }}
+          >
+            <Icon name="globe" size={18} />{" "}
+            {locale === "ar" ? "English (تغيير اللغة)" : "العربية (Arabic UI)"}
+          </button>
           <div className="noata-account-menu-separator" />
           <button type="button" role="menuitem" tabIndex={-1} className="noata-account-logout" onClick={() => void logout()} disabled={busy}>
             <Icon name="arrow" size={18} />

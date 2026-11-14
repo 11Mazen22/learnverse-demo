@@ -1,6 +1,7 @@
 /* NOATA MUSHAF — deliberate, scripture-first visual redesign.
    This stylesheet loads after quran.css; the source data, reciter engine and
    existing navigation contracts are unchanged. */
+@layer study {
 .mushaf.aura-quran{
   --mushaf-edge:color-mix(in srgb,var(--accent) 17%,var(--line));
   --mushaf-glow:color-mix(in srgb,var(--accent) 6%,var(--surface));
@@ -379,9 +380,13 @@
  .mushaf .mushaf-hero-facts{gap:9px}
  .mushaf .mushaf-chapter::before,.mushaf .mushaf-chapter::after{display:none}
 }
-@media(prefers-reduced-motion:reduce){
- .mushaf .mushaf-verse-card,.mushaf .mushaf-flow-marker{transition:none!important;animation:none!important}
 }
+@layer utilities {
+@media(prefers-reduced-motion:reduce){
+ .mushaf .mushaf-verse-card,.mushaf .mushaf-flow-marker{transition:none;animation:none}
+}
+}
+@layer study {
 @media(forced-colors:active){
  .mushaf .mushaf-reading,.mushaf .mushaf-navigator{border:1px solid CanvasText}
  .mushaf .mushaf-flow-marker[aria-pressed="true"]{outline:2px solid Highlight}
@@ -663,7 +668,7 @@
 .noata-shell:has(.mushaf-focused)>.mobile-nav,
 .noata-shell:has(.mushaf-focused)>.noata-main>.shell-topbar,
 .noata-shell:has(.mushaf-focused)>.noata-main>.page-footer{
-  display:none!important;
+  display:none;
 }
 .noata-shell:has(.mushaf-focused)>.noata-main{
   display:block;
@@ -715,4 +720,5 @@
 }
 @media(forced-colors:active){
   .noata-shell:has(.mushaf-focused) .mushaf-reading{border:1px solid CanvasText}
+}
 }

@@ -242,7 +242,7 @@ export function MarketingShell({ children, tone = "dark" }: { children: ReactNod
         </div>
 
         {/* Bottom Trust & Legal Strip */}
-        <div className="mk-footer-bottom max-w-[1440px] mx-auto w-full px-6 md:px-12 py-6 border-t border-white/[0.08] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#64748b]">
+        <div className="mk-footer-bottom max-w-[1440px] mx-auto w-full px-6 md:px-12 py-6 border-t border-white/[0.08] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-[#94a3b8]">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>{t("جميع الأنظمة وقواعد البيانات تعمل بكفاءة 99.9%", "All Systems Operational · 99.9% Uptime")}</span>

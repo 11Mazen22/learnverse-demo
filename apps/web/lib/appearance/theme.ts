@@ -163,3 +163,50 @@ export const DESIGN_STUDIO_INSTRUCTION_EN = [
   "Choose a harmonious supporting bright color. Use six-digit hexadecimal colors only.",
   "Do not include personal information. The user will preview and approve the colors before saving.",
 ].join("\n");
+
+/**
+ * Normalizes a CSS color value (`#rgb`, `#rrggbb`, `#rrggbbaa`, or `rgb(...)`/`rgba(...)`)
+ * into lowercase `#rrggbb` hex format for contrast calculations.
+ */
+export function normalizeCssColorToHex(value: string): string | null {
+  const clean = value.trim().toLowerCase();
+  const shortHex = clean.match(/^#([0-9a-f]{3})$/);
+  if (shortHex) {
+    const [, h] = shortHex;
+    return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
+  }
+  const fullHex = clean.match(/^#([0-9a-f]{6})(?:[0-9a-f]{2})?$/);
+  if (fullHex) {
+    return `#${fullHex[1]}`;
+  }
+  const rgb = clean.match(
+    /^rgba?\(\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})(?:\s*[,/]\s*[\d.]+%?)?\s*\)$/,
+  );
+  if (rgb) {
+    const channels = [rgb[1], rgb[2], rgb[3]].map((part) => {
+      const n = Math.max(0, Math.min(255, Number.parseInt(part, 10)));
+      return n.toString(16).padStart(2, "0");
+    });
+    return `#${channels.join("")}`;
+  }
+  return null;
+}
+
+/**
+ * Computes rounded WCAG 2.2 luminance contrast metrics between any two hex or CSS rgb() tokens.
+ */
+export function measureTokenContrast(
+  foregroundCss: string,
+  backgroundCss: string,
+): { ratio: number; passAA: boolean; passAAA: boolean } | null {
+  const fg = normalizeCssColorToHex(foregroundCss);
+  const bg = normalizeCssColorToHex(backgroundCss);
+  if (!fg || !bg) return null;
+  const raw = contrastRatio(fg, bg);
+  const ratio = Math.round(raw * 100) / 100;
+  return {
+    ratio,
+    passAA: raw >= 4.5,
+    passAAA: raw >= 7,
+  };
+}

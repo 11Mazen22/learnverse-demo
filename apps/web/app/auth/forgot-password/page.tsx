@@ -51,9 +51,10 @@ export default function ForgotPasswordPage() {
         <label className="auth-field">
           <span>{t("البريد الإلكتروني المرتبط بالحساب","Account email")}</span>
           <input dir="ltr" type="email" autoComplete="email" placeholder="name@example.com"
-            required value={email} onChange={(event) => setEmail(event.target.value)} disabled={busy} />
+            required value={email} onChange={(event) => setEmail(event.target.value)} disabled={busy}
+            aria-invalid={Boolean(error)} aria-describedby={error ? "auth-forgot-error" : undefined} />
         </label>
-        {error && <p role="alert" className="auth-alert is-error">{error}</p>}
+        {error && <p id="auth-forgot-error" role="alert" className="auth-alert is-error">{error}</p>}
         <button className="auth-primary" type="submit" disabled={busy}>
           {busy ? t("جارٍ إرسال الرابط…","Sending the link…") : t("إرسال رابط الاستعادة","Send recovery link")}
         </button>

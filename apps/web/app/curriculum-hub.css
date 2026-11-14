@@ -2,6 +2,7 @@
    The hub is the learner's entry point into a subject, so it states the subject,
    the track and the language of that track before anything else. */
 
+@layer sections {
 .aura-subject-hub {
   margin-bottom: 18px;
 }
@@ -163,6 +164,84 @@
   background: var(--subject-accent);
 }
 
+.aura-medium-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.aura-medium-tab {
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+.aura-medium-tab:hover {
+  border-color: var(--accent);
+}
+
+.aura-medium-tab[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink, var(--surface));
+}
+
+.aura-track-enrolled-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--success) 15%, var(--surface));
+  color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+}
+
+.aura-unit-prereq-note {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface-soft));
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  color: var(--ink);
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aura-lesson-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aura-lesson-actions .btn-secondary {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.aura-lesson-actions .btn-secondary:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 @media (max-width: 520px) {
   .aura-subject-grid {
     grid-template-columns: 1fr;
@@ -172,12 +251,16 @@
   }
 }
 
+}
+@layer utilities {
 @media (prefers-reduced-motion: reduce) {
   .aura-subject-card,
-  .aura-track-chip {
+  .aura-track-chip,
+  .aura-medium-tab {
     transition: none;
   }
   .aura-track-chip:hover {
     transform: none;
   }
+}
 }

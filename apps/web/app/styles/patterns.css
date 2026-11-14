@@ -1,0 +1,543 @@
+/* ==========================================================================
+   NOÄTA 4-TIER DESIGN SYSTEM — TIER 4 PRODUCT EXPERIENCE PATTERNS
+   Reusable page/workspace architectural compositions in @layer patterns.
+   ========================================================================== */
+
+@layer patterns {
+  /* ------------------------------------------------------------------------
+     Page Header Pattern (.nk-page-header)
+     ------------------------------------------------------------------------ */
+  .nk-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    padding-block-end: var(--space-5);
+    margin-block-end: var(--space-6);
+    border-block-end: 1px solid var(--line);
+    min-width: 0;
+  }
+
+  .nk-page-header-copy {
+    flex: 1 1 280px;
+    min-width: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .nk-page-header-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  .nk-page-header-title {
+    margin: 0;
+    font-size: var(--text-3xl);
+    line-height: var(--leading-tight);
+    font-weight: 850;
+    color: var(--ink);
+  }
+
+  .nk-page-header-desc {
+    margin: 0;
+    max-width: var(--measure-prose);
+    font-size: var(--text-md);
+    line-height: var(--leading-body);
+    color: var(--muted);
+  }
+
+  .nk-page-header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .nk-page-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  /* ------------------------------------------------------------------------
+     Bento Dashboard Grid & KPI Stat Tiles (.nk-bento-grid, .nk-stat-tile)
+     ------------------------------------------------------------------------ */
+  .nk-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .nk-bento-grid--wide {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+
+  .nk-stat-tile {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--gutter-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--ink);
+    min-width: 0;
+    text-decoration: none;
+    box-shadow: var(--shadow-xs);
+    transition:
+      border-color var(--dur-base) var(--ease),
+      box-shadow var(--dur-base) var(--ease),
+      transform var(--dur-base) var(--ease);
+  }
+
+  a.nk-stat-tile:hover,
+  button.nk-stat-tile:hover {
+    border-color: color-mix(in srgb, var(--accent) 44%, var(--line));
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-2px);
+  }
+
+  .nk-stat-tile-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .nk-stat-tile-label {
+    font-size: var(--text-xs);
+    font-weight: 750;
+    color: var(--muted);
+  }
+
+  .nk-stat-tile-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .nk-stat-tile-value {
+    font-size: clamp(1.5rem, 2.5vw, 2.1rem);
+    font-weight: 850;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .nk-stat-tile-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  /* ------------------------------------------------------------------------
+     Split Reader Shell (.nk-split-reader) — Lessons, Mushaf & Deep Reading
+     ------------------------------------------------------------------------ */
+  .nk-split-reader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+    gap: var(--space-6);
+    align-items: start;
+    min-width: 0;
+  }
+
+  .nk-split-reader--rail-start {
+    grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+  }
+
+  .nk-split-reader-main {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .nk-split-reader-rail {
+    min-width: 0;
+    position: sticky;
+    top: var(--space-4);
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  @media (max-width: 960px) {
+    .nk-split-reader,
+    .nk-split-reader--rail-start {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .nk-split-reader-rail {
+      position: static;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Distraction-Free Study Stage Canvas (.nk-study-stage)
+     ------------------------------------------------------------------------ */
+  .nk-study-stage {
+    width: min(100%, 840px);
+    margin-inline: auto;
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .nk-study-stage-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .nk-study-stage-surface {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    padding: clamp(1.25rem, 3.5vw, 2.5rem);
+    box-shadow: var(--shadow-soft);
+    min-width: 0;
+  }
+
+  .nk-study-stage-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+  }
+
+  /* ------------------------------------------------------------------------
+     Filter Toolbar & Staff Console Section (.nk-filter-toolbar, .nk-staff-section)
+     ------------------------------------------------------------------------ */
+  .nk-filter-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    min-width: 0;
+  }
+
+  .nk-filter-toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .nk-staff-section {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--gutter-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    min-width: 0;
+  }
+
+  .nk-staff-section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .nk-staff-section-head h2 {
+    margin: 0;
+    font-size: var(--text-xl);
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .nk-staff-section-head p {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  /* =========================================================
+     Stage 07 — Productivity & Companion Ecosystem Patterns
+     ========================================================= */
+
+  .aura-module-welcome .hero-actions .btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+
+  .aura-module-welcome .hero-actions .btn-secondary:hover,
+  .aura-module-welcome .hero-actions .btn-secondary:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+
+  .noata-attachment-fallback {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--danger) 32%, var(--line));
+    background: var(--danger-soft);
+    color: var(--ink);
+    font-size: var(--text-sm);
+  }
+
+  .noata-attachment-fallback strong {
+    color: var(--danger);
+  }
+
+  .noata-progress-xp-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+    margin: var(--space-4) 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .noata-progress-xp-split-item {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+  }
+
+  .noata-progress-xp-split-item strong {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--ink);
+    font-size: var(--text-sm);
+  }
+
+  .noata-progress-xp-split-item p {
+    margin: 0;
+    color: var(--muted);
+    font-size: var(--text-xs);
+    line-height: 1.7;
+  }
+
+  .noata-skill-drill-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--accent);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 140ms ease, border-color 140ms ease;
+  }
+
+  .noata-skill-drill-link:hover,
+  .noata-skill-drill-link:focus-visible {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .noata-avatar-preview {
+    display: grid;
+    grid-template-columns: minmax(190px, 260px) 1fr;
+    gap: var(--space-4);
+    align-items: stretch;
+    margin-top: var(--space-3);
+  }
+
+  .noata-avatar-preview-stage {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: linear-gradient(135deg, var(--surface-soft), var(--accent-soft));
+  }
+
+  .noata-avatar-preview-badge {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--accent);
+    background: var(--surface);
+    color: var(--accent);
+  }
+
+  .noata-avatar-preview-stage strong {
+    color: var(--ink);
+    font-size: var(--text-sm);
+  }
+
+  .noata-avatar-preview-stage small {
+    color: var(--muted);
+    font-size: var(--text-xs);
+  }
+
+  .noata-avatar-preview-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .noata-avatar-slot-card {
+    padding: var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    display: grid;
+    gap: var(--space-1);
+    align-content: start;
+  }
+
+  .noata-avatar-slot-card[data-equipped="true"] {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    background: var(--surface);
+  }
+
+  .noata-avatar-slot-card small {
+    color: var(--muted);
+    font-size: var(--text-xs);
+  }
+
+  .noata-avatar-slot-card b {
+    color: var(--ink);
+    font-size: var(--text-sm);
+  }
+
+  .noata-shop-filters,
+  .noata-assignments-tabs,
+  .noata-inbox-categories {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-3) 0;
+  }
+
+  .noata-shop-filters .filter-chip,
+  .noata-assignments-tabs .filter-chip,
+  .noata-inbox-categories .filter-chip {
+    min-block-size: 38px;
+  }
+
+  .noata-reward-equipped {
+    width: 100%;
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1px solid color-mix(in srgb, var(--success) 35%, var(--line));
+  }
+
+  .noata-reward-primary {
+    width: 100%;
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .noata-reward-shortfall {
+    display: block;
+    margin-top: var(--space-2);
+    color: var(--warning);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+
+  .noata-grade-feedback {
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface-soft);
+    color: var(--ink);
+  }
+
+  .noata-grade-feedback[data-correct="true"] {
+    background: var(--success-soft);
+    border-color: color-mix(in srgb, var(--success) 35%, var(--line));
+  }
+
+  .noata-grade-feedback[data-correct="false"] {
+    background: var(--danger-soft);
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+  }
+
+  .noata-grade-feedback b {
+    color: var(--ink);
+  }
+
+  .aura-help-panel {
+    interpolate-size: allow-keywords;
+    overflow: clip;
+    contain: layout;
+    block-size: auto;
+  }
+
+  .aura-help-panel[hidden="until-found"] {
+    block-size: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .aura-help-panel {
+      transition: block-size 0.24s ease, content-visibility 0.24s ease allow-discrete;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .noata-avatar-preview {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@layer utilities {
+  @media (prefers-reduced-motion: reduce) {
+    .nk-stat-tile,
+    .noata-skill-drill-link,
+    .aura-help-panel {
+      transition: none;
+    }
+    a.nk-stat-tile:hover,
+    button.nk-stat-tile:hover {
+      transform: none;
+    }
+  }
+
+  [data-reduced-motion="true"] .aura-help-panel,
+  [data-reduced-motion="true"] .noata-skill-drill-link {
+    transition: none;
+  }
+}

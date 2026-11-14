@@ -247,6 +247,16 @@ const LABELS: Record<string, string> = {
         </div>
       </header>
       <p className="aura-progress-ai-disclosure">{t("مساعد Noata AI هيفتح رسالة قابلة للتعديل بملخص مهاراتك الحقيقية، لو التخزين المؤقت متاح. مش هتتبعت للمزوّد إلا لو اخترت إرسالها بنفسك. التحليل إرشادي ولا يغيّر درجاتك أو نقاطك.","Noata AI opens an editable summary of your actual skills when temporary storage is available. It is sent to the provider only when you choose to send it. The analysis is guidance and does not change your grades or points.")}</p>
+      <div className="noata-progress-xp-split" role="note" aria-label={t("الفرق بين الإتقان والنقاط","Difference between mastery and XP")}>
+        <div className="noata-progress-xp-split-item">
+          <strong><Icon name="spark" size={16}/>{t("نسبة الإتقان والمهارات","Skill Mastery (%)")}</strong>
+          <p>{t("تُحتسب من إجاباتك المستقلة المثبتة ومراجعاتك المتباعدة فقط، وتعكس فهمك الفعلي لكل مهارة.","Calculated strictly from your verified independent answers and spaced review checks—reflecting true understanding per skill.")}</p>
+        </div>
+        <div className="noata-progress-xp-split-item">
+          <strong><Icon name="award" size={16}/>{t("نقاط الخبرة (XP) والعملات","XP & Coins Economy")}</strong>
+          <p>{t("تُمنح نظير الانتظام وحل المهمات والمراجعات اليومية ويمكن استبدالها في صفحة المكافآت دون التأثير على تقييم الإتقان.","Earned for daily consistency across lessons, missions, and reviews—redeemable in Rewards without inflating mastery scores.")}</p>
+        </div>
+      </div>
       <section className="aura-progress-statstrip" data-tour="progress-evidence" aria-label={t("مؤشرات إتقانك","Your mastery indicators")}>
         <div>
           <span>{t("المهارات المتتبعة","Skills tracked")}</span>
@@ -372,6 +382,15 @@ const LABELS: Record<string, string> = {
                   >
                     <span style={{ width: score + "%" }} />
                   </div>
+                  {(review || !isMastered(row)) && (
+                    <Link
+                      href={`/study?topic=${encodeURIComponent(skillTitle(row))}&tab=generator`}
+                      className="noata-skill-drill-link"
+                    >
+                      {t("تدرّب / أنشئ حزمة", "Practice / create deck")}
+                      <Icon name="arrow" size={13} />
+                    </Link>
+                  )}
                 </div>
                 <strong className="aura-progress-skill-percent">
                   {score}%

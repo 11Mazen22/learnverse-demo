@@ -4,6 +4,7 @@
  * outlined; the dark world is softly illuminated. Original Noata vector
  * remains the only logo, with semantic per-theme color.
  */
+@layer theme {
 html[data-palette="custom"] {
  --ink:#203044;--muted:#607489;--surface:#ffffff;--surface-soft:#f7faff;
  --line:color-mix(in srgb,var(--custom-accent) 20%,#e2e9f3);
@@ -23,6 +24,8 @@ html[data-theme="dark"][data-palette="custom"] {
  --accent-soft:color-mix(in srgb,var(--custom-accent) 23%,#1a2640);
  --on-accent:#101829;
 }
+}
+@layer sections {
 /* Light dashboard: ivory/white base, custom blue (Classic) or world-tinted
  * outlines, subtle geometry and proper logo contrast. */
 html[data-theme="light"] .page-content .dashboard-hero {
@@ -196,6 +199,8 @@ html[data-theme="light"] .auth-shell .auth-aside-points li{
 }
 html[data-theme="light"] .auth-shell .auth-aside-points li svg{color:var(--accent)}
 html[data-theme="dark"] .auth-shell .auth-aside-points li{color:#f4f7ff}
+}
+@layer components {
 /* Named palette selector redesign and discoverable AI creator link */
 .noata-theme-guidance{font-size:11px!important;line-height:1.8;color:var(--muted);padding:5px 7px 11px}
 .noata-theme-studio-link{display:flex;align-items:center;justify-content:space-between;gap:9px;min-height:48px;padding:11px 13px;margin-top:12px;border-radius:14px;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));font-weight:850;font-size:12px}
@@ -213,6 +218,8 @@ html[data-theme="dark"] .auth-shell .auth-aside-points li{color:#f4f7ff}
 .noata-custom-theme-choices button span{flex:1;font-size:12px}
 .noata-custom-theme-choices .noata-design-swatches{width:44px;grid-template-columns:repeat(2,1fr);gap:2px}
 .noata-custom-theme-choices .noata-design-swatches span{width:17px;height:17px}
+}
+@layer sections {
 /* AI Design Studio — restrained glass visuals and real live previews. */
 .noata-design-studio{min-width:0;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:25px;padding:clamp(18px,3vw,30px);margin:22px 0;scroll-margin-top:160px;
  background:radial-gradient(ellipse at 94% 0%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 51%),var(--surface);
@@ -270,8 +277,12 @@ html[data-theme="dark"] .auth-shell .auth-aside-points li{color:#f4f7ff}
 @media(max-width:1050px){.noata-design-studio-layout{grid-template-columns:1fr}}
 @media(max-width:900px){.auth-shell:not(.is-centered) .auth-aside{display:none}.auth-shell:not(.is-centered){display:grid;grid-template-columns:minmax(0,1fr);min-height:100dvh;padding:25px 10px}.auth-shell:not(.is-centered) .auth-card{width:min(500px,100%)}}
 @media(max-width:640px){.page-content .dashboard-hero{padding:25px 20px}.page-content .dashboard-hero h2{font-size:clamp(28px,8vw,39px)}.page-content .dashboard-hero .hero-actions .btn{flex:1 1 150px}.noata-design-studio{padding:17px 13px}.noata-design-studio-header{align-items:flex-start;gap:10px}.noata-design-studio-crest{flex-basis:44px;height:44px}.noata-design-saved-list{grid-template-columns:1fr}}
-@media(prefers-reduced-motion:reduce){.page-content .dashboard-hero .btn,.noata-design-studio *, .noata-design-studio *::before,.noata-design-studio *::after{animation:none!important;transition:none!important;transform:none!important}}
-html[data-reduced-motion="true"] :is(.page-content .dashboard-hero .btn,.noata-design-studio,.noata-design-studio *){animation:none!important;transition:none!important;transform:none!important}
+}
+@layer utilities {
+@media(prefers-reduced-motion:reduce){.page-content .dashboard-hero .btn,.noata-design-studio *, .noata-design-studio *::before,.noata-design-studio *::after{animation:none;transition:none;transform:none}}
+html[data-reduced-motion="true"] :is(.page-content .dashboard-hero .btn,.noata-design-studio,.noata-design-studio *){animation:none;transition:none;transform:none}
+}
+@layer sections {
 
 /* New appearance command-center structure: clear hierarchy and comfortable
  * anchored navigation, independently of the signed-in palette choice. */
@@ -373,7 +384,7 @@ html[data-reduced-motion="true"] :is(.page-content .dashboard-hero .btn,.noata-d
   overflow: hidden !important;
   position: relative !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .aura-theme-card:hover .aura-theme-mini-screen {
@@ -661,9 +672,13 @@ html[data-theme="dark"] .aura-settings-page .aura-settings-heading{
  background:radial-gradient(ellipse at 78% 18%,color-mix(in srgb,var(--accent) 13%,transparent),transparent 48%),var(--surface);
 }
 @media(max-width:760px){.aura-settings-page .aura-settings-heading{min-height:auto}.aura-settings-page .aura-settings-nav{top:0}.aura-settings-page .aura-settings-section{padding:18px}}
-@media(prefers-reduced-motion:reduce){.aura-settings-page .aura-settings-section,.aura-settings-theme-options button{transition:none!important;transform:none!important}}
-html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html[data-reduced-motion="true"] .aura-settings-theme-options button{transition:none!important;transform:none!important}
+}
+@layer utilities {
+@media(prefers-reduced-motion:reduce){.aura-settings-page .aura-settings-section,.aura-settings-theme-options button{transition:none;transform:none}}
+html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html[data-reduced-motion="true"] .aura-settings-theme-options button{transition:none;transform:none}
+}
 
+@layer study {
 /* Respectful Mushaf compact reader with explicit expansion and real-audio glow. */
 .noata-quran-preview-toggle{display:flex;justify-content:space-between;align-items:center;gap:17px;flex-wrap:wrap;padding:21px clamp(16px,3vw,29px);margin:18px 0 4px;background:color-mix(in srgb,var(--surface) 86%,var(--accent-soft));border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));border-radius:21px}
 .noata-quran-preview-toggle>div{min-width:0;flex:1 1 220px}
@@ -680,7 +695,11 @@ html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html
  transition:background .24s ease,box-shadow .24s ease,border-color .24s ease;
 }
 @media(max-width:600px){.noata-quran-preview-toggle{padding:17px 13px}.noata-quran-preview-toggle button{width:100%}}
-@media(prefers-reduced-motion:reduce){.noata-quran-preview-toggle button svg,.aura-quran .aura-quran-ayah[data-playing="true"]{transition:none!important}}
+}
+@layer utilities {
+@media(prefers-reduced-motion:reduce){.noata-quran-preview-toggle button svg,.aura-quran .aura-quran-ayah[data-playing="true"]{transition:none}}
+}
+@layer study {
 
 /* Quran player: controls stay above a long Surah even in five-Ayah mode. */
 .noata-quran-audio-dock{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:19px clamp(14px,2vw,26px);border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:20px;background:var(--surface);box-shadow:0 9px 30px color-mix(in srgb,var(--ink) 5%,transparent);margin:18px 0}
@@ -699,6 +718,8 @@ html[data-reduced-motion="true"] .aura-settings-page .aura-settings-section,html
 .noata-quran-surah-matches small{font-size:10px;color:var(--muted);font-weight:500}
 @media(max-width:700px){.noata-quran-audio-dock>div{flex-basis:100%}.noata-quran-audio-dock label{flex:1 1 100%;justify-content:space-between}.noata-quran-audio-dock label select{flex:1;max-width:none;min-width:0}.noata-quran-audio-dock .btn{width:100%}}
 
+}
+@layer sections {
 /* Grand Theme Cards & Device Appearance Full Width System */
 .aura-device-appearance,
 section.aura-settings-section {
@@ -733,7 +754,7 @@ section.aura-settings-section {
   border: 1.5px solid var(--line) !important;
   border-radius: 18px !important;
   cursor: pointer !important;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .aura-theme-card:hover:not(.is-disabled) {
@@ -858,7 +879,7 @@ section.aura-settings-section {
   box-shadow: 0 10px 32px color-mix(in srgb, var(--ink) 5%, transparent) !important;
   position: relative !important;
   overflow: hidden !important;
-  transition: all 0.25s ease !important;
+  transition: all 0.25s ease;
 }
 
 .aura-preview-header {
@@ -935,7 +956,7 @@ section.aura-settings-section {
   border-radius: 50% !important;
   background: var(--accent) !important;
   box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent) !important;
-  animation: dsPulse 2s infinite !important;
+  animation: dsPulse 2s infinite;
 }
 
 .noata-ds-contrast-tag {
@@ -947,7 +968,7 @@ section.aura-settings-section {
   padding: 5px 12px !important;
   border-radius: 20px !important;
   background: color-mix(in srgb, #10b981 12%, var(--surface)) !important;
-  color: #059669 !important;
+  color: #047857 !important;
   border: 1.5px solid color-mix(in srgb, #10b981 30%, transparent) !important;
 }
 html[data-theme="dark"] .noata-ds-contrast-tag {
@@ -993,7 +1014,7 @@ html[data-theme="dark"] .noata-ds-contrast-tag {
   border: 1.5px solid var(--line) !important;
   border-radius: 16px !important;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--ink) 3%, transparent) !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .aura-preview-pillar:hover {
@@ -1053,7 +1074,7 @@ html[data-theme="dark"] .noata-ds-contrast-tag {
   font-size: 13px !important;
   font-weight: 750 !important;
   cursor: pointer !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .noata-ds-btn-primary {
@@ -1123,20 +1144,20 @@ html[data-theme="dark"] .noata-ds-contrast-tag {
   font-weight: 750 !important;
   line-height: 1 !important;
   cursor: pointer !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .noata-ds-pill:hover {
   transform: scale(1.04) !important;
 }
 
 .noata-ds-pill-success {
-  background: color-mix(in srgb, #10b981 14%, var(--surface)) !important;
-  color: #059669 !important;
+  background: color-mix(in srgb, #10b981 12%, var(--surface)) !important;
+  color: #065f46 !important;
   border: 1.5px solid color-mix(in srgb, #10b981 35%, transparent) !important;
 }
 html[data-theme="dark"] .noata-ds-pill-success {
-  background: color-mix(in srgb, #10b981 22%, transparent) !important;
-  color: #34d399 !important;
+  background: color-mix(in srgb, #10b981 18%, var(--surface)) !important;
+  color: #6ee7b7 !important;
   border-color: color-mix(in srgb, #10b981 45%, transparent) !important;
 }
 
@@ -1144,42 +1165,43 @@ html[data-theme="dark"] .noata-ds-pill-success {
   width: 15px !important;
   height: 15px !important;
   border-radius: 50% !important;
-  background: currentColor !important;
-  color: var(--surface) !important;
+  background: #065f46 !important;
+  color: #ffffff !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   flex-shrink: 0 !important;
 }
 html[data-theme="dark"] .noata-pill-check-icon {
+  background: #6ee7b7 !important;
   color: #07101e !important;
 }
 
 .noata-ds-pill-ai {
-  background: var(--accent-soft) !important;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface)) !important;
   color: var(--accent) !important;
   border: 1.5px solid color-mix(in srgb, var(--accent) 32%, transparent) !important;
 }
 
 .noata-ds-pill-streak {
   background: color-mix(in srgb, #f59e0b 14%, var(--surface)) !important;
-  color: #d97706 !important;
-  border: 1.5px solid color-mix(in srgb, #f59e0b 35%, transparent) !important;
+  color: #78350f !important;
+  border: 1.5px solid color-mix(in srgb, #f59e0b 38%, transparent) !important;
 }
 html[data-theme="dark"] .noata-ds-pill-streak {
-  background: color-mix(in srgb, #f59e0b 22%, transparent) !important;
-  color: #fbbf24 !important;
+  background: color-mix(in srgb, #f59e0b 16%, var(--surface)) !important;
+  color: #fde68a !important;
   border-color: color-mix(in srgb, #f59e0b 45%, transparent) !important;
 }
 
 .noata-ds-pill-challenge {
-  background: color-mix(in srgb, #6366f1 14%, var(--surface)) !important;
-  color: #4f46e5 !important;
+  background: color-mix(in srgb, #6366f1 12%, var(--surface)) !important;
+  color: #3730a3 !important;
   border: 1.5px solid color-mix(in srgb, #6366f1 35%, transparent) !important;
 }
 html[data-theme="dark"] .noata-ds-pill-challenge {
-  background: color-mix(in srgb, #6366f1 22%, transparent) !important;
-  color: #818cf8 !important;
+  background: color-mix(in srgb, #6366f1 16%, var(--surface)) !important;
+  color: #c7d2fe !important;
   border-color: color-mix(in srgb, #6366f1 45%, transparent) !important;
 }
 
@@ -1238,7 +1260,7 @@ html[data-theme="dark"] .noata-ds-pill-challenge {
   background: var(--accent) !important;
   border-radius: 10px !important;
   box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent) !important;
-  transition: width 0.4s ease !important;
+  transition: width 0.4s ease;
 }
 
 .noata-ds-specimen-footer {
@@ -1268,7 +1290,7 @@ html[data-theme="dark"] .noata-ds-pill-challenge {
   font-weight: 750 !important;
   border: none !important;
   cursor: pointer !important;
-  transition: transform 0.15s ease !important;
+  transition: transform 0.15s ease;
 }
 .noata-ds-specimen-btn:hover {
   transform: translateY(-1px) !important;
@@ -1327,7 +1349,7 @@ html[data-theme="dark"] .noata-ds-pill-challenge {
   border: 1px solid color-mix(in srgb, #10b981 25%, transparent) !important;
   font-size: 11px !important;
   font-weight: 700 !important;
-  color: #059669 !important;
+  color: #047857 !important;
   line-height: 1.45 !important;
 }
 html[data-theme="dark"] .noata-ds-contrast-banner {
@@ -1342,7 +1364,7 @@ html[data-theme="dark"] .noata-ds-contrast-banner {
   width: 18px !important;
   height: 18px !important;
   border-radius: 50% !important;
-  background: #10b981 !important;
+  background: #047857 !important;
   color: #ffffff !important;
   flex-shrink: 0 !important;
 }
@@ -1360,7 +1382,7 @@ html[data-theme="dark"] .noata-ds-contrast-banner {
   font-size: 12.5px !important;
   font-weight: 750 !important;
   width: fit-content !important;
-  animation: dsFadeIn 0.25s ease !important;
+  animation: dsFadeIn 0.25s ease;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 15%, transparent) !important;
 }
 
@@ -1398,15 +1420,258 @@ html[data-theme="dark"] .noata-ds-contrast-banner {
   text-align: center !important;
 }
 
+/* Stage 09: Design Studio Manual Token Editor & Settings Tabs / Goals */
+.noata-design-studio-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
 
+.noata-design-studio-intro {
+  flex: 1 1 260px;
+  min-width: 0;
+}
 
-@keyframes dsFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+.noata-design-reset-btn,
+.noata-design-manual-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.noata-design-reset-btn:hover:not(:disabled),
+.noata-design-manual-start:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.noata-design-manual-start {
+  margin-top: 8px;
+}
+
+.noata-design-manual-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.noata-design-manual-name {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.noata-design-manual-name input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.noata-design-manual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.noata-design-hex-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.noata-design-hex-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.noata-design-hex-inputs input[type="color"] {
+  width: 38px;
+  height: 38px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.noata-design-hex-inputs input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.noata-design-hex-inputs input[aria-invalid="true"] {
+  border-color: var(--danger, #c62828);
+}
+
+.noata-design-contrast-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.noata-design-ratio-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.noata-design-ratio-pill.is-aaa,
+.noata-design-ratio-pill.is-aa {
+  border-color: color-mix(in srgb, #10b981 45%, var(--line));
+  color: #065f46;
+}
+
+html[data-theme="dark"] .noata-design-ratio-pill.is-aaa,
+html[data-theme="dark"] .noata-design-ratio-pill.is-aa {
+  color: #6ee7b7;
+}
+
+.noata-design-ratio-pill.is-low {
+  border-color: color-mix(in srgb, #dc2626 45%, var(--line));
+  color: #b91c1c;
+}
+
+html[data-theme="dark"] .noata-design-ratio-pill.is-low {
+  color: #fca5a5;
+}
+
+button.noata-ds-pill {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.aura-settings-tabs-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.noata-settings-subpanel {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.noata-settings-subpanel h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.noata-settings-goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.noata-settings-widgets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.noata-settings-widget-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
+.noata-settings-widget-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.noata-settings-widget-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.noata-settings-widget-actions button {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.noata-settings-widget-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+html[data-reduced-motion="true"] .noata-ds-interactive-toast,
+html[data-reduced-motion="true"] .noata-design-reset-btn,
+html[data-reduced-motion="true"] .noata-design-manual-start {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .noata-ds-interactive-toast,
+  .noata-design-reset-btn,
+  .noata-design-manual-start {
+    animation: none !important;
+    transition: none !important;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+}
 }

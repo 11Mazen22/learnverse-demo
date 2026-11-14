@@ -27,7 +27,7 @@ export function SidebarHeader({
     <div className={`noata-sidebar-head ${isCollapsed ? "is-collapsed-head" : ""}`}>
       <Link
         href="/"
-        className="noata-sidebar-brand"
+        className="sidebar-brand noata-sidebar-brand"
         aria-label={t("Noäta — الصفحة الرئيسية", "Noäta — Home")}
         onClick={onNavigateHome}
       >

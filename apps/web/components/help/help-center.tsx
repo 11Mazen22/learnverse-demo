@@ -1,7 +1,7 @@
 "use client";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import Link from "next/link";
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useRef,useState} from "react";
 import {Icon} from "@/components/ui/icon";
 
 type Category="getting-started"|"learning"|"ai"|"account";
@@ -37,6 +37,32 @@ const STEPS=[
  const [query,setQuery]=useState("");
  const [category,setCategory]=useState<(typeof CATEGORIES)[number]["id"]>("all");
  const [open,setOpen]=useState<string[]>([]);
+ const listRef=useRef<HTMLDivElement>(null);
+ useEffect(()=>{
+  const params=new URLSearchParams(window.location.search);
+  const raw=(params.get("topic")??window.location.hash.replace(/^#(help-topic-|help-)?/,"")).trim();
+  if(!raw)return;
+  if(!TOPICS.some(item=>item.id===raw))return;
+  setCategory("all");
+  setOpen(prev=>prev.includes(raw)?prev:[...prev,raw]);
+  const el=document.getElementById("help-topic-"+raw);
+  if(el){
+   const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches||document.documentElement.dataset.reducedMotion==="true";
+   requestAnimationFrame(()=>el.scrollIntoView({behavior:reduced?"instant":"smooth",block:"center"}));
+  }
+ },[]);
+ useEffect(()=>{
+  const container=listRef.current;
+  if(!container)return;
+  const onBeforeMatch=(event:Event)=>{
+   const target=event.target as HTMLElement|null;
+   if(!target?.id?.startsWith("help-"))return;
+   const id=target.id.slice(5);
+   setOpen(prev=>prev.includes(id)?prev:[...prev,id]);
+  };
+  container.addEventListener("beforematch",onBeforeMatch);
+  return ()=>container.removeEventListener("beforematch",onBeforeMatch);
+ },[]);
  const shown=useMemo(()=>TOPICS.filter(t=>{
   if(category!=="all"&&t.category!==category)return false;
   const haystack=(t.title+" "+t.body).toLowerCase();
@@ -56,24 +82,29 @@ const STEPS=[
   <section className="aura-help-content" aria-labelledby="aura-help-heading">
    <div className="aura-help-heading">
     <div><span className="eyebrow">{t("دليلك داخل Noata","Your guide to Noata")}</span><h2 id="aura-help-heading">{t("موضوعات المساعدة","Help topics")}</h2></div>
-    <span>{shown.length}{t("موضوع","topics")}</span>
+    <span>{shown.length} {t("موضوع","topics")}</span>
    </div>
    <div className="aura-help-filters" role="group" aria-label={t("تصفية موضوعات المساعدة","Filter help topics")}>
     {CATEGORIES.map(c=><button type="button" key={c.id} aria-pressed={category===c.id}
      onClick={()=>setCategory(c.id)}>{c.label}</button>)}
    </div>
-   <div className="aura-help-topics">
-    {shown.map(t=><article key={t.id} className="aura-help-topic">
-     <button type="button" aria-expanded={open.includes(t.id)} aria-controls={"help-"+t.id}
-      onClick={()=>setOpen(list=>list.includes(t.id)?list.filter(x=>x!==t.id):[...list,t.id])}>
-      <Icon name={t.category==="ai"?"ai":t.category==="learning"?"book":t.category==="account"?"settings":"help"} size={19}/>
-      <strong>{t.title}</strong>
+   <div className="aura-help-topics" ref={listRef}>
+    {shown.map(topic=>{
+     const isOpen=open.includes(topic.id);
+     return <article key={topic.id} id={"help-topic-"+topic.id} className="aura-help-topic">
+     <button type="button" aria-expanded={isOpen} aria-controls={"help-"+topic.id}
+      onClick={()=>setOpen(list=>list.includes(topic.id)?list.filter(x=>x!==topic.id):[...list,topic.id])}>
+      <Icon name={topic.category==="ai"?"ai":topic.category==="learning"?"book":topic.category==="account"?"settings":"help"} size={19}/>
+      <strong>{topic.title}</strong>
       <Icon name="chevron" size={15}/>
      </button>
-     {open.includes(t.id)&&<div className="aura-help-answer" id={"help-"+t.id}>
-      <p>{t.body}</p><Link href={t.href}>{t.link} <Icon name="arrow" size={15}/></Link>
-     </div>}
-    </article>)}
+     <div className="aura-help-panel" id={"help-"+topic.id} hidden={isOpen?undefined:("until-found" as unknown as boolean)}>
+      <div className="aura-help-answer">
+       <p>{topic.body}</p><Link href={topic.href}>{topic.link} <Icon name="arrow" size={15}/></Link>
+      </div>
+     </div>
+    </article>;
+    })}
     {!shown.length&&<div className="aura-help-empty">
       <Icon name="search" size={29}/><h3>{t("ملقيناش موضوع بنفس البحث","No matching topics")}</h3>
       <p>{t("جرّب كلمة مختلفة أو اختار «كل المواضيع».","Try a different word or select All topics.")}</p>

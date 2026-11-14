@@ -68,10 +68,21 @@ export function Sidebar({
     });
   }, [isMobileDrawer, onCollapsedChange]);
 
-  // Global keyboard shortcut: Ctrl+B or ⌘B to toggle collapse
+  // Global keyboard shortcut: Ctrl+B or ⌘B to toggle collapse (suppressed during text input / IME)
   useEffect(() => {
     if (isMobileDrawer) return;
     function handleKeyDown(e: KeyboardEvent) {
+      if (e.isComposing) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
         e.preventDefault();
         toggleCollapsed();
@@ -149,6 +160,7 @@ export function Sidebar({
   return (
     <aside
       className={[
+        "noata-sidebar",
         "noata-sidebar-aura",
         effectiveCollapsed && "is-collapsed",
         effectiveCollapsed && "noata-compact-rail",
@@ -294,8 +306,8 @@ export function Sidebar({
               icon="clipboard"
               labelAr="مركز المذاكرة"
               labelEn="Study Center"
-              descriptionAr="مولّد كويزجيكو الذكي، اختبارات تفاعلية، وبطاقات 3D"
-              descriptionEn="QuizGecko generator, interactive quizzes & 3D cards"
+              descriptionAr="استوديو المذاكرة الذكي وبطاقات 3D"
+              descriptionEn="Smart study studio, quizzes & 3D cards"
               isActive={active === "/study"}
               isCollapsed={effectiveCollapsed}
               onClick={() => handleLinkClick("/study")}

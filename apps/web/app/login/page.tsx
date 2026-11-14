@@ -299,7 +299,17 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
               )}
               <label className="auth-field">
                 <span>{t("البريد الإلكتروني","Email")}</span>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" dir="ltr" placeholder="name@example.com" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  dir="ltr"
+                  placeholder="name@example.com"
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "auth-form-error" : undefined}
+                />
               </label>
               {mode !== "forgot" && (
                 <div className="auth-field">
@@ -318,6 +328,8 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
                       autoComplete={mode === "signup" ? "new-password" : "current-password"}
                       dir="ltr"
                       placeholder={mode === "signup" ? t("12 حرفًا على الأقل","At least 12 characters") : "••••••••"}
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? "auth-form-error" : undefined}
                     />
                     <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? t("إخفاء كلمة المرور","Hide password") : t("إظهار كلمة المرور","Show password")}>
                       <Icon name={showPassword ? "eye-off" : "eye"} size={18}/>
@@ -326,7 +338,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
                   </span>
                 </div>
               )}
-              {error && <p className="auth-alert is-error" role="alert">{error}</p>}
+              {error && <p id="auth-form-error" className="auth-alert is-error" role="alert">{error}</p>}
               {message && <p className="auth-alert is-success" role="status">{message}</p>}
               <button className="auth-primary" disabled={busy !== ""}>
                 {busy === "form"

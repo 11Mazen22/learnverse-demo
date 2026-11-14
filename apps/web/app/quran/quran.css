@@ -1,4 +1,5 @@
 @font-face{font-family:AmiriQuran;src:url("/fonts/amiri-quran.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@layer study {
 .mushaf.aura-quran{--mushaf-tint:color-mix(in srgb,var(--accent) 7%,var(--surface));gap:22px;max-width:1440px;margin-inline:auto;color:var(--ink)}
 .mushaf :is(button,input,select,summary){font-family:inherit}
 .mushaf button{cursor:pointer}
@@ -124,5 +125,8 @@
 @keyframes mushaf-illuminate{from{opacity:0}to{opacity:1}}
 @media(max-width:850px){.mushaf-explorer-toggle{display:flex;align-items:center;gap:10px;min-height:48px;width:100%;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:13px;color:var(--ink);font-size:12px}.mushaf-explorer-toggle>span{flex:1;text-align:start}.mushaf-side:not(.is-open) #mushaf-explorer{display:none}.mushaf-side{gap:10px}}
 @media(max-width:520px){.mushaf-player{padding:20px 14px}.mushaf-sources-grid{grid-template-columns:1fr;gap:14px}.mushaf .mushaf-attribution{padding:20px}.mushaf-player-controls{gap:4px}.mushaf-player-controls>button.mushaf-player-play{width:54px;height:54px}.mushaf .aura-quran-ayah{gap:8px}.mushaf-search-help{padding-inline:4px}}
-@media(prefers-reduced-motion:reduce){.mushaf *, .mushaf *::before,.mushaf *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.mushaf-reciter-card:hover{transform:none}}
-html[data-reduced-motion=true] .mushaf *,html[data-reduced-motion=true] .mushaf *::before{animation:none!important;transition:none!important;scroll-behavior:auto!important}html[data-reduced-motion=true] .mushaf-reciter-card:hover{transform:none}
+}
+@layer utilities {
+@media(prefers-reduced-motion:reduce){.mushaf *, .mushaf *::before,.mushaf *::after{animation:none;transition:none;scroll-behavior:auto}.mushaf-reciter-card:hover{transform:none}}
+html[data-reduced-motion=true] .mushaf *,html[data-reduced-motion=true] .mushaf *::before{animation:none;transition:none;scroll-behavior:auto}html[data-reduced-motion=true] .mushaf-reciter-card:hover{transform:none}
+}

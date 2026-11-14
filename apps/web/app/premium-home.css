@@ -1,5 +1,6 @@
 /* Premium Noata Home — Futuristic AI Aesthetic */
 
+@layer sections {
 @keyframes orbFloat {
   0%, 100% { transform: translate(0, 0) scale(1); }
   25% { transform: translate(30px, -20px) scale(1.05); }
@@ -253,11 +254,15 @@
 }
 
 /* Reduced motion */
+}
+@layer utilities {
 @media (prefers-reduced-motion: reduce) {
-  .p-hero-atmosphere .orb { animation: none !important; }
+  .p-hero-atmosphere .orb { animation: none; }
   .p-h1 { animation: none; }
   .p-glass { transition: none; }
 }
+}
+@layer sections {
 
 /* Responsive */
 @media (max-width: 720px) {
@@ -354,4 +359,5 @@
     flex-direction: column;
     gap: 12px;
   }
+}
 }

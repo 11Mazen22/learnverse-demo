@@ -4,6 +4,7 @@ import {LocaleProvider} from "@/lib/i18n/locale";
 import {VerifiedAccountProvider} from "@/lib/supabase/use-verified-account";
 import { ConfirmHost } from "@/components/ui/confirm-dialog";
 import { TooltipHost } from "@/components/ui/tooltip-host";
+import { ToastProvider } from "@/components/ui/toast";
 
 export const viewport: Viewport = {
   themeColor: [
@@ -11,7 +12,8 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#071327" },
   ],
 };
-import "katex/dist/katex.min.css";
+import "./styles/layers.css";
+import "./styles/tokens.css";
 import "./globals.css";
 import "./marketing.css";
 import "./marketing-premium.css";
@@ -41,6 +43,8 @@ import "./tooltip-system.css";
 import "./staff-studio.css";
 import "./tour-system.css";
 import "./ai-flow.css";
+import "./styles/ui.css";
+import "./styles/patterns.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { ExperienceBoot } from "@/components/preferences/experience-boot";
 import { LocalizedSkipLink } from "@/components/ui/localized-skip-link";
@@ -64,22 +68,42 @@ export const metadata: Metadata = {
   },
 };
 
+const NOATA_PREHYDRATION_BOOT_SCRIPT = `(() => {
+  try {
+    var r = document.documentElement;
+    var p = localStorage.getItem("noata-palette");
+    var pal = ["classic","aura","ocean","forest","sunset","rose","midnight","custom"].indexOf(p) !== -1 ? p : "classic";
+    r.dataset.palette = pal;
+    r.dataset.modeConstraint = pal === "midnight" ? "dark" : "none";
+    var m = localStorage.getItem("noata-theme");
+    var d = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    var t = pal === "midnight" ? "dark" : (m === "dark" ? "dark" : m === "light" ? "light" : (d ? "dark" : "light"));
+    r.dataset.theme = t;
+    r.style.colorScheme = t;
+  } catch (e) {}
+})();`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const initialLocale = (await cookies()).get("noata_locale")?.value === "en" ? "en" : "ar";
   return (
     <html lang={initialLocale} dir={initialLocale === "en" ? "ltr" : "rtl"} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NOATA_PREHYDRATION_BOOT_SCRIPT }} />
+      </head>
       <body>
         <LocaleProvider initialLocale={initialLocale}>
         <VerifiedAccountProvider>
         <AuraTourProvider>
+        <ToastProvider>
         <LocalizedSkipLink />
         <PwaRegister />
         <ExperienceBoot />
         {children}
         <ConfirmHost />
         <TooltipHost />
+        </ToastProvider>
         </AuraTourProvider>
         </VerifiedAccountProvider>
         </LocaleProvider>

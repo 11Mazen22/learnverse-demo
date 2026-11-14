@@ -1,0 +1,846 @@
+/* ==========================================================================
+   NOÄTA 4-TIER DESIGN SYSTEM — TIER 3 REUSABLE UI PRIMITIVES
+   Strictly layered in @layer components and @layer utilities.
+   Uses logical CSS properties for seamless Arabic RTL & English LTR support.
+   ========================================================================== */
+
+@layer components {
+  /* Native top-layer modal hardening */
+  dialog:modal {
+    overscroll-behavior: contain;
+  }
+
+  dialog::backdrop {
+    background: var(--backdrop-scrim);
+    overflow: hidden;
+    overscroll-behavior: contain;
+    backdrop-filter: blur(6px);
+  }
+
+  /* ------------------------------------------------------------------------
+     Buttons (.nk-btn)
+     ------------------------------------------------------------------------ */
+  .nk-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: var(--target-min);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 750;
+    line-height: 1.25;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease),
+      transform var(--dur-fast) var(--ease);
+  }
+
+  .nk-btn:focus-visible {
+    outline: var(--focus-width) solid var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  .nk-btn:disabled,
+  .nk-btn[aria-disabled="true"] {
+    opacity: 0.56;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .nk-btn--sm {
+    min-height: 36px;
+    padding-block: var(--space-1);
+    padding-inline: var(--space-3);
+    font-size: var(--text-xs);
+    border-radius: var(--radius-xs);
+  }
+
+  /* Ensure compact buttons still preserve a 44px touch target hit area */
+  .nk-btn--sm::after {
+    content: "";
+    position: absolute;
+    inset-block: -4px;
+    inset-inline: 0;
+  }
+
+  .nk-btn--lg {
+    min-height: 50px;
+    padding-block: var(--space-3);
+    padding-inline: var(--space-6);
+    font-size: var(--text-md);
+    border-radius: var(--radius-md);
+  }
+
+  .nk-btn--full {
+    width: 100%;
+  }
+
+  .nk-btn--icon {
+    width: var(--target-min);
+    min-width: var(--target-min);
+    padding-inline: 0;
+  }
+
+  .nk-btn--primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .nk-btn--primary:hover:not(:disabled, [aria-disabled="true"]) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nk-btn--secondary {
+    background: var(--surface);
+    border-color: var(--line-strong);
+    color: var(--ink);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .nk-btn--secondary:hover:not(:disabled, [aria-disabled="true"]) {
+    border-color: var(--accent);
+    background: var(--hover-bg);
+    color: var(--accent);
+  }
+
+  .nk-btn--subtle {
+    background: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+    color: var(--accent);
+  }
+
+  .nk-btn--subtle:hover:not(:disabled, [aria-disabled="true"]) {
+    background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+    border-color: var(--accent);
+  }
+
+  .nk-btn--ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ink);
+  }
+
+  .nk-btn--ghost:hover:not(:disabled, [aria-disabled="true"]) {
+    background: var(--hover-bg);
+    color: var(--accent);
+  }
+
+  .nk-btn--danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--surface);
+  }
+
+  .nk-btn--danger:hover:not(:disabled, [aria-disabled="true"]) {
+    filter: brightness(0.94);
+    transform: translateY(-1px);
+  }
+
+  .nk-btn-spinner {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: var(--radius-pill);
+    flex-shrink: 0;
+  }
+
+  /* ------------------------------------------------------------------------
+     Cards (.nk-card)
+     ------------------------------------------------------------------------ */
+  .nk-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    color: var(--ink);
+    min-width: 0;
+    transition:
+      border-color var(--dur-base) var(--ease),
+      box-shadow var(--dur-base) var(--ease),
+      transform var(--dur-base) var(--ease);
+  }
+
+  .nk-card--pad-none {
+    padding: 0;
+  }
+
+  .nk-card--pad-sm {
+    padding: var(--space-4);
+  }
+
+  .nk-card--pad-md {
+    padding: var(--gutter-card);
+  }
+
+  .nk-card--pad-lg {
+    padding: clamp(1.25rem, 2.8vw, 2rem);
+  }
+
+  .nk-card--surface-elevated {
+    background: var(--surface-elevated);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .nk-card--surface-soft {
+    background: var(--surface-soft);
+  }
+
+  .nk-card--surface-tinted {
+    background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+  }
+
+  .nk-card--interactive:hover {
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  /* ------------------------------------------------------------------------
+     Badges & Status Pills (.nk-badge)
+     ------------------------------------------------------------------------ */
+  .nk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: 24px;
+    padding-block: 2px;
+    padding-inline: var(--space-3);
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+    font-size: var(--text-xs);
+    font-weight: 750;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .nk-badge--neutral {
+    background: var(--surface-soft);
+    border-color: var(--line);
+    color: var(--ink);
+  }
+
+  .nk-badge--accent {
+    background: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+    color: var(--accent);
+  }
+
+  .nk-badge--success {
+    background: var(--success-soft);
+    border-color: color-mix(in srgb, var(--success) 32%, transparent);
+    color: var(--success);
+  }
+
+  .nk-badge--warning {
+    background: var(--warning-soft);
+    border-color: color-mix(in srgb, var(--warning) 32%, transparent);
+    color: var(--warning);
+  }
+
+  .nk-badge--danger {
+    background: var(--danger-soft);
+    border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+    color: var(--danger);
+  }
+
+  /* ------------------------------------------------------------------------
+     Forms, Inputs, Fieldsets & Validation (.nk-field)
+     ------------------------------------------------------------------------ */
+  .nk-fieldset {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+    padding: var(--space-4);
+    margin: 0;
+    min-width: 0;
+  }
+
+  .nk-legend {
+    padding-inline: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .nk-field {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    text-align: start;
+  }
+
+  .nk-field-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    font-weight: 750;
+    color: var(--ink);
+  }
+
+  .nk-field-required {
+    color: var(--danger);
+  }
+
+  .nk-input,
+  .nk-select,
+  .nk-textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--target-min);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-3);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: max(1rem, 1em);
+    line-height: 1.5;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
+  }
+
+  .nk-textarea {
+    min-height: 108px;
+    resize: vertical;
+  }
+
+  .nk-input:focus-visible,
+  .nk-select:focus-visible,
+  .nk-textarea:focus-visible {
+    outline: var(--focus-width) solid var(--focus-ring);
+    outline-offset: 2px;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--focus-ring-soft);
+  }
+
+  .nk-input:user-invalid,
+  .nk-select:user-invalid,
+  .nk-textarea:user-invalid,
+  .nk-input[aria-invalid="true"],
+  .nk-select[aria-invalid="true"],
+  .nk-textarea[aria-invalid="true"] {
+    border-color: var(--danger);
+  }
+
+  .nk-input:user-invalid:focus-visible,
+  .nk-select:user-invalid:focus-visible,
+  .nk-textarea:user-invalid:focus-visible,
+  .nk-input[aria-invalid="true"]:focus-visible,
+  .nk-select[aria-invalid="true"]:focus-visible,
+  .nk-textarea[aria-invalid="true"]:focus-visible {
+    outline-color: var(--danger);
+    box-shadow: 0 0 0 4px var(--danger-soft);
+  }
+
+  .nk-input:disabled,
+  .nk-select:disabled,
+  .nk-textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--surface-soft);
+  }
+
+  .nk-field-hint {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: var(--leading-snug);
+    color: var(--muted);
+  }
+
+  .nk-field-error {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    line-height: var(--leading-snug);
+    color: var(--danger);
+  }
+
+  /* ------------------------------------------------------------------------
+     Tabs (.nk-tabs) — Single horizontal row + border active indicator
+     ------------------------------------------------------------------------ */
+  .nk-tabs {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .nk-tablist {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--space-1);
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-block-end: 1px solid var(--line);
+    padding-block-end: 0;
+  }
+
+  .nk-tablist::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nk-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    flex: 0 0 auto;
+    min-height: var(--target-min);
+    padding-block: var(--space-2);
+    padding-inline: var(--space-4);
+    border: 0;
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      color var(--dur-fast) var(--ease),
+      background-color var(--dur-fast) var(--ease);
+  }
+
+  .nk-tab:hover {
+    color: var(--ink);
+    background: var(--hover-bg);
+  }
+
+  .nk-tab:focus-visible {
+    outline: var(--focus-width) solid var(--focus-ring);
+    outline-offset: -3px;
+  }
+
+  .nk-tab[aria-selected="true"] {
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  /* Rendered via border (never box-shadow/background-only) so Forced Colors stays visible */
+  .nk-tab[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: var(--space-2);
+    inset-block-end: 0;
+    border-block-end: 3px solid currentColor;
+  }
+
+  .nk-tabpanel {
+    min-width: 0;
+  }
+
+  /* ------------------------------------------------------------------------
+     Responsive Tables (.nk-table) — Container-query card transform < 600px
+     ------------------------------------------------------------------------ */
+  .nk-table-wrap {
+    container-type: inline-size;
+    container-name: nk-table;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+
+  .nk-table-wrap:focus-visible {
+    outline: var(--focus-width) solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .nk-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .nk-table thead th {
+    background: var(--table-header-bg);
+    color: var(--muted);
+    font-size: var(--text-xs);
+    font-weight: 800;
+    text-align: start;
+    padding-block: var(--space-3);
+    padding-inline: var(--space-4);
+    border-block-end: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  .nk-table tbody th,
+  .nk-table tbody td {
+    padding-block: var(--space-3);
+    padding-inline: var(--space-4);
+    border-block-end: 1px solid var(--line);
+    text-align: start;
+    vertical-align: middle;
+  }
+
+  .nk-table tbody th {
+    font-weight: 750;
+  }
+
+  .nk-table tbody tr:last-child :is(th, td) {
+    border-block-end: 0;
+  }
+
+  .nk-table tbody tr:hover {
+    background: var(--hover-bg);
+  }
+
+  @container nk-table (width < 600px) {
+    .nk-table thead {
+      display: none;
+    }
+
+    .nk-table,
+    .nk-table tbody,
+    .nk-table tr,
+    .nk-table th,
+    .nk-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .nk-table tbody tr {
+      padding: var(--space-3) var(--space-4);
+      border-block-end: 1px solid var(--line);
+    }
+
+    .nk-table tbody tr:last-child {
+      border-block-end: 0;
+    }
+
+    .nk-table tbody th,
+    .nk-table tbody td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding-block: var(--space-2);
+      padding-inline: 0;
+      border-block-end: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+    }
+
+    .nk-table tbody tr :is(th, td):last-child {
+      border-block-end: 0;
+    }
+
+    .nk-table tbody td[data-label]::before {
+      content: attr(data-label);
+      color: var(--muted);
+      font-size: var(--text-xs);
+      font-weight: 750;
+      text-align: start;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Skeletons (.nk-skeleton)
+     ------------------------------------------------------------------------ */
+  .nk-skeleton {
+    display: block;
+    background: color-mix(in srgb, var(--ink) 8%, var(--surface-soft));
+    border-radius: var(--radius-xs);
+  }
+
+  .nk-skeleton--text {
+    height: 0.95rem;
+    width: 100%;
+  }
+
+  .nk-skeleton--circle {
+    border-radius: var(--radius-pill);
+  }
+
+  .nk-skeleton--card {
+    border-radius: var(--radius-lg);
+    min-height: 120px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .nk-btn-spinner {
+      animation: nk-spin 0.8s linear infinite;
+    }
+
+    .nk-skeleton {
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--ink) 7%, var(--surface-soft)) 25%,
+        color-mix(in srgb, var(--ink) 13%, var(--surface-soft)) 50%,
+        color-mix(in srgb, var(--ink) 7%, var(--surface-soft)) 75%
+      );
+      background-size: 200% 100%;
+      animation: nk-shimmer 1.6s var(--ease) infinite;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Empty State (.nk-empty)
+     ------------------------------------------------------------------------ */
+  .nk-empty {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: var(--space-3);
+    padding: clamp(1.5rem, 4vw, 3rem);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+    color: var(--ink);
+  }
+
+  .nk-empty-icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--line));
+  }
+
+  .nk-empty-title {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .nk-empty-desc {
+    margin: 0;
+    max-width: var(--measure-narrow);
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--muted);
+  }
+
+  .nk-empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-block-start: var(--space-2);
+  }
+
+  /* ------------------------------------------------------------------------
+     Drawer (.nk-drawer) — Native top-layer modal drawer with RTL logical side
+     ------------------------------------------------------------------------ */
+  dialog.nk-drawer {
+    position: fixed;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--surface);
+    color: var(--ink);
+    width: min(440px, 100vw);
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    box-shadow: var(--shadow-overlay);
+    border-inline-start: 1px solid var(--line);
+    inset-block: 0;
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+  }
+
+  dialog.nk-drawer[data-side="start"] {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    border-inline-start: 0;
+    border-inline-end: 1px solid var(--line);
+  }
+
+  dialog.nk-drawer[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nk-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-block-end: 1px solid var(--line);
+    flex: none;
+  }
+
+  .nk-drawer-title {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .nk-drawer-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--space-5);
+  }
+
+  .nk-drawer-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    border-block-start: 1px solid var(--line);
+    flex: none;
+  }
+
+  /* ------------------------------------------------------------------------
+     Toast System (.nk-toast-region & .nk-toast)
+     ------------------------------------------------------------------------ */
+  .nk-toast-region {
+    position: fixed;
+    inset-block-end: max(var(--space-5), env(safe-area-inset-bottom));
+    inset-inline-end: var(--space-5);
+    z-index: var(--z-toast);
+    display: grid;
+    gap: var(--space-2);
+    width: min(380px, calc(100vw - 2 * var(--space-4)));
+    pointer-events: none;
+  }
+
+  @media (max-width: 800px) {
+    .nk-toast-region {
+      inset-block-end: max(88px, calc(78px + env(safe-area-inset-bottom)));
+      inset-inline: var(--space-3);
+      width: auto;
+    }
+  }
+
+  .nk-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--surface-elevated);
+    color: var(--ink);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .nk-toast--success {
+    border-inline-start: 4px solid var(--success);
+  }
+
+  .nk-toast--warning {
+    border-inline-start: 4px solid var(--warning);
+  }
+
+  .nk-toast--danger {
+    border-inline-start: 4px solid var(--danger);
+  }
+
+  .nk-toast--info {
+    border-inline-start: 4px solid var(--accent);
+  }
+
+  .nk-toast-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+  }
+
+  .nk-toast-title {
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .nk-toast-desc {
+    font-size: var(--text-xs);
+    color: var(--muted);
+  }
+
+  @keyframes nk-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes nk-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+}
+
+@layer utilities {
+  .visually-hidden:where(:not(:focus-within, :active)) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nk-btn,
+    .nk-card,
+    .nk-input,
+    .nk-select,
+    .nk-textarea,
+    .nk-tab,
+    .nk-toast {
+      transition: none;
+    }
+
+    .nk-btn-spinner,
+    .nk-skeleton {
+      animation: none;
+    }
+  }
+
+  html[data-reduced-motion="true"] :is(.nk-btn, .nk-card, .nk-tab, .nk-toast),
+  html[data-noata-motion="off"] :is(.nk-btn, .nk-card, .nk-tab, .nk-toast) {
+    transition: none;
+  }
+
+  html[data-reduced-motion="true"] .nk-skeleton,
+  html[data-noata-motion="off"] .nk-skeleton {
+    animation: none;
+  }
+}

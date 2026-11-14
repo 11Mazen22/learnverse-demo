@@ -14,6 +14,7 @@ import { CurriculumManager } from "@/components/admin/curriculum-manager";
 import { CurriculumCatalogAdmin } from "@/components/admin/curriculum-catalog-admin";
 import { filterStaffSearch, paginateStaffItems } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
+import { SchoolGovernancePanels } from "@/components/admin/school-governance-panels";
 
 type Question = {
   id: string;
@@ -695,7 +696,16 @@ export function AdminLive() {
                     [t("السؤال بالعربية", "Question (Arabic)"), t("السؤال بالإنجليزية", "Question (English)"), t("النوع", "Type"), t("حالة المراجعة", "Review status"), t("حالة النشر", "Publication status")],
                     visibleQuestions.map((question) => [question.prompt_ar, question.prompt_en, question.question_type, question.review_status, question.publication_status]),
                   );
-                  if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                  if (started) {
+                    void Promise.resolve(
+                      supabase.rpc("log_staff_export", {
+                        p_entity_type: "admin_questions",
+                        p_row_count: visibleQuestions.length,
+                      }),
+                    ).catch(() => {});
+                  } else {
+                    setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                  }
                 }}
               >{t("تصدير CSV", "Export CSV")}</button>
             </div>
@@ -754,17 +764,11 @@ export function AdminLive() {
                     <div style={{ display: "flex", gap: 6 }}>
                       {q.review_status === "in_review" && (
                         <button
-                          className="btn"
+                          className="btn noata-staff-warning-btn"
                           disabled={busy}
                           onClick={() =>
                             void transition(q.id, "return_to_draft")
                           }
-                          style={{
-                            background: "#fff3e8",
-                            color: "#a65c16",
-                            minHeight: 38,
-                            padding: "0 10px",
-                          }}
                         >{t("إعادة إلى المسودة","Return to draft")}</button>
                       )}
                       {action && (
@@ -813,7 +817,12 @@ export function AdminLive() {
         </div>
       )}
       {tab === "support" && <div data-tour="admin-support"><SupportManagerAdmin /></div>}
-      {tab === "operations" && <div data-tour="admin-operations"><OperationsLive /></div>}
+      {tab === "operations" && (
+        <div data-tour="admin-operations" style={{ display: "grid", gap: 18 }}>
+          <OperationsLive />
+          <SchoolGovernancePanels adminId={account.user?.id} />
+        </div>
+      )}
 
       {tab === "users" && (
         <section className="panel" data-tour="admin-users" style={{ marginTop: 18 }}>
@@ -865,7 +874,16 @@ export function AdminLive() {
                   [t("الاسم","Display name"), t("الدور","Role"), "XP", t("العملات","Coins")],
                   visibleProfiles.map((profile) => [profile.display_name, profile.role, profile.xp, profile.coins]),
                 );
-                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                if (started) {
+                  void Promise.resolve(
+                    supabase.rpc("log_staff_export", {
+                      p_entity_type: "admin_accounts",
+                      p_row_count: visibleProfiles.length,
+                    }),
+                  ).catch(() => {});
+                } else {
+                  setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                }
               }}
             >{t("تصدير CSV", "Export CSV")}</button>
           </div>
@@ -1028,7 +1046,16 @@ export function AdminLive() {
                     classRow.active ? t("نعم","Yes") : t("لا","No"),
                   ]),
                 );
-                if (!started) setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                if (started) {
+                  void Promise.resolve(
+                    supabase.rpc("log_staff_export", {
+                      p_entity_type: "admin_classes",
+                      p_row_count: visibleClasses.length,
+                    }),
+                  ).catch(() => {});
+                } else {
+                  setStatus(t("تعذّر بدء تنزيل الملف.", "Could not start the file download."));
+                }
               }}
             >{t("تصدير CSV", "Export CSV")}</button>
           </div>

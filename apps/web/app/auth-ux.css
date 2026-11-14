@@ -1,4 +1,5 @@
 /* Noata Aura: polished authentication and measured motion without altering provider flows. */
+@layer sections {
 .auth-shell:not(.is-centered) {
   background:
     radial-gradient(ellipse at 18% 15%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 48%),
@@ -74,7 +75,10 @@ html[dir="ltr"] .noata-shell .nav-link:hover { transform:translateX(2px); }
 @keyframes noata-auth-enter { from { opacity:0; transform:translateY(13px) scale(.99); } to { opacity:1; transform:translateY(0) scale(1); } }
 @keyframes noata-auth-rise { from { opacity:0; transform:translateY(17px); } to { opacity:1; transform:translateY(0); } }
 @keyframes noata-auth-breathe { 0%,100% { opacity:.65; transform:scale(1); } 50% { opacity:1; transform:scale(1.045); } }
-@media (prefers-reduced-motion:reduce) {
-  .auth-shell *,.auth-shell *::before,.auth-shell *::after,.noata-shell .nav-link,.noata-shell .top-icon { animation:none !important; transition:none !important; transform:none !important; }
 }
-html[data-reduced-motion="true"] :is(.auth-shell,.noata-shell) *,html[data-reduced-motion="true"] :is(.auth-shell,.noata-shell) *::before { animation:none !important; transition:none !important; transform:none !important; }
+@layer utilities {
+@media (prefers-reduced-motion:reduce) {
+  .auth-shell *,.auth-shell *::before,.auth-shell *::after,.noata-shell .nav-link,.noata-shell .top-icon { animation:none; transition:none; transform:none; }
+}
+html[data-reduced-motion="true"] :is(.auth-shell,.noata-shell) *,html[data-reduced-motion="true"] :is(.auth-shell,.noata-shell) *::before { animation:none; transition:none; transform:none; }
+}

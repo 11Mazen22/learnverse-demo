@@ -5,8 +5,12 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
-import { createOperationKeys } from "@/lib/ai/operation-keys";
 import { createClient } from "@/lib/supabase/client";
+import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
+import {
+  AttemptIdempotencyController,
+  extractDistractorFeedback,
+} from "@/lib/curriculum/attempt-guard";
 
 type ReviewQuestion = {
   id: string;
@@ -48,7 +52,7 @@ export function ReviewLive() {
   const [answer, setAnswer] = useState("");
   const [grade, setGrade] = useState<Grade | null>(null);
   const { account, busy, status, run } = useConfirmedMutation();
-  const operationKeys = useRef(createOperationKeys());
+  const attemptGuard = useRef(new AttemptIdempotencyController());
   const signedIn = account.loading ? null : Boolean(account.user);
   const [error, setError] = useState("");
 
@@ -57,7 +61,7 @@ export function ReviewLive() {
   useEffect(() => {
     if (account.loading) return;
     let active = true;
-    operationKeys.current.clear();
+    attemptGuard.current.resetAll();
     setQuestions([]);
     setAnswer("");
     setGrade(null);
@@ -158,54 +162,57 @@ export function ReviewLive() {
     (x) => !x.next_review_at || new Date(x.next_review_at) <= new Date(),
   ).length;
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!current || !answer.trim() || busy) return;
-    await run(async (check) => {
-      setError("");
-      const { data, error } = await supabase.rpc("submit_attempt", {
-        p_question_id: current.id,
-        p_response: { value: answer },
-        p_assisted: false,
-        p_idempotency_key: operationKeys.current.get(
-          JSON.stringify([current.id, answer]),
-        ),
-        p_practice_repeat: false,
-      });
-      check();
-      if (error) throw error;
-      if (typeof (data as Grade | null)?.correct !== "boolean")
-        throw Error("Missing grade");
-      setGrade(data as Grade);
-    }, "");
+  async function submit(e?: FormEvent) {
+    e?.preventDefault();
+    if (!current || !answer.trim() || busy || attemptGuard.current.isBusy()) return;
+    await attemptGuard.current.runExclusive(async () => {
+      await run(async (check) => {
+        setError("");
+        const { data, error } = await supabase.rpc("submit_attempt", {
+          p_question_id: current.id,
+          p_response: { value: answer },
+          p_assisted: false,
+          p_idempotency_key: attemptGuard.current.getAttemptKey(current.id, answer),
+          p_practice_repeat: false,
+        });
+        check();
+        if (error) throw error;
+        if (typeof (data as Grade | null)?.correct !== "boolean")
+          throw Error("Missing grade");
+        attemptGuard.current.clearAttempt(current.id);
+        setGrade(data as Grade);
+      }, "");
+    });
   }
 
   async function next() {
-    if (!current || !grade) return;
-    await run(async (check) => {
-      if (grade && !grade.correct) {
-        const { data: variant, error: variantError } = await supabase
-          .from("questions")
-          .select("id,skill_id,variant_of,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
-          .eq("variant_of", current.id)
-          .in("publication_status", ["published_demo", "published"])
-          .limit(1)
-          .maybeSingle();
-        check();
-        if (variantError) throw variantError;
-        if (variant) {
-          setQuestions((list) =>
-            list.map((q, i) => (i === idx ? (variant as ReviewQuestion) : q)),
-          );
-          setAnswer("");
-          setGrade(null);
-          return;
+    if (!current || !grade || busy || attemptGuard.current.isBusy()) return;
+    await attemptGuard.current.runExclusive(async () => {
+      await run(async (check) => {
+        if (grade && !grade.correct) {
+          const { data: variant, error: variantError } = await supabase
+            .from("questions")
+            .select("id,skill_id,variant_of,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata")
+            .eq("variant_of", current.id)
+            .in("publication_status", ["published_demo", "published"])
+            .limit(1)
+            .maybeSingle();
+          check();
+          if (variantError) throw variantError;
+          if (variant) {
+            setQuestions((list) =>
+              list.map((q, i) => (i === idx ? (variant as ReviewQuestion) : q)),
+            );
+            setAnswer("");
+            setGrade(null);
+            return;
+          }
         }
-      }
-      setAnswer("");
-      setGrade(null);
-      setIdx((x) => Math.min(x + 1, questions.length));
-    }, "");
+        setAnswer("");
+        setGrade(null);
+        setIdx((x) => Math.min(x + 1, questions.length));
+      }, "");
+    });
   }
 
   if (account.error)
@@ -288,35 +295,18 @@ export function ReviewLive() {
               {idx + 1}/{questions.length}
             </b>
           </div>
-          <form onSubmit={submit}>
+          <form onSubmit={(e) => void submit(e)}>
             {current?.question_type === "multiple-choice" ? (
-              <div style={{ display: "grid", gap: 10 }}>
-                 {options((contentLanguage==="en" ? current.choices_en : current.choices_ar)).map((option, i) => (
-                  <button
-                    key={option}
-                    type="button"
-                    disabled={Boolean(grade) || busy}
-                    onClick={() => setAnswer(String(i))}
-                    style={{
-                      textAlign: "start",
-                      padding: 14,
-                      borderRadius: 14,
-                      border:
-                        "1px solid " +
-                        (answer === String(i)
-                          ? "var(--accent)"
-                          : "var(--line)"),
-                      background:
-                        answer === String(i)
-                          ? "rgba(47,124,255,.08)"
-                          : "var(--surface)",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {(i + 1).toLocaleString(locale==="en"?"en":"ar-EG")}. {option}
-                  </button>
-                ))}
-              </div>
+              <ChoiceCardGroup
+                legend={t("خيارات المراجعة", "Review choices")}
+                options={options((contentLanguage === "en" ? current.choices_en : current.choices_ar))}
+                value={answer}
+                disabled={Boolean(grade) || busy}
+                contentDir={contentLanguage === "ar" ? "rtl" : "ltr"}
+                numericLabels
+                locale={locale === "en" ? "en" : "ar"}
+                onChange={(val) => setAnswer(val)}
+              />
             ) : (
               <input
                 className="search"
@@ -332,29 +322,40 @@ export function ReviewLive() {
               />
             )}
             {grade && (
-              <div
-                style={{
-                  marginTop: 16,
-                  padding: 16,
-                  borderRadius: 15,
-                  background: grade.correct
-                    ? "rgba(24,166,106,.09)"
-                    : "rgba(227,87,87,.08)",
-                }}
-              >
+              <div className="noata-grade-feedback" data-correct={grade.correct ? "true" : "false"}>
                 <b>{grade.correct ? t("صح 👏","Correct 👏") : t("لسه محتاجة محاولة تانية","Try again")}</b>
-                 <p>{(contentLanguage==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
+                <p style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
+                  {(contentLanguage === "en" ? grade.explanation_en ?? "" : grade.explanation_ar)}
+                </p>
+                {!grade.correct &&
+                  (() => {
+                    const tip = extractDistractorFeedback(current.metadata, answer, contentLanguage);
+                    return tip ? (
+                      <div className="noata-grade-misconception">
+                        <strong>{t("تنبيه حول هذا الخيار: ", "Misconception note: ")}</strong>
+                        {tip}
+                      </div>
+                    ) : null;
+                  })()}
                 {grade.mastery_score != null && (
-                  <small>{t("درجة الإتقان","Mastery")}{Math.round(Number(grade.mastery_score)).toLocaleString(locale==="en"?"en":"ar-EG")}{t("٪ ·","% ·")}{" "}
+                  <small>{t("درجة الإتقان ","Mastery ")}{Math.round(Number(grade.mastery_score)).toLocaleString(locale==="en"?"en":"ar-EG")}{t("٪ ·","% ·")}{" "}
                     {masteryLabel(grade.mastery_state,locale)}
                   </small>
                 )}
               </div>
             )}
             {(error || status) && (
-              <p role="alert" style={{ color: "var(--danger)" }}>
-                {error || status}
-              </p>
+              <div className="noata-retry-banner" role="alert">
+                <span>{error || status}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={busy}
+                  onClick={() => void (grade ? next() : submit())}
+                >
+                  {t("إعادة المحاولة بنفس الإجابة", "Retry safely")}
+                </button>
+              </div>
             )}
             <div
               style={{

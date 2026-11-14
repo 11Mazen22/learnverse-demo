@@ -38,6 +38,7 @@ export function RewardsLive() {
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [ledgerError, setLedgerError] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [shopFilter, setShopFilter] = useState<"all" | "avatar" | "outfit" | "companion" | "background">("all");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const {
@@ -299,17 +300,14 @@ export function RewardsLive() {
                   <Icon name="gift" size={22} />
                 </div>
                 <div>
-                  <h3>{t("صندوق","Box")}{box.tier === "gold" ? t("ذهبي","Gold") : box.tier === "silver" ? t("فضي","Silver") : box.tier === "bronze" ? t("برونزي","Bronze") : t("مكافآت","Reward")}</h3>
+                  <h3>{t("صندوق ","Box ")}{box.tier === "gold" ? t("ذهبي","Gold") : box.tier === "silver" ? t("فضي","Silver") : box.tier === "bronze" ? t("برونزي","Bronze") : t("مكافآت","Reward")}</h3>
                   <p>{t("مكافأة مُكتسبة من تقدمك في التعلّم","Earned through your learning progress")}</p>
                 </div>
                 <button
-                  className="btn"
+                  className="btn noata-reward-primary"
+                  style={{ width: "auto" }}
                   onClick={() => void claim(box)}
                   disabled={mutating || busy === "box:" + box.id}
-                  style={{
-                    background: "var(--accent)",
-                    color: "var(--surface)",
-                  }}
                 >
                   {busy === "box:" + box.id ? t("جارٍ الفتح…","Opening…") : t("افتح الصندوق","Open box")}
                 </button>
@@ -324,45 +322,47 @@ export function RewardsLive() {
           <h2>{t("مظهرك الحالي","Your current look")}</h2>
           <span className="pill">{equipped.size} {t("خيارات مفعّلة","items equipped")}</span>
         </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
-            gap: 10,
-          }}
-        >
-          {["avatar", "outfit", "companion", "background"].map((slot) => {
-            const item = items.find((x) => x.id === equipped.get(slot));
-            return (
-              <div
-                key={
-                  {
-                    avatar: t("الصورة الشخصية","Avatar"),
-                    outfit: t("المظهر","Outfit"),
-                    companion: t("الرفيق","Companion"),
-                    background: t("الخلفية","Background"),
-                  }[slot] ?? slot
-                }
-                style={{
-                  padding: 14,
-                  border: "1px solid var(--line)",
-                  borderRadius: 15,
-                }}
-              >
-                <small style={{ color: "var(--muted)" }}>
-                  {{
-                    avatar: t("الصورة الشخصية","Avatar"),
-                    outfit: t("المظهر","Outfit"),
-                    companion: t("الرفيق","Companion"),
-                    background: t("الخلفية","Background"),
-                  }[slot] ?? slot}
-                </small>
-                <b style={{ display: "block", marginTop: 5 }}>
-                  {item?(locale==="en"?item.title_en:item.title_ar):"—"}
-                </b>
-              </div>
-            );
-          })}
+        <div className="noata-avatar-preview">
+          <div className="noata-avatar-preview-stage" aria-label={t("معاينة الهوية البصرية الحالية","Current look preview")}>
+            <span className="noata-avatar-preview-badge" aria-hidden="true">
+              <Icon name="award" size={28} />
+            </span>
+            <strong>
+              {(() => {
+                const avatarItem = items.find((x) => x.id === equipped.get("avatar"));
+                if (avatarItem) return locale === "en" ? avatarItem.title_en : avatarItem.title_ar;
+                return t("المظهر الافتراضي","Starter Look");
+              })()}
+            </strong>
+            <small>
+              {equipped.size
+                ? locale === "en"
+                  ? `${equipped.size} of 4 cosmetic slots active`
+                  : `${equipped.size.toLocaleString("ar-EG")} من ٤ خانات مفعّلة`
+                : t("افتح المتجر لتجهيز صورتك ورفيقك","Equip items from the shop below")}
+            </small>
+          </div>
+          <div className="noata-avatar-preview-slots">
+            {["avatar", "outfit", "companion", "background"].map((slot) => {
+              const item = items.find((x) => x.id === equipped.get(slot));
+              const slotLabel = {
+                avatar: t("الصورة الشخصية","Avatar"),
+                outfit: t("المظهر","Outfit"),
+                companion: t("الرفيق","Companion"),
+                background: t("الخلفية","Background"),
+              }[slot] ?? slot;
+              return (
+                <div
+                  key={slot}
+                  className="noata-avatar-slot-card"
+                  data-equipped={item ? "true" : "false"}
+                >
+                  <small>{slotLabel}</small>
+                  <b>{item ? (locale === "en" ? item.title_en : item.title_ar) : "—"}</b>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -396,9 +396,31 @@ export function RewardsLive() {
         </section>
       )}
 
+      <div className="noata-shop-filters" role="group" aria-label={t("تصفية عناصر المتجر","Filter shop categories")}>
+        {([
+          { id: "all", label: t("كل العناصر","All items") },
+          { id: "avatar", label: t("الصورة الشخصية","Avatar") },
+          { id: "outfit", label: t("الأزياء","Outfit") },
+          { id: "companion", label: t("الرفيق","Companion") },
+          { id: "background", label: t("الخلفيات","Background") },
+        ] as const).map((cat) => {
+          const count = cat.id === "all" ? items.length : items.filter((x) => x.item_type === cat.id).length;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className="filter-chip"
+              aria-pressed={shopFilter === cat.id}
+              onClick={() => setShopFilter(cat.id)}
+            >
+              {cat.label} ({count.toLocaleString(locale === "en" ? "en" : "ar-EG")})
+            </button>
+          );
+        })}
+      </div>
       {!loading && items.length === 0 && !error && <section className="noata-empty"><h2>{t("متجر المظاهر قيد التجهيز","The cosmetic shop is being prepared")}</h2><p>{t("لسه مفيش عناصر منشورة للشراء. مكافآتك الحالية محفوظة في حسابك.","No items are available to buy yet. Your rewards remain saved in your account.")}</p></section>}
       <section className="noata-reward-grid" data-tour="rewards-shop" aria-label={t("متجر المظاهر","Cosmetic shop")}>
-        {items.map((item) => {
+        {(shopFilter === "all" ? items : items.filter((x) => x.item_type === shopFilter)).map((item) => {
           const isOwned = owned.has(item.id);
           const isEquipped = equipped.get(item.item_type) === item.id;
           const canAfford = Number(profile?.coins ?? 0) >= item.price;
@@ -409,18 +431,13 @@ export function RewardsLive() {
               </div>
               <h3>{locale==="en"?item.title_en:item.title_ar}</h3>
               <p style={{ color: "var(--muted)", fontSize: 12 }}>
-                {item.item_type === "avatar" ? t("صورة شخصية","Avatar") : item.item_type === "outfit" ? t("زي مميز","Outfit") : item.item_type === "companion" ? t("رفيق","Companion") : t("مظهر إضافي","Cosmetic item")}
+                {item.item_type === "avatar" ? t("صورة شخصية","Avatar") : item.item_type === "outfit" ? t("زي مميز","Outfit") : item.item_type === "companion" ? t("رفيق","Companion") : item.item_type === "background" ? t("خلفية","Background") : t("مظهر إضافي","Cosmetic item")}
               </p>
               {!isOwned ? (
                 <button
                   disabled={mutating || loading || Boolean(account.user && !profile) || Boolean(profile && !canAfford) || busy === "buy:" + item.id}
                   onClick={() => void buy(item)}
-                  className="btn"
-                  style={{
-                    width: "100%",
-                    background: "var(--accent)",
-                    color: "var(--surface)",
-                  }}
+                  className="btn noata-reward-primary"
                 >
                   {busy === "buy:" + item.id
                     ? t("جارٍ الشراء…","Purchasing…")
@@ -432,12 +449,7 @@ export function RewardsLive() {
                 <button
                   disabled={mutating || isEquipped || busy === "equip:" + item.id}
                   onClick={() => void equip(item)}
-                  className="btn"
-                  style={{
-                    width: "100%",
-                    background: isEquipped ? "#e9f7f0" : "var(--accent)",
-                    color: isEquipped ? "var(--success)" : "white",
-                  }}
+                  className={`btn ${isEquipped ? "noata-reward-equipped" : "noata-reward-primary"}`}
                 >
                   {isEquipped
                     ? t("مظهرك الحالي","Your current look")
@@ -447,13 +459,16 @@ export function RewardsLive() {
                 </button>
               )}
               {profile && !isOwned && !canAfford && (
-                <small
-                  style={{ display: "block", marginTop: 8, color: "#9a6b1d" }}
-                >{t("محتاج عملات أكتر","More Coins needed")}</small>
+                <small className="noata-reward-shortfall">{t("محتاج عملات أكتر","More Coins needed")}</small>
               )}
             </article>
           );
         })}
+        {!loading && items.length > 0 && shopFilter !== "all" && items.filter((x) => x.item_type === shopFilter).length === 0 && (
+          <p style={{ color: "var(--muted)", gridColumn: "1 / -1", textAlign: "center", padding: "var(--space-4)" }}>
+            {t("مفيش عناصر منشورة في الفئة دي حاليًا.","No items are currently available in this category.")}
+          </p>
+        )}
       </section>
     </div>
   );

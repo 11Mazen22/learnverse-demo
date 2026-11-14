@@ -1,96 +1,67 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
 import { localized, useLocale } from "@/lib/i18n/locale";
+import { CORE_CURRICULUM_SUBJECTS } from "@/lib/shell/navigation";
 import { SidebarGroup } from "./sidebar-group";
-
-export type CurriculumSubject = {
-  key: string;
-  slug: string;
-  titleAr: string;
-  titleEn: string;
-  shortTitleAr: string;
-  shortTitleEn: string;
-  accent: string;
-  icon: string;
-  dualLanguage: boolean;
-};
-
-const CORE_SUBJECTS: readonly CurriculumSubject[] = [
-  {
-    key: "integrated-science",
-    slug: "integrated-science",
-    titleAr: "العلوم المتكاملة",
-    titleEn: "Integrated Science",
-    shortTitleAr: "علوم",
-    shortTitleEn: "Science",
-    accent: "cyan",
-    icon: "microscope",
-    dualLanguage: true,
-  },
-  {
-    key: "mathematics",
-    slug: "mathematics",
-    titleAr: "الرياضيات",
-    titleEn: "Mathematics",
-    shortTitleAr: "رياضيات",
-    shortTitleEn: "Math",
-    accent: "indigo",
-    icon: "compass",
-    dualLanguage: true,
-  },
-  {
-    key: "history",
-    slug: "history",
-    titleAr: "تاريخ",
-    titleEn: "History",
-    shortTitleAr: "تاريخ",
-    shortTitleEn: "History",
-    accent: "amber",
-    icon: "landmark",
-    dualLanguage: false,
-  },
-  {
-    key: "arabic-language",
-    slug: "arabic-language",
-    titleAr: "اللغة العربية",
-    titleEn: "Arabic Language",
-    shortTitleAr: "عربي",
-    shortTitleEn: "Arabic",
-    accent: "rose",
-    icon: "feather",
-    dualLanguage: false,
-  },
-  {
-    key: "english",
-    slug: "english",
-    titleAr: "اللغة الإنجليزية",
-    titleEn: "English Language",
-    shortTitleAr: "إنجليزي",
-    shortTitleEn: "English",
-    accent: "teal",
-    icon: "globe",
-    dualLanguage: false,
-  },
-  {
-    key: "philosophy-logic",
-    slug: "philosophy-logic",
-    titleAr: "الفلسفة والمنطق",
-    titleEn: "Philosophy & Logic",
-    shortTitleAr: "فلسفة",
-    shortTitleEn: "Philosophy",
-    accent: "violet",
-    icon: "lightbulb",
-    dualLanguage: false,
-  },
-];
 
 type SidebarCurriculumProps = {
   active: string;
   isCollapsedSidebar: boolean;
   onNavigate?: (href: string) => void;
 };
+
+function SidebarCurriculumList({
+  active,
+  onNavigate,
+}: {
+  active: string;
+  onNavigate?: (href: string) => void;
+}) {
+  const locale = useLocale();
+  const searchParams = useSearchParams();
+  const activeSubject = active.startsWith("/learn") ? searchParams.get("subject") : null;
+
+  return (
+    <div className="noata-curriculum-list" role="list">
+      {CORE_CURRICULUM_SUBJECTS.map((sub) => {
+        const title = localized(locale, sub.titleAr, sub.titleEn);
+        const href = `/learn?subject=${sub.slug}`;
+        const isItemActive =
+          active === href || (active.startsWith("/learn") && activeSubject === sub.slug);
+
+        return (
+          <div role="listitem" key={sub.key}>
+            <Link
+              href={href}
+              className={`noata-curriculum-item ${isItemActive ? "is-active" : ""}`}
+              aria-current={isItemActive ? "page" : undefined}
+              data-accent={sub.accent}
+              onClick={() => onNavigate?.(href)}
+            >
+              <span className="noata-curriculum-dot" aria-hidden="true" />
+              <span className="noata-curriculum-icon" aria-hidden="true">
+                <Icon name={sub.icon} size={15} />
+              </span>
+              <span className="noata-curriculum-text">
+                <span className="noata-curriculum-title">{title}</span>
+                {sub.dualLanguage && (
+                  <span className="noata-curriculum-track-pills">
+                    <span className="noata-track-pill">عربي</span>
+                    <span className="noata-track-pill">EN</span>
+                  </span>
+                )}
+              </span>
+            </Link>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function SidebarCurriculum({
   active,
@@ -106,7 +77,7 @@ export function SidebarCurriculum({
     return (
       <Link
         href="/learn"
-        className={`noata-nav-item is-collapsed-item ${isLearnActive ? "is-active" : ""}`}
+        className={`noata-nav-item nav-link is-collapsed-item ${isLearnActive ? "is-active" : ""}`}
         aria-current={isLearnActive ? "page" : undefined}
         data-tooltip={t("المناهج والمقررات الستة", "Core Curriculum (6 Subjects)")}
         aria-label={t("المناهج الدراسية", "Curriculum")}
@@ -132,37 +103,9 @@ export function SidebarCurriculum({
       hasActiveChild={isLearnActive}
       isCollapsedSidebar={isCollapsedSidebar}
     >
-      <div className="noata-curriculum-list" role="list">
-        {CORE_SUBJECTS.map((sub) => {
-          const title = localized(locale, sub.titleAr, sub.titleEn);
-          const href = `/learn?subject=${sub.slug}`;
-          const isItemActive = active === href || (active === "/learn" && false);
-
-          return (
-            <Link
-              key={sub.key}
-              href={href}
-              className={`noata-curriculum-item ${isItemActive ? "is-active" : ""}`}
-              data-accent={sub.accent}
-              onClick={() => onNavigate?.(href)}
-            >
-              <span className="noata-curriculum-dot" aria-hidden="true" />
-              <span className="noata-curriculum-icon" aria-hidden="true">
-                <Icon name={sub.icon} size={15} />
-              </span>
-              <span className="noata-curriculum-text">
-                <span className="noata-curriculum-title">{title}</span>
-                {sub.dualLanguage && (
-                  <span className="noata-curriculum-track-pills">
-                    <span className="noata-track-pill">عربي</span>
-                    <span className="noata-track-pill">EN</span>
-                  </span>
-                )}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+      <Suspense fallback={null}>
+        <SidebarCurriculumList active={active} onNavigate={onNavigate} />
+      </Suspense>
     </SidebarGroup>
   );
 }

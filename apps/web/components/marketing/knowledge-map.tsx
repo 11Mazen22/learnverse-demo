@@ -348,7 +348,7 @@ export function KnowledgeMap() {
         <svg
           className="km-canvas"
           viewBox="0 0 1000 185"
-          role="img"
+          role="group"
           aria-label={t(
             "خريطة المعرفة التفاعلية للمنهج: المصدر، الدرس، حوار Noäta AI، التطبيق، والمراجعة المجدولة",
             "Interactive Knowledge Pipeline: Source, Lesson, Noäta AI, Practice, Review",

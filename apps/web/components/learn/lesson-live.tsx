@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
+import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
+import { StudyRichText } from "@/components/study/study-rich-text";
 
 type LessonRow = {
   id: string;
@@ -363,9 +365,18 @@ export function LessonLive({ id }: { id: string }) {
             <span className="noata-lesson-metric-chip" style={{ color: "var(--accent)" }}>
               <span>+{lesson.xp_reward} XP</span>
             </span>
-            <span className="noata-lesson-metric-chip" style={{ color: "#d97706" }}>
+            <span className="noata-lesson-metric-chip" style={{ color: "var(--warning)" }}>
               <span>+{lesson.coin_reward} Coins</span>
             </span>
+            {content.prerequisite_lesson_id && (
+              <Link
+                href={`/lesson/${encodeURIComponent(content.prerequisite_lesson_id)}`}
+                className="noata-lesson-prereq"
+              >
+                <Icon name="lock" size={13} />
+                <span>{t("متطلب تمهيدي سابق", "Prerequisite lesson")}</span>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -390,27 +401,44 @@ export function LessonLive({ id }: { id: string }) {
         )}
       </section>
 
-      {/* 3. Pedagogical Stepper */}
-      <nav className="noata-stage-stepper" data-tour="lesson-stages" aria-label={t("مراحل تعلم الدرس", "Lesson learning stages")}>
-        {STAGES.map((st, idx) => {
-          const isActive = activeStage === idx;
-          return (
-            <button
-              key={st.id}
-              type="button"
-              className={`noata-stage-step ${isActive ? "is-active" : ""}`}
-              onClick={() => setActiveStage(idx)}
-              aria-pressed={isActive}
+      {/* 3. Sticky Pedagogical Outline & Active Stage View */}
+      <div className="noata-lesson-layout">
+        <aside
+          className="noata-lesson-outline"
+          data-tour="lesson-stages"
+          aria-label={t("مخطط الدرس البيداغوجي", "Pedagogical lesson outline")}
+        >
+          <div className="noata-lesson-outline-title">
+            {t("هيكل الدرس", "Lesson Outline")}
+          </div>
+          {STAGES.map((st, idx) => {
+            const isActive = activeStage === idx;
+            return (
+              <button
+                key={st.id}
+                type="button"
+                className={`noata-stage-step ${isActive ? "is-active" : ""}`}
+                onClick={() => setActiveStage(idx)}
+                aria-pressed={isActive}
+              >
+                <span className="noata-stage-num">{st.num}</span>
+                <span>{locale === "en" ? st.titleEn : st.titleAr}</span>
+              </button>
+            );
+          })}
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 6, paddingTop: 10, display: "grid", gap: 6 }}>
+            <Link
+              className="btn btn-secondary"
+              style={{ justifyContent: "center", fontSize: 12.5 }}
+              href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}&tab=generator`}
             >
-              <span className="noata-stage-num">{st.num}</span>
-              <span>{locale === "en" ? st.titleEn : st.titleAr}</span>
-            </button>
-          );
-        })}
-      </nav>
+              <Icon name="sparkles" size={14} />
+              <span>{t("حزمة المذاكرة الذكية", "Open Study Deck")}</span>
+            </Link>
+          </div>
+        </aside>
 
-      {/* 4. Active Stage Card */}
-      <section className="noata-stage-content-card" data-tour="lesson-content">
+        <section className="noata-stage-content-card" data-tour="lesson-content">
         {/* STAGE 0: Objectives & Foundations */}
         {activeStage === 0 && (
           <>
@@ -493,9 +521,9 @@ export function LessonLive({ id }: { id: string }) {
             <article style={{ fontSize: 16.5, lineHeight: 2, color: "var(--ink)" }} dir={isEnContent ? "ltr" : "rtl"}>
               {summary ? (
                 summary.split("\n\n").map((para, i) => (
-                  <p key={i} style={{ margin: "0 0 16px" }}>
-                    {para}
-                  </p>
+                  <div key={i} style={{ margin: "0 0 16px" }}>
+                    <StudyRichText content={para} />
+                  </div>
                 ))
               ) : (
                 <p>{t("محتوى الدرس غير منشور في المصدر المتصل.", "Lesson content is not published in the connected source.")}</p>
@@ -535,9 +563,9 @@ export function LessonLive({ id }: { id: string }) {
                 </div>
                 <div style={{ fontSize: 15.5, lineHeight: 1.9, color: "var(--ink)" }} dir={isEnContent ? "ltr" : "rtl"}>
                   {worked.split("\n\n").map((chunk, i) => (
-                    <p key={i} style={{ margin: "0 0 12px" }}>
-                      {chunk}
-                    </p>
+                    <div key={i} style={{ margin: "0 0 12px" }}>
+                      <StudyRichText content={chunk} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -554,7 +582,7 @@ export function LessonLive({ id }: { id: string }) {
           <>
             <div className="noata-stage-header">
               <div className="noata-stage-header-title">
-                <span className="noata-stage-icon-circle" style={{ color: "#d97706", background: "rgba(217,119,6,0.12)" }}>
+                <span className="noata-stage-icon-circle" style={{ color: "var(--warning)", background: "color-mix(in srgb, var(--warning) 14%, var(--surface))" }}>
                   <Icon name="lock" size={20} />
                 </span>
                 <div>
@@ -570,8 +598,8 @@ export function LessonLive({ id }: { id: string }) {
               <div className="noata-misconceptions-card">
                 {mistakes.map((mistake, idx) => (
                   <div key={idx} className="noata-misconception-item" dir={isEnContent ? "ltr" : "rtl"}>
-                    <span style={{ color: "#d97706", fontWeight: 800 }}>⚠️</span>
-                    <div>{mistake}</div>
+                    <span style={{ color: "var(--warning)", fontWeight: 800 }}>⚠️</span>
+                    <StudyRichText content={mistake} />
                   </div>
                 ))}
               </div>
@@ -611,25 +639,16 @@ export function LessonLive({ id }: { id: string }) {
                   {(isEnContent ? checkpointQuestion.prompt_en ?? checkpointQuestion.prompt_ar : checkpointQuestion.prompt_ar)}
                 </h3>
 
-                <div className="noata-checkpoint-options">
-                  {strings(isEnContent ? checkpointQuestion.choices_en : checkpointQuestion.choices_ar).map((opt, i) => {
-                    const isSelected = selectedAnswer === i;
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        className={`noata-checkpoint-btn ${isSelected ? "is-selected" : ""}`}
-                        onClick={() => {
-                          setSelectedAnswer(i);
-                          setCheckpointAnswered(true);
-                        }}
-                      >
-                        <span style={{ opacity: 0.6 }}>{String.fromCharCode(65 + i)}.</span>
-                        <span dir={isEnContent ? "ltr" : "rtl"}>{opt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                <ChoiceCardGroup
+                  legend={t("خيارات نقطة التحقق", "Checkpoint options")}
+                  options={strings(isEnContent ? checkpointQuestion.choices_en : checkpointQuestion.choices_ar)}
+                  value={selectedAnswer !== null ? String(selectedAnswer) : ""}
+                  contentDir={isEnContent ? "ltr" : "rtl"}
+                  onChange={(val) => {
+                    setSelectedAnswer(Number(val));
+                    setCheckpointAnswered(true);
+                  }}
+                />
 
                 {checkpointAnswered && (
                   <div className="noata-checkpoint-feedback is-correct">
@@ -638,17 +657,17 @@ export function LessonLive({ id }: { id: string }) {
                         <strong>{t("أحسنت الاختيار!", "Great selection!")}</strong>
                         <p style={{ margin: "4px 0 0", fontSize: 13, lineHeight: 1.6 }}>
                           {t(
-                            "تم تثبيت المفهوم الأساسي بنجاح. لتعميق الفهم عبر اختبار تشخيصي متقدم بنمط QuizGecko وتكرار تباعدي 3D:",
-                            "Core concept confirmed. For comprehensive QuizGecko-grade testing and 3D spaced review:"
+                            "تم تثبيت المفهوم الأساسي بنجاح. لتعميق الفهم عبر اختبار تشخيصي متقدم وبطاقات تكرار متباعد 3D:",
+                            "Core concept confirmed. Launch a structured diagnostic quiz and 3D spaced flashcards:"
                           )}
                         </p>
                       </div>
                       <Link
                         href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}&tab=generator`}
                         className="btn btn-primary"
-                        style={{ fontSize: 12, padding: "6px 14px", background: "#10b981", borderColor: "#10b981", color: "#fff" }}
+                        style={{ fontSize: 12, padding: "6px 14px", background: "var(--success)", borderColor: "var(--success)", color: "var(--surface)" }}
                       >
-                        ⚡ <span>{t("توليد كويز وبطاقات QuizGecko", "Generate QuizGecko Deck")}</span>
+                        <span>{t("فتح حزمة المذاكرة الذكية", "Open Study Deck")}</span>
                       </Link>
                     </div>
                   </div>
@@ -680,7 +699,8 @@ export function LessonLive({ id }: { id: string }) {
             </div>
           </>
         )}
-      </section>
+        </section>
+      </div>
 
       {/* 5. Action Dock */}
       <footer className="noata-lesson-action-dock" data-tour="lesson-actions">
@@ -696,11 +716,11 @@ export function LessonLive({ id }: { id: string }) {
         <div className="noata-lesson-action-dock-right">
           <Link
             className="btn btn-primary"
-            style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #10b981))" }}
+            style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, var(--success)))" }}
             href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}&tab=generator`}
           >
             <Icon name="sparkles" size={16} />
-            <span>{t("⚡ كويز وبطاقات QuizGecko", "⚡ QuizGecko Quiz & Cards")}</span>
+            <span>{t("فتح حزمة المذاكرة الذكية", "Open Study Deck")}</span>
           </Link>
 
           <Link

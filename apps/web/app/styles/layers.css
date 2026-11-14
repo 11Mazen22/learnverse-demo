@@ -1,0 +1,6 @@
+/* Canonical CSS Cascade Layers for Noäta (نقطة).
+ * Declared first so every stylesheet and Tailwind utility fits a predictable hierarchy.
+ * Order (lowest priority -> highest priority):
+ *   reset < vendor < tokens < theme < base < components < shell < patterns < sections < study < staff < utilities
+ */
+@layer reset, vendor, tokens, theme, base, components, shell, patterns, sections, study, staff, utilities;
