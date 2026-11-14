@@ -27,7 +27,7 @@ html[data-theme] .page-content .db-cockpit .dashboard-hero.nk-home-hero {
   background:
     radial-gradient(ellipse at 6% 8%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 46%),
     radial-gradient(ellipse at 95% 92%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 48%),
-    var(--surface);
+    linear-gradient(130deg, var(--surface) 15%, var(--surface) 68%, var(--surface-soft));
   border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
   box-shadow: var(--shadow-md);
   color: var(--ink);
