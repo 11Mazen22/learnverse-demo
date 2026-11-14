@@ -774,17 +774,61 @@
      10. 3-Zone Topbar & Workspace Context
      -------------------------------------------------------------------------- */
   .shell-topbar {
-    min-height: 76px;
+    min-height: 70px;
     padding-block: 10px;
+    padding-inline: 16px;
+    margin-top: 12px;
+    margin-bottom: 24px;
     gap: 12px;
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+    background: color-mix(in srgb, var(--surface) 94%, var(--surface-soft));
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+      0 8px 24px -12px color-mix(in srgb, var(--ink) 8%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent);
+    position: sticky;
+    top: 10px;
+    z-index: 24;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    transition:
+      box-shadow 0.2s var(--ease),
+      border-color 0.2s var(--ease),
+      background-color 0.2s var(--ease);
+  }
+
+  html[data-theme="dark"] .shell-topbar {
+    background: color-mix(in srgb, var(--surface) 90%, var(--surface-soft));
+    border-color: color-mix(in srgb, var(--line) 95%, transparent);
+    box-shadow:
+      0 10px 28px -12px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .top-context {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
     flex: 1 1 auto;
+  }
+
+  .nk-topbar-route-emblem {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent) 11%, var(--surface-soft));
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+    color: var(--accent);
+    flex: none;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 35%, transparent);
   }
 
   .nk-topbar-crumbs {
@@ -796,11 +840,15 @@
   .nk-topbar-workspace-row {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     min-width: 0;
   }
 
   .nk-topbar-workspace-row .tiny-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -809,19 +857,22 @@
   .nk-workspace-badge {
     flex: none;
     font-size: 10px;
+    font-weight: 800;
     padding-block: 1px;
     padding-inline: 7px;
-    min-height: 20px;
+    min-height: 19px;
+    line-height: 1.2;
   }
 
   .nk-topbar-title {
-    font-size: clamp(14.5px, 1.4vw, 17px);
-    font-weight: 800;
+    font-size: clamp(15px, 1.35vw, 17.5px);
+    font-weight: 850;
     color: var(--ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.3;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
   }
 
   .top-actions {
@@ -829,6 +880,18 @@
     align-items: center;
     gap: 8px;
     flex: none;
+  }
+
+  .nk-topbar-divider {
+    width: 1px;
+    height: 22px;
+    background: color-mix(in srgb, var(--line) 92%, transparent);
+    flex: none;
+    margin-inline: 2px;
+  }
+
+  .nk-topbar-divider + .nk-topbar-divider {
+    display: none;
   }
 
   /* --------------------------------------------------------------------------
@@ -1113,61 +1176,6 @@
       padding-inline: clamp(12px, 4vw, 20px);
       padding-bottom: calc(90px + env(safe-area-inset-bottom));
     }
-
-    .shell-topbar {
-      min-height: 68px;
-      gap: 6px;
-    }
-
-    .top-actions {
-      gap: 6px;
-    }
-  }
-
-  @media (max-width: 620px) {
-    .command-trigger {
-      display: none;
-    }
-
-    .nk-workspace-badge {
-      display: none;
-    }
-  }
-
-  @media (max-width: 420px) {
-    .top-context {
-      gap: 6px;
-    }
-
-    .top-actions {
-      gap: 4px;
-    }
-
-    .top-actions .top-icon,
-    .mobile-menu,
-    .noata-context-coach-trigger,
-    .aura-tour-trigger-btn {
-      width: 34px;
-      min-width: 34px;
-      height: 34px;
-      padding: 0;
-      border-radius: 10px;
-    }
-
-    .noata-context-coach-trigger span,
-    .aura-tour-trigger-text {
-      display: none;
-    }
-
-    .noata-shell a.noata-sign-in {
-      padding-inline: 10px;
-      min-height: 34px;
-      font-size: 12px;
-    }
-
-    .nk-topbar-workspace-row {
-      display: none;
-    }
   }
 
   /* Mobile Drawer hosting sidebar inside Stage 01 Tier 3 <Drawer> */
@@ -1190,7 +1198,381 @@
 }
 
 /* --------------------------------------------------------------------------
-   14. Reduced Motion Overrides
+   14. Unified Topbar Controls & Responsive Harmonization (@layer sections)
+   Outranks @layer components and legacy @layer sections rules in aura-finish.css
+   -------------------------------------------------------------------------- */
+@layer sections {
+  .shell-topbar .command-trigger {
+    min-height: 40px;
+    height: 40px;
+    min-width: clamp(168px, 15vw, 232px);
+    padding-inline: 12px 10px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-soft) 75%, var(--surface));
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 650;
+    margin-inline-end: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition:
+      border-color 0.18s ease,
+      background-color 0.18s ease,
+      color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .shell-topbar .command-trigger:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 3px 10px -4px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
+  .shell-topbar .command-trigger:focus-visible {
+    outline: 2.5px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .shell-topbar .command-trigger .nk-command-label {
+    flex: 1 1 auto;
+    text-align: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .shell-topbar .command-trigger kbd {
+    min-height: 22px;
+    padding-inline: 6px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-size: 10.5px;
+    font-weight: 750;
+    display: inline-flex;
+    align-items: center;
+    direction: ltr;
+  }
+
+  .shell-topbar .noata-context-coach-trigger,
+  .shell-topbar .aura-tour-trigger-btn {
+    min-height: 40px;
+    height: 40px;
+    padding: 0 13px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+    transition:
+      border-color 0.18s ease,
+      background-color 0.18s ease,
+      color 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  .shell-topbar .noata-context-coach-trigger {
+    font-weight: 800;
+    background: color-mix(in srgb, var(--accent-soft) 85%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+    color: var(--accent);
+  }
+
+  .shell-topbar .noata-context-coach-trigger:hover {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+    transform: translateY(-1px);
+  }
+
+  .shell-topbar .aura-tour-trigger-btn {
+    font-weight: 750;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+
+  .shell-topbar .aura-tour-trigger-btn .aura-tour-trigger-icon {
+    color: var(--accent);
+  }
+
+  .shell-topbar .aura-tour-trigger-btn:hover {
+    background: var(--surface-soft);
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+    color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .shell-topbar .top-actions .top-icon,
+  .shell-topbar a.notification-bell,
+  .shell-topbar .mobile-menu {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    transition:
+      border-color 0.18s ease,
+      background-color 0.18s ease,
+      color 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  .shell-topbar .top-actions .top-icon:hover,
+  .shell-topbar a.notification-bell:hover,
+  .shell-topbar .mobile-menu:hover {
+    background: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+    color: var(--accent);
+    transform: translateY(-1px);
+  }
+
+  .shell-topbar .noata-user-account {
+    max-width: 260px;
+    flex: none;
+  }
+
+  .shell-topbar .noata-user-account-trigger-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 40px;
+    height: 40px;
+    padding-block: 2px;
+    padding-inline-start: 12px;
+    padding-inline-end: 3px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface-soft) 65%, var(--surface));
+    border: 1px solid var(--line);
+    transition:
+      border-color 0.18s ease,
+      background-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .shell-topbar .noata-user-account-trigger-row:hover,
+  .shell-topbar .noata-user-account-trigger-row:has(.noata-account-trigger[aria-expanded="true"]) {
+    background: var(--surface);
+    border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+    box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--ink) 12%, transparent);
+  }
+
+  .shell-topbar .noata-account-trigger {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 850;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 30%, var(--surface));
+    box-shadow: none;
+  }
+
+  .shell-topbar .noata-user-summary {
+    gap: 1px;
+    max-width: 145px;
+  }
+
+  .shell-topbar .noata-user-summary strong {
+    font-size: 12px;
+    font-weight: 850;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+
+  .shell-topbar .noata-user-summary small {
+    font-size: 10px;
+    font-weight: 650;
+    color: var(--muted);
+    line-height: 1.15;
+  }
+
+  @media (max-width: 1280px) {
+    .shell-topbar .command-trigger {
+      min-width: auto;
+      padding-inline: 10px;
+    }
+
+    .shell-topbar .aura-tour-trigger-text {
+      display: none;
+    }
+
+    .shell-topbar .aura-tour-trigger-btn {
+      width: 40px;
+      min-width: 40px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+
+  @media (max-width: 1150px) {
+    .shell-topbar .noata-context-coach-trigger {
+      width: 40px;
+      min-width: 40px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .nk-topbar-divider-search {
+      display: none;
+    }
+  }
+
+  @media (max-width: 960px) {
+    .nk-topbar-divider {
+      display: none;
+    }
+
+    .nk-workspace-badge {
+      display: none;
+    }
+
+    .shell-topbar .command-trigger {
+      width: 40px;
+      min-width: 40px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .shell-topbar .command-trigger .nk-command-label,
+    .shell-topbar .command-trigger kbd {
+      display: none;
+    }
+
+    .shell-topbar {
+      min-height: 62px;
+      padding-block: 8px;
+      padding-inline: 12px;
+      margin-top: 8px;
+      margin-bottom: 18px;
+      border-radius: 15px;
+      top: 6px;
+      gap: 8px;
+    }
+
+    .top-actions {
+      gap: 6px;
+    }
+
+    .shell-topbar .noata-user-summary {
+      display: none;
+    }
+
+    .shell-topbar .noata-user-account-trigger-row {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      height: auto;
+      min-height: 0;
+      box-shadow: none;
+    }
+
+    .shell-topbar .noata-user-account-trigger-row:hover {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .shell-topbar .noata-account-trigger {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      min-height: 38px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .nk-topbar-route-emblem {
+      display: none;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .shell-topbar .command-trigger {
+      display: none;
+    }
+
+    .nk-workspace-badge {
+      display: none;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .shell-topbar {
+      padding-inline: 10px;
+      gap: 6px;
+      border-radius: 14px;
+      flex-wrap: nowrap;
+    }
+
+    .top-context {
+      gap: 6px;
+    }
+
+    .top-actions {
+      gap: 4px;
+      flex-wrap: nowrap;
+    }
+
+    .shell-topbar .top-actions .top-icon,
+    .shell-topbar a.notification-bell,
+    .shell-topbar .mobile-menu,
+    .shell-topbar .noata-context-coach-trigger,
+    .shell-topbar .aura-tour-trigger-btn,
+    .shell-topbar .noata-account-trigger {
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 10px;
+    }
+
+    .noata-context-coach-trigger span,
+    .aura-tour-trigger-text {
+      display: none;
+    }
+
+    .noata-shell a.noata-sign-in {
+      padding-inline: 10px;
+      min-height: 34px;
+      font-size: 12px;
+    }
+
+    .nk-topbar-workspace-row {
+      display: none;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .shell-topbar {
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-block: 8px;
+    }
+
+    .shell-topbar .top-actions {
+      max-width: 100%;
+      flex-wrap: wrap;
+      margin-inline-start: auto;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   15. Reduced Motion Overrides
    -------------------------------------------------------------------------- */
 @layer utilities {
   @media (prefers-reduced-motion: reduce) {
@@ -1202,7 +1584,14 @@
     .noata-group-content-animator,
     .noata-curriculum-item,
     .noata-sidebar-toggle,
-    .nk-cmd-item {
+    .nk-cmd-item,
+    .shell-topbar,
+    .shell-topbar .command-trigger,
+    .shell-topbar .noata-user-account-trigger-row,
+    .shell-topbar .aura-tour-trigger-btn,
+    .shell-topbar .noata-context-coach-trigger,
+    .shell-topbar .top-actions .top-icon,
+    .shell-topbar a.notification-bell {
       transition: none;
       animation: none;
       transform: none;

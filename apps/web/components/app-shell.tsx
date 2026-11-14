@@ -25,6 +25,7 @@ import {
   pushRecentDestination,
   recentRoutesStorageKey,
   resolvePageTitle,
+  resolveRouteIcon,
   type ShellRole,
 } from "@/lib/shell/navigation";
 
@@ -64,6 +65,8 @@ export function AppShell({
     () => resolvePageTitle(active, role, locale),
     [active, role, locale]
   );
+
+  const routeIcon = useMemo(() => resolveRouteIcon(active), [active]);
 
   const mobileDockRoutes = useMemo(
     () => getMobileDockRoutes(effectiveRole),
@@ -156,7 +159,7 @@ export function AppShell({
 
       <div className="noata-main">
         <header className="topbar shell-topbar">
-          {/* Zone 1: Start — Mobile Drawer Toggle + Breadcrumbs + Workspace Badge */}
+          {/* Zone 1: Start — Mobile Drawer Toggle + Route Emblem + Breadcrumbs + Workspace Badge */}
           <div className="top-context">
             <button
               ref={menuTriggerRef}
@@ -168,6 +171,9 @@ export function AppShell({
             >
               <Icon name="menu" />
             </button>
+            <span className="nk-topbar-route-emblem" aria-hidden="true">
+              <Icon name={routeIcon} size={18} />
+            </span>
             <div className="nk-topbar-crumbs">
               <div className="nk-topbar-workspace-row">
                 <span className="tiny-label">{workspaceMeta.label}</span>
@@ -188,7 +194,7 @@ export function AppShell({
             </div>
           </div>
 
-          {/* Zone 2 & 3: Command Center Trigger + Quick Utilities & Account */}
+          {/* Zone 2 & 3: Omnibox Command Trigger + Smart Assistance + Utilities & Account */}
           <div className="top-actions">
             <button
               type="button"
@@ -196,15 +202,18 @@ export function AppShell({
               onClick={() => setSearch(true)}
               aria-label={t("بحث وانتقال سريع (⌘K)", "Search and quick jump (⌘K)")}
             >
-              <Icon name="search" size={17} />
+              <Icon name="search" size={16} />
               <span className="nk-command-label">{t("انتقل إلى…", "Go to…")}</span>
               <kbd>⌘ K</kbd>
             </button>
+            <span className="nk-topbar-divider nk-topbar-divider-search" aria-hidden="true" />
             <ContextualCoach active={active} />
             <TourTrigger />
+            <span className="nk-topbar-divider nk-topbar-divider-assist" aria-hidden="true" />
             {!account.loading && !account.user && <LocaleControl />}
             <ThemeControl />
             <NotificationBell />
+            <span className="nk-topbar-divider nk-topbar-divider-account" aria-hidden="true" />
             <UserMenu />
           </div>
         </header>

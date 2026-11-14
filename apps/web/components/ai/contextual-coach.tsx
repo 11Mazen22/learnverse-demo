@@ -50,7 +50,7 @@ export function ContextualCoach({active}:{active:string}){
   return (<>
     <button type="button" className="noata-context-coach-trigger" onClick={()=>setOpen(true)}
       aria-label={t("اطلب مساعدة Noäta AI في ","Ask Noäta AI for help with ")+context.heading}>
-      <Icon name="sparkles" size={18}/><span>{t("مساعد الصفحة","Page assistant")}</span>
+      <Icon name="sparkles" size={16}/><span>{t("مساعد الصفحة","Page assistant")}</span>
     </button>
     <Dialog open={open} onClose={()=>{if(!busy)setOpen(false)}} title={context.heading}>
       <div className="noata-context-coach">

@@ -40,7 +40,7 @@ export function LocaleControl() {
       aria-label={t("التحويل إلى الإنجليزية على هذا الجهاز", "Switch this device to Arabic")}
       title={t("لغة هذا الجهاز", "Language on this device")}
       onClick={toggleLocale}
-      style={{ fontSize: 13, fontWeight: 800, minWidth: 42 }}
+      style={{ fontSize: 12, fontWeight: 800 }}
     >
       {locale === "ar" ? "EN" : "عربي"}
     </button>

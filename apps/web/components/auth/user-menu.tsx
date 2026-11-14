@@ -130,7 +130,13 @@ export function UserMenu() {
   return (
     <div className="noata-user-account" ref={menuRef}>
       <div className="noata-user-account-trigger-row">
-        <div className="noata-user-summary">
+        <div
+          className="noata-user-summary"
+          onClick={() => {
+            if (!busy) setMenuOpen((open) => !open);
+          }}
+          style={{ cursor: busy ? "default" : "pointer" }}
+        >
           <strong>{name}</strong>
           <small>
             {profile

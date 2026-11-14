@@ -8,6 +8,7 @@ import {
   getWorkspaceLabel,
   pushRecentDestination,
   resolvePageTitle,
+  resolveRouteIcon,
 } from "./navigation.ts";
 
 test("role-aware command center isolates teacher and admin actions cleanly", () => {
@@ -76,4 +77,9 @@ test("effective role and workspace titles resolve deterministically", () => {
   assert.equal(getWorkspaceLabel("teacher", "teacher", "en").badgeEn, "Teacher");
   assert.equal(resolvePageTitle("/lesson/abc", "student", "en"), "Interactive Lesson");
   assert.equal(resolvePageTitle("/study", "student", "ar"), "مركز المذاكرة");
+  assert.equal(resolveRouteIcon("/learn"), "book");
+  assert.equal(resolveRouteIcon("/lesson/abc"), "book");
+  assert.equal(resolveRouteIcon("/review"), "review");
+  assert.equal(resolveRouteIcon("/study"), "clipboard");
+  assert.equal(resolveRouteIcon("/unknown"), "compass");
 });

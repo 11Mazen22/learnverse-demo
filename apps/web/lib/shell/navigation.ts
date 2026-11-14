@@ -345,6 +345,14 @@ export function resolvePageTitle(
   return ws.label;
 }
 
+/** Resolve the representative SVG icon name for the active shell route. */
+export function resolveRouteIcon(active: string): string {
+  if (active.startsWith("/lesson")) return "book";
+  const exact = SHELL_ROUTES.find((r) => r.href === active);
+  if (exact) return exact.icon;
+  return "compass";
+}
+
 export function buildCommandActions({
   effectiveRole,
   recentHrefs = [],

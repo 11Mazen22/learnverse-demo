@@ -33,6 +33,23 @@ export function Dialog({
     if (!open && el.open) el.close();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const escape = (event: KeyboardEvent) => {
+      const dialogs =
+        document.querySelectorAll<HTMLDialogElement>("dialog[open]");
+      if (event.key !== "Escape" || dialogs[dialogs.length - 1] !== ref.current)
+        return;
+      // Stop native top-layer close before it fires: headless or non-activated
+      // openers can dispatch a non-cancelable cancel event that bypasses React onCancel.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", escape, true);
+    return () => window.removeEventListener("keydown", escape, true);
+  }, [open, onClose]);
+
   const isOutsideDialog = (e: PointerEvent<HTMLDialogElement>): boolean => {
     const el = ref.current;
     if (!el) return false;

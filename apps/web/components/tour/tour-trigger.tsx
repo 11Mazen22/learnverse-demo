@@ -20,7 +20,7 @@ export function TourTrigger() {
       title={t("جولة إرشادية في الصفحة", "Page Guide & Walkthrough")}
     >
       <span className="aura-tour-trigger-icon" aria-hidden="true">
-        <Icon name="sparkles" size={15} />
+        <Icon name="guide" size={16} />
       </span>
       <span className="aura-tour-trigger-text">
         {hasPageTour ? t("دليل الصفحة", "Page Guide") : t("جولة سريعة", "Tour")}
