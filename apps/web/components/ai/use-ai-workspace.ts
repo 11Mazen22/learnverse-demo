@@ -264,7 +264,7 @@ export function useAIWorkspace() {
           );
           if (!alive || !scope.isCurrent(token)) return;
           if (data) {
-            setModel(normalizeModelChoice(data.default_ai_model));
+            setModel("auto");
           }
           await sessionStep(loadHistory());
         }
@@ -410,7 +410,7 @@ export function useAIWorkspace() {
       if (seq !== openSequence.current) return;
       setMessages(restored as Message[]);
       setPendingText("");
-      setModel(normalizeModelChoice(row?.selected_model));
+      setModel("auto");
       setTemporary(false);
       setMobileHistory(false);
       restoreComposer(id);

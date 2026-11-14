@@ -1,4 +1,9 @@
-import {resolveAutoRoute} from "../../../../supabase/functions/noata-ai/routing.ts";
+import {
+  resolveAutoRoute,
+  type AutoDifficulty,
+  type PedagogicalMode,
+  type SubjectHint,
+} from "../../../../supabase/functions/noata-ai/routing.ts";
 import { FANAR_CAPABILITIES } from "./catalog.ts";
 
 /**
@@ -44,4 +49,239 @@ export function validateRegistry(){
 /** Old saved choices cannot keep selecting the retired Sadiq 2 picker entry. */
 export function normalizeModelChoice(value:unknown):string{
  return isConfiguredChatModel(value)?value:"auto";
+}
+
+
+export type SmartAutoSummary = {
+  model: string;
+  reason: string;
+  difficulty: AutoDifficulty;
+  difficultyLabel: string;
+  subjectHint: SubjectHint;
+  subjectLabel: string;
+  pedagogicalMode: PedagogicalMode;
+  modeLabel: string;
+  tierLabel: string;
+};
+
+const DIFFICULTY_LABELS: Record<AutoDifficulty, { ar: string; en: string }> = {
+  foundational: { ar: "أساسي", en: "Foundational" },
+  standard: { ar: "قياسي", en: "Standard" },
+  advanced: { ar: "متقدم", en: "Advanced Reasoning" },
+};
+
+const SUBJECT_LABELS: Record<SubjectHint, { ar: string; en: string }> = {
+  "integrated-science": { ar: "العلوم المتكاملة", en: "Integrated Science" },
+  mathematics: { ar: "الرياضيات", en: "Mathematics" },
+  "arabic-language": { ar: "اللغة العربية", en: "Arabic Language" },
+  english: { ar: "اللغة الإنجليزية", en: "English" },
+  history: { ar: "التاريخ", en: "History" },
+  "philosophy-logic": { ar: "الفلسفة والمنطق", en: "Philosophy & Logic" },
+  islamic: { ar: "الدراسات الإسلامية", en: "Islamic Knowledge" },
+  general: { ar: "منهج أولى ثانوي", en: "Sec. 1 Curriculum" },
+};
+
+const MODE_LABELS: Record<PedagogicalMode, { ar: string; en: string }> = {
+  vision: { ar: "تحليل الصور", en: "Visual Analysis" },
+  islamic: { ar: "مرجع إسلامي موثّق", en: "Authentic Islamic" },
+  interactive: { ar: "تعلم تفاعلي وبطاقات", en: "Interactive Practice" },
+  deep_proof: { ar: "برهان واستنتاج عميق", en: "Deep Proof & Analysis" },
+  step_by_step: { ar: "حل خطوة بخطوة", en: "Step-by-Step Solver" },
+  concept_explain: { ar: "شرح مبسّط مع أمثلة", en: "Concept & Example" },
+  quick_reply: { ar: "رد سريع", en: "Quick Reply" },
+};
+
+const TIER_LABELS: Record<string, { ar: string; en: string }> = {
+  "Fanar-C-2-27B": { ar: "محرك التفكير العميق 27B", en: "Deep Reasoner 27B" },
+  "Fanar-C-1-8.7B": { ar: "محرك الشرح المنطقي 8.7B", en: "Structured Reasoning 8.7B" },
+  "Fanar-Oryx-IVU-2": { ar: "محرك الرؤية والصور", en: "Vision Engine" },
+  "Fanar-Sadiq": { ar: "محرك صادق الموثوق", en: "Sadiq Specialist" },
+  "Fanar-S-1-7B": { ar: "محرك الاستجابة الفورية", en: "Instant Engine" },
+  Fanar: { ar: "محرك فنار المتوازن", en: "Balanced Interactive Engine" },
+};
+
+/** Describe the Smart Auto route in student-friendly bilingual metadata for the /ai HUD. */
+export function describeSmartAutoRoute(
+  text: string,
+  hasImage = false,
+  locale: "ar" | "en" = "ar",
+): SmartAutoSummary {
+  const route = resolveAutoRoute(text, hasImage);
+  const lang = locale === "en" ? "en" : "ar";
+  const tier = TIER_LABELS[route.model] ?? TIER_LABELS.Fanar;
+  return {
+    model: route.model,
+    reason: route.reason,
+    difficulty: route.difficulty,
+    difficultyLabel: DIFFICULTY_LABELS[route.difficulty][lang],
+    subjectHint: route.subjectHint,
+    subjectLabel: SUBJECT_LABELS[route.subjectHint][lang],
+    pedagogicalMode: route.pedagogicalMode,
+    modeLabel: MODE_LABELS[route.pedagogicalMode][lang],
+    tierLabel: tier[lang],
+  };
+}
+
+export type Sec1SubjectScopeId =
+  | "all"
+  | "integrated-science"
+  | "mathematics"
+  | "philosophy-logic"
+  | "history"
+  | "arabic-language"
+  | "english";
+
+export type Sec1SubjectScope = {
+  id: Sec1SubjectScopeId;
+  labelAr: string;
+  labelEn: string;
+  starterAr: string;
+  starterEn: string;
+};
+
+export const SEC1_SUBJECT_SCOPES: readonly Sec1SubjectScope[] = [
+  {
+    id: "all",
+    labelAr: "كل مواد ١ث",
+    labelEn: "All Sec. 1",
+    starterAr: "",
+    starterEn: "",
+  },
+  {
+    id: "integrated-science",
+    labelAr: "العلوم المتكاملة",
+    labelEn: "Integrated Science",
+    starterAr: "في العلوم المتكاملة (أولى ثانوي): ",
+    starterEn: "In Integrated Science (Sec. 1): ",
+  },
+  {
+    id: "mathematics",
+    labelAr: "الرياضيات",
+    labelEn: "Mathematics",
+    starterAr: "في الرياضيات (المعادلات التربيعية والأعداد المركبة): ",
+    starterEn: "In Sec. 1 Mathematics (quadratics & complex numbers): ",
+  },
+  {
+    id: "philosophy-logic",
+    labelAr: "الفلسفة والمنطق",
+    labelEn: "Philosophy & Logic",
+    starterAr: "في الفلسفة والمنطق (أساليب التفكير والقياس المنطقي): ",
+    starterEn: "In Philosophy & Logic (thinking styles & syllogism): ",
+  },
+  {
+    id: "history",
+    labelAr: "التاريخ",
+    labelEn: "History",
+    starterAr: "في التاريخ (الحضارة ومصادرها ومصر القديمة): ",
+    starterEn: "In History (civilization, primary sources & Ancient Egypt): ",
+  },
+  {
+    id: "arabic-language",
+    labelAr: "اللغة العربية",
+    labelEn: "Arabic",
+    starterAr: "في اللغة العربية (النحو والبلاغة والأدب): ",
+    starterEn: "في اللغة العربية (منهج أولى ثانوي — النحو والبلاغة والأدب): ",
+  },
+  {
+    id: "english",
+    labelAr: "الإنجليزي",
+    labelEn: "English",
+    starterAr: "In Sec. 1 English (Units 1-5): ",
+    starterEn: "In Sec. 1 English (Units 1-5): ",
+  },
+];
+
+export type PedagogyPresetId = "simplify" | "step_by_step" | "quiz" | "flashcards";
+
+export type PedagogyPreset = {
+  id: PedagogyPresetId;
+  labelAr: string;
+  labelEn: string;
+  prefixAr: string;
+  prefixEn: string;
+  emptyPromptAr: string;
+  emptyPromptEn: string;
+};
+
+export const AI_PEDAGOGY_PRESETS: readonly PedagogyPreset[] = [
+  {
+    id: "simplify",
+    labelAr: "اشرح ببساطة",
+    labelEn: "Explain Simply",
+    prefixAr: "اشرح ببساطة وبمثال من منهج أولى ثانوي: ",
+    prefixEn: "Explain simply with a concrete Sec. 1 example: ",
+    emptyPromptAr: "اشرح لي ببساطة أهم مفهوم في درس أولى ثانوي بمثال تطبيقي.",
+    emptyPromptEn: "Explain a core Sec. 1 Term 1 concept simply with a real-life example.",
+  },
+  {
+    id: "step_by_step",
+    labelAr: "حل خطوة بخطوة",
+    labelEn: "Step-by-Step",
+    prefixAr: "حل خطوة بخطوة مع توضيح القوانين والتحقق من الناتج: ",
+    prefixEn: "Solve step-by-step showing each law and verifying the final result: ",
+    emptyPromptAr: "حل معي خطوة بخطوة مسألة تطبيقية من منهج أولى ثانوي مع خطوات التحقق.",
+    emptyPromptEn: "Walk me step-by-step through a Sec. 1 practice problem and check the answer.",
+  },
+  {
+    id: "quiz",
+    labelAr: "اختبرني (٣ أسئلة)",
+    labelEn: "Quiz Me (3 Qs)",
+    prefixAr: "اختبرني بـ ٣ أسئلة متدرجة الصعوبة (تفاعلية بدون كشف الحل أولاً) حول: ",
+    prefixEn: "Quiz me with 3 tiered Sec. 1 questions (do not reveal answers yet) on: ",
+    emptyPromptAr: "اختبرني في ٣ أسئلة متدرجة الصعوبة من منهج أولى ثانوي الترم الأول.",
+    emptyPromptEn: "Quiz me with 3 tiered Sec. 1 Term 1 questions without showing the answers first.",
+  },
+  {
+    id: "flashcards",
+    labelAr: "بطاقات مراجعة",
+    labelEn: "Flashcards",
+    prefixAr: "حوّل هذا الموضوع إلى بطاقات مراجعة (سؤال / إجابة / فخ الامتحان): ",
+    prefixEn: "Turn this topic into flashcards (Front / Back / Exam trap): ",
+    emptyPromptAr: "أنشئ بطاقات مراجعة مركزة لأهم تعاريف وقوانين منهج أولى ثانوي.",
+    emptyPromptEn: "Create focused flashcards for key Sec. 1 Term 1 laws and definitions.",
+  },
+];
+
+/** Map query-string ?subject= or ?track= slugs to a canonical Sec. 1 subject scope ID. */
+export function normalizeSubjectParam(raw: string | null | undefined): Sec1SubjectScopeId {
+  const val = String(raw ?? "").trim().toLowerCase();
+  if (!val) return "all";
+  if (val.includes("science")) return "integrated-science";
+  if (val.includes("math")) return "mathematics";
+  if (val.includes("philosophy") || val.includes("logic")) return "philosophy-logic";
+  if (val.includes("history")) return "history";
+  if (val.includes("arabic")) return "arabic-language";
+  if (val.includes("english")) return "english";
+  return "all";
+}
+
+/** Build or enrich a draft prompt with a subject prefix and/or pedagogical preset cleanly. */
+export function applyPedagogyPreset(
+  currentDraft: string,
+  presetId: PedagogyPresetId,
+  subjectScope: Sec1SubjectScopeId,
+  locale: "ar" | "en",
+): string {
+  const preset = AI_PEDAGOGY_PRESETS.find((p) => p.id === presetId);
+  if (!preset) return currentDraft;
+  const scope = SEC1_SUBJECT_SCOPES.find((s) => s.id === subjectScope);
+  const effectiveLocale =
+    subjectScope === "english" ? "en" : subjectScope === "arabic-language" ? "ar" : locale;
+  const trimmed = currentDraft.trim();
+  const prefix = effectiveLocale === "en" ? preset.prefixEn : preset.prefixAr;
+  const scopePrefix =
+    scope && scope.id !== "all"
+      ? effectiveLocale === "en"
+        ? scope.starterEn
+        : scope.starterAr
+      : "";
+
+  if (!trimmed) {
+    return `${scopePrefix}${effectiveLocale === "en" ? preset.emptyPromptEn : preset.emptyPromptAr}`;
+  }
+  const alreadyHasPrefix = AI_PEDAGOGY_PRESETS.some(
+    (p) => trimmed.startsWith(p.prefixAr.trim()) || trimmed.startsWith(p.prefixEn.trim()),
+  );
+  if (alreadyHasPrefix) return currentDraft;
+  return `${prefix}${trimmed}`;
 }

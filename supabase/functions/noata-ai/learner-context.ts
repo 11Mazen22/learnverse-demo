@@ -12,6 +12,13 @@
  * block a chat request.
  */
 
+import {
+  buildSec1CurriculumGrounding,
+  type DbLessonSnippet,
+  type StudyDeckSnippet,
+} from "./curriculum-grounding.ts";
+import type { AutoDifficulty, PedagogicalMode, SubjectHint } from "./routing.ts";
+
 export type LearnerSkill = {
   title: string;
   mastery: number;
@@ -49,6 +56,7 @@ export type LearnerSnapshot = {
   skills?: LearnerSkill[];
   courseTitle?: string | null;
   tracks?: LearnerTrack[];
+  curriculumGrounding?: string | null;
 };
 
 function clean(value: unknown, limit = 90): string {
@@ -190,6 +198,10 @@ export function formatLearnerContext(snapshot: LearnerSnapshot, now = Date.now()
       "- Keep the Arabic and English editions of Integrated Science and Mathematics separate: progress in one track is not progress in the other, and never substitute one track's content for the other.",
     );
   }
+  const grounding = String(snapshot.curriculumGrounding ?? "").trim();
+  if (grounding) {
+    lines.push(grounding.slice(0, 2600));
+  }
   return lines.join("\n");
 }
 
@@ -197,11 +209,35 @@ type Admin = {
   from: (table: string) => any;
 };
 
+export type LearnerContextOptions =
+  | string
+  | {
+      queryText?: string;
+      difficulty?: AutoDifficulty;
+      subjectHint?: SubjectHint;
+      pedagogicalMode?: PedagogicalMode;
+    };
+
+async function safeOptionalQuery(promise: Promise<any>): Promise<{ data: any[] }> {
+  try {
+    const res = await promise;
+    return res && !res.error && Array.isArray(res.data) ? { data: res.data } : { data: [] };
+  } catch {
+    return { data: [] };
+  }
+}
+
 /** Read a bounded snapshot; any failure yields "" so chat still works. */
-export async function loadLearnerContext(admin: Admin, userId: string): Promise<string> {
+export async function loadLearnerContext(
+  admin: Admin,
+  userId: string,
+  options?: LearnerContextOptions,
+): Promise<string> {
   if (!userId) return "";
+  const opts = typeof options === "string" ? { queryText: options } : (options ?? {});
+  const queryText = String(opts.queryText ?? "");
   const read = (async (): Promise<string> => {
-    const [profile, progress, evidence, course, total, completedCount, enrollments] =
+    const [profile, progress, evidence, course, total, completedCount, enrollments, dbLessonsRes, decksRes, cardsRes] =
       await Promise.all([
         admin.from("profiles").select("display_name,xp,streak_days").eq("id", userId).maybeSingle(),
         admin
@@ -240,6 +276,24 @@ export async function loadLearnerContext(admin: Admin, userId: string): Promise<
           .eq("user_id", userId)
           .order("updated_at", { ascending: false })
           .limit(4),
+        safeOptionalQuery(admin.from("lessons").select("id,title_ar,title_en,content").limit(16)),
+        safeOptionalQuery(
+          admin
+            .from("flashcard_decks")
+            .select("title,updated_at")
+            .eq("user_id", userId)
+            .order("updated_at", { ascending: false })
+            .limit(8),
+        ),
+        safeOptionalQuery(
+          admin
+            .from("flashcards")
+            .select("front,back")
+            .eq("user_id", userId)
+            .eq("suspended", false)
+            .order("position", { ascending: true })
+            .limit(16),
+        ),
       ]);
     if (profile.error && progress.error && evidence.error) return "";
     const trackRows = (enrollments.data ?? []) as any[];
@@ -310,6 +364,25 @@ export async function loadLearnerContext(admin: Admin, userId: string): Promise<
             : undefined,
         };
       });
+    const dbLessons = (dbLessonsRes.data ?? []) as DbLessonSnippet[];
+    const studyDecks = (decksRes.data ?? []).map((row: any) => ({
+      title: clean(row.title, 80),
+    })) as StudyDeckSnippet[];
+    const studyCards = (cardsRes.data ?? [])
+      .map((row: any) => `${clean(row.front, 55)} -> ${clean(row.back, 55)}`)
+      .filter((s: string) => s.length > 5);
+
+    const curriculumGrounding = buildSec1CurriculumGrounding({
+      queryText,
+      subjectHint: opts.subjectHint,
+      activeTrackSlugs: tracks.map((t) => t.slug),
+      dbLessons,
+      studyDecks,
+      studyCards,
+      difficulty: opts.difficulty,
+      pedagogicalMode: opts.pedagogicalMode,
+    });
+
     return formatLearnerContext({
       displayName: profile.data?.display_name ?? "",
       xp: profile.data?.xp ?? null,
@@ -330,6 +403,7 @@ export async function loadLearnerContext(admin: Admin, userId: string): Promise<
         dueAt: row.next_review_at,
         track: trackByCourse.get(String(row.skills?.courses?.id ?? "")) ?? null,
       })),
+      curriculumGrounding,
     });
   })();
   const timeout = new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500));

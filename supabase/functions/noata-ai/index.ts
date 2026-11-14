@@ -680,9 +680,9 @@ async function handleChat(
       :"What would you like me to search for? Give me a topic or question. If live search is available, I'll look it up and show the actual sources.",
       finishReason:"clarification",incomplete:false});
   }
-  let routeNote:string|undefined;
+  let routeNote:string|undefined; const smartRoute = resolveAutoRoute(latestText, Boolean(payload.attachmentPath));
   if (model === "auto") {
-    model = resolveAutoRoute(latestText, Boolean(payload.attachmentPath)).model;
+    model = smartRoute.model;
     if(model==="Fanar-Sadiq-2"&&Deno.env.get("NOATA_SADIQ_2_ENABLED")!=="true"){
       // Sadiq 2 needs extra Fanar authorization; plain Sadiq is allowed by default.
       model="Fanar-Sadiq";routeNote="sadiq_2_unavailable_sadiq_1";
@@ -727,7 +727,12 @@ async function handleChat(
   const presentation=delivery?"":answerPresentation(latestText);
   // Progress personalization is server-verified and owner-scoped. It never
   // blocks the request: an unavailable read simply yields no context block.
-  const learnerContext=await loadLearnerContext(admin,userId);
+  const learnerContext = await loadLearnerContext(admin, userId, {
+    queryText: latestText,
+    difficulty: smartRoute.difficulty,
+    subjectHint: smartRoute.subjectHint,
+    pedagogicalMode: smartRoute.pedagogicalMode,
+  });
   const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}${learnerContext?"\n"+learnerContext:""}` }, ...safeMessages];
   const body: any = {
     model,

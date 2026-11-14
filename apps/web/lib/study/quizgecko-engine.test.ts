@@ -1,10 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  createBundleFromLessonPack,
   generateAlgorithmicBundle,
   exportToAnkiTSV,
   convertMissedQuestionsToCards,
 } from "./quizgecko-engine.ts";
+import { getLessonStudyPack, getTrackLessonStudyPacks } from "../curriculum/sec1-study-pack.ts";
 
 describe("QuizGecko Engine Tests", () => {
   it("generates structured bundle from Arabic text with no brand corruption", () => {
@@ -82,5 +84,30 @@ describe("QuizGecko Engine Tests", () => {
     assert.equal(cards[0].front, "What is mitochondria?");
     assert.ok(cards[0].back.includes("Powerhouse"));
     assert.ok(cards[0].back.includes("Generates ATP"));
+  });
+
+  it("createBundleFromLessonPack builds curriculum-derived bundles from Sec. 1 packs", () => {
+    const arPack = getTrackLessonStudyPacks("arabic-language")[0] ?? getLessonStudyPack("sci-hydrosphere");
+    assert.ok(arPack, "Expected Sec. 1 Arabic pack");
+    const arBundle = createBundleFromLessonPack(arPack, "hard");
+    assert.equal(arBundle.provenance, "curriculum_derived");
+    assert.equal(arBundle.locale, "ar");
+    assert.equal(arBundle.difficulty, "hard");
+    assert.ok(arBundle.summary.trim().length > 10);
+    assert.ok(arBundle.keyTakeaways.length >= 2);
+    assert.ok(arBundle.questions.length >= 2);
+    assert.ok(arBundle.cards.length >= 2);
+    for (const q of arBundle.questions) {
+      assert.ok(q.options.length >= 2);
+      assert.ok(q.distractorExplanations && Object.keys(q.distractorExplanations).length >= 1);
+    }
+
+    const enPack = getTrackLessonStudyPacks("english")[0];
+    assert.ok(enPack, "Expected Sec. 1 English pack");
+    const enBundle = createBundleFromLessonPack(enPack, "medium");
+    assert.equal(enBundle.provenance, "curriculum_derived");
+    assert.equal(enBundle.locale, "en");
+    assert.ok(enBundle.questions.length >= 2);
+    assert.ok(enBundle.cards.length >= 2);
   });
 });

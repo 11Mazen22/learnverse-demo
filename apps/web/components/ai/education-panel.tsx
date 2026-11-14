@@ -75,6 +75,39 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
 
         <li>
           <h3><span>2</span>{t("ما الموضوع أو النص؟","What is the topic or text?")}</h3>
+          <div className="aura-chip-row noata-workshop-quick" role="group" aria-label={t("دروس أولى ثانوي السريعة","Quick Sec. 1 Term 1 topics")}>
+            {(
+              [
+                [
+                  t("العلوم المتكاملة: كثافة الماء عند 4°C و Q=mcΔT", "Integrated Science: Water density at 4°C & Q=mcΔT"),
+                ],
+                [
+                  t("الرياضيات: المميز Δ والأعداد المركبة وعلاقات فيتا", "Math: Discriminant Δ, Complex Numbers & Vieta"),
+                ],
+                [
+                  t("الفلسفة والمنطق: التفكير الناقد ومربع أرسطو A/E/I/O", "Philosophy & Logic: Critical Thinking & Square A/E/I/O"),
+                ],
+                [
+                  t("التاريخ: المصادر الأولية والأوستراكا ومقومات الحضارة", "History: Primary Sources, Ostraca & Civilization"),
+                ],
+                [
+                  t("اللغة العربية: المعرب والمبني ومرفوعات الأسماء", "اللغة العربية: المعرب والمبني ومرفوعات الأسماء"),
+                ],
+                [
+                  t("English Units 1–5: Past Tenses & Conditionals 0–2", "English Units 1–5: Past Tenses & Conditionals 0–2"),
+                ],
+              ] as const
+            ).map(([presetTopic]) => (
+              <button
+                key={presetTopic}
+                type="button"
+                aria-pressed={topic === presetTopic}
+                onClick={() => setTopic(presetTopic)}
+              >
+                {presetTopic}
+              </button>
+            ))}
+          </div>
           <label className="sr-only" htmlFor={topicId}>{t("الموضوع أو النص","Topic or text")}</label>
           <textarea
             id={topicId}

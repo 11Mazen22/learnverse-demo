@@ -1,23 +1,41 @@
 "use client";
 
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
 import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
 import { StudyRichText } from "@/components/study/study-rich-text";
+import {
+  AchievementCelebration,
+  computeLessonAchievementSummary,
+} from "@/components/ui/achievement-celebration";
+import {
+  AttemptIdempotencyController,
+  extractDistractorFeedback,
+} from "@/lib/curriculum/attempt-guard";
+import {
+  inferContentLanguage,
+  resolveCurriculumText,
+  type ContentLanguage,
+} from "@/lib/curriculum/catalog";
+import {
+  evaluateLocalChoice,
+  getLessonStudyCompanion,
+} from "@/lib/curriculum/sec1-study-pack";
 
 type LessonRow = {
   id: string;
   unit_id: string;
+  position?: number | null;
   title_ar: string;
   title_en: string;
   content: unknown;
   xp_reward: number;
   coin_reward: number;
-  units: { id: string; course_id: string; title_ar: string; title_en: string } | null;
+  units: { id: string; course_id?: string | null; title_ar: string; title_en: string } | null;
 };
 
 type ContentShape = {
@@ -43,19 +61,46 @@ type ContentShape = {
 
 type TrackContext = {
   slug: string;
-  content_language: "ar" | "en";
+  content_language: ContentLanguage;
   title_ar: string;
   title_en: string;
   source_document: string | null;
   source_sha256: string | null;
 };
 
-type CheckpointQuestion = {
+type DbQuestionRow = {
   id: string;
+  question_type: string;
+  variant_of: string | null;
+  position: number | null;
   prompt_ar: string;
   prompt_en: string | null;
   choices_ar: unknown;
   choices_en: unknown;
+  metadata: unknown;
+};
+
+type PracticeItem = {
+  id: string;
+  source: "db" | "curated";
+  question_type: string;
+  prompt: string;
+  choices: string[];
+  correct_index?: number;
+  hint?: string;
+  explanation?: string;
+  difficulty?: string;
+  metadata?: unknown;
+};
+
+type PracticeAnswerState = {
+  selected: string;
+  submitted: boolean;
+  grading?: boolean;
+  correct: boolean | null;
+  feedback: string;
+  xpAwarded?: number;
+  error?: string;
 };
 
 const strings = (value: unknown) =>
@@ -63,51 +108,76 @@ const strings = (value: unknown) =>
     ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
     : [];
 
+function dedupeStrings(items: string[], limit = 8): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of items) {
+    const clean = raw.trim();
+    const key = clean.toLowerCase();
+    if (!clean || seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+function buildAiHref(prompt: string, subjectSlug?: string): string {
+  const params = new URLSearchParams();
+  params.set("prompt", prompt);
+  if (subjectSlug) params.set("subject", subjectSlug);
+  return `/ai?${params.toString()}`;
+}
+
 export function LessonLive({ id }: { id: string }) {
   const t = useTranslation();
   const locale = useLocale();
   const supabase = useMemo(() => createClient(), []);
   const account = useVerifiedAccount();
+  const attemptGuard = useRef(new AttemptIdempotencyController());
 
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [lesson, setLesson] = useState<LessonRow | null>(null);
-  const [questionCount, setQuestionCount] = useState(0);
+  const [dbQuestions, setDbQuestions] = useState<DbQuestionRow[]>([]);
   const [track, setTrack] = useState<TrackContext | null>(null);
   const [completed, setCompleted] = useState(false);
   const [bestScore, setBestScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
 
-  // Pedagogical Stepper state
+  // Pedagogical Stepper & Worked-Step Reveal state
   const [activeStage, setActiveStage] = useState(0);
+  const [revealedStepsByExample, setRevealedStepsByExample] = useState<Record<number, number>>({});
 
-  // Interactive Checkpoint state
-  const [checkpointQuestion, setCheckpointQuestion] = useState<CheckpointQuestion | null>(null);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [checkpointAnswered, setCheckpointAnswered] = useState(false);
+  // Interactive Multi-Question Checkpoint state
+  const [practiceIndex, setPracticeIndex] = useState(0);
+  const [hintVisible, setHintVisible] = useState(false);
+  const [answerStates, setAnswerStates] = useState<Record<number, PracticeAnswerState>>({});
 
   useEffect(() => {
     if (account.loading) return;
     let alive = true;
+    attemptGuard.current.resetAll();
     setLoading(true);
     setError("");
     setMissing(false);
     setLesson(null);
     setCompleted(false);
     setBestScore(null);
-    setQuestionCount(0);
+    setDbQuestions([]);
     setTrack(null);
-    setCheckpointQuestion(null);
-    setSelectedAnswer(null);
-    setCheckpointAnswered(false);
+    setPracticeIndex(0);
+    setHintVisible(false);
+    setAnswerStates({});
+    setRevealedStepsByExample({});
 
     void (async () => {
       try {
         const lessonRes = await supabase
           .from("lessons")
           .select(
-            "id,unit_id,title_ar,title_en,content,xp_reward,coin_reward,units(id,course_id,title_ar,title_en)",
+            "id,unit_id,position,title_ar,title_en,content,xp_reward,coin_reward,units(id,course_id,title_ar,title_en)",
           )
           .eq("id", id)
           .maybeSingle();
@@ -119,29 +189,26 @@ export function LessonLive({ id }: { id: string }) {
           return;
         }
 
-        const courseId = (lessonRes.data.units as { course_id?: string } | null)?.course_id;
-        if (!courseId) throw Error("Lesson course unavailable");
+        const courseId =
+          (lessonRes.data.units as { course_id?: string | null } | null)?.course_id ?? null;
 
-        const [questionRows, trackResult, checkpointRes] = await Promise.all([
+        const [questionRows, trackResult] = await Promise.all([
           supabase
             .from("questions")
-            .select("id,variant_of,metadata")
+            .select(
+              "id,question_type,variant_of,position,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
+            )
             .eq("lesson_id", id)
-            .in("publication_status", ["published_demo", "published"]),
-          supabase
-            .from("curriculum_tracks")
-            .select("slug,content_language,title_ar,title_en,source_document,source_sha256")
-            .eq("course_id", courseId)
-            .eq("publication_status", "published")
-            .maybeSingle(),
-          supabase
-            .from("questions")
-            .select("id,prompt_ar,prompt_en,choices_ar,choices_en")
-            .eq("lesson_id", id)
-            .eq("question_type", "multiple-choice")
             .in("publication_status", ["published_demo", "published"])
-            .limit(1)
-            .maybeSingle(),
+            .order("position", { ascending: true }),
+          courseId
+            ? supabase
+                .from("curriculum_tracks")
+                .select("slug,content_language,title_ar,title_en,source_document,source_sha256")
+                .eq("course_id", courseId)
+                .eq("publication_status", "published")
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null }),
         ]);
 
         if (!alive) return;
@@ -150,21 +217,19 @@ export function LessonLive({ id }: { id: string }) {
         }
 
         const content = (lessonRes.data.content ?? {}) as ContentShape;
-        const language =
-          content.render_language ??
-          content.primary_content_language ??
-          trackResult.data?.content_language;
-
-        if (language !== "ar" && language !== "en") {
-          throw Error("Lesson curriculum language unavailable");
-        }
+        const resolvedLanguage = inferContentLanguage({
+          trackContentLanguage: (trackResult.data as TrackContext | null)?.content_language,
+          promptAr: content.summary_ar,
+          promptEn: content.summary_en,
+          metadata: content as Record<string, unknown>,
+        });
 
         setTrack(
           trackResult.data
             ? (trackResult.data as TrackContext)
             : {
                 slug: "",
-                content_language: language,
+                content_language: resolvedLanguage,
                 title_ar: "",
                 title_en: "",
                 source_document: content.source_document ?? null,
@@ -190,19 +255,15 @@ export function LessonLive({ id }: { id: string }) {
 
         setLesson(lessonRes.data as LessonRow);
 
-        setQuestionCount(
-          (questionRows.data ?? []).filter((row) => {
+        setDbQuestions(
+          ((questionRows.data ?? []) as DbQuestionRow[]).filter((row) => {
             const metadata =
               row.metadata && typeof row.metadata === "object"
                 ? (row.metadata as Record<string, unknown>)
                 : {};
             return row.variant_of === null || metadata.translation_track === true;
-          }).length,
+          }),
         );
-
-        if (checkpointRes.data) {
-          setCheckpointQuestion(checkpointRes.data as CheckpointQuestion);
-        }
       } catch {
         if (alive) {
           setError(
@@ -267,17 +328,258 @@ export function LessonLive({ id }: { id: string }) {
     );
   }
 
+  const courseId = lesson.units?.course_id ?? null;
   const content = (lesson.content ?? {}) as ContentShape;
-  const contentLanguage = track?.content_language ?? content.render_language ?? "ar";
+  const hasRealTrack = Boolean(courseId || track?.slug);
+  const contentLanguage: ContentLanguage = track?.slug
+    ? track.content_language
+    : !courseId &&
+        locale === "en" &&
+        Boolean(content.summary_en?.trim()) &&
+        !content.render_language &&
+        !content.primary_content_language
+      ? "en"
+      : content.render_language ??
+        content.primary_content_language ??
+        track?.content_language ??
+        inferContentLanguage({
+          promptAr: content.summary_ar,
+          promptEn: content.summary_en,
+          metadata: content as Record<string, unknown>,
+        });
   const isEnContent = contentLanguage === "en";
-  const lessonTitle = isEnContent ? lesson.title_en : lesson.title_ar;
-  const unitTitle = isEnContent ? lesson.units?.title_en : lesson.units?.title_ar;
-  const summary = isEnContent ? content.summary_en : content.summary_ar;
-  const worked = isEnContent ? content.worked_en : content.worked_ar;
-  const objectives = strings(isEnContent ? content.objectives_en : content.objectives_ar);
-  const mistakes = strings(isEnContent ? content.common_mistakes_en : content.common_mistakes_ar);
-  const provenance = isEnContent ? content.provenance_en : content.provenance_ar;
-  const translationNote = isEnContent ? content.translation_note_en : content.translation_note_ar;
+  const contentDir: "ltr" | "rtl" = isEnContent ? "ltr" : "rtl";
+
+  const lessonTitle = resolveCurriculumText(contentLanguage, lesson.title_ar, lesson.title_en);
+  const unitTitle = resolveCurriculumText(
+    contentLanguage,
+    lesson.units?.title_ar,
+    lesson.units?.title_en,
+  );
+  const trackTitle = resolveCurriculumText(
+    contentLanguage,
+    track?.title_ar,
+    track?.title_en,
+    t("مسار تعليمي معتمد", "Accredited track"),
+  );
+  const summary = resolveCurriculumText(contentLanguage, content.summary_ar, content.summary_en);
+  const worked = resolveCurriculumText(contentLanguage, content.worked_ar, content.worked_en);
+  const dbObjectives = strings(isEnContent ? content.objectives_en : content.objectives_ar);
+  const dbMistakes = strings(
+    isEnContent ? content.common_mistakes_en : content.common_mistakes_ar,
+  );
+  const translationNote = resolveCurriculumText(
+    contentLanguage,
+    content.translation_note_ar,
+    content.translation_note_en,
+  );
+
+  const companion = getLessonStudyCompanion({
+    lessonIdOrSlug: lesson.id,
+    titleAr: lesson.title_ar,
+    titleEn: lesson.title_en,
+    trackSlug: track?.slug || undefined,
+    subjectKey: track?.slug ? track.slug.replace(/-(ar|en)$/, "") : undefined,
+    position: lesson.position ?? undefined,
+    contentLanguage,
+  });
+
+  const objectives = dbObjectives.length
+    ? dbObjectives
+    : hasRealTrack
+      ? companion.keyConcepts.slice(0, 4).map((c) => c.title)
+      : [];
+  const mistakes = hasRealTrack
+    ? dedupeStrings([...dbMistakes, ...companion.commonMistakes], 6)
+    : dbMistakes;
+
+  const dbPracticeItems: PracticeItem[] = dbQuestions
+    .map((q) => {
+      const prompt = resolveCurriculumText(contentLanguage, q.prompt_ar, q.prompt_en);
+      const arChoices = strings(q.choices_ar);
+      const enChoices = strings(q.choices_en);
+      const choicesList = isEnContent
+        ? enChoices.length
+          ? enChoices
+          : arChoices
+        : arChoices.length
+          ? arChoices
+          : enChoices;
+      const meta =
+        q.metadata && typeof q.metadata === "object"
+          ? (q.metadata as Record<string, unknown>)
+          : {};
+      const hint = resolveCurriculumText(
+        contentLanguage,
+        typeof meta.hint_ar === "string" ? meta.hint_ar : null,
+        typeof meta.hint_en === "string" ? meta.hint_en : null,
+      );
+      return {
+        id: q.id,
+        source: "db" as const,
+        question_type: q.question_type,
+        prompt,
+        choices: choicesList,
+        hint: hint || undefined,
+        metadata: q.metadata,
+      };
+    })
+    .filter((item) => Boolean(item.prompt));
+
+  const seenPrompts = new Set(dbPracticeItems.map((item) => item.prompt.trim().toLowerCase()));
+  const curatedSupplements: PracticeItem[] = hasRealTrack
+    ? companion.curatedQuestions
+        .filter((q) => !seenPrompts.has(q.prompt.trim().toLowerCase()))
+        .map((q) => ({
+          id: q.id,
+          source: "curated" as const,
+          question_type: q.question_type,
+          prompt: q.prompt,
+          choices: q.choices,
+          correct_index: q.correct_index,
+          hint: q.hint,
+          explanation: q.explanation,
+          difficulty: q.difficulty,
+        }))
+    : [];
+
+  const practicePool: PracticeItem[] = [...dbPracticeItems, ...curatedSupplements].slice(0, 5);
+  const questionCount = Math.max(dbPracticeItems.length, practicePool.length);
+  const safePracticeIndex = practicePool.length
+    ? Math.min(practiceIndex, practicePool.length - 1)
+    : 0;
+  const activeQuestion = practicePool[safePracticeIndex] ?? null;
+  const activeAnswerState = answerStates[safePracticeIndex] ?? {
+    selected: "",
+    submitted: false,
+    correct: null,
+    feedback: "",
+  };
+
+  const completedPracticeCount = practicePool.filter(
+    (_, idx) => answerStates[idx]?.submitted,
+  ).length;
+  const correctPracticeCount = practicePool.filter(
+    (_, idx) => answerStates[idx]?.correct === true,
+  ).length;
+
+  async function handleCheckPracticeAnswer(idx: number) {
+    const item = practicePool[idx];
+    const currentState = answerStates[idx];
+    if (!item || !currentState?.selected.trim() || currentState.grading) return;
+
+    if (item.source === "curated") {
+      const selectedIdx = Number(currentState.selected);
+      const selectedChoiceText =
+        item.choices.length > 0 &&
+        Number.isInteger(selectedIdx) &&
+        item.choices[selectedIdx] !== undefined
+          ? item.choices[selectedIdx]
+          : currentState.selected;
+      const evaluated = evaluateLocalChoice({
+        selectedChoice: selectedChoiceText,
+        choices: item.choices,
+        correctIndex: item.correct_index,
+      });
+      const correct = evaluated ? evaluated.correct : false;
+      const fallbackCorrect = evaluated?.correctChoiceText
+        ? isEnContent
+          ? `Expected answer: ${evaluated.correctChoiceText}. `
+          : `الإجابة الصحيحة: ${evaluated.correctChoiceText}. `
+        : "";
+      setAnswerStates((prev) => ({
+        ...prev,
+        [idx]: {
+          ...currentState,
+          submitted: true,
+          grading: false,
+          correct,
+          error: undefined,
+          feedback: (correct ? "" : fallbackCorrect) + (item.explanation ?? ""),
+        },
+      }));
+      return;
+    }
+
+    if (!account.user) {
+      setAnswerStates((prev) => ({
+        ...prev,
+        [idx]: {
+          ...currentState,
+          error: t(
+            "سجّل الدخول للتحقق الرسمي وحفظ نقاط الخبرة.",
+            "Sign in to verify DB questions and earn XP.",
+          ),
+        },
+      }));
+      return;
+    }
+
+    setAnswerStates((prev) => ({
+      ...prev,
+      [idx]: { ...currentState, grading: true, error: undefined },
+    }));
+
+    try {
+      const idempotencyKey = attemptGuard.current.getAttemptKey(item.id, currentState.selected);
+      const { data, error: rpcError } = await supabase.rpc("submit_attempt", {
+        p_question_id: item.id,
+        p_response: { value: currentState.selected },
+        p_assisted: hintVisible,
+        p_idempotency_key: idempotencyKey,
+        p_practice_repeat: true,
+      });
+      if (rpcError) throw rpcError;
+      attemptGuard.current.clearAttempt(item.id);
+      const result = (data ?? {}) as {
+        correct?: boolean;
+        explanation_ar?: string;
+        explanation_en?: string;
+        xp_awarded?: number;
+      };
+      const correct = result.correct === true;
+      const distractor = !correct
+        ? extractDistractorFeedback(item.metadata, currentState.selected, contentLanguage)
+        : "";
+      const feedbackText =
+        distractor ||
+        resolveCurriculumText(
+          contentLanguage,
+          result.explanation_ar,
+          result.explanation_en,
+          correct
+            ? isEnContent
+              ? "Verified! Core concept confirmed."
+              : "إجابة موفّقة! أحسنت تطبيق المفهوم."
+            : isEnContent
+              ? "Review the worked steps and try again."
+              : "راجع خطوات المثال المحلول ثم أعد المحاولة.",
+        );
+      setAnswerStates((prev) => ({
+        ...prev,
+        [idx]: {
+          ...currentState,
+          submitted: true,
+          grading: false,
+          correct,
+          xpAwarded: typeof result.xp_awarded === "number" ? result.xp_awarded : undefined,
+          feedback: feedbackText,
+        },
+      }));
+    } catch {
+      setAnswerStates((prev) => ({
+        ...prev,
+        [idx]: {
+          ...currentState,
+          grading: false,
+          error: t(
+            "تعذّر التحقق من الإجابة الآن. حاول مرة أخرى.",
+            "Could not verify this answer right now. Please try again.",
+          ),
+        },
+      }));
+    }
+  }
 
   // Discipline detection
   const trackSlug = track?.slug || "";
@@ -332,23 +634,27 @@ export function LessonLive({ id }: { id: string }) {
     },
   ];
 
+  const studyHrefBase = `/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`;
+
   return (
     <div className="noata-lesson-container" data-tour-page="lesson">
       {/* 1. Breadcrumbs */}
       <nav className="noata-lesson-breadcrumb" aria-label={t("مسار التنقل", "Breadcrumb navigation")}>
         <Link href="/learn">{t("رحلة التعلّم", "Learning journey")}</Link>
         <span className="noata-lesson-breadcrumb-sep">/</span>
-        <span>{unitTitle ?? t("الوحدة الدراسية", "Study Unit")}</span>
+        <span dir={contentDir}>{unitTitle || t("الوحدة الدراسية", "Study Unit")}</span>
         <span className="noata-lesson-breadcrumb-sep">/</span>
-        <span aria-current="page" style={{ color: "var(--ink)", fontWeight: 700 }}>{lessonTitle}</span>
+        <span aria-current="page" dir={contentDir} style={{ color: "var(--ink)", fontWeight: 700 }}>
+          {lessonTitle}
+        </span>
       </nav>
 
       {/* 2. Hero Header */}
       <section className="noata-lesson-hero" data-tour="lesson-context">
         <div className="noata-lesson-meta-bar">
-          <span className="noata-lesson-track-tag">
+          <span className="noata-lesson-track-tag" dir={contentDir}>
             <Icon name="book" size={14} />
-            <span>{track?.title_ar || track?.title_en || t("مسار تعليمي معتمد", "Accredited track")}</span>
+            <span>{trackTitle}</span>
           </span>
 
           <div className="noata-lesson-metrics">
@@ -381,13 +687,16 @@ export function LessonLive({ id }: { id: string }) {
         </div>
 
         <div className="noata-lesson-title-area">
-          <h1 dir={isEnContent ? "ltr" : "rtl"}>{lessonTitle}</h1>
-          <p className="noata-lesson-lead" dir={isEnContent ? "ltr" : "rtl"}>
-            {summary ?? t("محتوى الدرس مبني على دليل المذاكرة الأصيل المعتمد لوزارة التربية والتعليم.", "Lesson content is based on the verified curriculum study pack.")}
+          <h1 dir={contentDir}>{lessonTitle}</h1>
+          <p className="noata-lesson-lead" dir={contentDir}>
+            {summary ||
+              t(
+                "محتوى الدرس مبني على دليل المذاكرة الأصيل المعتمد لوزارة التربية والتعليم.",
+                "Lesson content is based on the verified curriculum study pack.",
+              )}
           </p>
         </div>
 
-        {/* Provenance Badge */}
         {(track?.source_document || content.source_document) && (
           <div style={{ fontSize: 12, color: "var(--muted)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--line)", paddingTop: 12 }}>
             <span style={{ fontWeight: 700 }}>{t("المصدر الأكاديمي الموثّق:", "Verified Source:")}</span>
@@ -430,275 +739,676 @@ export function LessonLive({ id }: { id: string }) {
             <Link
               className="btn btn-secondary"
               style={{ justifyContent: "center", fontSize: 12.5 }}
-              href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}&tab=generator`}
+              href={`${studyHrefBase}&tab=generator`}
             >
               <Icon name="sparkles" size={14} />
               <span>{t("حزمة المذاكرة الذكية", "Open Study Deck")}</span>
+            </Link>
+            <Link
+              className="btn btn-secondary"
+              style={{ justifyContent: "center", fontSize: 12.5 }}
+              href={buildAiHref(companion.aiTutorPrompts[0] ?? lessonTitle, trackSlug)}
+            >
+              <Icon name="sparkles" size={14} />
+              <span>{t("اسأل المعلم الذكي", "Ask AI Tutor")}</span>
             </Link>
           </div>
         </aside>
 
         <section className="noata-stage-content-card" data-tour="lesson-content">
-        {/* STAGE 0: Objectives & Foundations */}
-        {activeStage === 0 && (
-          <>
-            <div className="noata-stage-header">
-              <div className="noata-stage-header-title">
-                <span className="noata-stage-icon-circle">
-                  <Icon name="book" size={20} />
-                </span>
-                <div>
-                  <h2>{t("أهداف التعلم والتهيئة المعرفية", "Learning Objectives & Foundations")}</h2>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-                    {t("ما يتوقع منك إتقانه وتطبيقه بنهاية هذا الدرس.", "Key competencies you will acquire by the end of this lesson.")}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {objectives.length > 0 ? (
-              <div className="noata-objectives-grid">
-                {objectives.map((obj, i) => (
-                  <div key={i} className="noata-objective-card">
-                    <span className="noata-objective-bullet">{i + 1}</span>
-                    <p className="noata-objective-text" dir={isEnContent ? "ltr" : "rtl"}>
-                      {obj}
+          {/* STAGE 0: Objectives & Foundations */}
+          {activeStage === 0 && (
+            <>
+              <div className="noata-stage-header">
+                <div className="noata-stage-header-title">
+                  <span className="noata-stage-icon-circle">
+                    <Icon name="book" size={20} />
+                  </span>
+                  <div>
+                    <h2>{t("أهداف التعلم والتهيئة المعرفية", "Learning Objectives & Foundations")}</h2>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+                      {t("ما يتوقع منك إتقانه وتطبيقه بنهاية هذا الدرس.", "Key competencies you will acquire by the end of this lesson.")}
                     </p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ color: "var(--muted)" }}>
-                {t("الهدف الأساسي هو استيعاب المفهوم وتطبيقه في أسئلة الفهم والمهمة التطبيقية.", "The core goal is conceptual comprehension and practical application.")}
-              </p>
-            )}
-
-            {/* Discipline-specific contextual card */}
-            <div className={`noata-discipline-panel ${disciplineType}`}>
-              <div className="noata-discipline-badge">
-                <Icon name="sparkles" size={14} />
-                <span>
-                  {disciplineType === "math"
-                    ? t("منهجية الرياضيات: التركيز على خطوات التحليل الرياضي المنطقي", "Mathematical Method: Step-by-step rigorous deduction")
-                    : disciplineType === "science"
-                      ? t("المنهج العلمي: الربط بين الملاحظة التجريبية والتفسير الفيزيوكيميائي", "Scientific Inquiry: Empirical evidence & biochemical reasoning")
-                      : disciplineType === "history"
-                        ? t("النقد التاريخي: التمييز بين المصادر الأولية والمراجع وتتبع الأثر", "Historical Analysis: Evidence provenance & primary source critique")
-                        : disciplineType === "arabic"
-                          ? t("التحليل البلاغي واللغوي: المعنى السياقي وتذوق التراكيب الأدبية", "Linguistic Inquiry: Contextual semantics & rhetorical structure")
-                          : disciplineType === "philosophy"
-                            ? t("التفكير الفلسفي: تشريح المقدمات وبناء الحجج العقلانية المستقلة", "Philosophical Inquiry: Examining premises & rational argumentation")
-                            : t("إرشادات المذاكرة الفعالة", "Effective Study Guidelines")}
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.8, color: "var(--ink)" }}>
-                {t(
-                  "تدرج خطوة بخطوة عبر المراحل بالأعلى. انتقل للشرح في المرحلة 2 ثم راجع المثال المحلول.",
-                  "Progress through the stages above sequentially: explore the core concept in Stage 2, then review the worked solution.",
-                )}
-              </p>
-            </div>
-          </>
-        )}
-
-        {/* STAGE 1: Core Concept Deep Dive */}
-        {activeStage === 1 && (
-          <>
-            <div className="noata-stage-header">
-              <div className="noata-stage-header-title">
-                <span className="noata-stage-icon-circle">
-                  <Icon name="sparkles" size={20} />
-                </span>
-                <div>
-                  <h2>{t("الشرح المفاهيمي والتفكيك المنطقي", "Core Concept & Conceptual Deep Dive")}</h2>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-                    {t("استيعاب جوهر الفكرة بدون حفظ سطحي.", "Deep conceptual understanding beyond superficial memorization.")}
-                  </p>
                 </div>
               </div>
-            </div>
 
-            <article style={{ fontSize: 16.5, lineHeight: 2, color: "var(--ink)" }} dir={isEnContent ? "ltr" : "rtl"}>
-              {summary ? (
-                summary.split("\n\n").map((para, i) => (
-                  <div key={i} style={{ margin: "0 0 16px" }}>
-                    <StudyRichText content={para} />
-                  </div>
-                ))
-              ) : (
-                <p>{t("محتوى الدرس غير منشور في المصدر المتصل.", "Lesson content is not published in the connected source.")}</p>
-              )}
-            </article>
-
-            {translationNote && (
-              <div style={{ padding: 14, borderRadius: 12, background: "var(--surface-soft)", border: "1px solid var(--line)", fontSize: 13, color: "var(--muted)" }}>
-                <strong>{t("ملاحظة ترجمة معتمدة:", "Curriculum Translation Note:")}</strong> {translationNote}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* STAGE 2: Worked Application & Examples */}
-        {activeStage === 2 && (
-          <>
-            <div className="noata-stage-header">
-              <div className="noata-stage-header-title">
-                <span className="noata-stage-icon-circle">
-                  <Icon name="check" size={20} />
-                </span>
-                <div>
-                  <h2>{t("التطبيق العملي والمثال المحلول", "Worked Example & Guided Application")}</h2>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-                    {t("كيف تُحل المسائل وتُطبق المفاهيم في الامتحانات والواقع.", "How problems are solved step-by-step with authentic reasoning.")}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {worked ? (
-              <div className={`noata-discipline-panel ${disciplineType}`}>
-                <div className="noata-discipline-badge">
-                  <Icon name="check" size={14} />
-                  <span>{t("نموذج حل تطبيقي تفصيلي", "Detailed Guided Model Solution")}</span>
-                </div>
-                <div style={{ fontSize: 15.5, lineHeight: 1.9, color: "var(--ink)" }} dir={isEnContent ? "ltr" : "rtl"}>
-                  {worked.split("\n\n").map((chunk, i) => (
-                    <div key={i} style={{ margin: "0 0 12px" }}>
-                      <StudyRichText content={chunk} />
+              {objectives.length > 0 ? (
+                <div className="noata-objectives-grid">
+                  {objectives.map((obj, i) => (
+                    <div key={i} className="noata-objective-card">
+                      <span className="noata-objective-bullet">{i + 1}</span>
+                      <p className="noata-objective-text" dir={contentDir}>
+                        {obj}
+                      </p>
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : (
-              <p style={{ color: "var(--muted)", padding: 24, textAlign: "center" }}>
-                {t("لا يوجد مثال محلول إضافي لهذا الدرس؛ انتقل إلى مرحلة حراسة المفاهيم أو ابدأ المهمة.", "No additional worked example record for this lesson; proceed to misconception check or launch the mission.")}
-              </p>
-            )}
-          </>
-        )}
+              ) : (
+                <p style={{ color: "var(--muted)" }}>
+                  {t("الهدف الأساسي هو استيعاب المفهوم وتطبيقه في أسئلة الفهم والمهمة التطبيقية.", "The core goal is conceptual comprehension and practical application.")}
+                </p>
+              )}
 
-        {/* STAGE 3: Misconception Guard */}
-        {activeStage === 3 && (
-          <>
-            <div className="noata-stage-header">
-              <div className="noata-stage-header-title">
-                <span className="noata-stage-icon-circle" style={{ color: "var(--warning)", background: "color-mix(in srgb, var(--warning) 14%, var(--surface))" }}>
-                  <Icon name="lock" size={20} />
-                </span>
-                <div>
-                  <h2>{t("حراسة المفاهيم والأخطاء الشائعة", "Misconception Guard & Traps to Avoid")}</h2>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-                    {t("أشهر الخلط والمغالطات التي يقع فيها الطلاب في هذا الدرس وطريقة تجنبها.", "Common pitfalls and mistaken assumptions students frequently make.")}
-                  </p>
+              <div className={`noata-discipline-panel ${disciplineType}`}>
+                <div className="noata-discipline-badge">
+                  <Icon name="sparkles" size={14} />
+                  <span>
+                    {disciplineType === "math"
+                      ? t("منهجية الرياضيات: التركيز على خطوات التحليل الرياضي المنطقي", "Mathematical Method: Step-by-step rigorous deduction")
+                      : disciplineType === "science"
+                        ? t("المنهج العلمي: الربط بين الملاحظة التجريبية والتفسير الفيزيوكيميائي", "Scientific Inquiry: Empirical evidence & biochemical reasoning")
+                        : disciplineType === "history"
+                          ? t("النقد التاريخي: التمييز بين المصادر الأولية والمراجع وتتبع الأثر", "Historical Analysis: Evidence provenance & primary source critique")
+                          : disciplineType === "arabic"
+                            ? t("التحليل البلاغي واللغوي: المعنى السياقي وتذوق التراكيب الأدبية", "Linguistic Inquiry: Contextual semantics & rhetorical structure")
+                            : disciplineType === "philosophy"
+                              ? t("التفكير الفلسفي: تشريح المقدمات وبناء الحجج العقلانية المستقلة", "Philosophical Inquiry: Examining premises & rational argumentation")
+                              : t("إرشادات المذاكرة الفعالة", "Effective Study Guidelines")}
+                  </span>
                 </div>
-              </div>
-            </div>
-
-            {mistakes.length > 0 ? (
-              <div className="noata-misconceptions-card">
-                {mistakes.map((mistake, idx) => (
-                  <div key={idx} className="noata-misconception-item" dir={isEnContent ? "ltr" : "rtl"}>
-                    <span style={{ color: "var(--warning)", fontWeight: 800 }}>⚠️</span>
-                    <StudyRichText content={mistake} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ color: "var(--muted)", padding: 24, textAlign: "center" }}>
-                {t("لم يتم تسجيل مغالطات خاصة لهذا الدرس. انتبه للتعريفات الأساسية.", "No specific misconceptions registered. Pay careful attention to core definitions.")}
-              </p>
-            )}
-          </>
-        )}
-
-        {/* STAGE 4: Interactive Checkpoint & Retrieval Launch */}
-        {activeStage === 4 && (
-          <>
-            <div className="noata-stage-header">
-              <div className="noata-stage-header-title">
-                <span className="noata-stage-icon-circle" style={{ color: "var(--accent)" }}>
-                  <Icon name="arrow" size={20} />
-                </span>
-                <div>
-                  <h2>{t("نقطة التحقق المعرفي والانطلاق للمهمة", "Knowledge Checkpoint & Mission Launch")}</h2>
-                  <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-                    {t("اختبر استيعابك لسؤال مباشر قبل خوض المهمة الشاملة المكونة من 3 مراحل.", "Validate your grasp on a quick checkpoint question before tackling the 3-stage mission.")}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Inline Checkpoint Question */}
-            {checkpointQuestion ? (
-              <div className="noata-checkpoint-box">
-                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>
-                  {t("سؤال تدريبي سريع (Checkpoint):", "Quick Practice Checkpoint:")}
-                </span>
-
-                <h3 style={{ margin: 0, fontSize: 17, lineHeight: 1.6 }} dir={isEnContent ? "ltr" : "rtl"}>
-                  {(isEnContent ? checkpointQuestion.prompt_en ?? checkpointQuestion.prompt_ar : checkpointQuestion.prompt_ar)}
-                </h3>
-
-                <ChoiceCardGroup
-                  legend={t("خيارات نقطة التحقق", "Checkpoint options")}
-                  options={strings(isEnContent ? checkpointQuestion.choices_en : checkpointQuestion.choices_ar)}
-                  value={selectedAnswer !== null ? String(selectedAnswer) : ""}
-                  contentDir={isEnContent ? "ltr" : "rtl"}
-                  onChange={(val) => {
-                    setSelectedAnswer(Number(val));
-                    setCheckpointAnswered(true);
-                  }}
-                />
-
-                {checkpointAnswered && (
-                  <div className="noata-checkpoint-feedback is-correct">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
-                      <div>
-                        <strong>{t("أحسنت الاختيار!", "Great selection!")}</strong>
-                        <p style={{ margin: "4px 0 0", fontSize: 13, lineHeight: 1.6 }}>
-                          {t(
-                            "تم تثبيت المفهوم الأساسي بنجاح. لتعميق الفهم عبر اختبار تشخيصي متقدم وبطاقات تكرار متباعد 3D:",
-                            "Core concept confirmed. Launch a structured diagnostic quiz and 3D spaced flashcards:"
-                          )}
-                        </p>
-                      </div>
-                      <Link
-                        href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}&tab=generator`}
-                        className="btn btn-primary"
-                        style={{ fontSize: 12, padding: "6px 14px", background: "var(--success)", borderColor: "var(--success)", color: "var(--surface)" }}
-                      >
-                        <span>{t("فتح حزمة المذاكرة الذكية", "Open Study Deck")}</span>
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {/* Launch Banner */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "20px 24px", borderRadius: 20, background: "var(--accent-soft)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)", flexWrap: "wrap" }}>
-              <div>
-                <strong style={{ fontSize: 16, display: "block", color: "var(--ink)", marginBottom: 4 }}>
-                  {t("جاهز للمهمة التعليمية؟", "Ready for the Learning Mission?")}
-                </strong>
-                <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.85, color: "var(--ink)" }}>
                   {t(
-                    `تتكون من ${questionCount || 3} مراحل متدرجة الصعوبة (فهم، تطبيق، وربط مفاهيمي).`,
-                    `Composed of ${questionCount || 3} progressive stages (Understand, Apply, Connect).`,
+                    "ابدأ باستيعاب المفاهيم الأساسية في المرحلة ٢، ثم تدرّج خطوة بخطوة في المثال المحلول، واختتم بنقطة التحقق التفاعلية.",
+                    "Start by exploring the structured concept cards in Stage 2, step through the worked examples, then verify your understanding in the multi-question checkpoint.",
                   )}
                 </p>
               </div>
 
-              <Link
-                href={"/missions?lesson=" + lesson.id}
+              {hasRealTrack && (
+                <div className="noata-ai-companion-bar" dir={contentDir}>
+                  <div style={{ display: "grid", gap: 3 }}>
+                    <strong style={{ fontSize: 13.5, color: "var(--ink)" }}>
+                      {isEnContent ? "Noäta AI Study Companion" : "رفيق المذاكرة الذكي Noäta AI"}
+                    </strong>
+                    <small style={{ color: "var(--muted)" }}>
+                      {isEnContent
+                        ? "Jump straight into an interactive AI session tailored to this lesson:"
+                        : "ابدأ جلسة شرح أو اختبار فوري مصممة لدرس اليوم:"}
+                    </small>
+                  </div>
+                  <div className="noata-ai-companion-prompts">
+                    {companion.aiTutorPrompts.slice(0, 3).map((promptText, idx) => (
+                      <Link
+                        key={idx}
+                        href={buildAiHref(promptText, trackSlug)}
+                        className="btn btn-secondary"
+                        style={{ fontSize: 12, padding: "6px 12px" }}
+                      >
+                        <Icon name="sparkles" size={13} />
+                        <span>
+                          {idx === 0
+                            ? isEnContent
+                              ? "Explain Simply"
+                              : "اشرحلي ببساطة"
+                            : idx === 1
+                              ? isEnContent
+                                ? "Exam Quiz (3 Qs)"
+                                : "اختبرني (٣ أسئلة)"
+                              : isEnContent
+                                ? "Common Pitfalls"
+                                : "أخطاء الامتحان"}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* STAGE 1: Core Concept Deep Dive */}
+          {activeStage === 1 && (
+            <>
+              <div className="noata-stage-header">
+                <div className="noata-stage-header-title">
+                  <span className="noata-stage-icon-circle">
+                    <Icon name="sparkles" size={20} />
+                  </span>
+                  <div>
+                    <h2>{t("الشرح المفاهيمي والتفكيك المنطقي", "Core Concept & Conceptual Deep Dive")}</h2>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+                      {t("استيعاب جوهر الفكرة بدون حفظ سطحي.", "Deep conceptual understanding beyond superficial memorization.")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <article style={{ fontSize: 16, lineHeight: 1.95, color: "var(--ink)" }} dir={contentDir}>
+                {summary ? (
+                  summary.split("\n\n").map((para, i) => (
+                    <div key={i} style={{ margin: "0 0 14px" }}>
+                      <StudyRichText content={para} />
+                    </div>
+                  ))
+                ) : (
+                  <p>{t("محتوى الدرس غير منشور في المصدر المتصل.", "Lesson content is not published in the connected source.")}</p>
+                )}
+              </article>
+
+              {hasRealTrack && companion.keyConcepts.length > 0 && (
+                <div className="noata-study-sections" dir={contentDir}>
+                  <h3 style={{ margin: "6px 0 0", fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>
+                    {isEnContent
+                      ? "Structured Concept Breakdown · Sec. 1 Study Pack"
+                      : "بطاقات المفاهيم التفصيلية · دليل أولى ثانوي"}
+                  </h3>
+                  {companion.keyConcepts.map((concept) => (
+                    <div key={concept.id} className="noata-concept-card">
+                      <div className="noata-concept-card-head">
+                        <h3>{concept.title}</h3>
+                        <Link
+                          href={buildAiHref(
+                            isEnContent
+                              ? `Clarify "${concept.title}" from ${lessonTitle} with an exam example.`
+                              : `وضّح لي مفهوم «${concept.title}» في درس ${lessonTitle} بمثال امتحاني.`,
+                            trackSlug,
+                          )}
+                          className="btn btn-secondary"
+                          style={{ fontSize: 11.5, padding: "4px 10px" }}
+                        >
+                          <Icon name="sparkles" size={12} />
+                          <span>{isEnContent ? "Ask AI" : "استفسر من AI"}</span>
+                        </Link>
+                      </div>
+                      <div style={{ lineHeight: 1.85, color: "var(--ink)" }}>
+                        <StudyRichText content={concept.body} />
+                      </div>
+                      {concept.formulaOrRule && (
+                        <div className="noata-concept-formula">
+                          <StudyRichText content={concept.formulaOrRule} />
+                        </div>
+                      )}
+                      {concept.example && (
+                        <div className="noata-concept-example">
+                          <strong style={{ color: "var(--ink)" }}>
+                            {isEnContent ? "Example: " : "مثال تطبيقي: "}
+                          </strong>
+                          <StudyRichText content={concept.example} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {translationNote && (
+                <div style={{ padding: 14, borderRadius: 12, background: "var(--surface-soft)", border: "1px solid var(--line)", fontSize: 13, color: "var(--muted)" }} dir={contentDir}>
+                  <strong>{t("ملاحظة ترجمة معتمدة:", "Curriculum Translation Note:")}</strong> {translationNote}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* STAGE 2: Worked Application & Interactive Steppers */}
+          {activeStage === 2 && (
+            <>
+              <div className="noata-stage-header">
+                <div className="noata-stage-header-title">
+                  <span className="noata-stage-icon-circle">
+                    <Icon name="check" size={20} />
+                  </span>
+                  <div>
+                    <h2>{t("التطبيق العملي والمثال المحلول", "Worked Example & Guided Application")}</h2>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+                      {t("تدرّج في كشف خطوات الحل لاختبار تفكيرك قبل رؤية النتيجة.", "Reveal solution steps progressively to test your reasoning.")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {worked && (
+                <div className={`noata-discipline-panel ${disciplineType}`}>
+                  <div className="noata-discipline-badge">
+                    <Icon name="check" size={14} />
+                    <span>{t("نموذج حل تطبيقي تفصيلي", "Detailed Guided Model Solution")}</span>
+                  </div>
+                  <div style={{ fontSize: 15.5, lineHeight: 1.9, color: "var(--ink)" }} dir={contentDir}>
+                    {worked.split("\n\n").map((chunk, i) => (
+                      <div key={i} style={{ margin: "0 0 12px" }}>
+                        <StudyRichText content={chunk} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {hasRealTrack && companion.workedExamples.length > 0 ? (
+                <div className="noata-study-sections" dir={contentDir}>
+                  {companion.workedExamples.map((example, exIdx) => {
+                    const revealed = revealedStepsByExample[exIdx] ?? example.steps.length;
+                    const showingCount = Math.min(Math.max(1, revealed), example.steps.length);
+                    return (
+                      <div key={exIdx} className="noata-worked-stepper">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+                          <div>
+                            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase" }}>
+                              {isEnContent
+                                ? `Interactive Worked Example ${exIdx + 1}`
+                                : `مثال تطبيقي متدرج ${exIdx + 1}`}
+                            </span>
+                            <div style={{ fontWeight: 700, fontSize: 15.5, marginTop: 4, color: "var(--ink)" }}>
+                              <StudyRichText content={example.problem} />
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            {showingCount > 1 && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ fontSize: 12, padding: "4px 10px" }}
+                                onClick={() =>
+                                  setRevealedStepsByExample((prev) => ({ ...prev, [exIdx]: 1 }))
+                                }
+                              >
+                                {isEnContent ? "Step-by-step" : "وضع خطوة بخطوة"}
+                              </button>
+                            )}
+                            {showingCount < example.steps.length && (
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                style={{ fontSize: 12, padding: "4px 12px" }}
+                                onClick={() =>
+                                  setRevealedStepsByExample((prev) => ({
+                                    ...prev,
+                                    [exIdx]: showingCount + 1,
+                                  }))
+                                }
+                              >
+                                {isEnContent ? "Reveal Next Step" : "أظهر الخطوة التالية"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <ol className="noata-worked-step-list">
+                          {example.steps.slice(0, showingCount).map((stepText, stepIdx) => (
+                            <li key={stepIdx} className="noata-worked-step-item">
+                              <span className="noata-worked-step-index">{stepIdx + 1}</span>
+                              <div style={{ flex: 1 }}>
+                                <StudyRichText content={stepText} />
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+
+                        <div className="noata-concept-formula">
+                          <strong style={{ marginInlineEnd: 6 }}>
+                            {isEnContent ? "Key Takeaway:" : "القاعدة المستخلصة:"}
+                          </strong>
+                          <StudyRichText content={example.takeaway} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : !worked ? (
+                <p style={{ color: "var(--muted)", padding: 24, textAlign: "center" }}>
+                  {t("لا يوجد مثال محلول إضافي لهذا الدرس؛ انتقل إلى مرحلة حراسة المفاهيم أو ابدأ المهمة.", "No additional worked example record for this lesson; proceed to misconception check or launch the mission.")}
+                </p>
+              ) : null}
+            </>
+          )}
+
+          {/* STAGE 3: Misconception Guard */}
+          {activeStage === 3 && (
+            <>
+              <div className="noata-stage-header">
+                <div className="noata-stage-header-title">
+                  <span className="noata-stage-icon-circle" style={{ color: "var(--warning)", background: "color-mix(in srgb, var(--warning) 14%, var(--surface))" }}>
+                    <Icon name="lock" size={20} />
+                  </span>
+                  <div>
+                    <h2>{t("حراسة المفاهيم والأخطاء الشائعة", "Misconception Guard & Traps to Avoid")}</h2>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+                      {t("أشهر الخلط والمغالطات التي يقع فيها الطلاب في هذا الدرس وطريقة تجنبها.", "Common pitfalls and mistaken assumptions students frequently make.")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {mistakes.length > 0 ? (
+                <div className="noata-misconceptions-card">
+                  {mistakes.map((mistake, idx) => (
+                    <div key={idx} className="noata-misconception-item" dir={contentDir}>
+                      <span style={{ color: "var(--warning)", fontWeight: 800 }}>⚠️</span>
+                      <StudyRichText content={mistake} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: "var(--muted)", padding: 24, textAlign: "center" }}>
+                  {t("لم يتم تسجيل مغالطات خاصة لهذا الدرس. انتبه للتعريفات الأساسية.", "No specific misconceptions registered. Pay careful attention to core definitions.")}
+                </p>
+              )}
+            </>
+          )}
+
+          {/* STAGE 4: Interactive Multi-Question Checkpoint & Retrieval Launch */}
+          {activeStage === 4 && (
+            <>
+              <div className="noata-stage-header">
+                <div className="noata-stage-header-title">
+                  <span className="noata-stage-icon-circle" style={{ color: "var(--accent)" }}>
+                    <Icon name="arrow" size={20} />
+                  </span>
+                  <div>
+                    <h2>{t("نقطة التحقق التفاعلية والانطلاق للمهمة", "Multi-Question Checkpoint & Mission Launch")}</h2>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+                      {t("اختبر فهمك عبر أسئلة مصححة فعلياً قبل بدء المهمة الرسمية.", "Test your grasp with verified answer grading before starting the formal mission.")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {activeQuestion ? (
+                <div className="noata-checkpoint-box">
+                  <div className="noata-practice-progress">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <strong style={{ fontSize: 13, color: "var(--ink)" }}>
+                        {t("السؤال", "Question")} {safePracticeIndex + 1} / {practicePool.length}
+                      </strong>
+                      {activeQuestion.difficulty && (
+                        <span className="noata-lesson-metric-chip" style={{ fontSize: 11.5 }}>
+                          {activeQuestion.difficulty}
+                        </span>
+                      )}
+                      {completedPracticeCount > 0 && (
+                        <span className="noata-lesson-metric-chip is-completed" style={{ fontSize: 11.5 }}>
+                          {correctPracticeCount}/{completedPracticeCount} {t("صحيح", "correct")}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="noata-practice-pills" role="tablist" aria-label={t("أسئلة التحقق", "Checkpoint questions")}>
+                      {practicePool.map((qItem, qIdx) => {
+                        const qState = answerStates[qIdx];
+                        const stateClass = qState?.submitted
+                          ? qState.correct
+                            ? "is-correct"
+                            : "is-wrong"
+                          : "";
+                        return (
+                          <button
+                            key={qItem.id}
+                            type="button"
+                            className={`noata-practice-pill ${qIdx === safePracticeIndex ? "is-active" : ""} ${stateClass}`}
+                            onClick={() => {
+                              setPracticeIndex(qIdx);
+                              setHintVisible(false);
+                            }}
+                          >
+                            {qIdx + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <h3 style={{ margin: 0, fontSize: 17, lineHeight: 1.65 }} dir={contentDir}>
+                    <StudyRichText content={activeQuestion.prompt} />
+                  </h3>
+
+                  {activeQuestion.choices.length > 0 ? (
+                    <ChoiceCardGroup
+                      legend={t("خيارات نقطة التحقق", "Checkpoint options")}
+                      options={activeQuestion.choices}
+                      value={activeAnswerState.selected}
+                      contentDir={contentDir}
+                      disabled={Boolean(activeAnswerState.grading)}
+                      onChange={(val) => {
+                        setAnswerStates((prev) => ({
+                          ...prev,
+                          [safePracticeIndex]: {
+                            selected: val,
+                            submitted: false,
+                            correct: null,
+                            feedback: "",
+                          },
+                        }));
+                      }}
+                    />
+                  ) : (
+                    <input
+                      className="input"
+                      dir={contentDir}
+                      value={activeAnswerState.selected}
+                      placeholder={t("اكتب إجابتك هنا...", "Type your answer...")}
+                      onChange={(e) =>
+                        setAnswerStates((prev) => ({
+                          ...prev,
+                          [safePracticeIndex]: {
+                            selected: e.target.value,
+                            submitted: false,
+                            correct: null,
+                            feedback: "",
+                          },
+                        }))
+                      }
+                    />
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={!activeAnswerState.selected.trim() || Boolean(activeAnswerState.grading)}
+                      onClick={() => void handleCheckPracticeAnswer(safePracticeIndex)}
+                    >
+                      <Icon name="check" size={15} />
+                      <span>
+                        {activeAnswerState.grading
+                          ? t("جاري التصحيح...", "Checking...")
+                          : t("تحقق من الإجابة", "Check Answer")}
+                      </span>
+                    </button>
+
+                    {activeQuestion.hint && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setHintVisible((v) => !v)}
+                      >
+                        <span>{hintVisible ? t("إخفاء التلميح", "Hide Hint") : t("تلميح مساعد", "Show Hint")}</span>
+                      </button>
+                    )}
+
+                    {safePracticeIndex < practicePool.length - 1 && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setPracticeIndex((i) => Math.min(practicePool.length - 1, i + 1));
+                          setHintVisible(false);
+                        }}
+                      >
+                        <span>{t("السؤال التالي ←", "Next Question →")}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {hintVisible && activeQuestion.hint && (
+                    <div
+                      dir={contentDir}
+                      style={{
+                        padding: "10px 14px",
+                        borderRadius: 12,
+                        background: "var(--surface-soft)",
+                        border: "1px solid var(--line)",
+                        fontSize: 13.5,
+                        color: "var(--muted)",
+                      }}
+                    >
+                      <strong>{t("تلميح:", "Hint:")}</strong> {activeQuestion.hint}
+                    </div>
+                  )}
+
+                  {activeAnswerState.error && (
+                    <div className="noata-retry-banner" role="alert">
+                      <span>{activeAnswerState.error}</span>
+                      {!account.user && (
+                        <Link href="/login" className="btn btn-secondary" style={{ fontSize: 12 }}>
+                          {t("تسجيل الدخول", "Sign in")}
+                        </Link>
+                      )}
+                    </div>
+                  )}
+
+                  {activeAnswerState.submitted && (
+                    <div
+                      className={`noata-checkpoint-feedback ${activeAnswerState.correct ? "is-correct" : "is-wrong"}`}
+                      dir={contentDir}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10 }}>
+                        <div>
+                          <strong>
+                            {activeAnswerState.correct
+                              ? t("إجابة صحيحة وموثّقة!", "Correct & Verified!")
+                              : t("إجابة تحتاج مراجعة — لاحظ السبب:", "Not quite — review why:")}
+                          </strong>
+                          {activeAnswerState.feedback && (
+                            <p style={{ margin: "6px 0 0", fontSize: 13.5, lineHeight: 1.7 }}>
+                              <StudyRichText content={activeAnswerState.feedback} />
+                            </p>
+                          )}
+                        </div>
+                        <Link
+                          href={buildAiHref(
+                            (() => {
+                              const chosenText =
+                                activeQuestion.choices[Number(activeAnswerState.selected)] ??
+                                activeAnswerState.selected;
+                              return isEnContent
+                                ? `Why is "${chosenText}" ${activeAnswerState.correct ? "correct" : "incorrect"} for: ${activeQuestion.prompt}?`
+                                : `اشرح لي لماذا إجابة «${chosenText}» ${activeAnswerState.correct ? "صحيحة" : "غير صحيحة"} في هذا السؤال: ${activeQuestion.prompt}`;
+                            })(),
+                            trackSlug,
+                          )}
+                          className="btn btn-secondary"
+                          style={{ fontSize: 12, padding: "6px 12px" }}
+                        >
+                          <Icon name="sparkles" size={13} />
+                          <span>{t("ناقش الحل مع AI", "Discuss with AI")}</span>
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {practicePool.length > 0 && completedPracticeCount >= practicePool.length ? (() => {
+                const checkpointPct = Math.round(
+                  (correctPracticeCount / Math.max(1, practicePool.length)) * 100,
+                );
+                const summary = computeLessonAchievementSummary({
+                  scorePct: checkpointPct,
+                  xpReward: lesson.xp_reward ?? 0,
+                  coinReward: lesson.coin_reward ?? 0,
+                  verifiedGems: checkpointPct === 100 ? 8 : checkpointPct >= 90 ? 5 : 0,
+                  isPreview: true,
+                });
+                return (
+                  <AchievementCelebration
+                    kind="lesson"
+                    locale={locale}
+                    compact
+                    rankLabel={summary.rank}
+                    badgeText={t("إتمام نقطة التحقق التفاعلية", "Lesson Checkpoint Cleared")}
+                    title={t(summary.titleAr, summary.titleEn)}
+                    subtitle={t(
+                      `أكملت جميع أسئلة التحقق (${correctPracticeCount}/${practicePool.length}). انتقل الآن للمهمة الرسمية لتثبيت الجواهر والعملات في رصيدك.`,
+                      `Completed all checkpoint items (${correctPracticeCount}/${practicePool.length}). Launch the official mission to claim your XP, coins, and gems.`,
+                    )}
+                    scorePct={checkpointPct}
+                    xpReward={summary.xpReward}
+                    coinReward={summary.coinReward}
+                    gemReward={summary.verifiedGems}
+                    highlightNote={t(summary.gemNoteAr, summary.gemNoteEn)}
+                    actions={
+                      <>
+                        <Link
+                          href={`/missions?lesson=${encodeURIComponent(lesson.id)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`}
+                          className="btn btn-primary"
+                        >
+                          {t("حصّل الجواهر والمهمة الرسمية ←", "Claim Rewards in Official Mission →")}
+                        </Link>
+                        <Link href={`${studyHrefBase}&mode=flashcards`} className="btn btn-secondary">
+                          {t("احفظ كبطاقات مراجعة", "Save as Flashcards")}
+                        </Link>
+                      </>
+                    }
+                  />
+                );
+              })() : null}
+
+              {/* Launch Banner */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "20px 24px", borderRadius: 20, background: "var(--accent-soft)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)", flexWrap: "wrap" }}>
+                <div>
+                  <strong style={{ fontSize: 16, display: "block", color: "var(--ink)", marginBottom: 4 }}>
+                    {t("جاهز للمهمة التعليمية الرسمية؟", "Ready for the Official Learning Mission?")}
+                  </strong>
+                  <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+                    {t(
+                      `تشمل ${Math.max(questionCount, 5)} أسئلة متدرجة وتُسجل نقاط XP وتقدّمك الرسمي في الدرس.`,
+                      `Includes ${Math.max(questionCount, 5)} progressive questions and awards official XP and lesson mastery.`,
+                    )}
+                  </p>
+                </div>
+
+                <Link
+                  href={`/missions?lesson=${encodeURIComponent(lesson.id)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`}
+                  className="btn btn-primary"
+                  style={{ background: "var(--accent)", color: "var(--surface)", minHeight: 46, paddingInline: 24, fontSize: 14 }}
+                >
+                  {t("ابدأ المهمة التعليمية ←", "Start Mission →")}
+                </Link>
+              </div>
+            </>
+          )}
+
+          {/* Stage Footer Step Navigation */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              paddingTop: 14,
+              borderTop: "1px solid var(--line)",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={activeStage === 0}
+              onClick={() => setActiveStage((s) => Math.max(0, s - 1))}
+            >
+              <span>{t("المرحلة السابقة", "Previous Stage")}</span>
+            </button>
+            <span style={{ fontSize: 12.5, color: "var(--muted)", fontWeight: 600 }}>
+              {t("المرحلة", "Stage")} {activeStage + 1} / {STAGES.length}
+            </span>
+            {activeStage < STAGES.length - 1 ? (
+              <button
+                type="button"
                 className="btn btn-primary"
-                style={{ background: "var(--accent)", color: "var(--surface)", minHeight: 46, paddingInline: 24, fontSize: 14 }}
+                onClick={() => setActiveStage((s) => Math.min(STAGES.length - 1, s + 1))}
               >
-                {t("ابدأ المهمة التعليمية (Mission) →", "Start Mission →")}
+                <span>{t("المرحلة التالية", "Next Stage")}</span>
+                <Icon name="arrow" size={14} />
+              </button>
+            ) : (
+              <Link
+                className="btn btn-primary"
+                href={`/missions?lesson=${encodeURIComponent(lesson.id)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`}
+              >
+                <span>{t("انطلق للمهمة", "Launch Mission")}</span>
+                <Icon name="arrow" size={14} />
               </Link>
-            </div>
-          </>
-        )}
+            )}
+          </div>
         </section>
       </div>
 
@@ -717,7 +1427,7 @@ export function LessonLive({ id }: { id: string }) {
           <Link
             className="btn btn-primary"
             style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, var(--success)))" }}
-            href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}&tab=generator`}
+            href={`${studyHrefBase}&tab=generator`}
           >
             <Icon name="sparkles" size={16} />
             <span>{t("فتح حزمة المذاكرة الذكية", "Open Study Deck")}</span>
@@ -725,7 +1435,7 @@ export function LessonLive({ id }: { id: string }) {
 
           <Link
             className="btn btn-secondary"
-            href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}&tab=review`}
+            href={`${studyHrefBase}&tab=review`}
           >
             <Icon name="review" size={16} />
             <span>{t("مراجعة تباعدية 3D", "3D Spaced Review")}</span>
@@ -733,16 +1443,13 @@ export function LessonLive({ id }: { id: string }) {
 
           <Link
             className="btn btn-secondary"
-            href={
-              "/ai?prompt=" +
-              encodeURIComponent(
-                t("اشرحلي درس ", "Explain a lesson ") +
-                  lessonTitle +
-                  t(" خطوة بخطوة: ", " Step by step: ") +
-                  (summary ?? "") +
-                  (track?.slug ? ` · curriculum track ${track.slug}` : ""),
-              )
-            }
+            href={buildAiHref(
+              companion.aiTutorPrompts[0] ??
+                (isEnContent
+                  ? `Explain "${lessonTitle}" step by step: ${summary}`
+                  : `اشرح لي درس «${lessonTitle}» خطوة بخطوة: ${summary}`),
+              trackSlug,
+            )}
           >
             <Icon name="sparkles" size={16} />
             <span>{t("استشر Noäta AI", "Ask Noäta AI")}</span>
@@ -750,7 +1457,7 @@ export function LessonLive({ id }: { id: string }) {
 
           <Link
             className="btn btn-secondary"
-            href={"/missions?lesson=" + lesson.id}
+            href={`/missions?lesson=${encodeURIComponent(lesson.id)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`}
           >
             <span>{t("المهمة التعليمية", "Launch Mission")}</span>
             <Icon name="arrow" size={16} />

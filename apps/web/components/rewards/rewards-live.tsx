@@ -3,10 +3,15 @@ import {ledgerReason,ledgerSource} from "@/lib/i18n/content-labels";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createOperationKeys } from "@/lib/ai/operation-keys";
 import { createClient } from "@/lib/supabase/client";
+import {
+  AchievementCelebration,
+  StreakMilestoneRoad,
+} from "@/components/ui/achievement-celebration";
 
 type Item = {
   id: string;
@@ -17,7 +22,7 @@ type Item = {
   price: number;
   asset_url: string | null;
 };
-type Profile = { xp: number; coins: number; gems: number };
+type Profile = { xp: number; coins: number; gems: number; streak_days?: number | null };
 type LedgerRow = { id:string;currency:string;amount:number;reason:string;reference_type:string|null;created_at:string };
 type Box = {
   id: string;
@@ -86,7 +91,7 @@ export function RewardsLive() {
         { data: boxRows, error: boxesError },
         { data: ledgerRows, error: ledgerQueryError },
       ] = await Promise.all([
-        supabase.from("profiles").select("xp,coins,gems").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("xp,coins,gems,streak_days").eq("id", user.id).maybeSingle(),
         supabase.from("inventory").select("item_id").eq("user_id", user.id),
         supabase
           .from("equipped_cosmetics")
@@ -264,13 +269,93 @@ export function RewardsLive() {
         </div>
       )}
       {lastReward && (
-        <div className="panel" style={{ marginTop: 14, textAlign: "center" }}>
-          <b>🎁 {lastReward.tier?.toUpperCase()} BOX</b>
-          <p>
-            +{lastReward.coins ?? 0} {t("عملات · +","Coins · +")} {lastReward.xp ?? 0} XP
-          </p>
+        <div style={{ marginTop: 18 }}>
+          <AchievementCelebration
+            kind="exam"
+            locale={locale}
+            rankLabel="🎁"
+            badgeText={t("تم فتح صندوق المكافآت", "Reward Box Unsealed")}
+            title={t(
+              `مبروك! فتحت صندوق ${(lastReward.tier ?? "reward").toUpperCase()}`,
+              `Congrats! Opened ${(lastReward.tier ?? "reward").toUpperCase()} Chest`,
+            )}
+            subtitle={t(
+              "تم إضافة العملات ونقاط الخبرة الموثّقة إلى رصيدك الحقيقي الآن.",
+              "Verified coins and XP from this reward box have been added to your account.",
+            )}
+            xpReward={lastReward.xp ?? 0}
+            coinReward={lastReward.coins ?? 0}
+            gift={{
+              title: t(
+                `محتويات صندوق ${(lastReward.tier ?? "reward").toUpperCase()}`,
+                `${(lastReward.tier ?? "reward").toUpperCase()} Chest Loot`,
+              ),
+              tier:
+                lastReward.tier === "gold" ||
+                lastReward.tier === "silver" ||
+                lastReward.tier === "bronze"
+                  ? lastReward.tier
+                  : "gold",
+              unsealed: true,
+              coins: lastReward.coins ?? 0,
+              xp: lastReward.xp ?? 0,
+              badge: `${(lastReward.tier ?? "reward").toUpperCase()} BOX`,
+            }}
+            onClose={() => setLastReward(null)}
+          />
         </div>
       )}
+
+      <section style={{ marginTop: 18, display: "grid", gap: 14 }} aria-label={t("لوحة الإنجازات والهدايا الذكية", "Achievements & Gift Milestones")}>
+        <StreakMilestoneRoad
+          streakDays={profile?.streak_days ?? 0}
+          locale={locale}
+          userId={account.user?.id}
+          rewardsHref="/rewards"
+          studyHref="/missions"
+        />
+
+        <div className="noata-goals-grid" style={{ marginBottom: 0 }}>
+          <article className="noata-goal-card">
+            <strong style={{ fontSize: 15 }}>🔥 {t("هدايا الاستمرارية (3 · 7 · 14 · 30 يوم)", "Streak Gifts (3 · 7 · 14 · 30d)")}</strong>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)", lineHeight: 1.65 }}>
+              {t(
+                "حافظ على مذاكرتك اليومية لفتح شارات الشرارة البرونزية، الشعلة الفضية، التاج الذهبي، والأسطورة الماسية.",
+                "Maintain your daily study rhythm to unlock Bronze Spark, Silver Flame, Gold Crown, and Diamond Legend gifts.",
+              )}
+            </p>
+            <Link href="/missions" className="btn btn-secondary" style={{ width: "fit-content" }}>
+              {t("أكمل مهمة اليوم", "Complete Today's Mission")}
+            </Link>
+          </article>
+
+          <article className="noata-goal-card">
+            <strong style={{ fontSize: 15 }}>💎 {t("جواهر وعملات إتقان الدروس", "Lesson Mastery Gems & Coins")}</strong>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)", lineHeight: 1.65 }}>
+              {t(
+                "احصل على 5 جواهر عند إنهاء مهمة الدرس بدقة 90%+، و+3 جواهر إضافية عند الإتقان الكامل 100%.",
+                "Earn 5 verified gems when scoring 90%+ on a lesson mission, plus +3 bonus gems at 100% accuracy.",
+              )}
+            </p>
+            <Link href="/learn" className="btn btn-secondary" style={{ width: "fit-content" }}>
+              {t("ادخل دروس الصف الأول", "Browse Sec. 1 Lessons")}
+            </Link>
+          </article>
+
+          <article className="noata-goal-card">
+            <strong style={{ fontSize: 15 }}>🎁 {t("صناديق هدايا تحدّيات الوحدات", "Unit Exam Gift Chests")}</strong>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)", lineHeight: 1.65 }}>
+              {t(
+                "كل امتحان وحدة تجتازه بنجاح يفتح لك صندوق هدية بالعملات ونقاط الخبرة الإضافية مباشرة.",
+                "Every unit exam you pass awards an interactive gift chest loaded with bonus coins and XP.",
+              )}
+            </p>
+            <Link href="/boss" className="btn btn-secondary" style={{ width: "fit-content" }}>
+              {t("خض تحدّي الوحدة", "Enter Unit Challenge")}
+            </Link>
+          </article>
+        </div>
+      </section>
 
       {!loading && account.user && unclaimed.length === 0 && !error && (
         <section className="noata-empty" style={{ marginTop: 18 }}>

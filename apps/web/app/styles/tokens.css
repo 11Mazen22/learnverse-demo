@@ -5,9 +5,9 @@
 @layer tokens {
   :root {
     /* Typography Families (served locally from /public/fonts) */
-    --font-ar: NoataArabic, Cairo, "Segoe UI", system-ui, -apple-system, sans-serif;
-    --font-en: Cairo, "Segoe UI", NoataArabic, system-ui, -apple-system, sans-serif;
-    --font-cairo: Cairo, NoataArabic, system-ui, sans-serif;
+    --font-ar: Cairo, NoataArabic, "Segoe UI", Tahoma, system-ui, -apple-system, sans-serif;
+    --font-en: Cairo, "Segoe UI", NoataArabic, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-cairo: Cairo, NoataArabic, "Segoe UI", system-ui, sans-serif;
     --font-quran: NoataVerseArabic, "Amiri", Georgia, serif;
     --font-serif-latin: NoataVerseLatin, Georgia, serif;
     --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

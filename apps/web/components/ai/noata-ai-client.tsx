@@ -15,9 +15,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
 import {
-  CHAT_MODEL_CARDS,
-  getChatModelCards,
-  resolveSuggestedModel,
+  SEC1_SUBJECT_SCOPES,
+  describeSmartAutoRoute,
+  normalizeSubjectParam,
+  type Sec1SubjectScopeId,
 } from "@/lib/ai/model-routing";
 
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
@@ -75,7 +76,12 @@ function downloadText(filename: string, text: string, type = "text/plain") {
 export function NoataAIClient() {
   const t=useTranslation(),locale=useLocale();
   useNoataMotionPreference();
-  const CHAT_MODEL_CARDS=getChatModelCards(locale);
+  const [activeSubject, setActiveSubject] = useState<Sec1SubjectScopeId>("all");
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const detected = normalizeSubjectParam(params.get("subject") || params.get("track"));
+    if (detected !== "all") setActiveSubject(detected);
+  }, []);
   const seenAccount = useVerifiedAccount();
   useEffect(() => {
     if (!seenAccount.loading) markFeatureSeen("ai", AI_INTRO_VERSION, seenAccount.user?.id ?? null);
@@ -95,7 +101,6 @@ export function NoataAIClient() {
     conversations,
     busy,
     model,
-    setModel,
     scroller,
     follow,
     loading,
@@ -142,6 +147,18 @@ export function NoataAIClient() {
   // Suggested prompts and completed response text are not unsaved user work.
   // Warn only when the student has actually edited the composer or staged a
   // locally selected document that would be lost on navigation.
+  const autoTelemetry = useMemo(() => {
+    const scopeHint =
+      activeSubject !== "all"
+        ? (SEC1_SUBJECT_SCOPES.find((s) => s.id === activeSubject)?.starterAr ?? "")
+        : "";
+    return describeSmartAutoRoute(
+      input.trim() ? input : scopeHint,
+      Boolean(attachment && attachment.type.startsWith("image/")),
+      locale === "en" ? "en" : "ar",
+    );
+  }, [input, activeSubject, attachment, locale]);
+
   const [hasTypedDraft, setHasTypedDraft] = useState(false);
   useUnsavedWork(
     Boolean((hasTypedDraft && input.trim()) || documentFiles.length || attachment),
@@ -519,20 +536,17 @@ export function NoataAIClient() {
                   if (event.key === "ArrowDown") {
                     event.preventDefault();
                     setModelMenuOpen(true);
-                    requestAnimationFrame(() => modelPickerRef.current?.querySelector<HTMLButtonElement>(".aura-model-card")?.focus());
+                    requestAnimationFrame(() => modelPickerRef.current?.querySelector<HTMLButtonElement>(".aura-model-gallery-dismiss")?.focus());
                   }
                 }}
-                aria-label={t("اختيار نموذج الذكاء الاصطناعي","Choose AI model")}
+                aria-label={t("حالة التوجيه الذكي لـ Noäta","Noäta Smart Auto routing status")}
                 aria-controls={modelMenuOpen ? "noata-ai-model-options" : undefined}
                 aria-expanded={modelMenuOpen}
               >
                 <span>
-                  <small>{t("النموذج","Model")}</small>
+                  <small>{t("تلقائي ذكي", "Smart Auto")}</small>
                   <strong>
-                    {model === "auto"
-                      ? t("تلقائي · الأنسب لسؤالك","Auto · matched to your request")
-                      : (CHAT_MODEL_CARDS.find((c) => c.id === model)?.arabic ??
-                        model)}
+                    Noäta AI{activeSubject !== "all" ? ` · ${autoTelemetry.subjectLabel}` : ""}
                   </strong>
                 </span>
                 <Icon name="chevron" size={15} />
@@ -541,109 +555,60 @@ export function NoataAIClient() {
                 <div
                   className="owui-model-menu aura-model-gallery"
                   id="noata-ai-model-options"
-                  role="group"
-                  aria-label={t("النماذج المهيأة على خادم Noäta","Models configured for Noäta")}
+                  role="region"
+                  aria-label={t("نظام التوجيه الذكي Noäta Smart Auto","Noäta Smart Auto routing telemetry")}
                 >
                   <div className="aura-model-gallery-head">
                     <div className="aura-model-gallery-heading">
-                      <strong>{t("اختار مساعدك","Choose your assistant")}</strong>
-                      <span>{t("فنار · النماذج المهيأة بالخادم","Fanar · available model routes")}</span>
+                      <strong>{t("التوجيه الذكي التلقائي · Smart Auto","Smart Auto Intelligence")}</strong>
+                      <span>{t("تحليل تلقائي لصعوبة السؤال والمادة وطريقة الشرح","Automatic difficulty, Sec. 1 subject & pedagogy routing")}</span>
                     </div>
                     <button type="button" className="aura-model-gallery-dismiss"
-                      aria-label={t("إغلاق قائمة النماذج","Close model selector")}
+                      aria-label={t("إغلاق لوحة التوجيه الذكي","Close Smart Auto panel")}
                       onClick={() => { setModelMenuOpen(false); modelTriggerRef.current?.focus(); }}>
                       <Icon name="close" size={17} />
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    className={
-                      "aura-model-card aura-model-auto " +
-                      (model === "auto" ? "active" : "")
-                    }
-                    aria-pressed={model === "auto"}
-                    onClick={() => {
-                      setModel("auto");
-                      setModelMenuOpen(false);
-                    }}
-                  >
+                  <div className="aura-model-card aura-model-auto active">
                     <span className="aura-model-card-symbol">
                       <Icon name="ai" size={20} />
                     </span>
                     <span className="aura-model-card-copy">
-                      <strong>{t("تلقائي · Aura Smart","Auto · Aura Smart")}</strong>
-                      <small>{t("اختيار مبني على نوع السؤال، وليس نموذجًا ثابتًا","Selects a model for the task and attachments")}</small>
+                      <strong>{autoTelemetry.tierLabel}</strong>
+                      <small>
+                        {t("المادة: ","Subject: ")}{autoTelemetry.subjectLabel} · {t("الصعوبة: ","Difficulty: ")}{autoTelemetry.difficultyLabel}
+                      </small>
                       <span className="aura-model-features">
-                        {input.trim()
-                          ? t("المقترح لهذا السؤال: ","Suggested for this request: ") +
-                            (CHAT_MODEL_CARDS.find(
-                              (c) =>
-                                c.id ===
-                                resolveSuggestedModel(
-                                  input,
-                                  Boolean(
-                                    attachment &&
-                                      attachment.type.startsWith("image/"),
-                                  ),
-                                ),
-                            )?.arabic ?? t("فنار","Fanar"))
-                          : t("محادثة · منطق · أسئلة إسلامية · رؤية","Chat · reasoning · Islamic questions · vision")}
+                        {t("الأسلوب: ","Pedagogy: ")}{autoTelemetry.modeLabel}
                       </span>
                     </span>
-                    {model === "auto" && <Icon name="check" size={17} />}
-                  </button>
-                  <div className="aura-model-gallery-list">
-                    {CHAT_MODEL_CARDS.map((c) => (
-                      <button
-                        type="button"
-                        key={c.id}
-                        className={
-                          "aura-model-card " + (model === c.id ? "active" : "")
-                        }
-                        aria-pressed={model === c.id}
-                        onClick={() => {
-                          setModel(c.id);
-                          setModelMenuOpen(false);
-                        }}
-                      >
-                        <span className="aura-model-card-symbol">
-                          <Icon
-                            name={
-                              c.bestFor==="safety"?"shield":c.bestFor==="creative"?"edit":c.bestFor === "vision"
-                                ? "image"
-                                : c.bestFor === "islamic"
-                                  ? "book"
-                                  : c.bestFor === "fast"
-                                    ? "target"
-                                    : "ai"
-                            }
-                            size={20}
-                          />
-                        </span>
-                        <span className="aura-model-card-copy">
-                          <strong>
-                            {c.arabic}
-                            <span>{c.subtitle}</span>
-                          </strong>
-                          <small>{c.description}</small>
-                          <span className="aura-model-features">
-                            {c.features.join(" · ")}
-                          </span>
-                        </span>
-                        {model === c.id && <Icon name="check" size={17} />}
-                      </button>
-                    ))}
+                    <Icon name="check" size={17} />
+                  </div>
+                  <div className="aura-model-gallery-list noata-smart-pillars">
+                    <div className="aura-model-card noata-pillar-card">
+                      <strong>{t("١. قياس الصعوبة (7B → 8.7B → 27B)","1. Adaptive Difficulty (7B → 8.7B → 27B)")}</strong>
+                      <small>{t("الأسئلة التمهيدية تُجاب فورًا، التحليلية بمنطق منظّم، والبراهين المعقدة بمحرك 27B.","Quick cues route fast, reasoning to 8.7B, and multi-step proofs to 27B.")}</small>
+                    </div>
+                    <div className="aura-model-card noata-pillar-card">
+                      <strong>{t("٢. مرجعية الترم الأول الكاملة","2. Full Sec. 1 Term 1 Grounding")}</strong>
+                      <small>{t("مرتبط بالدروس، بطاقات صفحة المذاكرة، ومواد أولى ثانوي الست بالعربية والإنجليزية.","Grounded in syllabus lessons, your /study flashcard decks, and all 6 tracks.")}</small>
+                    </div>
+                    <div className="aura-model-card noata-pillar-card">
+                      <strong>{t("٣. متخصصو الصور والدراسات الإسلامية","3. Vision & Islamic Specialists")}</strong>
+                      <small>{t("الصور واللقطات تنتقل لمحرك الرؤية والأسئلة الدينية لصادق الموثوق تلقائيًا.","Images route to Oryx Vision and religious questions to Sadiq automatically.")}</small>
+                    </div>
                   </div>
                   <div className="owui-model-menu-foot aura-model-info">
-                    <small>{t("مهيّأ على Edge Function، والتوفر الفعلي يتضح عند إرسال الطلب. لا يوجد اختبار صحة مباشر لكل نموذج هنا.","A model's availability is confirmed when your request reaches the provider.")}</small>
+                    <small>{t("لا حاجة لاختيار نموذج يدويًا — Noäta تضبط المحرك الأنسب تلقائيًا في كل رسالة.","No manual model picking needed — Smart Auto adapts per turn.")}</small>
                     <button
                       type="button"
                       onClick={() => {
+                        setSettingsTab("models");
                         setSettingsOpen(true);
                         setModelMenuOpen(false);
                       }}
                     >
-                      <Icon name="settings" size={14} />{t("الإعدادات","Settings")}</button>
+                      <Icon name="settings" size={14} />{t("تفاصيل التوجيه","Routing details")}</button>
                   </div>
                 </div>
               )}
@@ -651,7 +616,9 @@ export function NoataAIClient() {
           </div>
 
           <div className="owui-navbar-center">
-            <span className="noata-header-brand" dir="ltr"><NoataLogo size={24}/><strong>Noäta AI</strong></span>
+            {(messages.length > 0 || activeConversation) && (
+              <span className="noata-header-brand" dir="ltr"><NoataLogo size={24}/><strong>Noäta AI</strong></span>
+            )}
             {temporary ? (
               <span className="owui-status-pill temporary">
                 <Icon name="clock" size={13} />{t("مؤقتة","Temporary")}</span>
@@ -662,9 +629,7 @@ export function NoataAIClient() {
               >
                 {activeConversation.title}
               </span>
-            ) : (
-              null
-            )}
+            ) : null}
           </div>
 
           <div className="owui-navbar-actions">
@@ -716,7 +681,16 @@ export function NoataAIClient() {
           )}
 
           {!messages.length && !loading && (
-            <div><NoataWelcome signedIn={signedIn} owner={seenAccount.user?.id??null} onPrompt={prompt=>{setInput(prompt);composer.current?.focus();}}/>{error&&<p className="owui-error" role="alert">{error}</p>}</div>
+            <div>
+              <NoataWelcome
+                signedIn={signedIn}
+                owner={seenAccount.user?.id ?? null}
+                activeSubject={activeSubject}
+                activeSubjectLabel={activeSubject !== "all" ? autoTelemetry.subjectLabel : undefined}
+                onClearSubject={() => setActiveSubject("all")}
+              />
+              {error && <p className="owui-error" role="alert">{error}</p>}
+            </div>
           )}
 
           <div className="owui-thread">
@@ -1085,7 +1059,7 @@ export function NoataAIClient() {
                   void send();
                 }
               }}
-              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("ابعت رسالتك…","Message Noäta AI")}
+              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("اسأل عن أي شيء…","Ask anything…")}
               rows={1}
             />
 
@@ -1147,6 +1121,19 @@ export function NoataAIClient() {
                         <Icon name="book" size={17}/>
                         <span><strong>{t("اكتب مسودة","Write a draft")}</strong>
                         <small>{t("حرّر نصًا بنفسك في هذه المحادثة","Edit your own text in this conversation")}</small></span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEducationOpen(true);
+                          setInputMenuOpen(false);
+                        }}
+                      >
+                        <Icon name="sparkles" size={17} />
+                        <span>
+                          <strong>{t("ورشة المذاكرة والاختبارات", "Study & Quiz Workshop")}</strong>
+                          <small>{t("ولّد اختبارًا أو بطاقات أو ملخصًا لأي درس", "Generate a quiz, flashcards, or lesson summary")}</small>
+                        </span>
                       </button>
                     </div>
                   )}
@@ -1235,21 +1222,11 @@ export function NoataAIClient() {
         title={t("عناصر تحكم Noäta AI","Noäta AI controls")}
       >
         <div className="owui-control-grid">
-          <label>
-            <span>{t("نموذج المحادثة","Chat model")}</span>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              disabled={busy}
-            >
-              <option value="auto">{t("تلقائي · Noäta تختار الأفضل","Auto · Noäta selects a model")}</option>
-              {FANAR_CAPABILITIES.filter((c) => c.visibleInPicker).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="noata-smart-auto-card">
+            <strong>{t("التوجيه الذكي التلقائي مفعّل دائمًا","Smart Auto Routing Enabled")}</strong>
+            <small>{t("يحلّل صعوبة السؤال والمادة الدراسية والمرفقات لاختيار المحرك الأنسب (7B / 8.7B / 27B / Vision / Sadiq) تلقائيًا.","Automatically selects Instant 7B, Reasoning 8.7B, Deep 27B, Vision, or Sadiq based on question difficulty & curriculum subject.")}</small>
+            <span className="noata-smart-auto-badge">{autoTelemetry.tierLabel} · {autoTelemetry.difficultyLabel}</span>
+          </div>
           <label>
             <span>{t("تحويل الصوت إلى نص","Speech to text")}</span>
             <select
@@ -1310,7 +1287,7 @@ export function NoataAIClient() {
               [
                 ["general", t("عام","General"), "sliders"],
                 ["appearance", t("المظهر","Appearance"), "sparkles"],
-                ["models", t("النماذج","Models"), "ai"],
+                ["models", t("التوجيه الذكي","Smart Auto"), "ai"],
                 ["voice", t("الصوت","Voice"), "mic"],
                 ["memory", t("الذاكرة","Memory"), "book"],
                 ["projects", t("الملفات","Files"), "archive"],
@@ -1374,21 +1351,12 @@ export function NoataAIClient() {
 
             {settingsTab === "models" && (
               <>
-                <h3>{t("النموذج الافتراضي","Default model")}</h3>
-                <p>{t("اختار قدرة محددة أو سيب Noäta تختار تلقائيًا حسب سؤالك والمرفقات.","Choose a model or let Noäta select one for your request and attachments.")}</p>
-                <select
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                >
-                  <option value="auto">{t("تلقائي · الأنسب لسؤالك","Auto · matched to your request")}</option>
-                  {FANAR_CAPABILITIES.filter((c) => c.visibleInPicker).map(
-                    (c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label} · {c.quota}
-                      </option>
-                    ),
-                  )}
-                </select>
+                <h3>{t("محرك التوجيه الذكي (Smart Auto)","Smart Auto Routing Engine")}</h3>
+                <p>{t("تم استبدال الاختيار اليدوي للنماذج بنظام تلقائي يقرأ مستوى صعوبة سؤالك ومواد الصف الأول الثانوي ومحتوى دروسك لاختيار الأفضل في كل طلب.","Manual model selection is replaced by Smart Auto, which detects cognitive difficulty, Sec. 1 Term 1 subject context, and attachments automatically.")}</p>
+                <div className="noata-smart-auto-card">
+                  <strong>{autoTelemetry.tierLabel}</strong>
+                  <small>{t("المادة المرصودة: ","Detected subject: ")}{autoTelemetry.subjectLabel} · {t("الصعوبة: ","Difficulty: ")}{autoTelemetry.difficultyLabel} · {t("الأسلوب: ","Mode: ")}{autoTelemetry.modeLabel}</small>
+                </div>
                 <div className="owui-capability-list">
                   {FANAR_CAPABILITIES.map((c) => (
                     <div key={c.id}>

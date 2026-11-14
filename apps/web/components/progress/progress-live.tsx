@@ -6,13 +6,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
+import { TRACK_CATALOG } from "@/lib/curriculum/catalog";
+import { StreakMilestoneRoad } from "@/components/ui/achievement-celebration";
 
 type Row = {
   mastery_score: number;
   state: string;
   independent_distinct_count: number;
   next_review_at: string | null;
-  skills: { title_ar: string; title_en: string } | null;
+  skills: { title_ar: string; title_en: string; course_id?: string | null } | null;
 };
 type View = "all" | "due" | "learning" | "mastered";
 
@@ -42,6 +44,8 @@ const LABELS: Record<string, string> = {
 };
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<Row[]>([]);
+  const [streakDays, setStreakDays] = useState(0);
+  const [courseLanguages, setCourseLanguages] = useState<Map<string, "ar" | "en">>(new Map());
   const account = useVerifiedAccount();
   const signedIn = account.loading ? null : Boolean(account.user);
   const [loading, setLoading] = useState(true);
@@ -61,16 +65,50 @@ const LABELS: Record<string, string> = {
           setRows([]);
           return;
         }
-        const { data, error: queryError } = await supabase
-          .from("skill_evidence")
-          .select(
-            "mastery_score,state,independent_distinct_count,next_review_at,skills(title_ar,title_en)",
-          )
-          .eq("user_id", user.id)
-          .order("mastery_score", { ascending: true })
-          .limit(300);
+        const [{ data, error: queryError }, profileRes] = await Promise.all([
+          supabase
+            .from("skill_evidence")
+            .select(
+              "mastery_score,state,independent_distinct_count,next_review_at,skills(title_ar,title_en,course_id)",
+            )
+            .eq("user_id", user.id)
+            .order("mastery_score", { ascending: true })
+            .limit(300),
+          supabase.from("profiles").select("streak_days").eq("id", user.id).maybeSingle(),
+        ]);
+        if (profileRes.data && typeof profileRes.data.streak_days === "number" && alive()) {
+          setStreakDays(profileRes.data.streak_days);
+        }
         if (queryError) throw queryError;
-        if (alive()) setRows((data ?? []) as Row[]);
+        const skillRows = (data ?? []) as Row[];
+        const courseIds = [
+          ...new Set(
+            skillRows
+              .map((r) => r.skills?.course_id)
+              .filter((id): id is string => Boolean(id)),
+          ),
+        ];
+        if (courseIds.length) {
+          try {
+            const tracks = await supabase
+              .from("curriculum_tracks")
+              .select("course_id,content_language")
+              .in("course_id", courseIds)
+              .eq("publication_status", "published");
+            if (!tracks.error && alive()) {
+              setCourseLanguages(
+                new Map(
+                  (tracks.data ?? [])
+                    .filter((tr) => tr.course_id)
+                    .map((tr) => [tr.course_id!, tr.content_language as "ar" | "en"]),
+                ),
+              );
+            }
+          } catch {
+            // Preserve skill rendering if optional track lookup is absent in fixtures.
+          }
+        }
+        if (alive()) setRows(skillRows);
       } catch {
         if (alive())
           setError(
@@ -106,7 +144,18 @@ const LABELS: Record<string, string> = {
   );
   // An opt-in, editable AI prompt grounded only in this user's real evidence.
   // Opening /ai PREFILLS the composer; it does not send a message or award XP.
-  const skillTitle=(row:Row)=>locale==="en" ? row.skills?.title_en || "English title unavailable" : row.skills?.title_ar || t("مهارة غير مسماة","Unnamed skill");
+  const skillTitle = (row: Row) => {
+    const courseLang = row.skills?.course_id ? courseLanguages.get(row.skills.course_id) : undefined;
+    if (courseLang === "ar") {
+      return row.skills?.title_ar?.trim() || row.skills?.title_en?.trim() || t("مهارة غير مسماة", "Unnamed skill");
+    }
+    if (courseLang === "en") {
+      return row.skills?.title_en?.trim() || row.skills?.title_ar?.trim() || t("مهارة غير مسماة", "Unnamed skill");
+    }
+    return locale === "en"
+      ? row.skills?.title_en?.trim() || row.skills?.title_ar?.trim() || "Unnamed skill"
+      : row.skills?.title_ar?.trim() || row.skills?.title_en?.trim() || "مهارة غير مسماة";
+  };
   const skillSample = rows.slice(0, 8).map((row) => ({
     skill: skillTitle(row).slice(0, 85),
     mastery: scoreOf(row),
@@ -416,6 +465,71 @@ const LABELS: Record<string, string> = {
               )}
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="noata-progress-bridge" aria-label={t("جسر المراجعة ومواد الصف الأول", "Sec. 1 Tracks & Spaced Review Bridge")}>
+        <StreakMilestoneRoad
+          streakDays={streakDays}
+          locale={locale}
+          userId={account.user?.id}
+          compact
+          rewardsHref="/rewards"
+          studyHref="/missions"
+        />
+
+        <div className="panel" style={{ padding: 20 }}>
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">{t("ربط مباشر بالتدريب والامتحان", "Connected Study & Review")}</span>
+              <h2 style={{ margin: "4px 0 0" }}>{t("مسارات الصف الأول الثانوي والمراجعة المتباعدة", "Sec. 1 Curriculum Tracks & Direct Practice")}</h2>
+            </div>
+            <Link href="/review?mode=topic" className="btn btn-secondary">
+              {t("افتح المراجعة المتباعدة", "Open Spaced Review")}
+            </Link>
+          </div>
+          <div className="noata-progress-bridge-grid" style={{ marginTop: 14 }}>
+            {TRACK_CATALOG.map((track) => (
+              <article
+                key={track.slug}
+                className="noata-progress-track-card"
+                dir={track.contentLanguage === "en" ? "ltr" : "rtl"}
+                lang={track.contentLanguage}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <strong style={{ fontSize: 14.5 }}>
+                    {track.contentLanguage === "en" ? track.titleEn : track.titleAr}
+                  </strong>
+                  <span className="pill" style={{ fontSize: 11, flexShrink: 0, whiteSpace: "nowrap" }}>
+                    {track.contentLanguage === "en" ? "EN" : "AR"}
+                  </span>
+                </div>
+                <div className="noata-progress-track-links">
+                  <Link
+                    href={`/review?mode=topic&track=${encodeURIComponent(track.slug)}`}
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12 }}
+                  >
+                    {t("مراجعة متباعدة", "Spaced Review")}
+                  </Link>
+                  <Link
+                    href={`/study?track=${encodeURIComponent(track.slug)}`}
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12 }}
+                  >
+                    {t("مركز المذاكرة", "Study Studio")}
+                  </Link>
+                  <Link
+                    href={`/boss?track=${encodeURIComponent(track.slug)}`}
+                    className="btn btn-secondary"
+                    style={{ fontSize: 12 }}
+                  >
+                    {t("امتحان الوحدة", "Unit Exam")}
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
     </div>

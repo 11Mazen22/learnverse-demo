@@ -28,6 +28,7 @@ import {
   type ContentLanguage,
   type SubjectKey,
 } from "@/lib/curriculum/catalog";
+import { StreakMilestoneRoad } from "@/components/ui/achievement-celebration";
 import { CustomizeDashboardDrawer } from "./customize-drawer";
 
 type TrackProgress = {
@@ -968,6 +969,17 @@ export function DashboardLive() {
             </div>
           </div>
         </div>
+
+        <div style={{ marginTop: 14 }}>
+          <StreakMilestoneRoad
+            streakDays={state.streak}
+            locale={locale}
+            userId={state.ownerId}
+            compact
+            rewardsHref="/rewards"
+            studyHref="/missions"
+          />
+        </div>
       </section>
     ),
 
@@ -1115,39 +1127,50 @@ export function DashboardLive() {
             <Icon name="microscope" size={18} />
             <span>{t("رادار المفاهيم الشائكة والمراجعة", "Concept Clarification Radar")}</span>
           </h4>
-          <Link href="/review" className="db-section-link">
+          <Link
+            href={state.activeTrackSlug ? `/review?track=${encodeURIComponent(state.activeTrackSlug)}` : "/review"}
+            className="db-section-link"
+          >
             {t("مركز المراجعة ←", "Review Hub →")}
           </Link>
         </div>
 
         {state.weakSkills.length > 0 ? (
           <div className="db-weak-list">
-            {state.weakSkills.map((sk) => (
-              <div key={sk.id} className="db-weak-item">
-                <div className="db-weak-copy">
-                  <strong>{sk.contentLanguage === "en" ? sk.titleEn : sk.titleAr}</strong>
-                  <small>
-                    {t(
-                      `إتقان حالي: ${sk.score}% · يحتاج تدريبًا مركزًا`,
-                      `Mastery: ${sk.score}% · Needs focused drill`,
-                    )}
-                  </small>
+            {state.weakSkills.map((sk) => {
+              const skTitle = sk.contentLanguage === "en" ? sk.titleEn : sk.titleAr;
+              const aiPrompt =
+                sk.contentLanguage === "en"
+                  ? `Explain "${skTitle}" step by step with solved exam examples.`
+                  : `اشرح لي المفهوم «${skTitle}» بالتفصيل مع أمثلة امتحانية محلولة.`;
+              return (
+                <div key={sk.id} className="db-weak-item">
+                  <div className="db-weak-copy">
+                    <strong dir={sk.contentLanguage === "en" ? "ltr" : "rtl"}>{skTitle}</strong>
+                    <small>
+                      {t(
+                        `إتقان حالي: ${sk.score}% · يحتاج تدريبًا مركزًا`,
+                        `Mastery: ${sk.score}% · Needs focused drill`,
+                      )}
+                    </small>
+                  </div>
+                  <div className="db-weak-actions">
+                    <Link
+                      href={`/review?mode=topic${state.activeTrackSlug ? `&track=${encodeURIComponent(state.activeTrackSlug)}` : ""}`}
+                      className="db-weak-drill"
+                    >
+                      {t("تدريب", "Drill")}
+                    </Link>
+                    <Link
+                      href={`/ai?prompt=${encodeURIComponent(aiPrompt)}${state.activeTrackSlug ? `&subject=${encodeURIComponent(state.activeTrackSlug)}` : ""}`}
+                      className="db-weak-action"
+                    >
+                      {t("شرح مع AI", "Ask AI")}
+                    </Link>
+                  </div>
                 </div>
-                <div className="db-weak-actions">
-                  <Link href="/review" className="db-weak-drill">
-                    {t("تدريب", "Drill")}
-                  </Link>
-                  <Link
-                    href={`/ai?prompt=${encodeURIComponent(
-                      `اشرح لي المفهوم بالتفصيل مع أمثلة محلولة: ${sk.titleAr}`,
-                    )}`}
-                    className="db-weak-action"
-                  >
-                    {t("شرح مع AI", "Ask AI")}
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : state.masteryRows.length > 0 ? (
           <div className="db-weak-empty" data-tone="success">
@@ -1302,43 +1325,55 @@ export function DashboardLive() {
         </div>
 
         <div className="db-launcher-grid">
-          <Link href="/ai" className="db-launcher-card">
+          <Link
+            href={state.activeTrackSlug ? `/ai?subject=${encodeURIComponent(state.activeTrackSlug)}` : "/ai"}
+            className="db-launcher-card"
+          >
             <div className="db-launcher-icon" data-tone="accent">
               <Icon name="bot" size={22} />
             </div>
             <div className="db-launcher-info">
               <strong>{t("مساعد Noäta AI الذكي", "Noäta AI Study Companion")}</strong>
-              <small>{t("حوار سقراطي، شرح منسّق، وتوليد بطاقات", "Socratic dialogue, explanations & study help")}</small>
+              <small>{t("توجيه تلقائي ذكي لمواد أولى ثانوي + بطاقات فورية", "Smart Auto routing for Sec. 1 Term 1 + instant study help")}</small>
             </div>
           </Link>
 
-          <Link href="/study" className="db-launcher-card">
+          <Link
+            href={state.activeTrackSlug ? `/study?track=${encodeURIComponent(state.activeTrackSlug)}` : "/study"}
+            className="db-launcher-card"
+          >
             <div className="db-launcher-icon" data-tone="success">
               <Icon name="layers" size={22} />
             </div>
             <div className="db-launcher-info">
               <strong>{t("استوديو المذاكرة وبطاقات 3D", "Smart Study Studio & 3D Cards")}</strong>
-              <small>{t("بطاقات نشطة، اختبار منضبط، ومراجعة SM-2", "Active-recall flashcards, strict quizzes & SM-2")}</small>
+              <small>{t("مكتبة منهج أولى ثانوي، بطاقات SM-2، واختبارات", "Sec. 1 curriculum decks, SM-2 recall & strict quizzes")}</small>
             </div>
           </Link>
 
-          <Link href="/review" className="db-launcher-card">
+          <Link
+            href={state.activeTrackSlug ? `/review?track=${encodeURIComponent(state.activeTrackSlug)}` : "/review"}
+            className="db-launcher-card"
+          >
             <div className="db-launcher-icon" data-tone="warning">
               <Icon name="clock" size={22} />
             </div>
             <div className="db-launcher-info">
-              <strong>{t("المراجعة المتباعدة للمهارات", "Spaced Skill Recall")}</strong>
-              <small>{t("استرجاع المفاهيم في ذروة منحنى التذكر", "Retrieve curriculum skills at optimal intervals")}</small>
+              <strong>{t("المراجعة المتباعدة والموضوعية", "Spaced & Subject Review")}</strong>
+              <small>{t("مستحقات التكرار المتباعد ومراجعات ٥–١٥ سؤال حسب المادة", "Due FSRS recall & targeted 5–15 Q subject drills")}</small>
             </div>
           </Link>
 
-          <Link href="/boss" className="db-launcher-card">
+          <Link
+            href={state.activeTrackSlug ? `/boss?track=${encodeURIComponent(state.activeTrackSlug)}` : "/boss"}
+            className="db-launcher-card"
+          >
             <div className="db-launcher-icon" data-tone="danger">
               <Icon name="swords" size={22} />
             </div>
             <div className="db-launcher-info">
-              <strong>{t("تحديات الوحدات والنجاح", "Unit Mastery Challenges")}</strong>
-              <small>{t("اختبارات تراكمية متجددة لاجتياز الوحدات", "Rotating unit challenges to prove mastery")}</small>
+              <strong>{t("تحديات الوحدات الشاملة", "Unit Mastery Challenges")}</strong>
+              <small>{t("ساحة تقييم شاملة من ٦–٨ أسئلة لكل وحدة ونظام دروع", "Full 6–8 Q unit arenas with readiness & shields")}</small>
             </div>
           </Link>
         </div>
@@ -1437,7 +1472,7 @@ export function DashboardLive() {
           </div>
 
           <p className="nk-home-greeting">
-            {signedIn && state.displayName ? `${greeting}، ${state.displayName}` : greeting}
+            {signedIn && state.displayName ? `${greeting}${t("،", ",")} ${state.displayName}` : greeting}
           </p>
 
           <h1 className="nk-home-title">
@@ -1459,11 +1494,17 @@ export function DashboardLive() {
               <span>{t(recommended.ctaAr, recommended.ctaEn)}</span>
               <Icon name="arrow" size={16} />
             </Link>
-            <Link href="/study?tab=generator" className="btn btn-secondary">
+            <Link
+              href={`/study?tab=generator${state.activeTrackSlug ? `&track=${encodeURIComponent(state.activeTrackSlug)}` : ""}`}
+              className="btn btn-secondary"
+            >
               <Icon name="sparkles" size={16} />
               <span>{t("استوديو البطاقات الذكي", "Smart Study Studio")}</span>
             </Link>
-            <Link href="/ai" className="btn btn-secondary">
+            <Link
+              href={state.activeTrackSlug ? `/ai?subject=${encodeURIComponent(state.activeTrackSlug)}` : "/ai"}
+              className="btn btn-secondary"
+            >
               <Icon name="ai" size={16} />
               <span>{t("سؤال Noäta AI", "Ask Noäta AI")}</span>
             </Link>

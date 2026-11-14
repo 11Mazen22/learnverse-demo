@@ -37,6 +37,7 @@ export type StudySessionItem = {
   correct_items: number;
   started_at: string;
   updated_at: string;
+  checkpoint?: Record<string, unknown> | null;
 };
 
 export type DeckSummary = {

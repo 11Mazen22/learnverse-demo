@@ -1,3 +1,8 @@
+import {
+  getLessonStudyCompanion,
+  getLessonStudyPack,
+  type CanonicalLessonStudyPack,
+} from "../curriculum/sec1-study-pack.ts";
 import { AI_FUNCTION } from "../ai/workspace.ts";
 import {
   type ClassifiedAiError,
@@ -213,8 +218,85 @@ export function generateAlgorithmicBundle(options: GenerateOptions): QuizGeckoBu
       });
     }
   } else {
-    // Topic-based generation fallback
-    const topicName = cleanText(options.topic || options.lessonTitle || (isEn ? "Applied Concept" : "المفهوم الدراسي التطبيقي"));
+    // Check if an exact Sec. 1 curriculum lesson or matching curriculum topic applies
+    const exactPack = options.lessonId
+      ? getLessonStudyPack(options.lessonId, locale)
+      : null;
+
+    if (exactPack) {
+      const fullBundle = createBundleFromLessonPack(exactPack, difficulty);
+      return {
+        ...fullBundle,
+        title: cleanText(options.lessonTitle || options.topic || fullBundle.title),
+        topic: cleanText(options.topic || fullBundle.topic),
+        questions: fullBundle.questions.slice(0, qCount),
+        cards: fullBundle.cards.slice(0, cCount),
+      };
+    }
+
+    const topicCheck = cleanText(options.topic || options.lessonTitle || "").toLowerCase();
+    const looksLikeSec1Topic =
+      Boolean(options.subject) ||
+      /(hydrosphere|water|osmosis|specific heat|complex|discriminant|vieta|quadratic|inequal|heritage|conditional|gerund|uncountable|civilization|ancient egypt|ostrac|nile|philosophy|logic|syllogism|الغلاف المائي|خواص الماء|الكثافة|الأسموزية|الأعداد المركبة|المميز|معاملات|إشارة الدالة|المتباينات|مكارم|حاتم|السموأل|عنترة|المرفوعات|المعرب|المبني|الحضارة|الأوستراكا|التفكير|الفلسفة|المنطق|الاستدلال)/.test(
+        topicCheck
+      );
+
+    if (looksLikeSec1Topic) {
+      const companion = getLessonStudyCompanion({
+        lessonIdOrSlug: options.lessonId,
+        titleAr: locale === "ar" ? options.lessonTitle || options.topic : undefined,
+        titleEn: locale === "en" ? options.lessonTitle || options.topic : undefined,
+        subjectKey: options.subject,
+        contentLanguage: locale,
+      });
+
+      const companionTitle = cleanText(
+        options.lessonTitle || options.topic || companion.matchedTopic
+      );
+      companion.keyConcepts.slice(0, 3).forEach((concept) => {
+        keyTakeaways.push(cleanText(`${concept.title}: ${concept.body}`));
+      });
+
+      companion.curatedQuestions.slice(0, qCount).forEach((q, idx) => {
+        const distractorReasons: Record<number, string> = {};
+        q.choices.forEach((_, cIdx) => {
+          if (cIdx !== q.correct_index) {
+            distractorReasons[cIdx] = cleanText(
+              isEn
+                ? `Review hint: ${q.hint}`
+                : `راجع الإرشاد: ${q.hint}`
+            );
+          }
+        });
+        questions.push({
+          id: `${q.id}-${idx + 1}`,
+          type: "multiple_choice",
+          question: cleanText(q.prompt),
+          options: q.choices.map(cleanText),
+          correctIndex: q.correct_index,
+          explanation: cleanText(q.explanation),
+          distractorExplanations: distractorReasons,
+          hint: cleanText(q.hint),
+          concept: companionTitle,
+          difficulty,
+        });
+      });
+
+      companion.flashcards.slice(0, cCount).forEach((fc, idx) => {
+        cards.push({
+          id: `sec1-c-${idx + 1}-${Date.now()}`,
+          front: cleanText(fc.front),
+          back: cleanText(fc.back),
+          hint: cleanText(fc.hint || (isEn ? "Connect to lesson law or rule." : "اربط البطاقة بقانون أو قاعدة الدرس.")),
+          mnemonic: isEn
+            ? `Sec. 1 curriculum anchor: ${companion.matchedTopic}.`
+            : `مرتكز منهج أولى ثانوي: ${companion.matchedTopic}.`,
+          concept: companionTitle,
+        });
+      });
+    } else {
+      // Topic-based generation fallback
+      const topicName = cleanText(options.topic || options.lessonTitle || (isEn ? "Applied Concept" : "المفهوم الدراسي التطبيقي"));
 
     keyTakeaways.push(
       isEn
@@ -368,6 +450,7 @@ export function generateAlgorithmicBundle(options: GenerateOptions): QuizGeckoBu
         concept: topicName,
       });
     });
+    }
   }
 
   const provenance: StudyProvenance = options.lessonId
@@ -389,6 +472,119 @@ export function generateAlgorithmicBundle(options: GenerateOptions): QuizGeckoBu
     questions,
     cards: cards.map((card) => ({ ...card, provenance })),
     keyTakeaways,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Builds a complete, authentic Sec. 1 Term 1 Quiz & Flashcard bundle directly
+ * from a canonical lesson study pack without relying on generic fallbacks.
+ */
+export function createBundleFromLessonPack(
+  pack: CanonicalLessonStudyPack,
+  difficulty: QuizDifficulty = "medium",
+): QuizGeckoBundle {
+  const isEn = pack.contentLanguage === "en";
+  const orderWeight = (qDiff: "foundational" | "standard" | "challenging") => {
+    if (difficulty === "easy") {
+      return qDiff === "foundational" ? 0 : qDiff === "standard" ? 1 : 2;
+    }
+    if (difficulty === "hard") {
+      return qDiff === "challenging" ? 0 : qDiff === "standard" ? 1 : 2;
+    }
+    return qDiff === "standard" ? 0 : qDiff === "foundational" ? 1 : 2;
+  };
+
+  const sortedQuestions = [...pack.questions].sort(
+    (a, b) => orderWeight(a.difficulty) - orderWeight(b.difficulty)
+  );
+
+  const questions: QuizItem[] = sortedQuestions.map((q, idx) => {
+    const distractorExplanations: Record<number, string> = {};
+    q.choices.forEach((_, choiceIdx) => {
+      if (choiceIdx !== q.correct_index) {
+        distractorExplanations[choiceIdx] = cleanText(
+          isEn
+            ? `Not quite — hint: ${q.hint}`
+            : `إجابة غير دقيقة — تلميح: ${q.hint}`
+        );
+      }
+    });
+    return {
+      id: `${pack.lessonSlug}-${q.id}-${idx + 1}`,
+      type: "multiple_choice",
+      question: cleanText(q.prompt),
+      options: q.choices.map(cleanText),
+      correctIndex: q.correct_index,
+      explanation: cleanText(q.explanation),
+      distractorExplanations,
+      hint: cleanText(q.hint),
+      concept: cleanText(pack.title),
+      difficulty,
+    };
+  });
+
+  const cards: QuizFlashcard[] = pack.cards.map((c, idx) => ({
+    id: `${pack.lessonSlug}-card-${idx + 1}`,
+    front: cleanText(c.front),
+    back: cleanText(c.back),
+    hint: cleanText(c.hint || (pack.formulaOrRule ?? "")),
+    mnemonic: cleanText(
+      pack.formulaOrRule
+        ? pack.formulaOrRule
+        : isEn
+          ? `Lesson focus: ${pack.title}`
+          : `محور الدرس: ${pack.title}`
+    ),
+    concept: cleanText(pack.title),
+    provenance: "curriculum_derived",
+  }));
+
+  if (pack.formulaOrRule) {
+    cards.push({
+      id: `${pack.lessonSlug}-formula-card`,
+      front: cleanText(
+        isEn ? `Key Rule & Formula — ${pack.title}` : `القانون / القاعدة الذهبية — ${pack.title}`
+      ),
+      back: cleanText(pack.formulaOrRule),
+      hint: cleanText(
+        isEn ? "Apply this directly in Sec. 1 exam drills." : "استحضر هذه الصيغة مباشرة في أسئلة الامتحان."
+      ),
+      concept: cleanText(pack.title),
+      provenance: "curriculum_derived",
+    });
+  }
+
+  const takeaways = pack.keyConcepts
+    .slice(0, 3)
+    .map((c) => cleanText(`${c.title}: ${c.body}`));
+  if (pack.formulaOrRule) {
+    takeaways.push(
+      cleanText(isEn ? `Key Rule: ${pack.formulaOrRule}` : `القاعدة / القانون: ${pack.formulaOrRule}`)
+    );
+  }
+  if (pack.workedExamples[0]?.takeaway) {
+    takeaways.push(cleanText(pack.workedExamples[0].takeaway));
+  }
+  if (pack.commonMistakes[0]) {
+    takeaways.push(
+      cleanText(isEn ? `Avoid Trap: ${pack.commonMistakes[0]}` : `تجنب الخطأ الشائع: ${pack.commonMistakes[0]}`)
+    );
+  }
+
+  return {
+    id: `lesson-bundle-${pack.lessonSlug}-${Date.now()}`,
+    title: cleanText(pack.title),
+    topic: cleanText(pack.title),
+    summary: cleanText(pack.summary),
+    difficulty,
+    locale: pack.contentLanguage,
+    provenance: "curriculum_derived",
+    sourceLessonId: pack.lessonSlug,
+    aiStatus: "local_fallback",
+    questions,
+    cards,
+    keyTakeaways: Array.from(new Set(takeaways.filter(Boolean))).slice(0, 4),
     createdAt: new Date().toISOString(),
   };
 }

@@ -50,7 +50,7 @@ function SidebarCurriculumList({
                 <span className="noata-curriculum-title">{title}</span>
                 {sub.dualLanguage && (
                   <span className="noata-curriculum-track-pills">
-                    <span className="noata-track-pill">عربي</span>
+                    <span className="noata-track-pill" lang="ar">عربي</span>
                     <span className="noata-track-pill">EN</span>
                   </span>
                 )}

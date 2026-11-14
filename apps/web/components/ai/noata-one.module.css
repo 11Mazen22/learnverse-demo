@@ -580,6 +580,7 @@
   --r2-edge:color-mix(in srgb,var(--accent) 18%,var(--line));
 }
 .root :global(.owui-navbar){
+  position:sticky;top:0;z-index:30;flex:none;
   background:color-mix(in srgb,var(--surface) 88%,transparent);
   border-bottom:1px solid var(--line);
   backdrop-filter:blur(18px) saturate(1.15);
@@ -620,7 +621,7 @@
   box-shadow:0 8px 18px -10px color-mix(in srgb,var(--accent) 72%,transparent);
 }
 .root :global(.owui-send:disabled){background:var(--surface-soft);color:var(--muted);box-shadow:none;opacity:.72}
-.root :global(.owui-disclaimer){max-width:min(100%,72ch);opacity:.9}
+.root :global(.owui-disclaimer){max-width:min(100%,72ch)}
 
 /* Welcome: a composed launch surface with a real working document visual. */
 .root :global(.noata-r2-welcome){
@@ -973,22 +974,188 @@
 .root :global(.noata-generated-file > p[role="alert"]){grid-column:2/4;margin:0;font-size:11px;color:var(--danger)}
 .root :global(.noata-generated-file > .noata-artifact-inline){grid-column:1/-1}
 
-@media(max-width:980px){
-  .root :global(.noata-r2-welcome){grid-template-columns:minmax(0,1fr);gap:18px;max-width:720px}
-  .root :global(.r2-welcome-copy){max-width:none}
-  .root :global(.r2-welcome-art){display:none}
-  .root :global(.noata-r2-welcome h1){max-width:16ch}
+.root :global(.noata-smart-pillars){display:grid;gap:8px;margin-top:10px}
+.root :global(.noata-smart-pillars > div){
+  padding:9px 11px;border-radius:11px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--surface-soft) 72%,transparent);
 }
+.root :global(.noata-smart-pillars strong){display:block;font-size:12px;font-weight:700;color:var(--ink)}
+.root :global(.noata-smart-pillars small){display:block;margin-top:3px;font-size:11px;color:var(--muted);line-height:1.45}
+.root :global(.noata-smart-auto-card){
+  display:grid;gap:5px;padding:12px 14px;border-radius:12px;
+  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--line));
+  background:color-mix(in srgb,var(--accent-soft) 36%,var(--surface));
+}
+.root :global(.noata-smart-auto-card strong){font-size:13px;font-weight:700;color:var(--ink)}
+.root :global(.noata-smart-auto-card small){font-size:11.5px;color:var(--muted);line-height:1.5}
+.root :global(.noata-smart-auto-badge){
+  display:inline-flex;align-items:center;width:fit-content;margin-top:2px;
+  padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
+  background:var(--accent);color:var(--on-accent,#fff);
+}
+.root :global(.noata-workshop-quick){margin-bottom:8px}
+
+/* Centered ChatGPT-like launch state + viewport-bounded Smart Auto HUD */
+.root :global(.owui-model-menu.aura-model-gallery){
+  inset-block-start:calc(100% + 6px);
+  bottom:auto;
+  max-height:min(72dvh,calc(100dvh - 84px));
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.root :global(.aura-model-gallery-list){
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+.root :global(.aura-model-gallery-head),.root :global(.aura-model-info){flex:none}
+.root[data-empty="true"] :global(.owui-main){
+  background:var(--surface);
+}
+.root[data-empty="true"] :global(.owui-navbar){
+  background:transparent;
+  border-bottom-color:transparent;
+  backdrop-filter:none;
+}
+.root[data-empty="true"] :global(.owui-messages){
+  flex:none;
+  overflow:visible;
+  margin-top:auto;
+  padding-block:20px 14px;
+  padding-inline:max(20px,calc((100% - 768px)/2));
+}
+.root[data-empty="true"] :global(.owui-composer-wrap){
+  margin-bottom:auto;
+  padding-top:0;
+  padding-bottom:24px;
+  padding-inline:max(20px,calc((100% - 768px)/2));
+  background:transparent;
+}
+.root[data-empty="true"] :global(.owui-composer){
+  max-width:768px;
+  border-radius:26px;
+  padding:12px 14px 10px;
+}
+.root[data-empty="true"] :global(.owui-composer textarea){
+  min-height:46px;
+  max-height:180px;
+  padding:6px 6px 2px;
+}
+.root[data-empty="true"] :global(.owui-composer-toolbar){
+  margin-top:4px;
+  min-height:38px;
+}
+.root :global(.noata-chatgpt-welcome){
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  gap:10px;
+  max-width:680px;
+  margin:0 auto;
+  padding:0 8px 6px;
+  animation:welcome-in var(--one-panel) var(--one-ease) both;
+}
+.root :global(.noata-chatgpt-welcome h1){
+  margin:0;
+  font-size:clamp(26px,3vw,34px);
+  font-weight:650;
+  line-height:1.28;
+  letter-spacing:-.02em;
+  color:var(--ink);
+}
+.root[dir="rtl"] :global(.noata-chatgpt-welcome h1){
+  letter-spacing:0;
+  line-height:1.38;
+}
+.root :global(.noata-subject-context-pill){
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:28px;
+  padding:4px 11px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--line));
+  background:var(--accent-soft);
+  color:var(--accent);
+  font:inherit;
+  font-size:12px;
+  font-weight:600;
+  cursor:pointer;
+}
+.root :global(.noata-chatgpt-welcome .noata-one-signin){
+  margin-top:2px;
+  font-size:12.5px;
+  color:var(--muted);
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
+.root :global(.noata-chatgpt-welcome .noata-one-signin:hover){
+  color:var(--accent);
+}
+.root :global(.noata-suggested-actions.welcome){
+  max-width:768px;
+  margin:14px auto 0;
+}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-grid){
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-item){
+  width:auto;
+  flex:0 1 auto;
+  min-height:36px;
+  padding:7px 14px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--surface-soft);
+  box-shadow:none;
+  font-size:12.5px;
+  font-weight:500;
+  gap:7px;
+  line-height:1.35;
+}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-item:hover){
+  background:var(--surface);
+  border-color:color-mix(in srgb,var(--accent) 34%,var(--line));
+  transform:translateY(-1px);
+}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-spark){
+  width:15px;
+  height:15px;
+  flex-basis:15px;
+  font-size:14px;
+  color:var(--accent);
+}
+.root :global(.noata-suggested-actions.welcome .noata-suggested-arrow){
+  display:none;
+}
+.root[data-empty="true"] :global(.owui-disclaimer){
+  margin-top:10px;
+}
+
 @media(max-width:640px){
-  .root :global(.noata-r2-welcome){padding:8px 0 4px}
-  .root :global(.noata-r2-welcome h1){font-size:clamp(34px,10vw,46px);line-height:1.12}
-  .root :global(.r2-welcome-copy > p){margin-top:14px;font-size:12.5px;line-height:1.8}
-  .root :global(.r2-mode-grid){gap:7px;margin-top:18px}
-  .root :global(.r2-mode){min-height:58px;padding:9px;gap:8px}
-  .root :global(.r2-mode-icon){flex-basis:32px;width:32px;height:32px;border-radius:9px}
-  .root :global(.r2-mode-copy strong){font-size:11.5px}
-  .root :global(.r2-mode-copy small){display:none}
-  .root :global(.r2-mode > svg){display:none}
+  .root[data-empty="true"] :global(.owui-messages){
+    padding:16px 14px 10px;
+  }
+  .root[data-empty="true"] :global(.owui-composer-wrap){
+    padding-inline:12px;
+    padding-bottom:max(14px,env(safe-area-inset-bottom));
+  }
+  .root :global(.noata-chatgpt-welcome h1){
+    font-size:clamp(22px,6.4vw,28px);
+  }
+  .root :global(.noata-suggested-actions.welcome .noata-suggested-item){
+    min-height:36px;
+    padding:6px 12px;
+    font-size:12px;
+  }
   .root :global(.noata-generated-file){grid-template-columns:58px minmax(0,1fr);padding:13px;gap:7px 11px}
   .root :global(.noata-generated-file-symbol){width:58px;min-height:78px}
   .root :global(.noata-generated-file-info){grid-row:1/span 2;align-self:center}
@@ -997,10 +1164,5 @@
   .root :global(.noata-research-links small),.root :global(.noata-research-links p){margin-inline-start:0}
 }
 @media(prefers-reduced-motion:reduce){
-  .root :global(.noata-r2-welcome),
-  .root :global(.r2-mode),
-  .root :global(.r2-mode > svg){animation:none!important;transition:none!important}
-  .root :global(.r2-mode:not(:disabled):hover){transform:none}
+  .root :global(.noata-chatgpt-welcome){animation:none!important}
 }
-html[data-noata-motion="reduce"] .root :global(.r2-mode),
-html[data-noata-motion="off"] .root :global(.r2-mode){transition:none}

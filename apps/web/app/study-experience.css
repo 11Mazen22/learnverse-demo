@@ -1623,4 +1623,164 @@
       color: #000;
     }
   }
+
+  /* Exact-Lesson Navigator, Formula Banner & Saved Quizzes Library */
+  .study-navigator-panel {
+    background: var(--surface);
+  }
+
+  .study-lesson-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .study-lesson-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+  }
+
+  .study-lesson-pill:hover {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    transform: translateY(-1px);
+  }
+
+  .study-lesson-pill.is-active {
+    background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .study-lesson-pill-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--ink);
+    font-size: 11.5px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .study-lesson-pill.is-active .study-lesson-pill-num {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .study-exact-lesson-card {
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+  }
+
+  .study-exact-lesson-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .study-exact-lesson-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .study-formula-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    border-inline-start: 3px solid var(--accent);
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+
+  .study-formula-banner svg {
+    flex-shrink: 0;
+    margin-top: 3px;
+    color: var(--accent);
+  }
+
+  .study-companion-drawer {
+    margin-top: 10px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+
+  .study-companion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+  }
+
+  .study-companion-block {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+  }
+
+  .study-companion-block h4 {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--accent);
+  }
+
+  .study-active-quiz-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+  }
+
+  .study-saved-quizzes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+    gap: 12px;
+  }
+
+  .study-saved-quiz-card {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border-radius: 14px;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    align-content: space-between;
+  }
+
+  .study-saved-quiz-card.is-active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
 }

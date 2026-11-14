@@ -608,3 +608,38 @@ export function getCanonicalLesson(idOrSlug: string): CanonicalLesson | null {
   const target = aliasMap[idOrSlug] || idOrSlug;
   return CANONICAL_LESSONS.find((l) => l.id === target || l.slug === target) ?? null;
 }
+
+/** Strict curriculum language resolver: renders content in the track's language,
+ * never forcing Arabic-medium subjects into English when the UI locale switches. */
+export function resolveCurriculumText(
+  contentLanguage: ContentLanguage,
+  arText?: string | null,
+  enText?: string | null,
+  fallback = "",
+): string {
+  const ar = arText?.trim() ?? "";
+  const en = enText?.trim() ?? "";
+  if (contentLanguage === "en") {
+    return en || ar || fallback;
+  }
+  return ar || en || fallback;
+}
+
+/** Infer strict curriculum language from track language, metadata, and prompts. */
+export function inferContentLanguage(input: {
+  trackContentLanguage?: string | null;
+  promptAr?: string | null;
+  promptEn?: string | null;
+  metadata?: Record<string, unknown> | null;
+}): ContentLanguage {
+  if (input.trackContentLanguage === "en") return "en";
+  if (input.trackContentLanguage === "ar") return "ar";
+  const meta = input.metadata;
+  if (meta?.render_language === "en" || meta?.translation_track === true) {
+    return "en";
+  }
+  if (!input.promptAr?.trim() && input.promptEn?.trim()) {
+    return "en";
+  }
+  return "ar";
+}

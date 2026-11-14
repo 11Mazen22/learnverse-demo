@@ -42,7 +42,14 @@
 .owui-message.user .owui-message-avatar{display:none}.owui-message.user{display:block;max-width:min(80%,680px);margin-inline-start:auto}.owui-message.user .owui-message-meta,.owui-message.user .owui-message-actions{justify-content:flex-end}.owui-message.assistant .ai-rich-message{max-width:76ch}.owui-provider-info{font-variant-numeric:tabular-nums;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:500px){.owui-message.user{max-width:92%}.noata-coefficients{gap:6px}.noata-response-component{border-radius:16px}.noata-widget-controls button{flex:1}.noata-quiz-question{padding:12px}}
 }
-@font-face{font-family:NoataArabic;src:url("/fonts/noto-sans-arabic.woff2") format("woff2");font-weight:100 900;font-display:swap}
+@font-face {
+  font-family: NoataArabic;
+  src: url("/fonts/noto-sans-arabic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range:
+    U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
 
 @font-face {
   font-family: Cairo;
@@ -115,9 +122,9 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background: var(--surface-soft);
-  font-family: NoataArabic, Cairo, "Segoe UI", system-ui, sans-serif;
-  font-size: 14px;
-  line-height: 1.7;
+  font-family: var(--font-ar);
+  font-size: 15px;
+  line-height: 1.75;
 }
 button,
 input,
@@ -167,7 +174,10 @@ h3 {
 }
 h1 {
   font-size: clamp(26px, 3vw, 38px);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
+}
+:where([dir="rtl"], :lang(ar)) :is(h1, h2, h3, h4, .display, .lesson-lead, .hero-title, .noata-lesson-title-area h1) {
+  letter-spacing: 0;
 }
 h2 {
   font-size: 20px;
@@ -508,12 +518,25 @@ kbd {
   transform: translateY(-2px);
 }
 .btn-secondary {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+.btn-secondary:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.hero .btn-secondary {
   background: transparent;
   border-color: #d7edff4a;
   color: #edf4ff;
 }
-.btn-secondary:hover {
+.hero .btn-secondary:hover {
   background: #ffffff10;
+  border-color: #d7edff7a;
+  color: #ffffff;
 }
 .grid-4 {
   display: grid;
