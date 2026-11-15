@@ -15,6 +15,7 @@ import { CurriculumCatalogAdmin } from "@/components/admin/curriculum-catalog-ad
 import { filterStaffSearch, paginateStaffItems } from "@/lib/dashboard/staff-search";
 import { downloadCsv } from "@/lib/dashboard/csv-export";
 import { SchoolGovernancePanels } from "@/components/admin/school-governance-panels";
+import { StudyRichText } from "@/components/study/study-rich-text";
 
 type Question = {
   id: string;
@@ -490,7 +491,7 @@ export function AdminLive() {
             className="btn"
             style={{
               background: tab === x ? "var(--accent)" : "var(--surface)",
-              color: tab === x ? "var(--surface)" : "var(--ink)",
+              color: tab === x ? "var(--on-accent, #ffffff)" : "var(--ink)",
               borderColor: "var(--line)",
             }}
           >
@@ -651,7 +652,7 @@ export function AdminLive() {
                   className="btn"
                   style={{
                     background: "var(--accent)",
-                    color: "var(--surface)",
+                    color: "var(--on-accent, #ffffff)",
                   }}
                 >{t("إنشاء المسودة","Create draft")}</button>
               </div>
@@ -663,6 +664,33 @@ export function AdminLive() {
                 <span className="pill">{t("ضوابط على الخادم","Server authorization")}</span>
               </div>
               <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>{t("يبدأ المحتوى بمسودة، ثم المراجعة والاعتماد والنشر. مفاتيح الإجابات محفوظة على الخادم. النشر وإيقافه يتطلبان صلاحية الإدارة، وتُسجّل تغييرات الحالة في سجل النشاط.","Content moves through draft, review, approval, and publication. Answer keys stay on the server. Publishing requires admin access and status changes are recorded.")}</p>
+              {(promptAr || promptEn || explanationAr || explanationEn) && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: 14,
+                    borderRadius: 12,
+                    border: "1px solid var(--line)",
+                    background: "var(--surface-soft)",
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <strong style={{ fontSize: 13 }}>
+                    {t("معاينة فورية لعرض الطالب (KaTeX)", "Live Student Render Preview (KaTeX)")}
+                  </strong>
+                  {(promptAr || promptEn) && (
+                    <div style={{ lineHeight: 1.7 }}>
+                      <StudyRichText content={locale === "en" ? (promptEn || promptAr) : (promptAr || promptEn)} />
+                    </div>
+                  )}
+                  {(explanationAr || explanationEn) && (
+                    <div style={{ fontSize: 13, color: "var(--muted)", borderTop: "1px dashed var(--line)", paddingTop: 8 }}>
+                      <StudyRichText content={locale === "en" ? (explanationEn || explanationAr) : (explanationAr || explanationEn)} />
+                    </div>
+                  )}
+                </div>
+              )}
             </aside>
           </section>
 
@@ -735,7 +763,9 @@ export function AdminLive() {
                   <div className="quest" key={q.id}>
                     <div className="quest-icon" aria-hidden="true">{questionPage.start + i}</div>
                     <div>
-                      <h3>{locale==="en"?q.prompt_en:q.prompt_ar}</h3>
+                      <div role="heading" aria-level={3} style={{ fontWeight: 700, lineHeight: 1.55, marginBottom: 4 }}>
+                        <StudyRichText content={locale === "en" ? q.prompt_en : q.prompt_ar} />
+                      </div>
                       <p>
                         {(
                           {
@@ -778,7 +808,7 @@ export function AdminLive() {
                           onClick={() => void transition(q.id, action.action)}
                           style={{
                             background: "var(--accent)",
-                            color: "var(--surface)",
+                            color: "var(--on-accent, #ffffff)",
                             minHeight: 38,
                             padding: "0 10px",
                           }}
@@ -971,7 +1001,7 @@ export function AdminLive() {
                   className="btn"
                   style={{
                     background: "var(--accent)",
-                    color: "var(--surface)",
+                    color: "var(--on-accent, #ffffff)",
                   }}
                 >{t("إنشاء الصفّ","Create class")}</button>
               </div>
@@ -1012,7 +1042,7 @@ export function AdminLive() {
                   onClick={() => void addAccess()}
                   style={{
                     background: "var(--accent)",
-                    color: "var(--surface)",
+                    color: "var(--on-accent, #ffffff)",
                   }}
                 >{t("منح الوصول","Grant access")}</button>
               </div>

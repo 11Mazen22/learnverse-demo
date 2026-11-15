@@ -4,6 +4,7 @@ import { masteryLabel, questionTypeLabel } from "@/lib/i18n/content-labels";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { buildStructuredAiHandoffHref } from "@/lib/ai/handoff-contract";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { Icon } from "@/components/ui/icon";
 import { StudyRichText } from "@/components/study/study-rich-text";
@@ -1022,7 +1023,9 @@ export function ReviewLive() {
               {companionPack.summary}
             </p>
             {companionPack.formulaOrRule ? (
-              <div className="noata-review-formula">{companionPack.formulaOrRule}</div>
+              <div className="noata-review-formula">
+                <StudyRichText content={companionPack.formulaOrRule} />
+              </div>
             ) : null}
           </section>
         );
@@ -1072,6 +1075,18 @@ export function ReviewLive() {
                 {current?.difficulty && (
                   <span className="pill">{current.difficulty}</span>
                 )}
+                {skill?.next_review_at && (() => {
+                  const dueMs = new Date(skill.next_review_at).getTime();
+                  if (!Number.isFinite(dueMs)) return null;
+                  const overdue = dueMs <= Date.now();
+                  return (
+                    <span className="pill">
+                      {overdue
+                        ? t("مستحقة الآن · SM-2", "Due Now · SM-2")
+                        : `${t("المراجعة التالية:", "Next SM-2:")} ${new Date(dueMs).toLocaleDateString(locale === "en" ? "en" : "ar-EG", { month: "short", day: "numeric" })}`}
+                    </span>
+                  );
+                })()}
               </div>
               <h2 style={{ margin: "6px 0 0", lineHeight: 1.7 }} dir={contentDir}>
                 <StudyRichText content={current?.prompt ?? ""} />
@@ -1118,9 +1133,9 @@ export function ReviewLive() {
                   {hintVisible ? t("إخفاء التلميح", "Hide Hint") : t("تلميح", "Show Hint")}
                 </button>
                 {hintVisible && (
-                  <p dir={contentDir} style={{ marginTop: 6, fontSize: 13.5, color: "var(--muted)" }}>
-                    {current.hint}
-                  </p>
+                  <div dir={contentDir} style={{ marginTop: 6, fontSize: 13.5, color: "var(--muted)" }}>
+                    <StudyRichText content={current.hint} />
+                  </div>
                 )}
               </div>
             )}
@@ -1149,11 +1164,13 @@ export function ReviewLive() {
                     </p>
                   </div>
                   <Link
-                    href={`/ai?prompt=${encodeURIComponent(
-                      contentLanguage === "en"
-                        ? `Explain the concept behind this review question: ${current.prompt}`
-                        : `اشرح لي فكرة هذا السؤال في المراجعة: ${current.prompt}`,
-                    )}${current.trackSlug ? `&subject=${encodeURIComponent(current.trackSlug)}` : ""}`}
+                    href={buildStructuredAiHandoffHref({
+                      source: "review",
+                      action: "concept_clarify",
+                      subject: current.trackSlug,
+                      lessonId: current.lessonSlug,
+                      topic: activeLessonPack?.title ?? (current.lessonTitle || current.trackLabel || undefined),
+                    })}
                     className="btn btn-secondary"
                     style={{ fontSize: 12, padding: "5px 10px" }}
                   >
@@ -1173,7 +1190,7 @@ export function ReviewLive() {
                     return tip ? (
                       <div className="noata-grade-misconception">
                         <strong>{t("تنبيه حول هذا الخيار: ", "Misconception note: ")}</strong>
-                        {tip}
+                        <StudyRichText content={tip} />
                       </div>
                     ) : null;
                   })()}
@@ -1216,7 +1233,7 @@ export function ReviewLive() {
                   disabled={!answer || busy}
                   style={{
                     background: "var(--accent)",
-                    color: "var(--surface)",
+                    color: "var(--on-accent, #ffffff)",
                   }}
                 >
                   {busy ? t("جارٍ التحقق…", "Checking…") : t("تحقق", "Check answer")}
@@ -1228,7 +1245,7 @@ export function ReviewLive() {
                   onClick={() => void next()}
                   style={{
                     background: "var(--accent)",
-                    color: "var(--surface)",
+                    color: "var(--on-accent, #ffffff)",
                   }}
                 >
                   {idx < questions.length - 1

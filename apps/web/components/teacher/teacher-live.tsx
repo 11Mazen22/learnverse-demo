@@ -11,6 +11,7 @@ import { downloadCsv } from "@/lib/dashboard/csv-export";
 import { absoluteTimeLabel, localizedTimestamp } from "@/lib/dashboard/relative-time";
 import { DataTable, type DataColumn } from "@/components/ui/table";
 import { Drawer } from "@/components/ui/drawer";
+import { StudyRichText } from "@/components/study/study-rich-text";
 import { TeacherOperationsPanel } from "./teacher-operations-panel";
 
 type ClassRow = {
@@ -618,6 +619,7 @@ export function TeacherLive() {
                         display: "flex",
                         gap: 9,
                         alignItems: "flex-start",
+                        minHeight: 44,
                         padding: 10,
                         border: "1px solid var(--line)",
                         borderRadius: 12,
@@ -634,8 +636,8 @@ export function TeacherLive() {
                           )
                         }
                       />
-                      <span style={{ fontSize: 12, lineHeight: 1.6 }}>
-                        {locale==="en"?q.prompt_en:q.prompt_ar}
+                      <span style={{ fontSize: 13, lineHeight: 1.6, minWidth: 0, flex: 1 }}>
+                        <StudyRichText content={locale === "en" ? q.prompt_en : q.prompt_ar} />
                       </span>
                     </label>
                   ))}
@@ -703,7 +705,7 @@ export function TeacherLive() {
                   !selectedQuestions.length
                 }
                 className="btn"
-                style={{ background: "var(--accent)", color: "var(--surface)" }}
+                style={{ minHeight: 44, background: "var(--accent)", color: "var(--on-accent, #ffffff)" }}
               >{t("إنشاء واجب","Create assignment")}</button>
               {status && (
                 <small
@@ -831,8 +833,9 @@ export function TeacherLive() {
                     disabled={busy}
                     onClick={() => void publish(a.id)}
                     style={{
+                      minHeight: 44,
                       background: "var(--accent)",
-                      color: "var(--surface)",
+                      color: "var(--on-accent, #ffffff)",
                     }}
                   >{t("نشر","Publish")}</button>
                 ) : (
@@ -1199,8 +1202,8 @@ export function TeacherLive() {
                       onClick={() => void gradeSubmission(s)}
                       style={{
                         background: "var(--accent)",
-                        color: "var(--surface)",
-                        minHeight: 40,
+                        color: "var(--on-accent, #ffffff)",
+                        minHeight: 44,
                         padding: "0 12px",
                       }}
                     >{t("حفظ","Save")}</button>

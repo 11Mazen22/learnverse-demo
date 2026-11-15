@@ -710,7 +710,7 @@ const ALL_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = [
     titleEn: "Physical Properties of Water",
     summary:
       "Water reaches maximum density at 4°C so ice floats and insulates aquatic habitats below; its high specific heat capacity (~4200 J/kg·°C) stabilizes regional climates and internal body temperatures through Q = m·c·ΔT.",
-    formulaOrRule: "ρ = m / V | Max density at 4°C (≈ 1000 kg/m³) | Q = m × c × ΔT (c ≈ 4200 J/kg·°C)",
+    formulaOrRule: "$\\rho = \\frac{m}{V}$ | Max density at $4^\\circ\\text{C}$ ($\\approx 1000\\text{ kg/m}^3$) | $Q = m \\cdot c \\cdot \\Delta T$",
     keyConcepts: [
       {
         id: "sci-phys-en-1",
@@ -1385,14 +1385,14 @@ const ALL_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = [
     titleEn: "Introduction to Complex Numbers",
     summary:
       "Defined by i² = −1, complex numbers a + bi extend ℝ so equations like x² + 1 = 0 become solvable. Powers of i cycle every 4 (i, −1, −i, 1), conjugates (a − bi) rationalize denominators, and negative roots rewrite as √(−a) = i√a before multiplying.",
-    formulaOrRule: "i² = −1 | i^(4k+r) = i^r | (a + bi)(a − bi) = a² + b² | √(−a)√(−b) = −√(ab)",
+    formulaOrRule: "$i^2 = -1$ | $i^{4k+r} = i^r$ | $(a+bi)(a-bi) = a^2+b^2$ | $\\sqrt{-a}\\sqrt{-b} = -\\sqrt{ab}$",
     keyConcepts: [
       {
         id: "math-cx-en-1",
         title: "Cyclic Powers of i & Negative Radicals",
-        body: "Divide exponent n by 4 and map remainder r: 0 → 1, 1 → i, 2 → −1, 3 → −i. Always extract i from negative square roots before multiplying.",
-        formulaOrRule: "√(−a) = i√a first!",
-        example: "i²⁷ has remainder 3 mod 4, so i²⁷ = −i; √(−4)·√(−9) = (2i)(3i) = 6i² = −6."
+        body: "Divide exponent $n$ by $4$ and map remainder $r$: $0 \\to 1$, $1 \\to i$, $2 \\to -1$, $3 \\to -i$. Always extract $i$ from negative square roots before multiplying.",
+        formulaOrRule: "$\\sqrt{-a} = i\\sqrt{a}$ first!",
+        example: "$i^{27} = i^3 = -i$ (remainder $3 \\bmod 4$); $\\sqrt{-4}\\cdot\\sqrt{-9} = (2i)(3i) = 6i^2 = -6$."
       },
       {
         id: "math-cx-en-2",
@@ -1468,7 +1468,7 @@ const ALL_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = [
     titleEn: "Determining the Nature of the Roots of a Quadratic Equation",
     summary:
       "For ax² + bx + c = 0 (a ≠ 0) with real coefficients, the discriminant Δ = b² − 4ac classifies root nature without solving: Δ > 0 gives two distinct real roots, Δ = 0 gives two equal real roots, and Δ < 0 gives two complex conjugates.",
-    formulaOrRule: "Δ = b² − 4ac | Real roots: Δ ≥ 0 | Distinct real: Δ > 0 | Equal real: Δ = 0 | Non-real complex: Δ < 0",
+    formulaOrRule: "$\\Delta = b^2 - 4ac$ | Real roots: $\\Delta \\ge 0$ | Distinct real: $\\Delta > 0$ | Equal real: $\\Delta = 0$ | Complex: $\\Delta < 0$",
     keyConcepts: [
       {
         id: "math-disc-en-1",
@@ -1547,7 +1547,7 @@ const ALL_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = [
     titleEn: "The Relation Between Roots and Coefficients",
     summary:
       "Vieta's formulas connect roots L, M of ax² + bx + c = 0 directly to coefficients: L + M = −b/a and LM = c/a. From any two new roots, build the monic quadratic x² − (Sum)x + Product = 0.",
-    formulaOrRule: "L + M = −b/a | LM = c/a | L² + M² = (L+M)² − 2LM | x² − Sx + P = 0",
+    formulaOrRule: "$L + M = -\\frac{b}{a}$ | $LM = \\frac{c}{a}$ | $L^2 + M^2 = (L+M)^2 - 2LM$ | $x^2 - Sx + P = 0$",
     keyConcepts: [
       {
         id: "math-vieta-en-1",

@@ -420,7 +420,7 @@ kbd {
   top: -4px;
   inset-inline-end: -4px;
   background: var(--accent);
-  color: var(--surface);
+  color: var(--on-accent, #ffffff);
   min-width: 18px;
   height: 18px;
   border-radius: 99px;
@@ -510,11 +510,13 @@ kbd {
   font-size: 12px;
 }
 .btn-primary {
-  background: var(--lime);
-  color: #102445;
+  background: var(--accent);
+  color: var(--on-accent, #ffffff);
+  border-color: var(--accent);
 }
 .btn-primary:hover {
-  background: #eaf5ff;
+  background: var(--accent-hover, color-mix(in srgb, var(--accent) 88%, #041528));
+  color: var(--on-accent, #ffffff);
   transform: translateY(-2px);
 }
 .btn-secondary {
@@ -1318,7 +1320,7 @@ kbd {
   border: 0;
   border-radius: 12px;
   background: var(--accent);
-  color: var(--surface);
+  color: var(--on-accent, #ffffff);
   padding: 10px 14px;
   min-height: 42px;
   display: flex;
@@ -1521,7 +1523,7 @@ html[data-reduced-motion="true"] *::after {
 }
 }
 @layer shell {
-@media (max-width: 800px) {
+@media (max-width: 767px) {
   .noata-shell {
     display: block;
   }
@@ -2388,7 +2390,7 @@ html[data-reduced-motion="true"] *::after {
   font-weight: 750;
 }
 html[data-theme="dark"] .owui-primary-action {
-  color: #102445;
+  color: var(--on-accent, #071327);
   background: var(--accent);
 }
 .owui-message {
@@ -2667,7 +2669,7 @@ html[data-theme="dark"] .owui-primary-action {
   background: var(--danger);
 }
 html[data-theme="dark"] .owui-send:not(:disabled) {
-  color: #102445;
+  color: var(--on-accent, #071327);
   background: var(--accent);
 }
 .owui-disclaimer {
@@ -3375,14 +3377,14 @@ html[data-theme="dark"] .owui-send:not(:disabled) {
 .owui-new-chat {
   min-height: 47px;
   background: var(--accent);
-  color: var(--surface);
+  color: var(--on-accent, #ffffff);
   border: 1px solid var(--accent);
   padding-inline: 14px;
   border-radius: 14px;
   font-size: 14px;
   box-shadow: 0 8px 25px color-mix(in srgb, var(--accent) 12%, transparent);
 }
-.owui-new-chat:hover { background: color-mix(in srgb, var(--accent) 87%, var(--surface)); color: var(--surface); }
+.owui-new-chat:hover { background: var(--accent-hover, color-mix(in srgb, var(--accent) 87%, #041528)); color: var(--on-accent, #ffffff); }
 .owui-search {
   margin: 4px 0 2px;
   min-height: 45px;
@@ -4268,7 +4270,7 @@ html[data-theme=dark] .owui-new-chat,html[data-theme=dark] .owui-send{background
 .aura-response-player{max-width:540px;padding:16px;margin-top:16px;border:1px solid var(--line);border-radius:18px;background:var(--surface-soft)}
 .aura-player-heading{display:flex;align-items:center;gap:9px;color:var(--accent);font-size:12px;margin-bottom:14px}.aura-player-heading>button{margin-inline-start:auto;background:transparent;border:0;display:grid;place-items:center;min-height:36px;min-width:36px}
 .aura-player-timeline{display:flex;align-items:center;gap:12px}.aura-player-timeline>div{flex:1;min-width:0}.aura-player-timeline input{display:block;width:100%;height:24px;accent-color:var(--accent)}.aura-player-timeline select{border:1px solid var(--line);border-radius:9px;padding:7px;background:var(--surface);font-size:12px}
-.aura-player-play{display:grid;place-items:center;min-width:43px;min-height:43px;border:0;border-radius:50%;background:var(--accent);color:var(--surface)}.aura-player-time{display:flex;justify-content:space-between;font:11px Cairo,sans-serif;color:var(--muted)}.aura-response-player audio{display:none}
+.aura-player-play{display:grid;place-items:center;min-width:43px;min-height:43px;border:0;border-radius:50%;background:var(--accent);color:var(--on-accent, #ffffff)}.aura-player-time{display:flex;justify-content:space-between;font:11px Cairo,sans-serif;color:var(--muted)}.aura-response-player audio{display:none}
 
 .aura-document-chip .aura-pending-preview{display:block;min-width:0;max-width:200px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;border:0;background:transparent;text-align:start;padding:0;color:var(--ink);font-size:12px}
 }

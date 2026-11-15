@@ -5,10 +5,10 @@ export type AISuggestion={id:string;title:string;prompt:string};
 export const SUGGESTION_CACHE_MS=20*60*1000;
 const defaults:Record<SuggestionLocale,AISuggestion[]>={
  ar:[
- {id:"a",title:"افهم فكرة صعبة",prompt:"اشرح لي فكرة صعبة ببساطة مع مثال واضح ثم اختبر فهمي."},
- {id:"b",title:"اختبر معلوماتي",prompt:"اسألني ثلاثة أسئلة متدرجة عن درس أختاره وصحح إجاباتي."},
- {id:"c",title:"رتّب ملاحظاتي",prompt:"ساعدني أنظم ملاحظات المذاكرة في ملخص وخطة مراجعة."},
- {id:"d",title:"اكتشف موضوعًا",prompt:"ساعدني أستكشف موضوعًا جديدًا في العلوم أو التاريخ بطريقة تفاعلية."}
+ {id:"a",title:"افهم فكرة صعبة ببساطة",prompt:"اشرحلي فكرة صعبة من منهج أولى ثانوي بالمصري مع مثال تطبيقي وبطاقة مفهوم ذكية."},
+ {id:"b",title:"اختبرني في درس",prompt:"اختبرني في ٣ أسئلة تفاعلية متدرجة عن درس أختاره وصححلي إجاباتي أول بأول."},
+ {id:"c",title:"رتّبلي ملاحظاتي",prompt:"ساعدني أنظم ملاحظات المذاكرة بتاعتي في ملخص شيك وخطة مراجعة عملية."},
+ {id:"d",title:"بطاقات مراجعة سريعة",prompt:"اعملّي بطاقات مراجعة تفاعلية لأهم قوانين وتعريفات أولى ثانوي اللي بتيجي في الامتحان."}
  ],
  en:[
  {id:"a",title:"Understand a concept",prompt:"Explain a difficult idea simply with a clear example, then check my understanding."},

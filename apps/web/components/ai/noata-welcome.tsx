@@ -33,10 +33,10 @@ export function NoataWelcome({
           <Icon name="close" size={13} />
         </button>
       )}
-      <h1>{t("بمَ يمكنني مساعدتك اليوم؟", "What can I help with?")}</h1>
+      <h1>{t("أهلاً بيك! تحب نذاكر أو نعمل إيه النهارده؟", "What can I help with?")}</h1>
       {signedIn === false && (
         <Link className="noata-one-signin" href="/login?next=/ai">
-          {t("سجّل الدخول لحفظ محادثاتك وتقدمك", "Sign in to save your chats and progress")}
+          {t("سجّل الدخول عشان تحفظ محادثاتك وتقدمك", "Sign in to save your chats and progress")}
         </Link>
       )}
     </div>

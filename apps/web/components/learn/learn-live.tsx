@@ -12,6 +12,7 @@ import {
   subjectDefinition,
   type ContentLanguage,
 } from "@/lib/curriculum/catalog";
+import { KnowledgeMapStrip } from "@/components/learn/knowledge-map-strip";
 
 type SubjectRow = {
   id: string;
@@ -650,6 +651,21 @@ export function LearnLive() {
             )}
           </p>
         </div>
+      )}
+
+      {selected && trackUnits.length > 0 && (
+        <KnowledgeMapStrip
+          subjectKey={selected.subjects?.slug ?? ""}
+          subjectAccent={selected.subjects?.accent}
+          units={trackUnits}
+          lessons={trackLessons}
+          completedLessonIds={completed}
+          uiLocale={locale}
+          contentLocale={selected.content_language}
+          buildLessonHref={(lessonId) =>
+            `/lesson/${encodeURIComponent(lessonId)}?track=${encodeURIComponent(selected.slug)}`
+          }
+        />
       )}
 
       <section data-tour="learn-units" style={{ display: "grid", gap: 16, marginTop: 18 }}>

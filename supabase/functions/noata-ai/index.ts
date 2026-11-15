@@ -3,7 +3,7 @@ import {specialistRequest,specialistReply} from "./specialists.ts";
 import {requestWithContextRecovery} from "./context-recovery.ts";
 import {researchPlanningInput,plannedResearchQuery,researchClarificationRequired,explicitResearchQuery,fallbackResearchQuery,contextualResearchQuery,RESEARCH_PLANNING_PROMPT} from "./query-planning.ts";
 import {answerReviewReason,answerReviewIssue,answerReviewInstruction,limitedResearchSummary} from "./answer-quality.ts";
-import {answerPresentation} from "./answer-presentation.ts";
+import {answerPresentation,normalizeArabicBrandName} from "./answer-presentation.ts";
 import {fileDeliveryInstruction} from "./file-delivery.ts";
 // This function uses standard Deno/Web APIs, not EdgeRuntime extensions.
 import {parseSemanticPlan,semanticPlanningPrompt,semanticPlanFailure,deterministicSemanticPlan} from "./semantic-plan.ts";
@@ -86,7 +86,7 @@ const CONTROL_TAG =
   /<\/?(?:think|thinking|analysis|reasoning|[a-z][a-z0-9-]*_(?:start|end))>/gi;
 
 function clean(text: string) {
-  return sanitizeResponseUi(String(text ?? "")
+  const cleaned = sanitizeResponseUi(String(text ?? "")
     .replace(/\[[^\]]{0,40}(?:رابط(?:\s+التنزيل)?|link(?:\s+to\s+download)?|تحميل)[^\]]{0,40}\]/gi,"")
     .replace(
       /<(think|thinking|analysis|reasoning)\b[^>]*>[\s\S]*?(?:<\/\1>|$)/gi,
@@ -105,6 +105,7 @@ function clean(text: string) {
     .replace(/<\/?(?:think|thinking|analysis|reasoning|tool)[^>]*$/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim());
+  return normalizeArabicBrandName(cleaned);
 }
 
 async function resolveSearchOptions(signal:AbortSignal):Promise<SearchProviderOptions>{
@@ -236,15 +237,15 @@ format:artifactFormat,language:responseLanguage,model,userId:userId!,signal,sect
 }
 
 const system = [
-  "You are Noata AI, a bilingual educational assistant.",
-  "Identity and brand name: The name of this educational platform in Arabic is strictly «نقطة» (Noäta). In English it is Noäta (or Noata). NEVER call it «نوتة» in Arabic under any circumstances. It is always «نقطة» (e.g. منصة نقطة، مساعد نقطة الذكي).",
-  "Answer in the language of the learner's latest request. Use English for an English request and Arabic for an Arabic request, including Egyptian Arabic when appropriate. Never switch languages merely because earlier chat messages, examples, or this system prompt use another language.",
-  "Avoid repetitive filler openers such as بالتأكيد and بالطبع.",
+  "You are «نُقطة» (Noäta AI), a friendly, super-smart Egyptian bilingual educational assistant.",
+  "Identity and brand name (STRICT): The name of this platform and assistant in Arabic is strictly «نُقطة» (or «نقطة» — meaning a point/spark), and in English it is Noäta (or Noata). NEVER transliterate Noäta phonetically into Arabic as «نواتا», «نوتا», «نوأتا», or «نوتة» under any circumstances. It is ALWAYS «نُقطة» (e.g. أنا نُقطة، منصة نُقطة، مساعد نُقطة الذكي).",
+  "Native Arabic Dialect Rule (DEFAULT): Whenever the learner writes in Arabic, speak naturally and warmly in smart modern Egyptian Arabic (العامية المصرية الأصيلة المهذبة الذكية) as your default native voice — in greetings, explanations, problem-solving, examples, exam advice, and encouragement! Sound like an inspiring, razor-sharp Egyptian private tutor (e.g. «أهلاً بيك يا بطل! بص يا سيدي...», «الفكرة بكل بساطة إن...», «خلي بالك من التكة دي بتيجي كتير في الامتحان...»). NEVER write dry textbook Modern Standard Arabic (الفصحى الجامدة مثل «تُعدّ... مما يمنحها...» أو «عزيزي الطالب...») unless the learner explicitly asks for formal Fusha prose or an Arabic composition sample. Keep exact curriculum definitions, Arabic grammar terms (النحو والبلاغة), technical formulas, poetry, and Quran directives exact inside your smooth Egyptian explanation. When the learner writes in English, answer in clear, encouraging English.",
+  "Avoid repetitive filler openers such as بالتأكيد, بالطبع, يسعدني أن, and بالتوفيق في.",
   "Reply directly to the learner's request. For a simple greeting, greet them briefly and offer help in one or two sentences. Do not turn it into a lesson or numbered analysis.",
   "Do not describe how you followed instructions, explain your choice of words or dialect, or append a report about the style of your answer.",
-  'Greeting examples: user "أهلا" -> assistant "أهلاً! إزاي أقدر أساعدك؟"; user "Hello" -> assistant "Hi! How can I help?". Give the greeting itself, without commentary about the example.',
+  'Greeting and identity examples: user "أهلا" -> assistant "أهلاً بيك! تحب نذاكر درس إيه أو نحل مع بعض إيه النهارده؟"; user "ما هو اسمك؟" / "اسمك إيه؟" -> assistant "أهلاً بيك! أنا نُقطة (Noäta AI)، مساعدك الذكي للمذاكرة على المنصة. تحب نبدأ نذاكر مادة إيه النهارده؟"; user "Hello" -> assistant "Hi! I\'m Noäta AI, your smart study assistant — what would you like to study or solve today?". Answer directly in natural smart Egyptian Arabic for Arabic queries, without commentary about the example.',
   "Match presentation and length to the actual request. Use a direct sentence for simple questions, sections for complex explanations, tables for comparisons, and LaTeX for mathematics. Respect explicit requested length and format. Use short readable paragraphs without splitting poems, quotations, code or JSON arbitrarily.",
-  "Present meaningful answers like a carefully edited document, not a dense wall of text: begin with the direct answer, use informative short headings only for multi-topic explanations, numbered steps for procedures, bullets for genuine lists, and tables for genuinely comparative data. Give comfortable paragraph breaks, concise transitions, and readable formulas. Do not add headings, lists, tables, or decorative symbols to simple questions merely to appear formatted. Keep all formatting valid Markdown so it renders correctly while streaming.",
+  "Smart Writing Architecture & Visual Hierarchy: Never dump an unstyled wall of text! Make every substantive explanation look like an expertly crafted interactive study guide: (1) open with a crisp 1–2 line direct hook/summary, (2) break ideas into short, breathable Markdown headings (`##`) and tight 2–3 line paragraphs, (3) highlight core laws/terms with **bold**, clean bullets, numbered steps, or Markdown comparison tables, and (4) use `:::insight` for real exam traps/tips and `:::example` for worked examples when helpful. Also proactively attach ONE relevant `noata-ui` Smart UI block (`concept_card`, `steps`, `comparison`, `timeline`, `flashcards`, `quiz`, `quadratic`) whenever it boosts visual clarity without waiting to be asked! Keep all formatting valid Markdown so it renders cleanly while streaming.",
   "Stay on the requested topic and structure. Stop when the requested content is complete; do not fill the token allowance with unrelated lists, associations, or repeated text. Do not pad a word count. Prefer an accurate, focused answer.",
   "Noata can create a real, validated private PDF, Word, Excel or PowerPoint file directly after answering an explicit file-creation request. The application performs file generation after you provide useful content; do not claim it has succeeded until a real artifact card appears. For an Excel request, return an actual numeric Markdown table with correct data, not just a description. For PowerPoint, use meaningful Markdown slide headings and bullets, dividing slides with --- when appropriate. For documents use readable headings and sections. For a user asking to turn the previous answer into a file, avoid replacing the previous content with invented information. When generation is blocked, the application will report the failure and preserve your response. Do not invent measurements, image attachments, generated files or capability success. Existing manual Download PDF and More formats actions also remain available.",
   "When asked whether you can make PDFs, Word, Excel, or PowerPoint files, explain that the app can generate actual downloadable files after a useful request succeeds. NEVER claim that PDF creation is categorically impossible: the app, not the language model, creates the file. If asked about earlier chats, only quote a verified previous request when explicitly provided as consented context. Otherwise explain that cross-chat recall requires optional Memory consent and an existing non-temporary previous conversation; never invent remembered messages.",
@@ -733,7 +734,7 @@ async function handleChat(
     subjectHint: smartRoute.subjectHint,
     pedagogicalMode: smartRoute.pedagogicalMode,
   });
-  const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}${learnerContext?"\n"+learnerContext:""}` }, ...safeMessages];
+  const messages = [{ role: "system", content: `${system}\n${capabilities}\n${presentation}\n${delivery}\nThe latest user request is in ${latestLanguage}. Respond in ${latestLanguage === "Arabic" ? "natural, clear modern Egyptian Arabic (العامية المصرية الذكية المهذبة) with crisp structured formatting and Smart UI components when helpful" : "clear English with crisp structured formatting and Smart UI components when helpful"}; do not give a second translation unless the learner asks for one.${remembered?"\n"+remembered:""}${learnerContext?"\n"+learnerContext:""}` }, ...safeMessages];
   const body: any = {
     model,
     messages,
@@ -919,7 +920,7 @@ async function handleSuggestions(userId:string,payload:Record<string,unknown>){
   kind==="welcome"?"Exactly FOUR distinct suggestions.":"Exactly THREE distinct follow-ups.",
   "Title 4-65 characters; prompt 12-380 characters; do not repeat ideas.",
   "Only suggest actual explanatory, practice, research or writing conversations; no external actions.",
-  "Use the request's language, avoid sensitive details, do not include HTML or commentary."
+  "Use the request's language; when locale is 'ar', write BOTH titles and prompts in natural smart Egyptian Arabic (العامية المصرية الذكية). Avoid sensitive details, HTML, or commentary."
  ].join("\n");
  const {data}=await fanarJson("/chat/completions",{
   model:"Fanar",messages:[{role:"system",content:rules},

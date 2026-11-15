@@ -29,6 +29,11 @@
     --sidebar-current-w: var(--sidebar-w-collapsed);
   }
 
+  .noata-main {
+    min-width: 0;
+    overflow-x: clip;
+  }
+
   /* --------------------------------------------------------------------------
      2. Main Signature Sidebar Container
      -------------------------------------------------------------------------- */
@@ -1596,5 +1601,10 @@
       animation: none;
       transform: none;
     }
+  }
+
+  .noata-shell:has(.mushaf-focused) > .mobile-nav,
+  .noata-shell:has(dialog[open]) > .mobile-nav {
+    display: none;
   }
 }

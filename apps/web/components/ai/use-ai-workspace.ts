@@ -1,5 +1,7 @@
 "use client";
 import {normalizeModelChoice} from "@/lib/ai/model-routing";
+import { parseStructuredAiHandoff } from "@/lib/ai/handoff-contract";
+import { getLessonStudyPack } from "@/lib/curriculum/sec1-study-pack";
 import {directQuranQuoteRequest} from "@/lib/ai/quran-directives";
 import {canonicalIndex,normalizedQuranLookup} from "@/lib/quran/source";
 import {mergeScopedRevision} from "@/lib/ai/scoped-revision";
@@ -228,10 +230,12 @@ export function useAIWorkspace() {
         token = scope.capture();
         if (synchronizeSessionWork(user?.id ?? null)) clearOriginalDocuments();
         setSignedIn(Boolean(user));
-        const prompt = new URLSearchParams(window.location.search).get(
-          "prompt",
+        const handoff = parseStructuredAiHandoff(
+          new URLSearchParams(window.location.search),
+          locale === "en" ? "en" : "ar",
+          (lid) => getLessonStudyPack(lid),
         );
-        if (prompt) setInput(prompt.slice(0, 4000));
+        if (handoff.prompt) setInput(handoff.prompt.slice(0, 4000));
         // Consume the short-lived, owner-bound mastery context handed off by
         // /progress. No private educational evidence appears in the URL or a
         // referrer. Prefill is user-editable and is NEVER auto-submitted.
@@ -571,7 +575,7 @@ export function useAIWorkspace() {
         content:prefix,model:selectedModel??model,status:"continuing",created_at:new Date().toISOString(),
       }, {
         id:"continuation-request",conversation_id:"",role:"user" as const,
-        content:language==="en" ? "Continue the same answer from exactly where it stopped. Do not repeat earlier sections or add an introduction. Finish the remaining requested content in English." : "أكمل نفس الإجابة من موضع التوقف دون تكرار الأقسام السابقة أو إضافة مقدمة. أكمل المحتوى المطلوب بالعربية.",
+        content:language==="en" ? "Continue the same answer from exactly where it stopped. Do not repeat earlier sections or add an introduction. Finish the remaining requested content in English." : "كمّل نفس الإجابة من المكان اللي وقفت عنده من غير ما تعيد الأقسام اللي فاتت أو تضيف مقدمة. خلّص الشرح المطلوب بالمصري الواضح.",
         model:null,status:"complete",created_at:new Date().toISOString(),
       }] : history;
       return chatPart(context,token,signal,attachmentPath,prefix,selectedModel,language,artifactFormat,revisionSectionLevel);
@@ -649,7 +653,7 @@ export function useAIWorkspace() {
       publishTimer: ReturnType<typeof setTimeout> | null = null;
     const publishPending = (value: string) => {
       latestPending = value;
-      const now = Date.now(), remaining = 40 - (now - lastPublishedAt);
+      const now = Date.now(), remaining = 24 - (now - lastPublishedAt);
       if (remaining <= 0) {
         if (publishTimer) { clearTimeout(publishTimer); publishTimer = null; }
         if (sessionScope.current.isCurrent(token)) setPendingText(value);

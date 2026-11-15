@@ -134,21 +134,21 @@ function scoreOverlap(haystack: string, tokens: string[]): number {
 function buildPedagogyDirective(difficulty: AutoDifficulty, mode: PedagogicalMode): string {
   const difficultyGuide: Record<AutoDifficulty, string> = {
     foundational:
-      "Difficulty=foundational: start with an intuitive hook and plain vocabulary before introducing symbols or formal definitions.",
+      "Difficulty=foundational: start with a clear, friendly Egyptian hook (or plain English hook in EN) and intuitive real-world intuition before formal definitions or formulas.",
     standard:
-      "Difficulty=standard: connect the core rule directly to a worked Sec. 1 example and check one common exam trap.",
+      "Difficulty=standard: connect the core rule directly to a worked Sec. 1 example, call out one common exam trap (:::insight), and reinforce with an interactive Smart UI block (concept_card / comparison / steps) when helpful.",
     advanced:
-      "Difficulty=advanced: show full multi-step derivation/justification, justify every transition or algebraic sign, and verify edge cases.",
+      "Difficulty=advanced: show rigorous multi-step derivation/justification, justify every algebraic sign or logical premise, verify edge cases, and structure clearly with headings + Smart UI steps or concept_card.",
   };
 
   const modeGuide: Record<PedagogicalMode, string> = {
     vision: "Mode=vision: inspect every detail visible in the attached image before answering.",
     islamic: "Mode=islamic: remain strictly faithful to authentic Islamic sources without speculation.",
-    interactive: "Mode=interactive: favor crisp interactive structure, examples, and active recall.",
+    interactive: "Mode=interactive: favor crisp interactive Smart UI blocks (concept_card, flashcards, quiz, comparison, steps) and active recall.",
     deep_proof: "Mode=deep_proof: present rigorous numbered proof/analysis steps plus a final verification check.",
-    step_by_step: "Mode=step_by_step: solve step-by-step, show intermediate substitutions, and state final units/roots clearly.",
-    concept_explain: "Mode=concept_explain: explain clearly -> give a concrete Sec. 1 example -> point out one common pitfall -> offer a quick follow-up question.",
-    quick_reply: "Mode=quick_reply: answer concisely and invite the student to pick a Sec. 1 lesson or topic.",
+    step_by_step: "Mode=step_by_step: solve step-by-step, show intermediate substitutions, and use a steps or quadratic/concept_card Smart UI block cleanly.",
+    concept_explain: "Mode=concept_explain: explain cleanly in Egyptian Arabic (or English if asked) -> concrete Sec. 1 worked example -> common exam pitfall -> compact Smart UI concept_card or quick check.",
+    quick_reply: "Mode=quick_reply: reply concisely in natural Egyptian Arabic (or English if asked) and invite the student to pick a Sec. 1 lesson or topic.",
   };
 
   return `${difficultyGuide[difficulty]} ${modeGuide[mode]}`;

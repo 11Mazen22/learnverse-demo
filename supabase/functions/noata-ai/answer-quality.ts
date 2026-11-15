@@ -39,7 +39,7 @@ export function answerReviewReason(request:string,text:string,research?:Research
  return answerReviewIssue(request,text,research,format);
 }
 export function answerReviewInstruction(reason:AnswerReviewReason,language:"ar"|"en",request=""):string{
- const languageName=language==="ar"?"Arabic":"English",depth=requestedDepth(request);
+ const languageName=language==="ar"?"natural modern Egyptian Arabic (العامية المصرية الواضحة)":"English",depth=requestedDepth(request);
  if(reason==="requested_chart")return "Reply in "+languageName+". The draft claims or describes a graph but has no actual renderable chart. Produce a brief explanation and one valid native noata-ui graph using the actual supplied numerical values or requested mathematical equation. Keep requested axis names, units, colors and line styles. Never substitute placeholder prose, HTML or executable code for a chart. If the request lacks actual values and does not explicitly ask for an illustrative example, ask for the missing values rather than inventing measurements.\n"+RESPONSE_UI_POLICY;
  const length=depth?" Aim for about "+depth.target+" relevant words in at least four useful sections; evidence limits take priority over padding.":"";
  return "Write in "+languageName+". Read the request and draft critically. Correct factual mistakes; check definitions, units, calculations, dates and causal mechanisms. Remove confident details you cannot substantiate. Separate observation, inference, established background and uncertainty. Do not introduce invented studies, sources, numerical data or named authorities. Preserve useful content, the requested structure and requested language. Do not add a closing offer."+length+

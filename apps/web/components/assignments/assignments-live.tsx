@@ -1,10 +1,14 @@
 "use client";
+import Link from "next/link";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
+import { StudyRichText } from "@/components/study/study-rich-text";
+import { buildStructuredAiHandoffHref } from "@/lib/ai/handoff-contract";
 import {
   boundedRead,
   useVerifiedAccount,
@@ -371,7 +375,7 @@ export function AssignmentsLive() {
             className="btn"
             disabled={busy}
             onClick={closeAssignment}
-            style={{ background: "var(--accent)", color: "var(--surface)" }}
+            style={{ background: "var(--accent)", color: "var(--on-accent, #ffffff)" }}
           >{t("رجوع للواجبات","Back to assignments")}</button>
         </section>
       );
@@ -406,7 +410,20 @@ export function AssignmentsLive() {
             </div>
           ) : (
             <form onSubmit={check}>
-              <h2 style={{ lineHeight: 1.6 }}>{(locale==="en" ? current.prompt_en ?? "English question unavailable." : current.prompt_ar)}</h2>
+              <div
+                role="heading"
+                aria-level={2}
+                className="noata-question-heading"
+                style={{ fontSize: "clamp(1.08rem, 2vw, 1.35rem)", fontWeight: 700, lineHeight: 1.65, marginBottom: 14 }}
+              >
+                <StudyRichText
+                  content={
+                    locale === "en"
+                      ? (current.prompt_en ?? "English question unavailable.")
+                      : current.prompt_ar
+                  }
+                />
+              </div>
               {current.question_type === "multiple-choice" ? (
                 <ChoiceCardGroup
                   legend={locale === "en" ? current.prompt_en ?? "Question options" : current.prompt_ar}
@@ -437,7 +454,15 @@ export function AssignmentsLive() {
                   data-correct={grade.correct ? "true" : "false"}
                 >
                   <b>{grade.correct ? t("صح","Correct") : t("راجع الفكرة","Review the idea")}</b>
-                  <p>{(locale==="en" ? grade.explanation_en ?? "" : grade.explanation_ar)}</p>
+                  <div>
+                    <StudyRichText
+                      content={
+                        locale === "en"
+                          ? (grade.explanation_en ?? "")
+                          : (grade.explanation_ar ?? "")
+                      }
+                    />
+                  </div>
                 </div>
               )}
               {error && (
@@ -448,29 +473,46 @@ export function AssignmentsLive() {
               <div
                 style={{
                   display: "flex",
+                  flexWrap: "wrap",
                   justifyContent: "space-between",
+                  alignItems: "center",
                   gap: 10,
                   marginTop: 18,
                 }}
               >
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={busy}
-                  onClick={closeAssignment}
-                  style={{
-                    background: "var(--accent-soft)",
-                    color: "var(--accent)",
-                  }}
-                >{t("خروج","Exit")}</button>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busy}
+                    onClick={closeAssignment}
+                    style={{
+                      minHeight: 44,
+                      background: "var(--accent-soft)",
+                      color: "var(--accent)",
+                    }}
+                  >{t("خروج","Exit")}</button>
+                  <Link
+                    href={buildStructuredAiHandoffHref({
+                      source: "assignment",
+                      action: "hint_only",
+                      topic: `${selectedAssignment?.title ?? ""} — ${(locale === "en" ? current.prompt_en : current.prompt_ar) ?? ""}`.slice(0, 120),
+                    })}
+                    className="nk-btn nk-btn--secondary nk-btn--sm"
+                    style={{ minHeight: 44 }}
+                  >
+                    {t("تلميح من المعلم الذكي", "Ask AI for a hint")}
+                  </Link>
+                </div>
                 {!grade ? (
                   <button
                     type="submit"
                     disabled={!answer || busy}
                     className="btn"
                     style={{
+                      minHeight: 44,
                       background: "var(--accent)",
-                      color: "var(--on-accent)",
+                      color: "var(--on-accent, #ffffff)",
                     }}
                   >{t("تحقق","Check answer")}</button>
                 ) : (
@@ -480,8 +522,9 @@ export function AssignmentsLive() {
                     onClick={() => void next()}
                     className="btn"
                     style={{
+                      minHeight: 44,
                       background: "var(--accent)",
-                      color: "var(--surface)",
+                      color: "var(--on-accent, #ffffff)",
                     }}
                   >
                     {idx === items.length - 1 ? t("تسليم الواجب","Submit assignment") : t("التالي","Next")}
@@ -552,7 +595,7 @@ export function AssignmentsLive() {
                         {row.classes?.name ?? t("الصفّ","Class")} · {row.instructions}
                       </p>
                     </div>
-                    <span className="pill">
+                    <Badge tone={sub?.submitted_at ? "success" : overdue ? "danger" : "accent"}>
                       {sub?.submitted_at
                         ? sub.score == null
                           ? t("تم التسليم","Submitted")
@@ -560,11 +603,12 @@ export function AssignmentsLive() {
                         : overdue
                           ? t("فات الموعد","Overdue")
                           : t("متاح","Available")}
-                    </span>
+                    </Badge>
                   </div>
                   <div
                     style={{
                       display: "flex",
+                      flexWrap: "wrap",
                       justifyContent: "space-between",
                       gap: 12,
                       alignItems: "center",
@@ -579,8 +623,9 @@ export function AssignmentsLive() {
                       className="btn"
                       onClick={() => void openAssignment(row.id)}
                       style={{
+                        minHeight: 44,
                         background: "var(--accent)",
-                        color: "var(--on-accent)",
+                        color: "var(--on-accent, #ffffff)",
                       }}
                     >
                       {sub?.submitted_at ? t("عرض التسليم","View submission") : t("ابدأ الواجب","Start assignment")}

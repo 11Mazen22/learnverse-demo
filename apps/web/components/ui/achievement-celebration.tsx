@@ -408,8 +408,8 @@ export function StreakMilestoneRoad({
               subtitle:
                 streakDays >= modalMilestone.days
                   ? isAr
-                    ? "هدية استمرارية جاهزة للكشف!"
-                    : "Milestone gift ready to reveal!"
+                    ? "شارة إنجاز استمرارية بصرية — تُفتح الصناديق الرسمية للعملات والخبرة عبر سجل الخادم في صفحة المكافآت."
+                    : "Visual milestone distinction — official Coin & XP reward boxes open via verified server ledger on Rewards."
                   : isAr
                     ? "معاينة لمكافأة المرحلة عند بلوغها."
                     : "Preview of the milestone reward.",

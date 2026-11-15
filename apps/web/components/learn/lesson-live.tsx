@@ -8,6 +8,17 @@ import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/icon";
 import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
 import { StudyRichText } from "@/components/study/study-rich-text";
+import { SubjectLabRouter } from "@/components/learn/labs/subject-lab-router";
+import { KnowledgeMapStrip } from "@/components/learn/knowledge-map-strip";
+import { LessonProvenanceDialog } from "@/components/learn/lesson-provenance-dialog";
+import { buildStructuredAiHandoffHref, type AiHandoffAction } from "@/lib/ai/handoff-contract";
+import { PreLessonDiagnostic } from "@/components/learn/pre-lesson-diagnostic";
+import {
+  extractLessonHook,
+  hasSummaryDetailBeyondHook,
+  type KnowledgeMapInputLesson,
+  type KnowledgeMapInputUnit,
+} from "@/lib/curriculum/knowledge-map";
 import {
   AchievementCelebration,
   computeLessonAchievementSummary,
@@ -19,6 +30,8 @@ import {
 import {
   inferContentLanguage,
   resolveCurriculumText,
+  subjectDefinition,
+  trackDefinition,
   type ContentLanguage,
 } from "@/lib/curriculum/catalog";
 import {
@@ -122,11 +135,19 @@ function dedupeStrings(items: string[], limit = 8): string[] {
   return out;
 }
 
-function buildAiHref(prompt: string, subjectSlug?: string): string {
-  const params = new URLSearchParams();
-  params.set("prompt", prompt);
-  if (subjectSlug) params.set("subject", subjectSlug);
-  return `/ai?${params.toString()}`;
+function buildAiHref(
+  action: AiHandoffAction,
+  subjectSlug?: string,
+  lessonId?: string,
+  topic?: string,
+): string {
+  return buildStructuredAiHandoffHref({
+    source: "lesson",
+    action,
+    subject: subjectSlug,
+    lessonId,
+    topic,
+  });
 }
 
 export function LessonLive({ id }: { id: string }) {
@@ -149,6 +170,10 @@ export function LessonLive({ id }: { id: string }) {
   // Pedagogical Stepper & Worked-Step Reveal state
   const [activeStage, setActiveStage] = useState(0);
   const [revealedStepsByExample, setRevealedStepsByExample] = useState<Record<number, number>>({});
+  const [diagnosticFocus, setDiagnosticFocus] = useState<string | null>(null);
+  const [courseUnits, setCourseUnits] = useState<KnowledgeMapInputUnit[]>([]);
+  const [courseLessons, setCourseLessons] = useState<KnowledgeMapInputLesson[]>([]);
+  const [completedSiblingIds, setCompletedSiblingIds] = useState<Set<string>>(new Set());
 
   // Interactive Multi-Question Checkpoint state
   const [practiceIndex, setPracticeIndex] = useState(0);
@@ -171,6 +196,10 @@ export function LessonLive({ id }: { id: string }) {
     setHintVisible(false);
     setAnswerStates({});
     setRevealedStepsByExample({});
+    setDiagnosticFocus(null);
+    setCourseUnits([]);
+    setCourseLessons([]);
+    setCompletedSiblingIds(new Set());
 
     void (async () => {
       try {
@@ -253,6 +282,51 @@ export function LessonLive({ id }: { id: string }) {
           }
         }
 
+        if (courseId) {
+          void (async () => {
+            try {
+              const unitsRes = await supabase
+                .from("units")
+                .select("id,position,title_ar,title_en")
+                .eq("course_id", courseId)
+                .order("position");
+              if (!alive || unitsRes.error || !unitsRes.data?.length) return;
+              const unitRows = unitsRes.data as KnowledgeMapInputUnit[];
+              const unitIds = unitRows.map((u) => u.id);
+              const lessonsRes = await supabase
+                .from("lessons")
+                .select("id,unit_id,position,title_ar,title_en")
+                .in("unit_id", unitIds)
+                .order("position");
+              if (!alive || lessonsRes.error || !lessonsRes.data) return;
+              setCourseUnits(unitRows);
+              setCourseLessons(lessonsRes.data as KnowledgeMapInputLesson[]);
+
+              if (account.user) {
+                const siblingProgressRes = await supabase
+                  .from("lesson_progress")
+                  .select("lesson_id,completed_at")
+                  .eq("user_id", account.user.id)
+                  .in(
+                    "lesson_id",
+                    lessonsRes.data.map((l) => l.id),
+                  );
+                if (alive && !siblingProgressRes.error && siblingProgressRes.data) {
+                  setCompletedSiblingIds(
+                    new Set(
+                      siblingProgressRes.data
+                        .filter((r) => Boolean(r.completed_at))
+                        .map((r) => r.lesson_id),
+                    ),
+                  );
+                }
+              }
+            } catch {
+              // Soft fail: compact knowledge map falls back cleanly when sibling lookup is unavailable
+            }
+          })();
+        }
+
         setLesson(lessonRes.data as LessonRow);
 
         setDbQuestions(
@@ -320,7 +394,7 @@ export function LessonLive({ id }: { id: string }) {
         <Link
           className="btn btn-primary"
           href="/learn"
-          style={{ background: "var(--accent)", color: "var(--surface)", display: "inline-flex" }}
+          style={{ background: "var(--accent)", color: "var(--on-accent, #ffffff)", display: "inline-flex" }}
         >
           {t("رجوع للمسار", "Back to your journey")}
         </Link>
@@ -363,6 +437,8 @@ export function LessonLive({ id }: { id: string }) {
     t("مسار تعليمي معتمد", "Accredited track"),
   );
   const summary = resolveCurriculumText(contentLanguage, content.summary_ar, content.summary_en);
+  const lessonHook = extractLessonHook(summary, 2);
+  const hasMoreSummary = hasSummaryDetailBeyondHook(summary, lessonHook);
   const worked = resolveCurriculumText(contentLanguage, content.worked_ar, content.worked_en);
   const dbObjectives = strings(isEnContent ? content.objectives_en : content.objectives_ar);
   const dbMistakes = strings(
@@ -635,9 +711,17 @@ export function LessonLive({ id }: { id: string }) {
   ];
 
   const studyHrefBase = `/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`;
+  const resolvedSubjectKey =
+    trackDefinition(trackSlug)?.subject ??
+    (trackSlug ? trackSlug.replace(/-(ar|en)$/, "") : "");
+  const subjectMeta = subjectDefinition(resolvedSubjectKey);
+  const lessonAccent = subjectMeta?.accent ?? "indigo";
+  const subjectTitle = subjectMeta
+    ? t(subjectMeta.titleAr, subjectMeta.titleEn)
+    : undefined;
 
   return (
-    <div className="noata-lesson-container" data-tour-page="lesson">
+    <div className="noata-lesson-container" data-accent={lessonAccent} data-tour-page="lesson">
       {/* 1. Breadcrumbs */}
       <nav className="noata-lesson-breadcrumb" aria-label={t("مسار التنقل", "Breadcrumb navigation")}>
         <Link href="/learn">{t("رحلة التعلّم", "Learning journey")}</Link>
@@ -688,24 +772,30 @@ export function LessonLive({ id }: { id: string }) {
 
         <div className="noata-lesson-title-area">
           <h1 dir={contentDir}>{lessonTitle}</h1>
-          <p className="noata-lesson-lead" dir={contentDir}>
-            {summary ||
-              t(
-                "محتوى الدرس مبني على دليل المذاكرة الأصيل المعتمد لوزارة التربية والتعليم.",
-                "Lesson content is based on the verified curriculum study pack.",
-              )}
-          </p>
+          <div className="noata-lesson-lead" dir={contentDir}>
+            <StudyRichText
+              content={
+                lessonHook ||
+                summary ||
+                t(
+                  "محتوى الدرس مبني على دليل المذاكرة الأصيل المعتمد لوزارة التربية والتعليم.",
+                  "Lesson content is based on the verified curriculum study pack.",
+                )
+              }
+              dir={contentDir}
+            />
+          </div>
         </div>
 
-        {(track?.source_document || content.source_document) && (
-          <div style={{ fontSize: 12, color: "var(--muted)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--line)", paddingTop: 12 }}>
-            <span style={{ fontWeight: 700 }}>{t("المصدر الأكاديمي الموثّق:", "Verified Source:")}</span>
-            <span>{track?.source_document || content.source_document}</span>
-            {(track?.source_sha256 || content.source_sha256) && (
-              <span style={{ opacity: 0.7, fontFamily: "monospace" }}>
-                SHA-256: {(track?.source_sha256 || content.source_sha256)!.slice(0, 14)}…
-              </span>
-            )}
+        {(track?.source_document || content.source_document || track?.source_sha256 || content.source_sha256) && (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+            <LessonProvenanceDialog
+              sourceDocument={track?.source_document || content.source_document}
+              sourceSha256={track?.source_sha256 || content.source_sha256}
+              trackTitle={trackTitle}
+              subjectTitle={subjectTitle}
+              uiLocale={locale}
+            />
           </div>
         )}
       </section>
@@ -747,11 +837,51 @@ export function LessonLive({ id }: { id: string }) {
             <Link
               className="btn btn-secondary"
               style={{ justifyContent: "center", fontSize: 12.5 }}
-              href={buildAiHref(companion.aiTutorPrompts[0] ?? lessonTitle, trackSlug)}
+              href={buildAiHref("explain_simply", trackSlug, id, lessonTitle)}
             >
               <Icon name="sparkles" size={14} />
               <span>{t("اسأل المعلم الذكي", "Ask AI Tutor")}</span>
             </Link>
+            {courseUnits.length > 0 && courseLessons.length > 0 && (
+              <details className="noata-kmap-sidebar-details" style={{ marginTop: 4 }}>
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    minHeight: 44,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 6,
+                    padding: "6px 10px",
+                    borderRadius: 10,
+                    border: "1px solid var(--line)",
+                    background: "var(--surface-soft)",
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: "var(--ink)",
+                  }}
+                >
+                  <span>{t("خريطة الوحدة", "Unit Map")}</span>
+                  <Icon name="chevron-down" size={14} />
+                </summary>
+                <div style={{ marginTop: 8 }}>
+                  <KnowledgeMapStrip
+                    compact
+                    subjectKey={resolvedSubjectKey}
+                    subjectAccent={lessonAccent}
+                    units={courseUnits}
+                    lessons={courseLessons}
+                    completedLessonIds={completedSiblingIds}
+                    uiLocale={locale}
+                    contentLocale={contentLanguage}
+                    activeLessonId={lesson.id}
+                    buildLessonHref={(targetId) =>
+                      `/lesson/${encodeURIComponent(targetId)}${trackSlug ? `?track=${encodeURIComponent(trackSlug)}` : ""}`
+                    }
+                  />
+                </div>
+              </details>
+            )}
           </div>
         </aside>
 
@@ -778,9 +908,9 @@ export function LessonLive({ id }: { id: string }) {
                   {objectives.map((obj, i) => (
                     <div key={i} className="noata-objective-card">
                       <span className="noata-objective-bullet">{i + 1}</span>
-                      <p className="noata-objective-text" dir={contentDir}>
-                        {obj}
-                      </p>
+                      <div className="noata-objective-text" dir={contentDir}>
+                        <StudyRichText content={obj} dir={contentDir} />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -816,43 +946,49 @@ export function LessonLive({ id }: { id: string }) {
               </div>
 
               {hasRealTrack && (
-                <div className="noata-ai-companion-bar" dir={contentDir}>
-                  <div style={{ display: "grid", gap: 3 }}>
-                    <strong style={{ fontSize: 13.5, color: "var(--ink)" }}>
-                      {isEnContent ? "Noäta AI Study Companion" : "رفيق المذاكرة الذكي Noäta AI"}
-                    </strong>
-                    <small style={{ color: "var(--muted)" }}>
-                      {isEnContent
-                        ? "Jump straight into an interactive AI session tailored to this lesson:"
-                        : "ابدأ جلسة شرح أو اختبار فوري مصممة لدرس اليوم:"}
-                    </small>
+                <>
+                  <PreLessonDiagnostic
+                    lessonIdOrSlug={lesson.id}
+                    subjectKey={resolvedSubjectKey}
+                    uiLocale={locale}
+                    contentLocale={contentLanguage}
+                    onJumpToStage2={(focus) => {
+                      setDiagnosticFocus(focus ?? null);
+                      setActiveStage(1);
+                    }}
+                  />
+
+                  <div className="noata-ai-companion-bar" dir={locale === "en" ? "ltr" : "rtl"}>
+                    <div style={{ display: "grid", gap: 3 }}>
+                      <strong style={{ fontSize: 13.5, color: "var(--ink)" }}>
+                        {t("رفيق المذاكرة الذكي Noäta AI", "Noäta AI Study Companion")}
+                      </strong>
+                      <small style={{ color: "var(--muted)" }}>
+                        {t(
+                          "ابدأ جلسة شرح أو اختبار فوري مصممة لدرس اليوم:",
+                          "Jump straight into an interactive AI session tailored to this lesson:",
+                        )}
+                      </small>
+                    </div>
+                    <div className="noata-ai-companion-prompts">
+                      {([
+                        { action: "explain_simply" as const, label: t("اشرحلي ببساطة", "Explain Simply") },
+                        { action: "exam_quiz" as const, label: t("اختبرني (٣ أسئلة)", "Exam Quiz (3 Qs)") },
+                        { action: "common_pitfalls" as const, label: t("أخطاء الامتحان", "Common Pitfalls") },
+                      ]).map((chip, idx) => (
+                        <Link
+                          key={chip.action}
+                          href={buildAiHref(chip.action, trackSlug, id, lessonTitle)}
+                          className="btn btn-secondary"
+                          style={{ fontSize: 12, padding: "6px 12px" }}
+                        >
+                          <Icon name="sparkles" size={13} />
+                          <span>{chip.label}</span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                  <div className="noata-ai-companion-prompts">
-                    {companion.aiTutorPrompts.slice(0, 3).map((promptText, idx) => (
-                      <Link
-                        key={idx}
-                        href={buildAiHref(promptText, trackSlug)}
-                        className="btn btn-secondary"
-                        style={{ fontSize: 12, padding: "6px 12px" }}
-                      >
-                        <Icon name="sparkles" size={13} />
-                        <span>
-                          {idx === 0
-                            ? isEnContent
-                              ? "Explain Simply"
-                              : "اشرحلي ببساطة"
-                            : idx === 1
-                              ? isEnContent
-                                ? "Exam Quiz (3 Qs)"
-                                : "اختبرني (٣ أسئلة)"
-                              : isEnContent
-                                ? "Common Pitfalls"
-                                : "أخطاء الامتحان"}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
+                </>
               )}
             </>
           )}
@@ -874,41 +1010,85 @@ export function LessonLive({ id }: { id: string }) {
                 </div>
               </div>
 
-              <article style={{ fontSize: 16, lineHeight: 1.95, color: "var(--ink)" }} dir={contentDir}>
-                {summary ? (
-                  summary.split("\n\n").map((para, i) => (
-                    <div key={i} style={{ margin: "0 0 14px" }}>
-                      <StudyRichText content={para} />
-                    </div>
-                  ))
-                ) : (
-                  <p>{t("محتوى الدرس غير منشور في المصدر المتصل.", "Lesson content is not published in the connected source.")}</p>
-                )}
-              </article>
+              {diagnosticFocus && (
+                <div className="noata-lab-alert noata-diag-focus-banner" role="status">
+                  <Icon name="target" size={16} />
+                  <span>
+                    {t(
+                      `نوصي بالبدء هنا بناءً على تشخيص المرحلة ١: ${diagnosticFocus}`,
+                      `Recommended focus from your Stage 1 diagnostic: ${diagnosticFocus}`,
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {!(hasRealTrack && companion.keyConcepts.length > 0) ? (
+                <article style={{ fontSize: 16, lineHeight: 1.95, color: "var(--ink)" }} dir={contentDir}>
+                  {summary ? (
+                    summary.split("\n\n").map((para, i) => (
+                      <div key={i} style={{ margin: "0 0 14px" }}>
+                        <StudyRichText content={para} />
+                      </div>
+                    ))
+                  ) : (
+                    <p>{t("محتوى الدرس غير منشور في المصدر المتصل.", "Lesson content is not published in the connected source.")}</p>
+                  )}
+                </article>
+              ) : hasMoreSummary ? (
+                <details
+                  className="noata-summary-details"
+                  style={{
+                    borderRadius: 14,
+                    border: "1px solid var(--line)",
+                    background: "var(--surface-soft)",
+                    padding: "10px 14px",
+                  }}
+                >
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      fontSize: 13.5,
+                      color: "var(--ink)",
+                    }}
+                  >
+                    {t(
+                      "قراءة النص التمهيدي الكامل للدرس (اختياري)",
+                      "Expand Full Syllabus Overview (Optional)",
+                    )}
+                  </summary>
+                  <article
+                    style={{ fontSize: 15.5, lineHeight: 1.9, color: "var(--ink)", marginTop: 12 }}
+                    dir={contentDir}
+                  >
+                    {summary.split("\n\n").map((para, i) => (
+                      <div key={i} style={{ margin: "0 0 12px" }}>
+                        <StudyRichText content={para} />
+                      </div>
+                    ))}
+                  </article>
+                </details>
+              ) : null}
 
               {hasRealTrack && companion.keyConcepts.length > 0 && (
                 <div className="noata-study-sections" dir={contentDir}>
                   <h3 style={{ margin: "6px 0 0", fontSize: 16, fontWeight: 800, color: "var(--ink)" }}>
-                    {isEnContent
-                      ? "Structured Concept Breakdown · Sec. 1 Study Pack"
-                      : "بطاقات المفاهيم التفصيلية · دليل أولى ثانوي"}
+                    {t(
+                      "بطاقات المفاهيم التفصيلية · دليل أولى ثانوي",
+                      "Structured Concept Breakdown · Sec. 1 Study Pack",
+                    )}
                   </h3>
                   {companion.keyConcepts.map((concept) => (
                     <div key={concept.id} className="noata-concept-card">
                       <div className="noata-concept-card-head">
                         <h3>{concept.title}</h3>
                         <Link
-                          href={buildAiHref(
-                            isEnContent
-                              ? `Clarify "${concept.title}" from ${lessonTitle} with an exam example.`
-                              : `وضّح لي مفهوم «${concept.title}» في درس ${lessonTitle} بمثال امتحاني.`,
-                            trackSlug,
-                          )}
+                          href={buildAiHref("concept_clarify", trackSlug, id, concept.title)}
                           className="btn btn-secondary"
                           style={{ fontSize: 11.5, padding: "4px 10px" }}
                         >
                           <Icon name="sparkles" size={12} />
-                          <span>{isEnContent ? "Ask AI" : "استفسر من AI"}</span>
+                          <span>{t("استفسر من AI", "Ask AI")}</span>
                         </Link>
                       </div>
                       <div style={{ lineHeight: 1.85, color: "var(--ink)" }}>
@@ -922,7 +1102,7 @@ export function LessonLive({ id }: { id: string }) {
                       {concept.example && (
                         <div className="noata-concept-example">
                           <strong style={{ color: "var(--ink)" }}>
-                            {isEnContent ? "Example: " : "مثال تطبيقي: "}
+                            {t("مثال تطبيقي: ", "Example: ")}
                           </strong>
                           <StudyRichText content={concept.example} />
                         </div>
@@ -931,6 +1111,14 @@ export function LessonLive({ id }: { id: string }) {
                   ))}
                 </div>
               )}
+
+              <SubjectLabRouter
+                lessonIdOrSlug={id}
+                lessonTitle={[lesson.title_ar, lesson.title_en].filter(Boolean).join(" ")}
+                subjectKey={resolvedSubjectKey}
+                uiLocale={locale}
+                contentLocale={contentLanguage}
+              />
 
               {translationNote && (
                 <div style={{ padding: 14, borderRadius: 12, background: "var(--surface-soft)", border: "1px solid var(--line)", fontSize: 13, color: "var(--muted)" }} dir={contentDir}>
@@ -983,9 +1171,10 @@ export function LessonLive({ id }: { id: string }) {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
                           <div>
                             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase" }}>
-                              {isEnContent
-                                ? `Interactive Worked Example ${exIdx + 1}`
-                                : `مثال تطبيقي متدرج ${exIdx + 1}`}
+                              {t(
+                                `مثال تطبيقي متدرج ${exIdx + 1}`,
+                                `Interactive Worked Example ${exIdx + 1}`,
+                              )}
                             </span>
                             <div style={{ fontWeight: 700, fontSize: 15.5, marginTop: 4, color: "var(--ink)" }}>
                               <StudyRichText content={example.problem} />
@@ -1001,7 +1190,7 @@ export function LessonLive({ id }: { id: string }) {
                                   setRevealedStepsByExample((prev) => ({ ...prev, [exIdx]: 1 }))
                                 }
                               >
-                                {isEnContent ? "Step-by-step" : "وضع خطوة بخطوة"}
+                                {t("وضع خطوة بخطوة", "Step-by-step")}
                               </button>
                             )}
                             {showingCount < example.steps.length && (
@@ -1016,7 +1205,7 @@ export function LessonLive({ id }: { id: string }) {
                                   }))
                                 }
                               >
-                                {isEnContent ? "Reveal Next Step" : "أظهر الخطوة التالية"}
+                                {t("أظهر الخطوة التالية", "Reveal Next Step")}
                               </button>
                             )}
                           </div>
@@ -1035,7 +1224,7 @@ export function LessonLive({ id }: { id: string }) {
 
                         <div className="noata-concept-formula">
                           <strong style={{ marginInlineEnd: 6 }}>
-                            {isEnContent ? "Key Takeaway:" : "القاعدة المستخلصة:"}
+                            {t("القاعدة المستخلصة:", "Key Takeaway:")}
                           </strong>
                           <StudyRichText content={example.takeaway} />
                         </div>
@@ -1275,15 +1464,10 @@ export function LessonLive({ id }: { id: string }) {
                         </div>
                         <Link
                           href={buildAiHref(
-                            (() => {
-                              const chosenText =
-                                activeQuestion.choices[Number(activeAnswerState.selected)] ??
-                                activeAnswerState.selected;
-                              return isEnContent
-                                ? `Why is "${chosenText}" ${activeAnswerState.correct ? "correct" : "incorrect"} for: ${activeQuestion.prompt}?`
-                                : `اشرح لي لماذا إجابة «${chosenText}» ${activeAnswerState.correct ? "صحيحة" : "غير صحيحة"} في هذا السؤال: ${activeQuestion.prompt}`;
-                            })(),
+                            activeAnswerState.correct ? "concept_clarify" : "mistake_repair",
                             trackSlug,
+                            id,
+                            lessonTitle,
                           )}
                           className="btn btn-secondary"
                           style={{ fontSize: 12, padding: "6px 12px" }}
@@ -1359,7 +1543,7 @@ export function LessonLive({ id }: { id: string }) {
                 <Link
                   href={`/missions?lesson=${encodeURIComponent(lesson.id)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`}
                   className="btn btn-primary"
-                  style={{ background: "var(--accent)", color: "var(--surface)", minHeight: 46, paddingInline: 24, fontSize: 14 }}
+                  style={{ background: "var(--accent)", color: "var(--on-accent, #ffffff)", minHeight: 46, paddingInline: 24, fontSize: 14 }}
                 >
                   {t("ابدأ المهمة التعليمية ←", "Start Mission →")}
                 </Link>
@@ -1426,7 +1610,10 @@ export function LessonLive({ id }: { id: string }) {
         <div className="noata-lesson-action-dock-right">
           <Link
             className="btn btn-primary"
-            style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, var(--success)))" }}
+            style={{
+              background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, var(--success)))",
+              color: "var(--on-accent, #ffffff)",
+            }}
             href={`${studyHrefBase}&tab=generator`}
           >
             <Icon name="sparkles" size={16} />
@@ -1443,13 +1630,7 @@ export function LessonLive({ id }: { id: string }) {
 
           <Link
             className="btn btn-secondary"
-            href={buildAiHref(
-              companion.aiTutorPrompts[0] ??
-                (isEnContent
-                  ? `Explain "${lessonTitle}" step by step: ${summary}`
-                  : `اشرح لي درس «${lessonTitle}» خطوة بخطوة: ${summary}`),
-              trackSlug,
-            )}
+            href={buildAiHref("explain_simply", trackSlug, id, lessonTitle)}
           >
             <Icon name="sparkles" size={16} />
             <span>{t("استشر Noäta AI", "Ask Noäta AI")}</span>

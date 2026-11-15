@@ -1263,6 +1263,19 @@
     margin-top: var(--space-1);
   }
 
+  .noata-mistake-wrong-ans,
+  .noata-mistake-expected-ans {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .noata-mistake-wrong-ans .noata-study-markdown p,
+  .noata-mistake-expected-ans .noata-study-markdown p {
+    margin: 0;
+  }
+
   .noata-mistake-wrong-ans {
     color: var(--danger);
   }
@@ -1782,5 +1795,291 @@
   .study-saved-quiz-card.is-active {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  /* --------------------------------------------------------------------------
+     Structured Study Rich Text & RTL/LTR Isolated KaTeX Rendering (Module 02)
+     -------------------------------------------------------------------------- */
+  .noata-study-rich-text {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .noata-study-markdown > :first-child {
+    margin-top: 0;
+  }
+
+  .noata-study-markdown > :last-child {
+    margin-bottom: 0;
+  }
+
+  .noata-study-markdown p {
+    margin: 0 0 0.65em;
+    line-height: 1.75;
+  }
+
+  .noata-study-rich-text .katex,
+  .noata-math-inline,
+  .noata-math-display,
+  .noata-chemistry-eq,
+  .noata-math-fallback {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+
+  .noata-study-rich-text .katex-display {
+    margin: 0.6em 0;
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  .noata-math-display,
+  .noata-chemistry-eq {
+    margin: 0.6em 0;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface-soft));
+    border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .noata-math-display .katex-display,
+  .noata-chemistry-eq .katex-display {
+    margin: 0;
+  }
+
+  .noata-study-pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    font-size: 0.9em;
+  }
+
+  .noata-study-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .noata-study-blocks {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .noata-study-block {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .noata-study-block-title {
+    margin: 0 0 6px;
+    font-size: 0.98rem;
+    font-weight: 750;
+    color: var(--ink);
+  }
+
+  .noata-study-block-caption {
+    margin: 6px 0 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .noata-callout {
+    padding: 12px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    border-inline-start: 4px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    display: grid;
+    gap: 6px;
+  }
+
+  .noata-callout--pitfall {
+    border-inline-start-color: var(--warning);
+    background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+  }
+
+  .noata-callout--tip,
+  .noata-callout--summary {
+    border-inline-start-color: var(--success);
+    background: color-mix(in srgb, var(--success) 9%, var(--surface));
+  }
+
+  .noata-callout-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .noata-callout-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+
+  .noata-poetry-couplet {
+    margin: 0;
+    padding: 14px 18px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+    display: grid;
+    gap: 8px;
+  }
+
+  .noata-poetry-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    font-size: 1.04rem;
+    font-weight: 600;
+    line-height: 1.85;
+  }
+
+  .noata-poetry-divider {
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+
+  .noata-poetry-meta,
+  .noata-primary-source-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.84rem;
+    color: var(--muted);
+  }
+
+  .noata-primary-source {
+    margin: 0;
+    padding: 14px 18px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    border-inline-start: 4px solid var(--accent);
+    background: var(--surface-soft);
+    display: grid;
+    gap: 8px;
+  }
+
+  .noata-primary-source-quote {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.85;
+    color: var(--ink);
+  }
+
+  .noata-primary-source-note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  @media (max-width: 640px) {
+    .noata-poetry-line {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
+    .noata-poetry-divider {
+      display: none;
+    }
+  }
+
+  /* Mistake Intelligence Clustering Controls & Focus Panel */
+  .noata-cluster-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    margin-block: 12px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: var(--surface-subtle);
+  }
+
+  .noata-cluster-dim-tabs,
+  .noata-cluster-chips,
+  .noata-cluster-focus-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .noata-cluster-dim-btn,
+  .noata-cluster-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+  }
+
+  .noata-cluster-dim-btn.is-active,
+  .noata-cluster-pill.is-active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+
+  .noata-cluster-pill-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding-inline: 6px;
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .noata-cluster-focus-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+    background: var(--surface);
+  }
+
+  .noata-cluster-focus-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1 1 260px;
+  }
+
+  .noata-cluster-focus-copy strong {
+    color: var(--ink);
+    font-size: 0.96rem;
   }
 }

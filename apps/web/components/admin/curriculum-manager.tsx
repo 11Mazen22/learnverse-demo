@@ -419,7 +419,7 @@ export function CurriculumManager() {
             <button
               disabled={busy}
               className="btn"
-              style={{ background: "var(--accent)", color: "var(--surface)" }}
+              style={{ background: "var(--accent)", color: "var(--on-accent, #ffffff)" }}
             >{t("إنشاء المسار","Create learning path")}</button>
           </div>
         </form>
@@ -487,7 +487,7 @@ export function CurriculumManager() {
             <button
               disabled={busy || !courses.length}
               className="btn"
-              style={{ background: "var(--accent)", color: "var(--surface)" }}
+              style={{ background: "var(--accent)", color: "var(--on-accent, #ffffff)" }}
             >{t("إنشاء الوحدة","Create unit")}</button>
           </div>
         </form>
@@ -529,7 +529,7 @@ export function CurriculumManager() {
             <button
               disabled={busy || !courses.length}
               className="btn"
-              style={{ background: "var(--accent)", color: "var(--surface)" }}
+              style={{ background: "var(--accent)", color: "var(--on-accent, #ffffff)" }}
             >{t("إنشاء مهارة","Create skill")}</button>
           </div>
         </form>
@@ -643,7 +643,7 @@ export function CurriculumManager() {
           className="btn"
           style={{
             background: "var(--accent)",
-            color: "var(--surface)",
+            color: "var(--on-accent, #ffffff)",
             marginTop: 12,
           }}
         >{t("إنشاء درس","Create lesson")}</button>

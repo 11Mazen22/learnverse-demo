@@ -13,6 +13,7 @@ import { NoataLogo } from "@/components/ui/noata-logo";
 import {answerModelLabel} from "@/lib/ai/answer-model";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { advanceStreamCursor } from "@/lib/ai/stream-typewriter";
 import { FANAR_CAPABILITIES } from "@/lib/ai/catalog";
 import {
   SEC1_SUBJECT_SCOPES,
@@ -20,6 +21,8 @@ import {
   normalizeSubjectParam,
   type Sec1SubjectScopeId,
 } from "@/lib/ai/model-routing";
+import { parseStructuredAiHandoff } from "@/lib/ai/handoff-contract";
+import { getLessonStudyPack } from "@/lib/curriculum/sec1-study-pack";
 
 import { downloadNoataDocx } from "@/lib/ai/docx-export";
 import { AttachmentMessage } from "./attachment-message";
@@ -73,20 +76,86 @@ function downloadText(filename: string, text: string, type = "text/plain") {
   URL.revokeObjectURL(url);
 }
 
+function useSmoothStreamText(targetText: string, active: boolean): string {
+  const [revealedLen, setRevealedLen] = useState(0);
+  const targetRef = useRef(targetText);
+  const lenRef = useRef(0);
+  targetRef.current = targetText;
+
+  useEffect(() => {
+    if (!targetText) {
+      lenRef.current = 0;
+      setRevealedLen(0);
+      return;
+    }
+    const reduced =
+      typeof window !== "undefined" &&
+      (document.documentElement.dataset.noataMotion === "off" ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    if (!active || reduced) {
+      lenRef.current = targetText.length;
+      setRevealedLen(targetText.length);
+      return;
+    }
+    if (lenRef.current > targetText.length) {
+      lenRef.current = targetText.length;
+      setRevealedLen(targetText.length);
+    }
+
+    let rafId = 0;
+    let lastTime = performance.now();
+    const tick = (now: number) => {
+      const target = targetRef.current;
+      const dt = now - lastTime;
+      lastTime = now;
+      if (lenRef.current < target.length) {
+        const next = advanceStreamCursor(lenRef.current, target, dt);
+        if (next !== lenRef.current) {
+          lenRef.current = next;
+          setRevealedLen(next);
+        }
+        if (next < target.length) {
+          rafId = requestAnimationFrame(tick);
+        }
+      }
+    };
+    if (lenRef.current < targetText.length) {
+      rafId = requestAnimationFrame(tick);
+    }
+    return () => cancelAnimationFrame(rafId);
+  }, [targetText, active]);
+
+  if (!targetText) return "";
+  if (!active || revealedLen >= targetText.length) return targetText;
+  return targetText.slice(0, revealedLen);
+}
+
 export function NoataAIClient() {
   const t=useTranslation(),locale=useLocale();
   useNoataMotionPreference();
   const [activeSubject, setActiveSubject] = useState<Sec1SubjectScopeId>("all");
+  const [assignmentGuardrail, setAssignmentGuardrail] = useState(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const detected = normalizeSubjectParam(params.get("subject") || params.get("track"));
-    if (detected !== "all") setActiveSubject(detected);
-  }, []);
+    const parsed = parseStructuredAiHandoff(
+      params,
+      locale === "en" ? "en" : "ar",
+      (lid) => getLessonStudyPack(lid),
+    );
+    if (parsed.subject !== "all") setActiveSubject(parsed.subject);
+    setAssignmentGuardrail(parsed.assignmentGuardrail);
+  }, [locale]);
   const seenAccount = useVerifiedAccount();
   useEffect(() => {
     if (!seenAccount.loading) markFeatureSeen("ai", AI_INTRO_VERSION, seenAccount.user?.id ?? null);
   }, [seenAccount.loading, seenAccount.user?.id]);
   const workspace = useAIWorkspace();
+  const displayedPending = useSmoothStreamText(workspace.pendingText, workspace.busy);
+  useEffect(() => {
+    if (workspace.follow.current && workspace.scroller.current && displayedPending) {
+      workspace.scroller.current.scrollTop = workspace.scroller.current.scrollHeight;
+    }
+  }, [displayedPending, workspace.follow, workspace.scroller]);
   const {
     historyProps,
     selectFile,
@@ -836,11 +905,11 @@ export function NoataAIClient() {
                   <div className="owui-message-meta">
                     <strong>Noäta AI</strong>
                     <span className="owui-stream-badge">
-                      {busy ? t("يكتب…","Writing…") : t("رد غير مكتمل","Incomplete response")}
+                      {busy ? t("بيكتب دلوقتي…","Writing…") : t("رد غير مكتمل","Incomplete response")}
                     </span>
                   </div>
-                  <RichMessage content={pendingText} streaming poetryHint={isPoetryRequest(messages.findLast(item=>item.role==="user")?.content??"")}/>
-                  <span className="noata-stream-progress sr-only" role="status">{t("يظهر الرد مباشرة مع وصول أجزاء النص من النموذج.","The response appears as chunks arrive from the model.")}</span>
+                  <RichMessage content={displayedPending || pendingText} streaming={busy} poetryHint={isPoetryRequest(messages.findLast(item=>item.role==="user")?.content??"")}/>
+                  <span className="noata-stream-progress sr-only" role="status">{t("الرد بيظهر أول بأول لحظة بلحظة.","The response appears live as chunks arrive.")}</span>
                   {!busy && (
                     <div className="owui-message-actions">
                       <button
@@ -862,11 +931,11 @@ export function NoataAIClient() {
                 <div className="owui-message-body">
                   <div className="owui-message-meta">
                     <strong>Noäta AI</strong>
-                    <span className="owui-stream-badge">{t("جاري التحضير…","Preparing response…")}</span>
+                    <span className="owui-stream-badge">{t("بيفكّر ويجهّز الرد…","Preparing response…")}</span>
                   </div>
                   <div className="noata-stream-progress">
                     <span className="noata-stream-indicator" aria-hidden="true"><i/><i/><i/></span>
-                    <span>{notice || t("في انتظار استجابة النموذج…","Waiting for the model to respond…")}</span>
+                    <span>{notice || t("ثواني والرد يوصلك…","Waiting for the model to respond…")}</span>
                   </div>
                 </div>
               </article>
@@ -928,6 +997,17 @@ export function NoataAIClient() {
             className="owui-composer"
             data-tour-critical={busy || input.trim() ? "true" : undefined}
           >
+            {assignmentGuardrail && (
+              <div className="noata-revision-context" role="status">
+                <Icon name="shield" size={16} />
+                <span>
+                  {t(
+                    "وضع تلميحات الواجب المفعّل: يشرح الفكرة والخطوة الأولى بدون كشف الحل المباشر.",
+                    "Assignment Hint Guardrail: Socratic first-step hints only — direct graded answers are withheld.",
+                  )}
+                </span>
+              </div>
+            )}
             {workspace.revisionName&&<div className="noata-revision-context" role="status"><Icon name="file" size={16}/><span>{t("تعديل نسخة من: ","Revising: ")}{workspace.revisionName}</span><button type="button" aria-label={t("إزالة مصدر التعديل","Clear revision source")} onClick={workspace.clearRevision}><Icon name="close" size={15}/></button></div>}
             {model==="Fanar-Guard-2"&&<section className="noata-specialist-context" aria-label={t("نص مراجعة السلامة","Safety review context")}>
               <strong>{t("حارس 2 · فحص السلامة والوعي الثقافي","Guard 2 · Safety and cultural-awareness screening")}</strong>
@@ -1059,7 +1139,7 @@ export function NoataAIClient() {
                   void send();
                 }
               }}
-              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("اسأل عن أي شيء…","Ask anything…")}
+              placeholder={model==="Fanar-Guard-2"?t("الصق النص المطلوب فحصه…","Paste text to screen…"):model==="Fanar-Diwan"?t("صف فكرتك للقصيدة…","Describe your poem idea…"):t("اسألني في أي درس أو فكرة…","Ask anything…")}
               rows={1}
             />
 
@@ -1188,8 +1268,8 @@ export function NoataAIClient() {
             disabled={busy||loading} onChoose={prompt=>{setInput(prompt);composer.current?.focus();}} />}
           <p className="owui-disclaimer">
             {temporary
-              ? t("محادثة مؤقتة · لا تظهر في سجل المحادثات.","Temporary conversation · does not appear in your history.")
-              : notice || t("Noäta AI ممكن تخطئ. راجع المعلومات المهمة.","Noäta AI can make mistakes. Check important information.")}
+              ? t("محادثة مؤقتة · مش بتتسجل في سجل المحادثات.","Temporary conversation · does not appear in your history.")
+              : notice || t("Noäta AI ممكن يغلط أحيانًا — راجع المعلومات المهمة قبل الامتحان.","Noäta AI can make mistakes. Check important information.")}
           </p>
         </footer>
       </section>

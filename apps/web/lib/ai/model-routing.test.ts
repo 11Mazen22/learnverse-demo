@@ -69,7 +69,7 @@ test("subject URL normalization and pedagogy preset helpers preserve track langu
   assert.equal(normalizeSubjectParam("unknown"), "all");
 
   const arabicPrompt = applyPedagogyPreset("المعرب والمبني", "simplify", "arabic-language", "en");
-  assert.match(arabicPrompt, /اشرح ببساطة/);
+  assert.match(arabicPrompt, /اشرحلي ببساطة بالمصري/);
 
   const englishPrompt = applyPedagogyPreset("", "quiz", "english", "ar");
   assert.match(englishPrompt, /Sec\. 1 English/);

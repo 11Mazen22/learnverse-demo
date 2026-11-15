@@ -3,6 +3,7 @@
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { buildStructuredAiHandoffHref } from "@/lib/ai/handoff-contract";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
 import { Icon } from "@/components/ui/icon";
 import { StudyRichText } from "@/components/study/study-rich-text";
@@ -847,11 +848,16 @@ export function BossLive() {
               <Link
                 className="btn btn-secondary"
                 style={{ fontSize: 12.5 }}
-                href={`/ai?prompt=${encodeURIComponent(
-                  effectiveLang === "en"
-                    ? `Help me review these missed questions from "${unit?.title_en ?? "this unit"}": ${missedPrompts.slice(0, 2).join(" | ")}`
-                    : `ساعدني في مراجعة النقاط التي أخطأت فيها في وحدة «${unit?.title_ar ?? "الوحدة"}»: ${missedPrompts.slice(0, 2).join(" | ")}`,
-                )}${selectedTrack ? `&subject=${encodeURIComponent(selectedTrack.slug)}` : ""}`}
+                href={buildStructuredAiHandoffHref({
+                  source: "boss",
+                  action: "weakness_review",
+                  subject: selectedTrack?.slug,
+                  topic: resolveCurriculumText(
+                    effectiveLang,
+                    unit?.title_ar,
+                    unit?.title_en,
+                  ),
+                })}
               >
                 <Icon name="sparkles" size={14} />
                 <span>{t("راجع نقاط الضعف مع Noäta AI", "Review Weaknesses with Noäta AI")}</span>
@@ -1014,9 +1020,9 @@ export function BossLive() {
                   {hintVisible ? t("إخفاء التلميح", "Hide Hint") : t("تلميح", "Show Hint")}
                 </button>
                 {hintVisible && (
-                  <p dir={contentDir} style={{ marginTop: 6, fontSize: 13.5, color: "var(--muted)" }}>
-                    {current.hint}
-                  </p>
+                  <div dir={contentDir} style={{ marginTop: 6, fontSize: 13.5, color: "var(--muted)" }}>
+                    <StudyRichText content={current.hint} />
+                  </div>
                 )}
               </div>
             )}
@@ -1048,7 +1054,7 @@ export function BossLive() {
                     return tip ? (
                       <div className="noata-grade-misconception">
                         <strong>{t("تنبيه حول هذا الخيار: ", "Misconception note: ")}</strong>
-                        {tip}
+                        <StudyRichText content={tip} />
                       </div>
                     ) : null;
                   })()}
@@ -1082,7 +1088,7 @@ export function BossLive() {
                   className="btn"
                   style={{
                     background: "var(--accent)",
-                    color: "var(--surface)",
+                    color: "var(--on-accent, #ffffff)",
                   }}
                 >
                   {t("تحقق", "Check answer")}
@@ -1095,7 +1101,7 @@ export function BossLive() {
                   className="btn"
                   style={{
                     background: "var(--accent)",
-                    color: "var(--surface)",
+                    color: "var(--on-accent, #ffffff)",
                   }}
                 >
                   {grade.correct

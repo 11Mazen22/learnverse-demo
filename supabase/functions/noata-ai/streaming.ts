@@ -126,7 +126,7 @@ export function createFanarStream(options: Options): ReadableStream<Uint8Array> 
             if (typeof choice?.delta?.content === "string") {
               output += choice.delta.content;
               if (output.length > 500_000) throw Error("Response size limit");
-              if(!options.deferContentUntilReview&&(output.length-lastEmittedLength>=300||Date.now()-lastEmitAt>=120))emitContent();
+              if(!options.deferContentUntilReview&&(output.length-lastEmittedLength>=42||Date.now()-lastEmitAt>=45))emitContent();
             }
             if (choice?.finish_reason) { finishReason = choice.finish_reason; finished = true; }
           };

@@ -55,3 +55,29 @@ test("temperature Markdown tables become genuinely numeric charts, without inven
  assert.equal(interactiveResponseSegments("| Time | Temperature |\n|---|---|\n| 9:00 | unknown |\n| 10:00 | 24 |")[0].type,"markdown");
  assert.equal(interactiveResponseSegments("No measurements given yet.")[0].type,"markdown");
 });
+
+test("concept_card Smart UI validates structured pedagogy fields, rejects invalid shapes, and keeps fallback in plain text",()=>{
+ const validCard={
+  version:1,
+  id:"concept-ohm-1",
+  type:"concept_card",
+  title:"قانون أوم",
+  fallback:"الجهد يساوي التيار في المقاومة V = I * R.",
+  subject:"الفيزياء",
+  summary:"بيوضح العلاقة الطردية بين فرق الجهد وشدة التيار عند ثبوت درجة الحرارة.",
+  formula:"V = I × R",
+  keyPoints:[
+   {label:"فرق الجهد (V)",detail:"بيتقاس بالفولت."},
+   {label:"شدة التيار (I)",detail:"بتتقاس بالأمبير."}
+  ],
+  examTrap:"المقاومة ثابتة للموصل الواحد ما لم تتغير أبعاده أو حرارته.",
+  quickCheck:{question:"لو التيار زاد للضعف والمقاومة ثابتة، الجهد يحصل له إيه؟",hint:"شوف العلاقة في القانون.",answer:"الجهد يزيد للضعف."}
+ };
+ const parsed=validateResponseUi(validCard);
+ assert.ok(parsed&&parsed.type==="concept_card");
+ assert.equal(parsed.keyPoints.length,2);
+ assert.equal(validateResponseUi({...validCard,summary:""}),null);
+ assert.equal(validateResponseUi({...validCard,keyPoints:[]}),null);
+ assert.equal(validateResponseUi({...validCard,keyPoints:Array.from({length:9},(_,i)=>({label:`P${i}`,detail:"d"}))}),null);
+ assert.equal(responseText("شرح سريع\n```noata-ui\n"+JSON.stringify(validCard)+"\n```"),"شرح سريع\n\n\n"+validCard.fallback);
+});

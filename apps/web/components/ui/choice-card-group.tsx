@@ -1,7 +1,17 @@
 "use client";
 
 import { useId } from "react";
+import { StudyRichText } from "@/components/study/study-rich-text";
 import { Icon } from "./icon";
+
+function formatAccessibleChoiceLabel(option: string, fallbackLabel: string): string {
+  const plain = String(option ?? "")
+    .replace(/\$\$/g, "")
+    .replace(/\$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plain || fallbackLabel;
+}
 
 export function ChoiceCardGroup({
   legend,
@@ -33,6 +43,7 @@ export function ChoiceCardGroup({
           const badgeLabel = numericLabels
             ? (index + 1).toLocaleString(locale === "en" ? "en" : "ar-EG")
             : String.fromCharCode(65 + index);
+          const accessibleLabel = formatAccessibleChoiceLabel(option, badgeLabel);
           return (
             <label
               key={`${groupName}-${index}`}
@@ -45,6 +56,7 @@ export function ChoiceCardGroup({
                 className="noata-choice-radio"
                 name={groupName}
                 value={val}
+                aria-label={accessibleLabel}
                 checked={selected}
                 disabled={disabled}
                 onChange={() => onChange(val)}
@@ -53,7 +65,7 @@ export function ChoiceCardGroup({
                 {badgeLabel}
               </span>
               <span className="noata-choice-text" dir={contentDir}>
-                {option}
+                <StudyRichText content={option} dir={contentDir} locale={locale} inline />
               </span>
               <span className="noata-choice-indicator" aria-hidden="true">
                 {selected ? <Icon name="check" size={14} /> : null}

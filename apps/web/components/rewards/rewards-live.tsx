@@ -223,7 +223,7 @@ export function RewardsLive() {
           </span>
           <span className="pill" title={t("جواهر موثّقة من إتقان الدروس، وليست مكافآت متوقعة","Gems confirmed from lesson mastery, rather than expected rewards")}>
             {profile && !loading && !error
-              ? Number(profile.gems).toLocaleString(locale==="en"?"en":"ar-EG") + " 💎 Gems"
+              ? Number(profile.gems).toLocaleString(locale==="en"?"en":"ar-EG") + t(" 💎 جواهر", " 💎 Gems")
               : "—"}
           </span>
         </div>

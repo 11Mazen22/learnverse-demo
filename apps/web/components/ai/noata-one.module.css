@@ -334,13 +334,15 @@
 .root :global(.owui-message.assistant .ai-rich-message hr){height:1px;border:0;background:var(--line);margin:24px 0}
 .root :global(.owui-message.assistant .ai-rich-message a){color:var(--accent);text-underline-offset:3px}
 .root :global(.owui-message.assistant .ai-rich-message img){max-width:100%;height:auto;border-radius:14px}
-.root :global(.owui-message.assistant.streaming .ai-rich-message::after){content:"";display:inline-block;height:1.05em;width:2px;margin-inline-start:3px;
-  vertical-align:-.14em;background:var(--accent);border-radius:2px;animation:noata-caret 900ms steps(1,end) infinite}
+.root :global(.owui-message.assistant.streaming .noata-stream-caret){display:inline-block;height:1.12em;width:2.5px;margin-inline-start:3px;
+  vertical-align:-.18em;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--ink)));border-radius:99px;
+  box-shadow:0 0 8px color-mix(in srgb,var(--accent) 38%,transparent);
+  animation:noata-caret 820ms cubic-bezier(.4,0,.2,1) infinite}
 .root :global(.owui-message.assistant.streaming .owui-stream-badge){display:inline-flex;align-items:center;gap:8px;color:var(--muted)}
-.root :global(.owui-message.assistant.streaming .owui-stream-badge::before){content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);animation:noata-pulse 1.5s ease-in-out infinite}
+.root :global(.owui-message.assistant.streaming .owui-stream-badge::before){content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);animation:noata-pulse 1.3s ease-in-out infinite}
 .root :global(.owui-thinking){align-items:center;gap:7px}
 .root :global(.owui-thinking em){font-style:normal;font-size:12px;color:var(--muted)}
-@keyframes noata-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes noata-caret{0%,45%{opacity:1;transform:scaleY(1)}55%,100%{opacity:.12;transform:scaleY(.88)}}
 @keyframes noata-pulse{0%,100%{opacity:.4;transform:scale(.86)}50%{opacity:1;transform:scale(1)}}
 
 /* Verified Quran — its own Arabic script, separate from normal explanation. */
@@ -373,8 +375,8 @@
  .root :global(.noata-quran-open){font-size:10px;padding:6px 3px}
  .root :global(.noata-quran-passage){border-radius:15px}
 }
-@media(prefers-reduced-motion:reduce){.root :global(.owui-message.assistant.streaming .ai-rich-message::after),.root :global(.owui-message.assistant.streaming .owui-stream-badge::before){animation:none!important}}
-:global(html[data-noata-motion="off"]) .root :global(.owui-message.assistant.streaming .ai-rich-message::after),
+@media(prefers-reduced-motion:reduce){.root :global(.owui-message.assistant.streaming .noata-stream-caret),.root :global(.owui-message.assistant.streaming .owui-stream-badge::before){animation:none!important}}
+:global(html[data-noata-motion="off"]) .root :global(.owui-message.assistant.streaming .noata-stream-caret),
 :global(html[data-noata-motion="off"]) .root :global(.owui-message.assistant.streaming .owui-stream-badge::before){animation:none!important}
 
 .root :global(.noata-stream-placeholder){min-height:87px}
@@ -1165,4 +1167,127 @@
 }
 @media(prefers-reduced-motion:reduce){
   .root :global(.noata-chatgpt-welcome){animation:none!important}
+}
+
+/* Upgraded Smart UI cards inside Noäta AI chat */
+.root :global(.noata-widget-pending-card){
+  display:flex;align-items:center;gap:12px;margin-block:14px;padding:14px 16px;
+  border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:16px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 6%,var(--surface)),var(--surface-soft));
+  color:var(--muted);font-size:13px;font-weight:600;
+}
+.root :global(.noata-response-component){
+  position:relative;overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--accent) 20%,var(--line));
+  border-radius:20px;
+  background:linear-gradient(165deg,color-mix(in srgb,var(--accent) 4%,var(--surface)),var(--surface) 45%);
+  box-shadow:0 12px 30px -24px color-mix(in srgb,var(--ink) 45%,transparent);
+}
+.root :global(.noata-response-component::before){
+  content:"";position:absolute;inset-block-start:0;inset-inline:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 45%,transparent));
+}
+.root :global(.noata-smart-widget-head){
+  display:grid;gap:8px;margin-bottom:16px;
+}
+.root :global(.noata-smart-widget-head h3){margin:0;font-size:1.14em;line-height:1.45;font-weight:760}
+.root :global(.noata-smart-type-badge){
+  display:inline-flex;align-items:center;gap:6px;width:fit-content;
+  padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;
+  background:var(--accent-soft);color:var(--accent);
+}
+.root :global(.noata-concept-card){display:grid;gap:14px}
+.root :global(.noata-concept-subject){
+  display:inline-block;width:fit-content;padding:3px 10px;border-radius:999px;
+  background:var(--surface-soft);border:1px solid var(--line);color:var(--muted);font-size:11px;font-weight:650;
+}
+.root :global(.noata-concept-summary){margin:0;font-size:14.5px;line-height:1.85;color:var(--ink);max-width:none}
+.root :global(.noata-concept-formula){
+  display:grid;gap:4px;padding:12px 14px;border-radius:14px;
+  border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));
+  background:var(--surface-soft);text-align:center;
+}
+.root :global(.noata-concept-formula small){font-size:11px;font-weight:650;color:var(--muted)}
+.root :global(.noata-concept-formula code){font-size:15px;font-weight:750;color:var(--accent);background:none;border:0;padding:0}
+.root :global(.noata-concept-points){display:grid;gap:10px}
+.root :global(.noata-concept-point){
+  display:flex;align-items:flex-start;gap:11px;padding:11px 13px;border-radius:14px;
+  border:1px solid var(--line);background:var(--surface);
+}
+.root :global(.noata-concept-point strong){display:block;font-size:13.5px;font-weight:720;color:var(--ink)}
+.root :global(.noata-concept-point p){margin:3px 0 0;font-size:13px;line-height:1.75;color:var(--muted);max-width:none}
+.root :global(.noata-step-num){
+  display:inline-grid;place-items:center;flex:none;width:25px;height:25px;border-radius:8px;
+  background:var(--accent-soft);color:var(--accent);font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.root :global(.noata-concept-trap){
+  padding:12px 14px;border-radius:14px;border-inline-start:3px solid #d97706;
+  background:color-mix(in srgb,#d97706 8%,var(--surface));
+}
+.root :global(.noata-concept-trap strong){display:block;font-size:12px;font-weight:760;color:#b45309}
+:global([data-theme="dark"]) .root :global(.noata-concept-trap strong){color:#fbbf24}
+.root :global(.noata-concept-trap p){margin:4px 0 0;font-size:13px;line-height:1.7;color:var(--ink);max-width:none}
+.root :global(.noata-concept-check){
+  display:grid;gap:10px;padding:13px 15px;border-radius:15px;
+  border:1px dashed color-mix(in srgb,var(--accent) 36%,var(--line));
+  background:color-mix(in srgb,var(--accent) 4%,var(--surface-soft));
+}
+.root :global(.noata-concept-check strong){font-size:12.5px;font-weight:760;color:var(--accent)}
+.root :global(.noata-concept-check p){margin:0;font-size:13.5px;line-height:1.75;max-width:none}
+.root :global(.noata-concept-check-actions){display:flex;flex-wrap:wrap;gap:8px}
+.root :global(.noata-concept-check-actions button),
+.root :global(.noata-steps-toolbar button){
+  min-height:36px;padding:6px 13px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:650;cursor:pointer;
+}
+.root :global(.noata-concept-check-actions button.is-primary),
+.root :global(.noata-widget-controls button.is-primary){
+  background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff);
+}
+.root :global(.noata-concept-hint),
+.root :global(.noata-concept-answer){
+  padding:9px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);font-size:13px;
+}
+.root :global(.noata-concept-answer){border-inline-start:3px solid var(--accent)}
+.root :global(.noata-steps-wrap){display:grid;gap:10px}
+.root :global(.noata-steps-toolbar){
+  display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);
+}
+.root :global(.noata-guided-steps){list-style:none;padding-inline-start:0;display:grid;gap:8px;margin:0}
+.root :global(.noata-guided-steps li){padding-inline-start:0;margin-block:0}
+.root :global(.noata-guided-steps details){
+  border:1px solid var(--line);border-radius:14px;padding:8px 13px;background:var(--surface);
+}
+.root :global(.noata-guided-steps summary){display:flex;align-items:center;gap:10px;min-height:40px}
+.root :global(.noata-guided-steps p){margin:8px 0 4px;padding-inline-start:35px;font-size:13.5px;line-height:1.8;color:var(--muted)}
+.root :global(.noata-quiz-options){display:grid;gap:8px;margin-top:8px}
+.root :global(.noata-quiz-option){
+  padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  transition:border-color .15s ease,background-color .15s ease;
+}
+.root :global(.noata-quiz-option:hover){border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.root :global(.noata-quiz-option.is-selected){
+  border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface));
+}
+.root :global(.noata-quiz-option.is-correct){
+  border-color:#16a34a;background:color-mix(in srgb,#16a34a 9%,var(--surface));
+}
+.root :global(.noata-quiz-option.is-wrong){
+  border-color:#dc2626;background:color-mix(in srgb,#dc2626 8%,var(--surface));
+}
+.root :global(.noata-quiz-letter){
+  display:inline-grid;place-items:center;flex:none;width:24px;height:24px;border-radius:7px;
+  background:var(--surface-soft);border:1px solid var(--line);font-size:11.5px;font-weight:750;color:var(--ink);
+}
+.root :global(.noata-quiz-option.is-selected .noata-quiz-letter){background:var(--accent);border-color:var(--accent);color:var(--on-accent,#fff)}
+.root :global(.noata-practice-feedback){margin:10px 0 2px;padding:8px 12px;border-radius:10px;background:var(--surface-soft);font-size:13px}
+.root :global(.noata-practice-feedback.is-right){border-inline-start-color:#16a34a}
+.root :global(.noata-practice-feedback.is-wrong){border-inline-start-color:#d97706}
+.root :global(.noata-quiz-score-banner){
+  margin:12px 0 0;padding:11px 14px;border-radius:13px;font-weight:700;font-size:13.5px;
+  border:1px solid var(--line);background:var(--surface-soft);
+}
+.root :global(.noata-quiz-score-banner.is-perfect){
+  border-color:color-mix(in srgb,#16a34a 45%,var(--line));
+  background:color-mix(in srgb,#16a34a 10%,var(--surface));
 }

@@ -48,11 +48,11 @@ export function StudyDeck({data}:{data:Cards}){
    aria-pressed={revealed} onClick={()=>setRevealed(x=>!x)}>
     <small>{revealed?t("الإجابة","Answer"):t("السؤال","Question")}</small>
     <strong dir="auto">{revealed?card.back:card.front}</strong>
-    <small>{revealed?t("اضغط لرؤية السؤال","Tap to see question"):t("اضغط لكشف الإجابة","Tap to reveal answer")}</small>
+    <small>{revealed?t("اضغط عشان تشوف السؤال","Tap to see question"):t("اضغط عشان تشوف الإجابة","Tap to reveal answer")}</small>
   </button>
   <div className="noata-study-review">
-   <button type="button" disabled={!revealed} onClick={()=>mark(false)}>{t("أحتاج مراجعة","Review again")}</button>
-   <button type="button" disabled={!revealed} className="noata-study-success" onClick={()=>mark(true)}>{t("عرفتها ✓","I knew it ✓")}</button>
+   <button type="button" disabled={!revealed} onClick={()=>mark(false)}>{t("عايز أراجعها تاني","Review again")}</button>
+   <button type="button" disabled={!revealed} className="noata-study-success" onClick={()=>mark(true)}>{t("فهمتها تمام ✓","I knew it ✓")}</button>
   </div>
   <div className="noata-study-navigation">
    <button type="button" disabled={position===0} onClick={()=>go(position-1)}>{t("السابق","Previous")}</button>

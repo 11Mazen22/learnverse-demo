@@ -721,9 +721,16 @@ export function StudyLive() {
     const topicParam = parameters.get("topic")?.trim();
     const trackParam = parameters.get("track")?.trim();
     const tab = parameters.get("tab") ?? parameters.get("view");
+    const modeParam = parameters.get("mode")?.trim();
 
     if (tab && ["generator", "quiz", "review", "decks", "tasks"].includes(tab)) {
       setView(tab as StudyTab);
+    }
+
+    if (modeParam && ["spaced", "cram", "speed_match", "mistake_hub"].includes(modeParam)) {
+      setReviewMode(modeParam as ReviewMode);
+    } else if (tab === "review" && topicParam) {
+      setReviewMode("mistake_hub");
     }
 
     if (trackParam) {
@@ -3058,6 +3065,7 @@ export function StudyLive() {
               decks={deckSummaries}
               mistakes={mistakes}
               sessions={sessions}
+              initialTopicFilter={genTopic || linkedLesson?.title}
               busy={busy}
               onStartInterleaved={startInterleavedSession}
               onStartAdaptive={startAdaptiveSession}

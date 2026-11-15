@@ -37,7 +37,7 @@ export function RoleGate({
         <h2>{t("سجّل الدخول أولًا","Sign in to continue")}</h2>
         <a
           className="btn"
-          style={{ background: "var(--accent)", color: "var(--surface)" }}
+          style={{ minHeight: 44, background: "var(--accent)", color: "var(--on-accent, #ffffff)" }}
           href="/login"
         >{t("دخول","Sign in")}</a>
       </section>

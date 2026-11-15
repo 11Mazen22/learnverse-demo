@@ -253,3 +253,67 @@ test("ErrorBoundary implements accessible alert recovery and boundary lifecycle"
   assert.match(src, /role="alert"/);
   assert.match(src, /setState\(\{\s*hasError:\s*false\s*\}\)/);
 });
+
+test("Stage 01 Gate 1 sign-off: base .btn-primary and interactive CTAs bind --accent + --on-accent", () => {
+  const globals = fs.readFileSync(path.join(WEB_ROOT, "app/globals.css"), "utf8");
+  const btnPrimaryMatch = globals.match(/\.btn-primary\s*\{[\s\S]*?\}/);
+  assert.ok(btnPrimaryMatch, "globals.css must declare .btn-primary");
+  assert.match(btnPrimaryMatch[0], /background:\s*var\(--accent\)/);
+  assert.match(btnPrimaryMatch[0], /color:\s*var\(--on-accent/);
+  assert.doesNotMatch(btnPrimaryMatch[0], /var\(--lime\)/);
+  assert.doesNotMatch(btnPrimaryMatch[0], /#102445/);
+
+  for (const rel of [
+    "components/learn/lesson-live.tsx",
+    "components/admin/admin-live.tsx",
+    "components/assignments/assignments-live.tsx",
+  ]) {
+    const src = fs.readFileSync(path.join(WEB_ROOT, rel), "utf8");
+    assert.doesNotMatch(
+      src,
+      /background:\s*(?:tab\s*===\s*x\s*\?\s*)?"var\(--accent\)"[\s\S]{0,120}color:\s*(?:tab\s*===\s*x\s*\?\s*)?"var\(--surface\)"/,
+      `${rel} must use --on-accent instead of --surface text on --accent background`,
+    );
+  }
+});
+
+test("Stage 01 Gate 1 sign-off: mobile dock yields to .mushaf-focused and dialogs cleanly without 768-800px overlap", () => {
+  const sidebarCss = fs.readFileSync(path.join(WEB_ROOT, "app/sidebar-rebirth.css"), "utf8");
+  const sidebarCssNoComments = sidebarCss.replace(/\/\*[\s\S]*?\*\//g, "");
+  const globalsCss = fs.readFileSync(path.join(WEB_ROOT, "app/globals.css"), "utf8");
+
+  assert.doesNotMatch(sidebarCssNoComments, /display:\s*flex\s*!important/);
+  assert.match(sidebarCssNoComments, /\.noata-shell:has\(\.mushaf-focused\)\s*>\s*\.mobile-nav/);
+  assert.match(sidebarCssNoComments, /\.noata-shell:has\(dialog\[open\]\)\s*>\s*\.mobile-nav/);
+  assert.match(sidebarCssNoComments, /\.noata-main\s*\{[\s\S]*overflow-x:\s*clip/);
+  assert.doesNotMatch(globalsCss, /@media\s*\(max-width:\s*800px\)\s*\{\s*\.noata-shell\s*\{/);
+});
+
+test("Gate 1 Lesson RTL clipping & subject accents: outline grid collapses cleanly and propagates data-accent", () => {
+  const lessonCss = fs.readFileSync(path.join(WEB_ROOT, "app/lesson-experience.css"), "utf8");
+  const lessonTsx = fs.readFileSync(path.join(WEB_ROOT, "components/learn/lesson-live.tsx"), "utf8");
+
+  assert.match(lessonCss, /\.noata-lesson-layout\s*>\s*\*\s*\{[\s\S]*min-width:\s*0/);
+  assert.match(lessonCss, /@media\s*\(max-width:\s*1120px\)/);
+  for (const accent of ["cyan", "indigo", "amber", "rose", "teal", "violet"]) {
+    assert.match(
+      lessonCss,
+      new RegExp(`\\.noata-lesson-container\\[data-accent="${accent}"\\]`),
+      `lesson-experience.css must define [data-accent="${accent}"]`,
+    );
+  }
+  assert.match(lessonTsx, /data-accent=\{lessonAccent\}/);
+});
+
+test("Gate 1 Module 02: StudyRichText enforces SAFE_KATEX_OPTIONS and RTL KaTeX isolation", () => {
+  const studyRichText = fs.readFileSync(
+    path.join(WEB_ROOT, "components/study/study-rich-text.tsx"),
+    "utf8",
+  );
+  const studyCss = fs.readFileSync(path.join(WEB_ROOT, "app/study-experience.css"), "utf8");
+
+  assert.match(studyRichText, /rehypePlugins=\{\[\[rehypeKatex,\s*SAFE_KATEX_OPTIONS\]\]\}/);
+  assert.match(studyRichText, /text\?: string \| null/);
+  assert.match(studyRichText, /blocks\?: StructuredStudyBlock\[\] \| null/);
+  assert.match(studyCss, /\.noata-study-rich-text\s+\.katex[\s\S]*direction:\s*ltr[\s\S]*unicode-bidi:\s*isolate/);
+});

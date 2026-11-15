@@ -432,13 +432,22 @@ const LABELS: Record<string, string> = {
                     <span style={{ width: score + "%" }} />
                   </div>
                   {(review || !isMastered(row)) && (
-                    <Link
-                      href={`/study?topic=${encodeURIComponent(skillTitle(row))}&tab=generator`}
-                      className="noata-skill-drill-link"
-                    >
-                      {t("تدرّب / أنشئ حزمة", "Practice / create deck")}
-                      <Icon name="arrow" size={13} />
-                    </Link>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                      <Link
+                        href={`/study?topic=${encodeURIComponent(skillTitle(row))}&tab=generator`}
+                        className="noata-skill-drill-link"
+                      >
+                        {t("تدرّب / أنشئ حزمة", "Practice / create deck")}
+                        <Icon name="arrow" size={13} />
+                      </Link>
+                      <Link
+                        href={`/study?topic=${encodeURIComponent(skillTitle(row))}&tab=review`}
+                        className="noata-skill-drill-link"
+                      >
+                        {t("أصلح الأخطاء", "Repair mistakes")}
+                        <Icon name="arrow" size={13} />
+                      </Link>
+                    </div>
                   )}
                 </div>
                 <strong className="aura-progress-skill-percent">

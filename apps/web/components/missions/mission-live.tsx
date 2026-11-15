@@ -4,6 +4,7 @@ import { masteryLabel, questionTypeLabel } from "@/lib/i18n/content-labels";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { buildStructuredAiHandoffHref } from "@/lib/ai/handoff-contract";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
 import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
@@ -889,11 +890,13 @@ export function MissionLive() {
             </small>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
               <Link
-                href={`/ai?prompt=${encodeURIComponent(
-                  effectiveLang === "en"
-                    ? `Help me understand "${lessonTitle.en}" step by step: ${currentPrompt}`
-                    : `ساعدني أفهم درس «${lessonTitle.ar}» خطوة بخطوة: ${currentPrompt}`,
-                )}${activeTrackSlug ? `&subject=${encodeURIComponent(activeTrackSlug)}` : ""}`}
+                href={buildStructuredAiHandoffHref({
+                  source: "mission",
+                  action: "concept_clarify",
+                  subject: activeTrackSlug,
+                  lessonId,
+                  topic: resolveCurriculumText(effectiveLang, lessonTitle.ar, lessonTitle.en),
+                })}
                 className="btn btn-secondary"
                 style={{ fontSize: 12, padding: "5px 10px" }}
               >
@@ -1086,9 +1089,9 @@ export function MissionLive() {
                     {hintVisible ? t("إخفاء التلميح", "Hide Hint") : t("تلميح ذكي", "Show Hint")}
                   </button>
                   {hintVisible && (
-                    <p dir={contentDir} style={{ marginTop: 8, fontSize: 13.5, color: "var(--muted)" }}>
-                      {current.hint}
-                    </p>
+                    <div dir={contentDir} style={{ marginTop: 8, fontSize: 13.5, color: "var(--muted)" }}>
+                      <StudyRichText content={current.hint} />
+                    </div>
                   )}
                 </div>
               )}
@@ -1104,13 +1107,15 @@ export function MissionLive() {
                       ? t("صح 👏", "Correct 👏")
                       : t("قريب منها — خلّينا نحاول بطريقة تانية", "Not quite. Let’s try a different approach.")}
                   </b>
-                  <p style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
-                    {resolveCurriculumText(
-                      effectiveLang,
-                      grade.explanation_ar,
-                      grade.explanation_en,
-                    )}
-                  </p>
+                  <div style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
+                    <StudyRichText
+                      content={resolveCurriculumText(
+                        effectiveLang,
+                        grade.explanation_ar,
+                        grade.explanation_en,
+                      )}
+                    />
+                  </div>
                   {!grade.correct &&
                     (() => {
                       const tip = extractDistractorFeedback(
@@ -1121,7 +1126,7 @@ export function MissionLive() {
                       return tip ? (
                         <div className="noata-grade-misconception">
                           <strong>{t("تنبيه حول هذا الخيار: ", "Misconception note: ")}</strong>
-                          {tip}
+                          <StudyRichText content={tip} />
                         </div>
                       ) : null;
                     })()}
@@ -1159,7 +1164,7 @@ export function MissionLive() {
                     className="btn"
                     style={{
                       background: "var(--accent)",
-                      color: "var(--surface)",
+                      color: "var(--on-accent, #ffffff)",
                     }}
                   >
                     {busy ? t("جارٍ التصحيح…", "Checking your answer…") : t("تحقق", "Check answer")}
@@ -1172,7 +1177,7 @@ export function MissionLive() {
                     className="btn"
                     style={{
                       background: "var(--accent)",
-                      color: "var(--surface)",
+                      color: "var(--on-accent, #ffffff)",
                     }}
                   >
                     {grade.correct
