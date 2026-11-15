@@ -42,22 +42,23 @@ function ComplexCycleArgandLab({
   const power = useMemo(() => computePowerOfI(exponent), [exponent]);
   const complex = useMemo(() => analyzeComplexNumber(realA, imagB), [realA, imagB]);
 
+  const symI = contentLocale === "ar" ? "\\text{ت}" : "i";
   const liveStatusText =
     tab === "powers"
       ? tContent(
-          `i^${power.exponent} تساوي ${power.notation} لأن باقي قسمة ${power.exponent} على 4 هو ${power.remainder}.`,
-          `i^${power.exponent} equals ${power.notation} because ${power.exponent} mod 4 = ${power.remainder}.`,
+          `$${symI}^{${power.exponent}} = ${power.remainder === 0 ? "1" : power.remainder === 1 ? "\\text{ت}" : power.remainder === 2 ? "-1" : "-\\text{ت}"}$ لأن باقي قسمة ${power.exponent} على $4$ هو $${power.remainder}$.`,
+          `$i^{${power.exponent}} = ${power.notation}$ because $${power.exponent} \\bmod 4 = ${power.remainder}$.`,
         )
       : tContent(
-          `z = ${complex.a} ${complex.b >= 0 ? "+" : "-"} ${Math.abs(complex.b)}i، ومرافقه z̄ = ${complex.conjugateA} ${complex.conjugateB >= 0 ? "+" : "-"} ${Math.abs(complex.conjugateB)}i، وحاصل ضربهما = ${complex.modulusSq}.`,
-          `z = ${complex.a} ${complex.b >= 0 ? "+" : "-"} ${Math.abs(complex.b)}i, conjugate z̄ has imaginary part ${complex.conjugateB}, product z·z̄ = ${complex.modulusSq}.`,
+          `$\\text{ع} = ${complex.a} ${complex.b >= 0 ? "+" : "-"} ${Math.abs(complex.b)}\\text{ت}$، والمرافق $\\bar{\\text{ع}} = ${complex.conjugateA} ${complex.conjugateB >= 0 ? "+" : "-"} ${Math.abs(complex.conjugateB)}\\text{ت}$، وحاصل ضربهما $= ${complex.modulusSq}$.`,
+          `$z = ${complex.a} ${complex.b >= 0 ? "+" : "-"} ${Math.abs(complex.b)}i$, conjugate $\\bar{z}$ has imaginary part $${complex.conjugateB}$, product $z\\cdot\\bar{z} = ${complex.modulusSq}$.`,
         );
 
   const cycleNodes: Array<{ label: string; rem: 0 | 1 | 2 | 3; x: number; y: number }> = [
     { label: "1", rem: 0, x: 182, y: 100 },
-    { label: "i", rem: 1, x: 100, y: 20 },
+    { label: contentLocale === "ar" ? "ت" : "i", rem: 1, x: 100, y: 20 },
     { label: "-1", rem: 2, x: 18, y: 100 },
-    { label: "-i", rem: 3, x: 100, y: 180 },
+    { label: contentLocale === "ar" ? "-ت" : "-i", rem: 3, x: 100, y: 180 },
   ];
 
   // Map Argand (-5..5) onto 220x220 viewBox
@@ -78,7 +79,10 @@ function ComplexCycleArgandLab({
             aria-pressed={tab === "powers"}
             onClick={() => setTab("powers")}
           >
-            {tUi("دورة قوى i", "Powers of i Cycle")}
+            {tUi(
+              `دورة قوى ${contentLocale === "ar" ? "ت" : "i"}`,
+              "Powers of i Cycle",
+            )}
           </button>
           <button
             type="button"
@@ -186,10 +190,24 @@ function ComplexCycleArgandLab({
                   <button
                     key={preset}
                     type="button"
+                    aria-label={
+                      contentLocale === "ar"
+                        ? `ت أس ${preset}`
+                        : `i raised to power ${preset}`
+                    }
                     className={`noata-lab-preset-btn ${exponent === preset ? "is-active" : ""}`}
                     onClick={() => setExponent(preset)}
                   >
-                    i^{preset}
+                    <StudyRichText
+                      content={
+                        contentLocale === "ar"
+                          ? `$\\text{ت}^{${preset}}$`
+                          : `$i^{${preset}}$`
+                      }
+                      dir="ltr"
+                      locale={contentLocale}
+                      inline
+                    />
                   </button>
                 ))}
               </div>
@@ -229,8 +247,12 @@ function ComplexCycleArgandLab({
             >
               <line x1="15" y1="110" x2="205" y2="110" stroke="var(--line-strong)" strokeWidth="1.5" />
               <line x1="110" y1="15" x2="110" y2="205" stroke="var(--line-strong)" strokeWidth="1.5" />
-              <text x="196" y="102" fontSize="11" fill="var(--muted)" fontWeight="700">Re</text>
-              <text x="116" y="24" fontSize="11" fill="var(--muted)" fontWeight="700">Im</text>
+              <text x="196" y="102" textAnchor="end" fontSize="11" fill="var(--muted)" fontWeight="700">
+                {contentLocale === "ar" ? "ح (الحقيقي)" : "Re"}
+              </text>
+              <text x="116" y="24" fontSize="11" fill="var(--muted)" fontWeight="700">
+                {contentLocale === "ar" ? "ت (التخيلي)" : "Im"}
+              </text>
 
               {/* Projection triangle for modulus */}
               <line
@@ -437,8 +459,12 @@ function QuadraticParabolaLab({
               <>
                 <rect x="10" y="10" width="280" height="90" fill="var(--success)" fillOpacity="0.06" />
                 <rect x="10" y="100" width="280" height="90" fill="var(--warning)" fillOpacity="0.06" />
-                <text x="18" y="24" fontSize="10" fill="var(--success)" fontWeight="700">y &gt; 0</text>
-                <text x="18" y="182" fontSize="10" fill="var(--warning)" fontWeight="700">y &lt; 0</text>
+                <text x="18" y="24" fontSize="10" fill="var(--success)" fontWeight="700">
+                  {contentLocale === "ar" ? "د(س) > 0" : "y > 0"}
+                </text>
+                <text x="18" y="182" fontSize="10" fill="var(--warning)" fontWeight="700">
+                  {contentLocale === "ar" ? "د(س) < 0" : "y < 0"}
+                </text>
               </>
             ) : null}
 
@@ -488,24 +514,27 @@ function QuadraticParabolaLab({
           <div className="noata-lab-preset-row">
             <button
               type="button"
+              aria-label={tUi("مميز موجب أكبر من صفر", "Discriminant greater than 0")}
               className="noata-lab-preset-btn"
               onClick={() => { setCoeffA(1); setCoeffB(-2); setCoeffC(-3); }}
             >
-              Δ &gt; 0
+              <StudyRichText content="$\\Delta > 0$" dir="ltr" locale={contentLocale} inline />
             </button>
             <button
               type="button"
+              aria-label={tUi("مميز يساوي صفر", "Discriminant equals 0")}
               className="noata-lab-preset-btn"
               onClick={() => { setCoeffA(1); setCoeffB(-4); setCoeffC(4); }}
             >
-              Δ = 0
+              <StudyRichText content="$\\Delta = 0$" dir="ltr" locale={contentLocale} inline />
             </button>
             <button
               type="button"
+              aria-label={tUi("مميز سالب أصغر من صفر", "Discriminant less than 0")}
               className="noata-lab-preset-btn"
               onClick={() => { setCoeffA(1); setCoeffB(2); setCoeffC(3); }}
             >
-              Δ &lt; 0
+              <StudyRichText content="$\\Delta < 0$" dir="ltr" locale={contentLocale} inline />
             </button>
             <button
               type="button"
@@ -518,7 +547,14 @@ function QuadraticParabolaLab({
 
           <div className="noata-lab-slider-field">
             <div className="noata-lab-slider-label-row">
-              <label htmlFor="quad-a-slider">{tUi("معامل س² (a):", "Coefficient a:")}</label>
+              <label htmlFor="quad-a-slider">
+                <StudyRichText
+                  content={tUi("معامل $س^2$ ($a$):", "Coefficient $a$ ($x^2$):")}
+                  dir={uiLocale === "ar" ? "rtl" : "ltr"}
+                  locale={contentLocale}
+                  inline
+                />
+              </label>
               <strong dir="ltr">a = {coeffA}</strong>
             </div>
             <input
@@ -534,7 +570,14 @@ function QuadraticParabolaLab({
 
           <div className="noata-lab-slider-field">
             <div className="noata-lab-slider-label-row">
-              <label htmlFor="quad-b-slider">{tUi("معامل س (b):", "Coefficient b:")}</label>
+              <label htmlFor="quad-b-slider">
+                <StudyRichText
+                  content={tUi("معامل $س$ ($b$):", "Coefficient $b$ ($x$):")}
+                  dir={uiLocale === "ar" ? "rtl" : "ltr"}
+                  locale={contentLocale}
+                  inline
+                />
+              </label>
               <strong dir="ltr">b = {coeffB}</strong>
             </div>
             <input
@@ -612,10 +655,20 @@ function QuadraticParabolaLab({
                   {focusMode === "vieta" || focusMode === "discriminant" ? (
                     <>
                       <span>
-                        <bdi dir="ltr">S = −b/a = {analysis.sumRoots}</bdi>
+                        <StudyRichText
+                          content={`$S = -b/a = ${analysis.sumRoots}$`}
+                          dir="ltr"
+                          locale={contentLocale}
+                          inline
+                        />
                       </span>
                       <span>
-                        <bdi dir="ltr">P = c/a = {analysis.productRoots}</bdi>
+                        <StudyRichText
+                          content={`$P = c/a = ${analysis.productRoots}$`}
+                          dir="ltr"
+                          locale={contentLocale}
+                          inline
+                        />
                       </span>
                     </>
                   ) : null}

@@ -4,43 +4,21 @@ import {
   getTrackLessonStudyPacks,
   type CanonicalLessonStudyPack,
 } from "./sec1-all-lessons-pack.ts";
+import type {
+  CanonicalFlashcard,
+  CuratedStudyQuestion,
+  StudyConceptSection,
+  StudyWorkedExample,
+} from "./pack-types.ts";
 
 export {
   getLessonStudyPack,
   getTrackLessonStudyPacks,
   type CanonicalLessonStudyPack,
-};
-
-export type StudyConceptSection = {
-  id: string;
-  title: string;
-  body: string;
-  formulaOrRule?: string;
-  example?: string;
-};
-
-export type StudyWorkedExample = {
-  problem: string;
-  steps: string[];
-  takeaway: string;
-};
-
-export type CuratedStudyQuestion = {
-  id: string;
-  question_type: "multiple-choice";
-  prompt: string;
-  choices: string[];
-  correct_index: number;
-  explanation: string;
-  hint: string;
-  difficulty: "foundational" | "standard" | "challenging";
-  lessonTitle?: string;
-};
-
-export type CanonicalFlashcard = {
-  front: string;
-  back: string;
-  hint?: string;
+  type CanonicalFlashcard,
+  type CuratedStudyQuestion,
+  type StudyConceptSection,
+  type StudyWorkedExample,
 };
 
 export type CanonicalStudyDeck = {
@@ -57,6 +35,14 @@ export type CanonicalStudyDeck = {
 
 export type LessonStudyCompanion = {
   matchedTopic: string;
+  /**
+   * `pack`   – canonical per-lesson pack resolved by the real `lessons.slug`.
+   * `module` – coarse legacy topic module matched by exact slug or subject-constrained alias.
+   * `none`   – no verified study content; callers must rely on the lesson's own database content
+   *            instead of showing another lesson's material.
+   */
+  source: "pack" | "module" | "none";
+  hook?: string;
   keyConcepts: StudyConceptSection[];
   workedExamples: StudyWorkedExample[];
   commonMistakes: string[];
@@ -113,7 +99,7 @@ type TopicModule = {
 const L = (ar: string, en: string): LocalizedText => ({ ar, en });
 
 /** Complete Sec. 1 Term 1 (2026-2027) structured modules grounded in the official study pack. */
-const TOPIC_MODULES: readonly TopicModule[] = [
+export const TOPIC_MODULES: readonly TopicModule[] = [
   // =========================================================================
   // INTEGRATED SCIENCE (AR & EN TRACKS)
   // =========================================================================
@@ -132,8 +118,8 @@ const TOPIC_MODULES: readonly TopicModule[] = [
           "Ecosystems operate across four interacting spheres: Atmosphere (gases), Hydrosphere (all liquid, frozen, groundwater, and atmospheric water), Lithosphere (solid crust), and Biosphere (all regions supporting life). Water covers ~71% of Earth's surface.",
         ),
         formulaOrRule: L(
-          "توزيع الماء: ~97% ماء مالح في البحار والمحيطات | ~3% ماء عذب (معظمه جليد ومياه جوفية)",
-          "Water distribution: ~97% saline oceans/seas | ~3% freshwater (mostly glaciers & groundwater)",
+          "توزيع الماء: $\\approx 97\\%$ ماء مالح في البحار والمحيطات، مقابل $\\approx 3\\%$ ماء عذب (معظمه جليد ومياه جوفية)",
+          "Water distribution: $\\approx 97\\%$ saline oceans and seas; $\\approx 3\\%$ freshwater (mostly glaciers and groundwater)",
         ),
       },
       {
@@ -251,7 +237,7 @@ const TOPIC_MODULES: readonly TopicModule[] = [
     flashcards: [
       { front: L("نسبة الماء المالح إلى العذب على الأرض", "Saltwater vs. Freshwater on Earth"), back: L("نحو 97% مالح و~3% عذب (معظمه جليد ومياه جوفية).", "~97% saline and ~3% freshwater (mostly glaciers & groundwater).") },
       { front: L("النتح (Transpiration)", "Transpiration"), back: L("إطلاق النبات لبخار الماء إلى الغلاف الجوي عبر ثغور الأوراق.", "Release of water vapour from plants through leaf stomata.") },
-      { front: L("العوامل الحيوية مقابل اللاحيوية", "Biotic vs. Abiotic Factors"), back: L("الحيوية: الكائنات الحية | اللاحيوية: الماء والهواء والضوء والحرارة والتربة.", "Biotic: living organisms | Abiotic: water, air, light, temperature, soil.") },
+      { front: L("العوامل الحيوية مقابل اللاحيوية", "Biotic vs. Abiotic Factors"), back: L("الحيوية: الكائنات الحية؛ واللاحيوية: الماء والهواء والضوء والحرارة والتربة.", "Biotic: living organisms; Abiotic: water, air, light, temperature, and soil.") },
     ],
   },
   {
@@ -263,64 +249,64 @@ const TOPIC_MODULES: readonly TopicModule[] = [
     concepts: [
       {
         id: "polarity",
-        title: L("قطبية جزيء الماء (H₂O) وزاوية الرابطة", "Polarity of H₂O & Molecular Geometry"),
+        title: L("قطبية جزيء الماء ($\\mathrm{H_2O}$) وزاوية الرابطة", "Polarity of $\\mathrm{H_2O}$ & Molecular Geometry"),
         body: L(
-          "يرتبط ذرتا هيدروجين بذرة أكسجين برابطتين تساهميتين قطبيتين بزاوية ≈ 104.5°. ونظرًا لكهروسالبية الأكسجين الأعلى، تجذب الأكسجين إلكترونات الرابطة فتحمل شحنة سالبة جزئية (-δ) ويحمل الهيدروجين شحنة موجبة جزئية (+δ).",
-          "Two H atoms covalently bond to one O atom in a bent shape (~104.5°). Because oxygen is more electronegative, it pulls shared electrons closer, gaining a partial negative charge (δ−) while hydrogens become partially positive (δ+).",
+          "ترتبط ذرتا هيدروجين بذرة أكسجين برابطتين تساهميتين قطبيتين بزاوية $\\approx 104.5^{\\circ}$. ونظرًا لكهروسالبية الأكسجين الأعلى، تجذب الأكسجين إلكترونات الرابطة فتحمل شحنة سالبة جزئية ($\\delta^-$) ويحمل الهيدروجين شحنة موجبة جزئية ($\\delta^+$).",
+          "Two $\\mathrm{H}$ atoms covalently bond to one $\\mathrm{O}$ atom in a bent shape ($\\approx 104.5^{\\circ}$). Because oxygen is more electronegative, it pulls shared electrons closer, gaining a partial negative charge ($\\delta^-$) while hydrogens become partially positive ($\\delta^+$).",
         ),
-        formulaOrRule: L("الشكل المنحني (104.5°) + فرق السالبية الكهربائية = جزيء ماء قطبي", "Bent Geometry (104.5°) + Uneven Electron Pull = Polar H₂O Molecule"),
+        formulaOrRule: L("الشكل المنحني ($104.5^{\\circ}$) + فرق السالبية الكهربائية = جزيء ماء قطبي", "Bent Geometry ($104.5^{\\circ}$) + Uneven Electron Pull = Polar $\\mathrm{H_2O}$ Molecule"),
       },
       {
         id: "ph-solvent",
-        title: L("الروابط الهيدروجينية والإذابة ومقياس pH", "Hydrogen Bonds, Hydration & pH Scale"),
+        title: L("الروابط الهيدروجينية والإذابة ومقياس $\\mathrm{pH}$", "Hydrogen Bonds, Hydration & $\\mathrm{pH}$ Scale"),
         body: L(
-          "تتجاذب الشحنة الموجبة الجزئية للهيدروجين مع الأكسجين المجاور مكوّنة روابط هيدروجينية (أضعف من التساهمية لكنها مسؤولة عن الخواص المميزة للماء). ويُذيب الماء المواد الأيونية والقطبية كملح NaCl عبر إحاطة أيونات Na⁺ وCl⁻، بينما يصنّف مقياس pH المحاليل عند 25°C إلى حمضي (<7)، متعادل (=7)، وقاعدي (>7).",
-          "Attractions between δ+ hydrogen and δ− oxygen form hydrogen bonds (weaker than covalent O–H bonds, yet explaining high boiling point and cohesion). Polar H₂O dissolves ionic/polar solutes like NaCl via ion hydration shells. At ~25°C: pH < 7 acidic, pH = 7 neutral, pH > 7 basic.",
+          "تتجاذب الشحنة الموجبة الجزئية للهيدروجين مع الأكسجين المجاور مكوّنة روابط هيدروجينية (أضعف من التساهمية لكنها مسؤولة عن الخواص المميزة للماء). ويُذيب الماء المواد الأيونية والقطبية كملح $\\mathrm{NaCl}$ عبر إحاطة أيونات $\\mathrm{Na^+}$ و$\\mathrm{Cl^-}$، بينما يصنّف مقياس $\\mathrm{pH}$ المحاليل عند $25^{\\circ}\\text{C}$ إلى حمضي ($< 7$)، متعادل ($= 7$)، وقاعدي ($> 7$).",
+          "Attractions between $\\delta^+$ hydrogen and $\\delta^-$ oxygen form hydrogen bonds (weaker than covalent $\\mathrm{O-H}$ bonds, yet explaining high boiling point and cohesion). Polar $\\mathrm{H_2O}$ dissolves ionic and polar solutes like $\\mathrm{NaCl}$ via ion hydration shells. At $\\approx 25^{\\circ}\\text{C}$: $\\mathrm{pH} < 7$ acidic, $\\mathrm{pH} = 7$ neutral, $\\mathrm{pH} > 7$ basic.",
         ),
       },
     ],
     worked: [
       {
-        problem: L("لماذا يذوب ملح الطعام NaCl بسهولة في الماء بينما لا يمتزج الزيت بالماء؟", "Why does table salt (NaCl) dissolve readily in water while oil does not?"),
+        problem: L("لماذا يذوب ملح الطعام $\\mathrm{NaCl}$ بسهولة في الماء بينما لا يمتزج الزيت بالماء؟", "Why does table salt ($\\mathrm{NaCl}$) dissolve readily in water while oil does not?"),
         steps: [
-          L("جزيء الماء قطبي يحمل قطبًا سالبًا جزئيًا على الأكسجين وموجبًا على الهيدروجين.", "Water is polar with a δ− oxygen end and δ+ hydrogen ends."),
-          L("تجذب أقطاب الماء أيونات Na⁺ الموجبة وأيونات Cl⁻ السالبة وتفصلها وتحيط بها.", "Water's opposite partial charges attract Na⁺ and Cl⁻ ions and surround them."),
+          L("جزيء الماء قطبي يحمل قطبًا سالبًا جزئيًا ($\\delta^-$) على الأكسجين وموجبًا ($\\delta^+$) على الهيدروجين.", "Water is polar with a $\\delta^-$ oxygen end and $\\delta^+$ hydrogen ends."),
+          L("تجذب أقطاب الماء أيونات $\\mathrm{Na^+}$ الموجبة وأيونات $\\mathrm{Cl^-}$ السالبة وتفصلها وتحيط بها.", "Water's opposite partial charges attract $\\mathrm{Na^+}$ and $\\mathrm{Cl^-}$ ions and surround them."),
           L("أما جزيئات الزيت فغير قطبية، فتبقى الروابط الهيدروجينية بين جزيئات الماء أقوى من أي تجاذب مع الزيت.", "Oil molecules are non-polar, so water molecules attract one another much more strongly via hydrogen bonds."),
         ],
         takeaway: L("المذيب القطبي يُذيب المركبات الأيونية والقطبية بكفاءة أكبر من المركبات غير القطبية.", "Polar solvents readily dissolve ionic and polar substances, not non-polar oils."),
       },
     ],
     mistakes: [
-      L("الاعتقاد بأن الرابطة الهيدروجينية أقوى من الرابطة التساهمية داخل جزيء الماء نفسه.", "Thinking intermolecular hydrogen bonds are stronger than intramolecular covalent O–H bonds."),
-      L("افتراض أن أي ملح مذاب يجعل المحلول متعادلًا دائمًا دون النظر لأيوناته.", "Assuming every dissolved salt automatically yields pH = 7 regardless of ion hydrolysis."),
+      L("الاعتقاد بأن الرابطة الهيدروجينية أقوى من الرابطة التساهمية داخل جزيء الماء نفسه.", "Thinking intermolecular hydrogen bonds are stronger than intramolecular covalent $\\mathrm{O-H}$ bonds."),
+      L("افتراض أن أي ملح مذاب يجعل المحلول متعادلًا دائمًا دون النظر لأيوناته.", "Assuming every dissolved salt automatically yields $\\mathrm{pH} = 7$ regardless of ion hydrolysis."),
     ],
     questions: [
       {
         id: "sec1-sci2-q1",
-        prompt: L("ما الزاوية التقريبية بين الرابطتين التساهميتين داخل جزيء الماء H₂O؟", "What is the approximate bond angle inside a bent water (H₂O) molecule?"),
-        choices: [L("180°", "180°"), L("104.5°", "104.5°"), L("90°", "90°"), L("120°", "120°")],
+        prompt: L("ما الزاوية التقريبية بين الرابطتين التساهميتين داخل جزيء الماء $\\mathrm{H_2O}$؟", "What is the approximate bond angle inside a bent water ($\\mathrm{H_2O}$) molecule?"),
+        choices: [L("$180^{\\circ}$", "$180^{\\circ}$"), L("$104.5^{\\circ}$", "$104.5^{\\circ}$"), L("$90^{\\circ}$", "$90^{\\circ}$"), L("$120^{\\circ}$", "$120^{\\circ}$")],
         correct_index: 1,
-        explanation: L("يتخذ جزيء الماء شكلًا منحنيًا بزاوية تقارب 104.5° نتيجة أزواج الإلكترونات الحرة على ذرة الأكسجين.", "Water has a bent geometry with an H–O–H angle of ~104.5°, enabling net molecular polarity."),
-        hint: L("الشكل المنحني لـ H₂O ليست زاويته مستقيمة (180°).", "The bent geometry is slightly smaller than a tetrahedral 109.5° angle."),
+        explanation: L("يتخذ جزيء الماء شكلًا منحنيًا بزاوية تقارب $104.5^{\\circ}$ نتيجة أزواج الإلكترونات الحرة على ذرة الأكسجين.", "Water has a bent geometry with an $\\mathrm{H-O-H}$ angle of $\\approx 104.5^{\\circ}$, enabling net molecular polarity."),
+        hint: L("الشكل المنحني لـ $\\mathrm{H_2O}$ ليست زاويته مستقيمة ($180^{\\circ}$).", "The bent geometry is slightly smaller than a tetrahedral $109.5^{\\circ}$ angle."),
         difficulty: "foundational",
       },
       {
         id: "sec1-sci2-q2",
         prompt: L("أين تتكون الرابطة الهيدروجينية في عينة ماء نقي؟", "Where does a hydrogen bond form in pure liquid water?"),
         choices: [
-          L("بين ذرة الأكسجين والهيدروجين داخل الجزيء الواحد", "Between O and H inside the same H₂O molecule"),
-          L("بين الهيدروجين الموجب جزئيًا في جزيء والأكسجين السالب جزئيًا في جزيء آخر", "Between a δ+ H on one molecule and a δ− O on a neighbouring molecule"),
-          L("بين أيوني الصوديوم والكلوريد فقط", "Only between Na⁺ and Cl⁻ ions"),
-          L("عند غليان الماء فقط", "Only above 100°C"),
+          L("بين ذرة الأكسجين والهيدروجين داخل الجزيء الواحد", "Between $\\mathrm{O}$ and $\\mathrm{H}$ inside the same $\\mathrm{H_2O}$ molecule"),
+          L("بين الهيدروجين الموجب جزئيًا ($\\delta^+$) في جزيء والأكسجين السالب جزئيًا ($\\delta^-$) في جزيء آخر", "Between a $\\delta^+$ $\\mathrm{H}$ on one molecule and a $\\delta^-$ $\\mathrm{O}$ on a neighbouring molecule"),
+          L("بين أيوني الصوديوم والكلوريد فقط", "Only between $\\mathrm{Na^+}$ and $\\mathrm{Cl^-}$ ions"),
+          L("عند غليان الماء فقط", "Only above $100^{\\circ}\\text{C}$"),
         ],
         correct_index: 1,
-        explanation: L("الروابط الهيدروجينية قوى تجاذب بين الجزيئات، أما داخل الجزيء الواحد فالروابط تساهمية قطبية.", "Hydrogen bonds are intermolecular attractions between neighbouring water molecules; O–H bonds inside a molecule are polar covalent."),
+        explanation: L("الروابط الهيدروجينية قوى تجاذب بين الجزيئات، أما داخل الجزيء الواحد فالروابط تساهمية قطبية.", "Hydrogen bonds are intermolecular attractions between neighbouring water molecules; $\\mathrm{O-H}$ bonds inside a molecule are polar covalent."),
         hint: L("فرّق بين الرابطة داخل الجزيء وبين التجاذب بين الجزيئات.", "Distinguish intramolecular covalent bonds from intermolecular attractions."),
         difficulty: "standard",
       },
       {
         id: "sec1-sci2-q3",
-        prompt: L("محلولان مائيان عند 25°C: المحلول (س) له pH = 3، والمحلول (ص) له pH = 11. ما تصنيفهما؟", "Two aqueous solutions at 25°C have pH = 3 (X) and pH = 11 (Y). How are they classified?"),
+        prompt: L("محلولان مائيان عند $25^{\\circ}\\text{C}$: المحلول (س) له $\\mathrm{pH} = 3$، والمحلول (ص) له $\\mathrm{pH} = 11$. ما تصنيفهما؟", "Two aqueous solutions at $25^{\\circ}\\text{C}$ have $\\mathrm{pH} = 3$ (X) and $\\mathrm{pH} = 11$ (Y). How are they classified?"),
         choices: [
           L("(س) قاعدي، (ص) حمضي", "X is basic, Y is acidic"),
           L("(س) متعادل، (ص) حمضي", "X is neutral, Y is acidic"),
@@ -328,14 +314,14 @@ const TOPIC_MODULES: readonly TopicModule[] = [
           L("كلاهما متعادل", "Both are neutral"),
         ],
         correct_index: 2,
-        explanation: L("أقل من 7 يعني محلولًا حمضيًا (تركيز H⁺ أعلى)، وأكبر من 7 يعني محلولًا قاعديًا (تركيز OH⁻ أعلى).", "At 25°C, pH < 7 indicates an acidic solution, whereas pH > 7 indicates a basic/alkaline solution."),
-        hint: L("نقطة التعادل المرجعية عند 25°C هي pH = 7.", "Compare each value against the neutral reference pH = 7."),
+        explanation: L("أقل من $7$ يعني محلولًا حمضيًا (تركيز $\\mathrm{H^+}$ أعلى)، وأكبر من $7$ يعني محلولًا قاعديًا (تركيز $\\mathrm{OH^-}$ أعلى).", "At $25^{\\circ}\\text{C}$, $\\mathrm{pH} < 7$ indicates an acidic solution, whereas $\\mathrm{pH} > 7$ indicates a basic or alkaline solution."),
+        hint: L("نقطة التعادل المرجعية عند $25^{\\circ}\\text{C}$ هي $\\mathrm{pH} = 7$.", "Compare each value against the neutral reference $\\mathrm{pH} = 7$."),
         difficulty: "foundational",
       },
     ],
     flashcards: [
-      { front: L("الزاوية داخل جزيء الماء", "Water molecule bond angle"), back: L("حوالي 104.5° وشكل جزيئي منحنٍ قطبي.", "Approximately 104.5° with a bent polar shape.") },
-      { front: L("مقياس الرقم الهيدروجيني (pH) عند 25°C", "pH Scale at 25°C"), back: L("أقل من 7: حمضي | يساوي 7: متعادل | أكبر من 7: قاعدي.", "pH < 7 acidic | pH = 7 neutral | pH > 7 basic.") },
+      { front: L("الزاوية داخل جزيء الماء", "Water molecule bond angle"), back: L("حوالي $104.5^{\\circ}$ وشكل جزيئي منحنٍ قطبي.", "Approximately $104.5^{\\circ}$ with a bent polar shape.") },
+      { front: L("مقياس الرقم الهيدروجيني ($\\mathrm{pH}$) عند $25^{\\circ}\\text{C}$", "$\\mathrm{pH}$ Scale at $25^{\\circ}\\text{C}$"), back: L("أقل من $7$: حمضي؛ يساوي $7$: متعادل؛ أكبر من $7$: قاعدي.", "$\\mathrm{pH} < 7$ acidic; $\\mathrm{pH} = 7$ neutral; $\\mathrm{pH} > 7$ basic.") },
     ],
   },
   {
@@ -347,54 +333,54 @@ const TOPIC_MODULES: readonly TopicModule[] = [
     concepts: [
       {
         id: "density-anomaly",
-        title: L("شذوذ كثافة الماء عند 4°C", "Water's Density Anomaly at 4°C"),
+        title: L("شذوذ كثافة الماء عند $4^{\\circ}\\text{C}$", "Water's Density Anomaly at $4^{\\circ}\\text{C}$"),
         body: L(
-          "الكثافة = الكتلة / الحجم. وتبلغ كثافة الماء السائل أقصاها عند ~4°C؛ وعند تبريده من 4°C إلى 0°C يتمدد وتقل كثافته فيطفو الجليد فوق الماء، مما يحمي الكائنات المائية أسفل الجليد من التجمد الكامل.",
-          "Density = mass / volume. Liquid water reaches maximum density near 4°C. As it cools from 4°C toward 0°C, hydrogen-bonded lattices expand, lowering density so ice floats and insulates aquatic organisms below.",
+          "الكثافة $\\rho = \\frac{m}{V}$. وتبلغ كثافة الماء السائل أقصاها عند $\\approx 4^{\\circ}\\text{C}$؛ وعند تبريده من $4^{\\circ}\\text{C}$ إلى $0^{\\circ}\\text{C}$ يتمدد وتقل كثافته فيطفو الجليد فوق الماء، مما يحمي الكائنات المائية أسفل الجليد من التجمد الكامل.",
+          "Density $\\rho = \\frac{m}{V}$. Liquid water reaches maximum density near $4^{\\circ}\\text{C}$. As it cools from $4^{\\circ}\\text{C}$ toward $0^{\\circ}\\text{C}$, hydrogen-bonded lattices expand, lowering density so ice floats and insulates aquatic organisms below.",
         ),
-        formulaOrRule: L("الكثافة = m / V  |  T(K) = T(°C) + 273.15", "ρ = m / V  |  T(K) = T(°C) + 273.15"),
+        formulaOrRule: L("$\\rho = \\frac{m}{V}$ — $T(\\text{K}) = T(^{\\circ}\\text{C}) + 273.15$", "$\\rho = \\frac{m}{V}$ — $T(\\text{K}) = T(^{\\circ}\\text{C}) + 273.15$"),
       },
       {
         id: "specific-heat",
-        title: L("درجة الحرارة مقابل كمية الحرارة ومعادلة Q = mcΔT", "Temperature vs. Heat & Q = mcΔT"),
+        title: L("درجة الحرارة مقابل كمية الحرارة ومعادلة $Q = m c \\Delta T$", "Temperature vs. Heat & $Q = m c \\Delta T$"),
         body: L(
-          "درجة الحرارة مقياس لمتوسط طاقة حركة الجزيئات، بينما الحرارة طاقة منتقلة بسبب فرق درجات الحرارة. يمتلك الماء سعة حرارية نوعية عالية (≈ 4200 J/(kg·°C)) تلطف مناخ السواحل وتفسر نسيم البحر نهارًا ونسيم البر ليلًا.",
-          "Temperature reflects average particle kinetic energy, while heat is energy transferred due to a temperature difference. Water's high specific heat (~4200 J/(kg·°C)) moderates coastal climates and drives day sea breezes and night land breezes.",
+          "درجة الحرارة مقياس لمتوسط طاقة حركة الجزيئات، بينما الحرارة طاقة منتقلة بسبب فرق درجات الحرارة. يمتلك الماء سعة حرارية نوعية عالية ($\\approx 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$) تلطف مناخ السواحل وتفسر نسيم البحر نهارًا ونسيم البر ليلًا.",
+          "Temperature reflects average particle kinetic energy, while heat is energy transferred due to a temperature difference. Water's high specific heat ($\\approx 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$) moderates coastal climates and drives day sea breezes and night land breezes.",
         ),
-        formulaOrRule: L("Q = m × c × ΔT   (c للماء ≈ 4200 J/(kg·°C))", "Q = m × c × ΔT   (c_water ≈ 4200 J/(kg·°C))"),
+        formulaOrRule: L("$Q = m \\cdot c \\cdot \\Delta T$ حيث $c_{\\text{water}} \\approx 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$", "$Q = m \\cdot c \\cdot \\Delta T$ ($c_{\\text{water}} \\approx 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$)"),
       },
     ],
     worked: [
       {
-        problem: L("احسب كمية الحرارة اللازمة لرفع درجة حرارة 2 kg من الماء بمقدار 5°C علمًا بأن c = 4200 J/(kg·°C).", "Calculate Q required to warm 2 kg of water by ΔT = 5°C given c = 4200 J/(kg·°C)."),
+        problem: L("احسب كمية الحرارة اللازمة لرفع درجة حرارة $2\\text{ kg}$ من الماء بمقدار $5^{\\circ}\\text{C}$ علمًا بأن $c = 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$.", "Calculate $Q$ required to warm $2\\text{ kg}$ of water by $\\Delta T = 5^{\\circ}\\text{C}$ given $c = 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$."),
         steps: [
-          L("اكتب القانون: Q = m × c × ΔT", "Write equation: Q = m × c × ΔT"),
-          L("عوّض بالقيم: m = 2 kg ، c = 4200 ، ΔT = 5°C", "Substitute: m = 2 kg, c = 4200 J/(kg·°C), ΔT = 5°C"),
-          L("احسب: Q = 2 × 4200 × 5 = 42,000 J", "Compute: Q = 2 × 4200 × 5 = 42,000 J (42 kJ)"),
+          L("اكتب القانون: $Q = m \\cdot c \\cdot \\Delta T$", "Write equation: $Q = m \\cdot c \\cdot \\Delta T$"),
+          L("عوّض بالقيم: $m = 2\\text{ kg}$، $c = 4200$، $\\Delta T = 5^{\\circ}\\text{C}$", "Substitute: $m = 2\\text{ kg}$, $c = 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$, $\\Delta T = 5^{\\circ}\\text{C}$"),
+          L("احسب: $Q = 2 \\times 4200 \\times 5 = 42{,}000\\text{ J}$", "Compute: $Q = 2 \\times 4200 \\times 5 = 42{,}000\\text{ J}$ ($42\\text{ kJ}$)"),
         ],
-        takeaway: L("تتناسب الحرارة المكتسبة طرديًا مع الكتلة وفرق درجات الحرارة.", "Heat transferred scales linearly with mass, specific heat, and ΔT."),
+        takeaway: L("تتناسب الحرارة المكتسبة طرديًا مع الكتلة وفرق درجات الحرارة.", "Heat transferred scales linearly with mass, specific heat, and $\\Delta T$."),
       },
     ],
     mistakes: [
-      L("استخدام درجة الحرارة بمعنى كمية الحرارة أو الخلط بين وحدتي الكلفن والدرجة المئوية.", "Treating temperature and heat energy as synonyms or forgetting +273(.15) for Kelvin."),
+      L("استخدام درجة الحرارة بمعنى كمية الحرارة أو الخلط بين وحدتي الكلفن والدرجة المئوية.", "Treating temperature and heat energy as synonyms or forgetting $+273.15$ for Kelvin."),
     ],
     questions: [
       {
         id: "sec1-sci3-q1",
         prompt: L("عند أي درجة حرارة تقريبًا يبلغ الماء السائل أقصى كثافة له؟", "At approximately what temperature does liquid water reach its maximum density?"),
-        choices: [L("0°C", "0°C"), L("4°C", "4°C"), L("25°C", "25°C"), L("100°C", "100°C")],
+        choices: [L("$0^{\\circ}\\text{C}$", "$0^{\\circ}\\text{C}$"), L("$4^{\\circ}\\text{C}$", "$4^{\\circ}\\text{C}$"), L("$25^{\\circ}\\text{C}$", "$25^{\\circ}\\text{C}$"), L("$100^{\\circ}\\text{C}$", "$100^{\\circ}\\text{C}$")],
         correct_index: 1,
-        explanation: L("تبلغ كثافة الماء النقي أقصاها عند 4°C تقريبًا، وبعدها يتمدد مع انخفاض الحرارة إلى 0°C.", "Water peaks in density at ~4°C and expands below 4°C as open ice-like clusters form."),
-        hint: L("ليست درجة التجمد الصفرية؛ أعلى قليلًا منها.", "It is slightly above freezing point 0°C."),
+        explanation: L("تبلغ كثافة الماء النقي أقصاها عند $4^{\\circ}\\text{C}$ تقريبًا، وبعدها يتمدد مع انخفاض الحرارة إلى $0^{\\circ}\\text{C}$.", "Water peaks in density at $\\approx 4^{\\circ}\\text{C}$ and expands below $4^{\\circ}\\text{C}$ as open ice-like clusters form."),
+        hint: L("ليست درجة التجمد الصفرية؛ أعلى قليلًا منها.", "It is slightly above freezing point $0^{\\circ}\\text{C}$."),
         difficulty: "foundational",
       },
       {
         id: "sec1-sci3-q2",
-        prompt: L("ما كمية الحرارة اللازمة لتسخين 0.50 kg من الماء بمقدار 10°C (حيث c = 4200 J/(kg·°C))؟", "Calculate Q to heat 0.50 kg of water by 10°C (c = 4200 J/(kg·°C))."),
-        choices: [L("4,200 J", "4,200 J"), L("21,000 J", "21,000 J"), L("42,000 J", "42,000 J"), L("2,100 J", "2,100 J")],
+        prompt: L("ما كمية الحرارة اللازمة لتسخين $0.50\\text{ kg}$ من الماء بمقدار $10^{\\circ}\\text{C}$ (حيث $c = 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$)؟", "Calculate $Q$ to heat $0.50\\text{ kg}$ of water by $10^{\\circ}\\text{C}$ ($c = 4200\\text{ J}/(\\text{kg}\\cdot^{\\circ}\\text{C})$)."),
+        choices: [L("$4{,}200\\text{ J}$", "$4{,}200\\text{ J}$"), L("$21{,}000\\text{ J}$", "$21{,}000\\text{ J}$"), L("$42{,}000\\text{ J}$", "$42{,}000\\text{ J}$"), L("$2{,}100\\text{ J}$", "$2{,}100\\text{ J}$")],
         correct_index: 1,
-        explanation: L("بتطبيق Q = m × c × ΔT = 0.50 × 4200 × 10 = 21,000 J.", "Q = m × c × ΔT = 0.50 × 4200 × 10 = 21,000 J."),
-        hint: L("استخدم العلاقة Q = m × c × ΔT مباشرة.", "Multiply m × c × ΔT directly."),
+        explanation: L("بتطبيق $Q = m \\cdot c \\cdot \\Delta T = 0.50 \\times 4200 \\times 10 = 21{,}000\\text{ J}$.", "$Q = m \\cdot c \\cdot \\Delta T = 0.50 \\times 4200 \\times 10 = 21{,}000\\text{ J}$."),
+        hint: L("استخدم العلاقة $Q = m \\cdot c \\cdot \\Delta T$ مباشرة.", "Multiply $m \\cdot c \\cdot \\Delta T$ directly."),
         difficulty: "standard",
       },
       {
@@ -408,8 +394,8 @@ const TOPIC_MODULES: readonly TopicModule[] = [
       },
     ],
     flashcards: [
-      { front: L("معادلة السعة الحرارية", "Heat capacity formula"), back: L("Q = m × c × ΔT (بوحدة الجول).", "Q = m × c × ΔT (joules).") },
-      { front: L("لماذا يطفو الجليد فوق الماء؟", "Why does ice float?"), back: L("لأن كثافة الجليد أقل من كثافة الماء السائل الذي يبلغ أقصى كثافة عند 4°C.", "Ice expands below 4°C, giving it lower density than liquid water.") },
+      { front: L("معادلة السعة الحرارية", "Heat capacity formula"), back: L("$Q = m \\cdot c \\cdot \\Delta T$ (بوحدة الجول).", "$Q = m \\cdot c \\cdot \\Delta T$ (joules).") },
+      { front: L("لماذا يطفو الجليد فوق الماء؟", "Why does ice float?"), back: L("لأن كثافة الجليد أقل من كثافة الماء السائل الذي يبلغ أقصى كثافة عند $4^{\\circ}\\text{C}$.", "Ice expands below $4^{\\circ}\\text{C}$, giving it lower density than liquid water.") },
     ],
   },
   {
@@ -495,66 +481,66 @@ const TOPIC_MODULES: readonly TopicModule[] = [
     aliases: ["complex numbers", "imaginary unit", "الأعداد المركبة", "الوحدة التخيلية"],
     subject: "mathematics",
     position: 1,
-    title: L("الأعداد المركبة والوحدة التخيلية i", "Complex Numbers & Imaginary Unit i"),
+    title: L("الأعداد المركبة والوحدة التخيلية $\\text{ت}$", "Complex Numbers & Imaginary Unit $i$"),
     concepts: [
       {
         id: "powers-i",
-        title: L("تعريف i والدورة الرباعية لقوى i", "Imaginary Unit i & Four-Cycle Powers"),
+        title: L("تعريف $\\text{ت}$ والدورة الرباعية لقوى $\\text{ت}$", "Imaginary Unit $i$ & Four-Cycle Powers"),
         body: L(
-          "تُعرّف الوحدة التخيلية i بحيث i² = −1 لحل معادلات مثل x² + 1 = 0. تتكرر قوى i كل 4 قوى: i¹ = i ، i² = −1 ، i³ = −i ، i⁴ = 1. لتبسيط iⁿ نقسم n على 4 ونستعمل الباقي.",
-          "The imaginary unit satisfies i² = −1. Integer powers repeat every four: i¹ = i, i² = −1, i³ = −i, i⁴ = 1. To simplify iⁿ, divide n by 4 and evaluate using the remainder.",
+          "تُعرّف الوحدة التخيلية $\\text{ت}$ بحيث $\\text{ت}^2 = -1$ لحل معادلات مثل $\\text{س}^2 + 1 = 0$. تتكرر قوى $\\text{ت}$ كل $4$ قوى: $\\text{ت}^1 = \\text{ت}$، $\\text{ت}^2 = -1$، $\\text{ت}^3 = -\\text{ت}$، $\\text{ت}^4 = 1$. لتبسيط $\\text{ت}^n$ نقسم $n$ على $4$ ونستعمل الباقي.",
+          "The imaginary unit satisfies $i^2 = -1$. Integer powers repeat every four: $i^1 = i$, $i^2 = -1$, $i^3 = -i$, $i^4 = 1$. To simplify $i^n$, divide $n$ by $4$ and evaluate using the remainder.",
         ),
-        formulaOrRule: L("z = a + bi  |  Re(z) = a , Im(z) = b  |  المرافق z̄ = a − bi  |  (a+bi)(a−bi) = a² + b²", "z = a + bi  |  Re(z) = a, Im(z) = b  |  Conjugate z̄ = a − bi  |  z·z̄ = a² + b²"),
+        formulaOrRule: L("$\\text{ع} = \\text{أ} + \\text{ب}\\,\\text{ت}$؛ المرافق $\\bar{\\text{ع}} = \\text{أ} - \\text{ب}\\,\\text{ت}$؛ $(\\text{أ}+\\text{ب}\\,\\text{ت})(\\text{أ}-\\text{ب}\\,\\text{ت}) = \\text{أ}^2 + \\text{ب}^2$", "$z = a + bi$; $\\operatorname{Re}(z) = a$, $\\operatorname{Im}(z) = b$; Conjugate $\\bar{z} = a - bi$; $z\\bar{z} = a^2 + b^2$"),
       },
     ],
     worked: [
       {
-        problem: L("بسّط المقدار (1 + i) / (1 − i) في الصورة القياسية a + bi.", "Simplify (1 + i) / (1 − i) into standard form a + bi."),
+        problem: L("بسّط المقدار $\\frac{1 + \\text{ت}}{1 - \\text{ت}}$ في الصورة القياسية $\\text{أ} + \\text{ب}\\,\\text{ت}$.", "Simplify $\\frac{1 + i}{1 - i}$ into standard form $a + bi$."),
         steps: [
-          L("اضرب البسط والمقام في مرافق المقام (1 + i).", "Multiply numerator and denominator by the denominator's conjugate (1 + i)."),
-          L("المقام يصبح: (1 − i)(1 + i) = 1² + 1² = 2.", "Denominator becomes (1 − i)(1 + i) = 1² − i² = 1 + 1 = 2."),
-          L("البسط يصبح: (1 + i)² = 1 + 2i + i² = 1 + 2i − 1 = 2i.", "Numerator becomes (1 + i)² = 1 + 2i + (−1) = 2i."),
-          L("إذن الناتج: 2i / 2 = i.", "Quotient evaluates to 2i / 2 = i."),
+          L("اضرب البسط والمقام في مرافق المقام $(1 + \\text{ت})$.", "Multiply numerator and denominator by the denominator's conjugate $(1 + i)$."),
+          L("المقام يصبح: $(1 - \\text{ت})(1 + \\text{ت}) = 1^2 + 1^2 = 2$.", "Denominator becomes $(1 - i)(1 + i) = 1^2 - i^2 = 1 + 1 = 2$."),
+          L("البسط يصبح: $(1 + \\text{ت})^2 = 1 + 2\\text{ت} + \\text{ت}^2 = 1 + 2\\text{ت} - 1 = 2\\text{ت}$.", "Numerator becomes $(1 + i)^2 = 1 + 2i + (-1) = 2i$."),
+          L("إذن الناتج: $\\frac{2\\text{ت}}{2} = \\text{ت}$.", "Quotient evaluates to $\\frac{2i}{2} = i$."),
         ],
         takeaway: L("استخدم مرافق المقام دائمًا لتحويل المقام إلى عدد حقيقي موجب.", "Always multiply top and bottom by the denominator's conjugate to rationalize quotients."),
       },
     ],
     mistakes: [
-      L("نسيان أن i² = −1 عند فك الأقواس.", "Forgetting to substitute i² = −1 when expanding products."),
-      L("أخذ الحد التخيلي bi بالكامل بدل المعامل الحقيقي b عند كتابة Im(z).", "Treating bi rather than b as the imaginary coefficient Im(z)."),
+      L("نسيان أن $\\text{ت}^2 = -1$ عند فك الأقواس.", "Forgetting to substitute $i^2 = -1$ when expanding products."),
+      L("أخذ الحد التخيلي $\\text{ب}\\,\\text{ت}$ بالكامل بدل المعامل الحقيقي $\\text{ب}$ عند كتابة الجزء التخيلي.", "Treating $bi$ rather than real $b$ as the imaginary coefficient $\\operatorname{Im}(z)$."),
     ],
     questions: [
       {
         id: "sec1-math1-q1",
-        prompt: L("ما قيمة المقدار التخيلي i¹⁴ في أبسط صورة؟", "Simplify the power i¹⁴."),
-        choices: [L("i", "i"), L("-i", "-i"), L("-1", "-1"), L("1", "1")],
+        prompt: L("ما قيمة المقدار التخيلي $\\text{ت}^{14}$ في أبسط صورة؟", "Simplify the power $i^{14}$."),
+        choices: [L("$\\text{ت}$", "$i$"), L("$-\\text{ت}$", "$-i$"), L("$-1$", "$-1$"), L("$1$", "$1$")],
         correct_index: 2,
-        explanation: L("بقسمة 14 على 4 يكون الباقي 2، إذن i¹⁴ = i¹² × i² = 1 × (−1) = −1.", "Dividing 14 by 4 leaves remainder 2, so i¹⁴ = (i⁴)³ · i² = 1 · (−1) = −1."),
-        hint: L("اقسم الأس 14 على 4 واستخدم باقي القسمة.", "Divide exponent 14 by 4 and evaluate i^(remainder)."),
+        explanation: L("بقسمة $14$ على $4$ يكون الباقي $2$، إذن $\\text{ت}^{14} = \\text{ت}^{12} \\cdot \\text{ت}^2 = 1 \\times (-1) = -1$.", "Dividing $14$ by $4$ leaves remainder $2$, so $i^{14} = (i^4)^3 \\cdot i^2 = 1 \\cdot (-1) = -1$."),
+        hint: L("اقسم الأس $14$ على $4$ واستخدم باقي القسمة.", "Divide exponent $14$ by $4$ and evaluate $i^{\\text{remainder}}$."),
         difficulty: "foundational",
       },
       {
         id: "sec1-math1-q2",
-        prompt: L("إذا كان 3 + (x − 2)i = 3 + 5i حيث x عدد حقيقي، فما قيمة x؟", "If 3 + (x − 2)i = 3 + 5i for real x, find x."),
-        choices: [L("3", "3"), L("7", "7"), L("5", "5"), L("-3", "-3")],
+        prompt: L("إذا كان $3 + (\\text{س} - 2)\\text{ت} = 3 + 5\\text{ت}$ حيث $\\text{س} \\in \\mathbb{R}$، فما قيمة $\\text{س}$؟", "If $3 + (x - 2)i = 3 + 5i$ for real $x$, find $x$."),
+        choices: [L("$3$", "$3$"), L("$7$", "$7$"), L("$5$", "$5$"), L("$-3$", "$-3$")],
         correct_index: 1,
-        explanation: L("بتساوي الجزء التخيلي في الطرفين: x − 2 = 5، ومنها x = 7.", "Equating imaginary coefficients gives x − 2 = 5, hence x = 7."),
-        hint: L("يتساوى عددان مركبان إذا تساوى الجزء الحقيقي مع الحقيقي والتخيلي مع التخيلي.", "Set the imaginary coefficients equal: x − 2 = 5."),
+        explanation: L("بتساوي الجزء التخيلي في الطرفين: $\\text{س} - 2 = 5$، ومنها $\\text{س} = 7$.", "Equating imaginary coefficients gives $x - 2 = 5$, hence $x = 7$."),
+        hint: L("يتساوى عددان مركبان إذا تساوى الجزء الحقيقي مع الحقيقي والتخيلي مع التخيلي.", "Set the imaginary coefficients equal: $x - 2 = 5$."),
         difficulty: "foundational",
       },
       {
         id: "sec1-math1-q3",
-        prompt: L("ما ناتج ضرب (2 + i)(3 − 2i) في الصورة a + bi؟", "Compute (2 + i)(3 − 2i) in standard form."),
-        choices: [L("4 − i", "4 − i"), L("8 − i", "8 − i"), L("6 − 2i", "6 − 2i"), L("8 + 7i", "8 + 7i")],
+        prompt: L("ما ناتج ضرب $(2 + \\text{ت})(3 - 2\\text{ت})$ في الصورة $\\text{أ} + \\text{ب}\\,\\text{ت}$؟", "Compute $(2 + i)(3 - 2i)$ in standard form."),
+        choices: [L("$4 - \\text{ت}$", "$4 - i$"), L("$8 - \\text{ت}$", "$8 - i$"), L("$6 - 2\\text{ت}$", "$6 - 2i$"), L("$8 + 7\\text{ت}$", "$8 + 7i$")],
         correct_index: 1,
-        explanation: L("6 − 4i + 3i − 2i² = 6 − i − 2(−1) = 6 + 2 − i = 8 − i.", "6 − 4i + 3i − 2i² = 6 − i + 2 = 8 − i."),
-        hint: L("استبدل −2i² بالقيمة +2.", "Remember −2i² = +2."),
+        explanation: L("$6 - 4\\text{ت} + 3\\text{ت} - 2\\text{ت}^2 = 6 - \\text{ت} - 2(-1) = 6 + 2 - \\text{ت} = 8 - \\text{ت}$.", "$6 - 4i + 3i - 2i^2 = 6 - i + 2 = 8 - i$."),
+        hint: L("استبدل $-2\\text{ت}^2$ بالقيمة $+2$.", "Remember $-2i^2 = +2$."),
         difficulty: "standard",
       },
     ],
     flashcards: [
-      { front: L("دورة قوى i", "Cyclic powers of i"), back: L("i¹ = i , i² = −1 , i³ = −i , i⁴ = 1", "i¹ = i, i² = −1, i³ = −i, i⁴ = 1") },
-      { front: L("حاصل ضرب العدد المركب في مرافقه", "Product of z and conjugate z̄"), back: L("(a + bi)(a − bi) = a² + b² (عدد حقيقي دائمًا)", "(a + bi)(a − bi) = a² + b² (always real)") },
+      { front: L("دورة قوى $\\text{ت}$", "Cyclic powers of $i$"), back: L("$\\text{ت}^1 = \\text{ت}$، $\\text{ت}^2 = -1$، $\\text{ت}^3 = -\\text{ت}$، $\\text{ت}^4 = 1$", "$i^1 = i$, $i^2 = -1$, $i^3 = -i$, $i^4 = 1$") },
+      { front: L("حاصل ضرب العدد المركب في مرافقه", "Product of $z$ and conjugate $\\bar{z}$"), back: L("$(\\text{أ} + \\text{ب}\\,\\text{ت})(\\text{أ} - \\text{ب}\\,\\text{ت}) = \\text{أ}^2 + \\text{ب}^2$ (عدد حقيقي دائمًا)", "$(a + bi)(a - bi) = a^2 + b^2$ (always real)") },
     ],
   },
   {
@@ -566,32 +552,32 @@ const TOPIC_MODULES: readonly TopicModule[] = [
     concepts: [
       {
         id: "discriminant",
-        title: L("حالات المميز Δ = b² − 4ac والمدلول البياني", "Discriminant Cases Δ = b² − 4ac"),
+        title: L("حالات المميز $\\Delta = \\text{ب}^2 - 4\\text{أ}\\text{جـ}$ والمدلول البياني", "Discriminant Cases $\\Delta = b^2 - 4ac$"),
         body: L(
-          "في المعادلة ax² + bx + c = 0 (حيث a ≠ 0): إذا كان Δ > 0 يوجد جذران حقيقيان مختلفان (القطع المكافئ يقطع محور السينات في نقطتين). إذا كان Δ = 0 يوجد جذران حقيقيان متساويان (يمس محور السينات). إذا كان Δ < 0 يوجد جذران مركبان غير حقيقيين مترافقان (لا يقطع محور السينات).",
-          "For ax² + bx + c = 0 (a ≠ 0): Δ > 0 gives two distinct real roots (parabola crosses x-axis twice); Δ = 0 gives one repeated real root x = −b/(2a) (tangent to x-axis); Δ < 0 gives two complex conjugate non-real roots (no x-intercepts).",
+          "في المعادلة $\\text{أ}\\text{س}^2 + \\text{ب}\\text{س} + \\text{جـ} = 0$ (حيث $\\text{أ} \\neq 0$): إذا كان $\\Delta > 0$ يوجد جذران حقيقيان مختلفان (القطع المكافئ يقطع محور السينات في نقطتين). إذا كان $\\Delta = 0$ يوجد جذران حقيقيان متساويان (يمس محور السينات). إذا كان $\\Delta < 0$ يوجد جذران مركبان غير حقيقيين مترافقان (لا يقطع محور السينات).",
+          "For $ax^2 + bx + c = 0$ ($a \\neq 0$): $\\Delta > 0$ gives two distinct real roots (parabola crosses x-axis twice); $\\Delta = 0$ gives one repeated real root $x = -\\frac{b}{2a}$ (tangent to x-axis); $\\Delta < 0$ gives two complex conjugate non-real roots (no x-intercepts).",
         ),
-        formulaOrRule: L("Δ = b² − 4ac", "Δ = b² − 4ac"),
+        formulaOrRule: L("$\\Delta = \\text{ب}^2 - 4\\text{أ}\\text{جـ}$", "$\\Delta = b^2 - 4ac$"),
       },
     ],
     worked: [
       {
-        problem: L("أوجد قيمة الثابت k التي تجعل جذري المعادلة x² + kx + 9 = 0 متساويين.", "Find k such that x² + kx + 9 = 0 has equal real roots."),
+        problem: L("أوجد قيمة الثابت $\\text{ك}$ التي تجعل جذري المعادلة $\\text{س}^2 + \\text{ك}\\,\\text{س} + 9 = 0$ متساويين.", "Find $k$ such that $x^2 + kx + 9 = 0$ has equal real roots."),
         steps: [
-          L("شرط تساوي الجذرين هو أن يكون المميز Δ = 0.", "Equal roots occur when Δ = 0."),
-          L("a = 1 ، b = k ، c = 9 إذن Δ = k² − 4(1)(9) = k² − 36 = 0.", "With a = 1, b = k, c = 9: k² − 36 = 0."),
-          L("إذن k² = 36 ومنها k = 6 أو k = −6.", "Solving yields k = ±6."),
+          L("شرط تساوي الجذرين هو أن يكون المميز $\\Delta = 0$.", "Equal roots occur when $\\Delta = 0$."),
+          L("$\\text{أ} = 1$، $\\text{ب} = \\text{ك}$، $\\text{جـ} = 9$ إذن $\\Delta = \\text{ك}^2 - 4(1)(9) = \\text{ك}^2 - 36 = 0$.", "With $a = 1$, $b = k$, $c = 9$: $k^2 - 36 = 0$."),
+          L("إذن $\\text{ك}^2 = 36$ ومنها $\\text{ك} = 6$ أو $\\text{ك} = -6$.", "Solving yields $k = \\pm 6$."),
         ],
-        takeaway: L("للجذور المتساوية ضع Δ = 0، وللمختلفة الحقيقية Δ > 0، وللمركبة غير الحقيقية Δ < 0.", "Set Δ = 0 for equal roots, Δ > 0 for distinct real roots, Δ < 0 for complex roots."),
+        takeaway: L("للجذور المتساوية ضع $\\Delta = 0$، وللمختلفة الحقيقية $\\Delta > 0$، وللمركبة غير الحقيقية $\\Delta < 0$.", "Set $\\Delta = 0$ for equal roots, $\\Delta > 0$ for distinct real roots, $\\Delta < 0$ for complex roots."),
       },
     ],
     mistakes: [
-      L("نسيان إشارة السالب عند تربيع b سالب مثل (−5)² = +25 وليس −25.", "Computing (−5)² as −25 instead of +25 in b² − 4ac."),
+      L("نسيان إشارة السالب عند تربيع $\\text{ب}$ سالب مثل $(-5)^2 = +25$ وليس $-25$.", "Computing $(-5)^2$ as $-25$ instead of $+25$ in $b^2 - 4ac$."),
     ],
     questions: [
       {
         id: "sec1-math2-q1",
-        prompt: L("ما نوع جذري المعادلة 2x² − 3x + 1 = 0؟", "What is the nature of the roots of 2x² − 3x + 1 = 0?"),
+        prompt: L("ما نوع جذري المعادلة $2\\text{س}^2 - 3\\text{س} + 1 = 0$؟", "What is the nature of the roots of $2x^2 - 3x + 1 = 0$?"),
         choices: [
           L("جذران حقيقيان متساويان", "Two equal real roots"),
           L("جذران حقيقيان مختلفان", "Two distinct real roots"),
@@ -599,23 +585,23 @@ const TOPIC_MODULES: readonly TopicModule[] = [
           L("لا توجد جذور للمعادلة", "No solutions exist"),
         ],
         correct_index: 1,
-        explanation: L("المميز Δ = (−3)² − 4(2)(1) = 9 − 8 = 1 > 0، لذا يوجد جذران حقيقيان مختلفان.", "Δ = (−3)² − 4(2)(1) = 9 − 8 = 1 > 0, giving two distinct real roots."),
-        hint: L("احسب Δ = b² − 4ac حيث a=2, b=-3, c=1.", "Compute Δ = b² − 4ac."),
+        explanation: L("المميز $\\Delta = (-3)^2 - 4(2)(1) = 9 - 8 = 1 > 0$، لذا يوجد جذران حقيقيان مختلفان.", "$\\Delta = (-3)^2 - 4(2)(1) = 9 - 8 = 1 > 0$, giving two distinct real roots."),
+        hint: L("احسب $\\Delta = \\text{ب}^2 - 4\\text{أ}\\text{جـ}$ حيث $\\text{أ}=2$، $\\text{ب}=-3$، $\\text{جـ}=1$.", "Compute $\\Delta = b^2 - 4ac$."),
         difficulty: "foundational",
       },
       {
         id: "sec1-math2-q2",
-        prompt: L("إذا كان منحنى الدالة التربيعية y = ax² + bx + c لا يقطع محور السينات مطلقًا، فما إشارة المميز Δ؟", "If y = ax² + bx + c never intersects the x-axis, what must hold for Δ?"),
-        choices: [L("Δ > 0", "Δ > 0"), L("Δ = 0", "Δ = 0"), L("Δ < 0", "Δ < 0"), L("Δ ≥ 1", "Δ ≥ 1")],
+        prompt: L("إذا كان منحنى الدالة التربيعية $\\text{ص} = \\text{أ}\\text{س}^2 + \\text{ب}\\text{س} + \\text{جـ}$ لا يقطع محور السينات مطلقًا، فما إشارة المميز $\\Delta$؟", "If $y = ax^2 + bx + c$ never intersects the x-axis, what must hold for $\\Delta$?"),
+        choices: [L("$\\Delta > 0$", "$\\Delta > 0$"), L("$\\Delta = 0$", "$\\Delta = 0$"), L("$\\Delta < 0$", "$\\Delta < 0$"), L("$\\Delta \\ge 1$", "$\\Delta \\ge 1$")],
         correct_index: 2,
-        explanation: L("عدم تقاطع المنحنى مع محور السينات يعني عدم وجود جذور حقيقية، أي Δ < 0.", "No x-intercepts means zero real roots, which occurs strictly when Δ < 0."),
-        hint: L("نقاط التقاطع مع محور x هي الجذور الحقيقية.", "x-intercepts correspond to real roots."),
+        explanation: L("عدم تقاطع المنحنى مع محور السينات يعني عدم وجود جذور حقيقية، أي $\\Delta < 0$.", "No x-intercepts means zero real roots, which occurs strictly when $\\Delta < 0$."),
+        hint: L("نقاط التقاطع مع محور السينات هي الجذور الحقيقية.", "x-intercepts correspond to real roots."),
         difficulty: "standard",
       },
     ],
     flashcards: [
-      { front: L("شرط الجذور المركبة غير الحقيقية", "Condition for non-real complex roots"), back: L("Δ = b² − 4ac < 0", "Δ = b² − 4ac < 0") },
-      { front: L("شرط الجذرين الحقيقيين المتساويين", "Condition for equal real roots"), back: L("Δ = 0 ويمس المنحنى محور السينات في نقطة واحدة.", "Δ = 0; parabola touches the x-axis at one point.") },
+      { front: L("شرط الجذور المركبة غير الحقيقية", "Condition for non-real complex roots"), back: L("$\\Delta = \\text{ب}^2 - 4\\text{أ}\\text{جـ} < 0$", "$\\Delta = b^2 - 4ac < 0$") },
+      { front: L("شرط الجذرين الحقيقيين المتساويين", "Condition for equal real roots"), back: L("$\\Delta = 0$ ويمس المنحنى محور السينات في نقطة واحدة.", "$\\Delta = 0$; parabola touches the x-axis at one point.") },
     ],
   },
   {
@@ -629,48 +615,48 @@ const TOPIC_MODULES: readonly TopicModule[] = [
         id: "vieta-formulas",
         title: L("مجموع الجذرين وحاصل ضربهما والمتطابقات التماثلية", "Sum, Product & Symmetric Identities"),
         body: L(
-          "إذا كان α وβ جذري المعادلة ax² + bx + c = 0 فإن S = α + β = −b/a و P = αβ = c/a. ومن المتطابقات المهمة: α² + β² = S² − 2P ، و 1/α + 1/β = S/P. ولتكوين معادلة جذراها معلومان نكتب: x² − Sx + P = 0.",
-          "If α and β solve ax² + bx + c = 0, then S = α + β = −b/a and P = αβ = c/a. Useful symmetric forms: α² + β² = S² − 2P and 1/α + 1/β = S/P. Forming a quadratic: x² − Sx + P = 0.",
+          "إذا كان $\\text{ل}$ و$\\text{م}$ جذري المعادلة $\\text{أ}\\text{س}^2 + \\text{ب}\\text{س} + \\text{جـ} = 0$ فإن $\\text{ل} + \\text{م} = -\\frac{\\text{ب}}{\\text{أ}}$ و$\\text{ل}\\,\\text{م} = \\frac{\\text{جـ}}{\\text{أ}}$. ومن المتطابقات المهمة: $\\text{ل}^2 + \\text{م}^2 = (\\text{ل}+\\text{م})^2 - 2\\text{ل}\\,\\text{م}$، و$\\frac{1}{\\text{ل}} + \\frac{1}{\\text{م}} = \\frac{\\text{ل}+\\text{م}}{\\text{ل}\\,\\text{م}}$. ولتكوين معادلة جذراها معلومان نكتب: $\\text{س}^2 - (\\text{ل}+\\text{م})\\text{س} + \\text{ل}\\,\\text{م} = 0$.",
+          "If $L$ and $M$ solve $ax^2 + bx + c = 0$, then $S = L + M = -\\frac{b}{a}$ and $P = LM = \\frac{c}{a}$. Useful symmetric forms: $L^2 + M^2 = S^2 - 2P$ and $\\frac{1}{L} + \\frac{1}{M} = \\frac{S}{P}$. Forming a quadratic: $x^2 - Sx + P = 0$.",
         ),
-        formulaOrRule: L("α + β = −b/a  |  αβ = c/a  |  x² − (α+β)x + αβ = 0", "α + β = −b/a  |  αβ = c/a  |  x² − Sx + P = 0"),
+        formulaOrRule: L("$\\text{ل} + \\text{م} = -\\frac{\\text{ب}}{\\text{أ}}$؛ $\\text{ل}\\,\\text{م} = \\frac{\\text{جـ}}{\\text{أ}}$؛ $\\text{س}^2 - (\\text{ل}+\\text{م})\\text{س} + \\text{ل}\\,\\text{م} = 0$", "$L + M = -\\frac{b}{a}$; $LM = \\frac{c}{a}$; $x^2 - Sx + P = 0$"),
       },
     ],
     worked: [
       {
-        problem: L("إذا كان مجموع جذري معادلة تربيعية −2 وحاصل ضربهما −8، كوّن المعادلة واحسب α² + β².", "If sum S = −2 and product P = −8, form the equation and evaluate α² + β²."),
+        problem: L("إذا كان مجموع جذري معادلة تربيعية $-2$ وحاصل ضربهما $-8$، كوّن المعادلة واحسب $\\text{ل}^2 + \\text{م}^2$.", "If sum $S = -2$ and product $P = -8$, form the equation and evaluate $L^2 + M^2$."),
         steps: [
-          L("المعادلة هي x² − Sx + P = 0، أي x² − (−2)x + (−8) = 0.", "Quadratic: x² − Sx + P = x² − (−2)x + (−8) = 0."),
-          L("تبسيط المعادلة: x² + 2x − 8 = 0.", "Simplified: x² + 2x − 8 = 0."),
-          L("α² + β² = S² − 2P = (−2)² − 2(−8) = 4 + 16 = 20.", "α² + β² = (−2)² − 2(−8) = 4 + 16 = 20."),
+          L("المعادلة هي $\\text{س}^2 - (\\text{ل}+\\text{م})\\text{س} + \\text{ل}\\,\\text{م} = 0$، أي $\\text{س}^2 - (-2)\\text{س} + (-8) = 0$.", "Quadratic: $x^2 - Sx + P = x^2 - (-2)x + (-8) = 0$."),
+          L("تبسيط المعادلة: $\\text{س}^2 + 2\\text{س} - 8 = 0$.", "Simplified: $x^2 + 2x - 8 = 0$."),
+          L("$\\text{ل}^2 + \\text{م}^2 = (-2)^2 - 2(-8) = 4 + 16 = 20$.", "$L^2 + M^2 = (-2)^2 - 2(-8) = 4 + 16 = 20$."),
         ],
-        takeaway: L("حافظ على إشارة السالب أمام S في الصيغة x² − Sx + P = 0.", "Watch signs carefully in x² − Sx + P = 0 and α² + β² = S² − 2P."),
+        takeaway: L("حافظ على إشارة السالب أمام المجموع في الصيغة $\\text{س}^2 - (\\text{ل}+\\text{م})\\text{س} + \\text{ل}\\,\\text{م} = 0$.", "Watch signs carefully in $x^2 - Sx + P = 0$ and $L^2 + M^2 = S^2 - 2P$."),
       },
     ],
     mistakes: [
-      L("كتابة x² + Sx + P = 0 بدل x² − Sx + P = 0، أو نسيان السالب في −b/a.", "Writing +Sx instead of −Sx in x² − Sx + P = 0, or forgetting the minus in −b/a."),
+      L("كتابة $\\text{س}^2 + S\\text{س} + P = 0$ بدل $\\text{س}^2 - S\\text{س} + P = 0$، أو نسيان السالب في $-\\frac{\\text{ب}}{\\text{أ}}$.", "Writing $+Sx$ instead of $-Sx$ in $x^2 - Sx + P = 0$, or forgetting the minus in $-\\frac{b}{a}$."),
     ],
     questions: [
       {
         id: "sec1-math3-q1",
-        prompt: L("ما حاصل ضرب جذري المعادلة 3x² − 7x + 12 = 0؟", "What is the product of the roots of 3x² − 7x + 12 = 0?"),
-        choices: [L("4", "4"), L("7/3", "7/3"), L("-4", "-4"), L("12", "12")],
+        prompt: L("ما حاصل ضرب جذري المعادلة $3\\text{س}^2 - 7\\text{س} + 12 = 0$؟", "What is the product of the roots of $3x^2 - 7x + 12 = 0$?"),
+        choices: [L("$4$", "$4$"), L("$\\frac{7}{3}$", "$\\frac{7}{3}$"), L("$-4$", "$-4$"), L("$12$", "$12$")],
         correct_index: 0,
-        explanation: L("حاصل الضرب = c / a = 12 / 3 = 4.", "Product αβ = c/a = 12/3 = 4."),
-        hint: L("اقسم الحد المطلق c على معامل x² وهو a.", "Use αβ = c/a (divide by leading coefficient 3!)."),
+        explanation: L("حاصل الضرب $= \\frac{\\text{جـ}}{\\text{أ}} = \\frac{12}{3} = 4$.", "Product $LM = \\frac{c}{a} = \\frac{12}{3} = 4$."),
+        hint: L("اقسم الحد المطلق $\\text{جـ}$ على معامل $\\text{س}^2$ وهو $\\text{أ}$.", "Use $LM = \\frac{c}{a}$ (divide by leading coefficient $3$!)."),
         difficulty: "foundational",
       },
       {
         id: "sec1-math3-q2",
-        prompt: L("إذا كان مجموع جذري معادلة 7 وحاصل ضربهما 10، فما قيمة α² + β²؟", "Given root sum 7 and root product 10, evaluate α² + β²."),
-        choices: [L("49", "49"), L("29", "29"), L("69", "69"), L("39", "39")],
+        prompt: L("إذا كان مجموع جذري معادلة $7$ وحاصل ضربهما $10$، فما قيمة $\\text{ل}^2 + \\text{م}^2$؟", "Given root sum $7$ and root product $10$, evaluate $L^2 + M^2$."),
+        choices: [L("$49$", "$49$"), L("$29$", "$29$"), L("$69$", "$69$"), L("$39$", "$39$")],
         correct_index: 1,
-        explanation: L("α² + β² = (α + β)² − 2αβ = 7² − 2(10) = 49 − 20 = 29.", "α² + β² = S² − 2P = 49 − 20 = 29."),
-        hint: L("طبّق المتطابقة α² + β² = S² − 2P.", "Use S² − 2P."),
+        explanation: L("$\\text{ل}^2 + \\text{م}^2 = (\\text{ل} + \\text{م})^2 - 2\\text{ل}\\,\\text{م} = 7^2 - 2(10) = 49 - 20 = 29$.", "$L^2 + M^2 = S^2 - 2P = 49 - 20 = 29$."),
+        hint: L("طبّق المتطابقة $\\text{ل}^2 + \\text{م}^2 = (\\text{ل}+\\text{م})^2 - 2\\text{ل}\\,\\text{م}$.", "Use $S^2 - 2P$."),
         difficulty: "standard",
       },
     ],
     flashcards: [
-      { front: L("متطابقة مجموع مربعي الجذرين", "Sum of squares of roots"), back: L("α² + β² = (α + β)² − 2αβ", "α² + β² = (α + β)² − 2αβ") },
+      { front: L("متطابقة مجموع مربعي الجذرين", "Sum of squares of roots"), back: L("$\\text{ل}^2 + \\text{م}^2 = (\\text{ل} + \\text{م})^2 - 2\\text{ل}\\,\\text{م}$", "$L^2 + M^2 = (L + M)^2 - 2LM$") },
     ],
   },
   {
@@ -684,57 +670,57 @@ const TOPIC_MODULES: readonly TopicModule[] = [
         id: "sign-chart",
         title: L("قاعدة الإشارة وحل المتباينات التربيعية", "Sign Chart & Quadratic Inequalities"),
         body: L(
-          "عند وجود جذرين حقيقيين r₁ < r₂ للدالة f(x) = ax² + bx + c: خارج الجذرين توافق إشارة الدالة إشارة المعامل a، وبين الجذرين تخالفها. وإذا كان Δ ≤ 0 تأخذ الدالة إشارة a في ح كلها (مع الصفر عند الجذر المكرر إن وُجد). لحل متباينة نجعل طرفها صفرًا، نوجد الجذور، ونختار الفترات المطلوبة مع فتح أو إغلاق الأقواس.",
-          "When f(x) = ax² + bx + c has two real roots r₁ < r₂, f(x) shares the sign of 'a' outside (r₁, r₂) and has the opposite sign between them. If Δ ≤ 0, f(x) matches 'a' everywhere (zero at the repeated root if Δ=0). Solve inequalities by zeroing one side, finding roots, and mapping intervals.",
+          "عند وجود جذرين حقيقيين $\\text{ل} < \\text{م}$ للدالة $\\text{د}(\\text{س}) = \\text{أ}\\text{س}^2 + \\text{ب}\\text{س} + \\text{جـ}$: خارج الجذرين توافق إشارة الدالة إشارة المعامل $\\text{أ}$، وبين الجذرين تخالفها. وإذا كان $\\Delta \\le 0$ تأخذ الدالة إشارة $\\text{أ}$ في $\\mathbb{R}$ كلها (مع الصفر عند الجذر المكرر إن وُجد). لحل متباينة نجعل طرفها صفرًا، نوجد الجذور، ونختار الفترات المطلوبة مع فتح أو إغلاق الأقواس.",
+          "When $f(x) = ax^2 + bx + c$ has two real roots $r_1 < r_2$, $f(x)$ shares the sign of $a$ outside $(r_1, r_2)$ and has the opposite sign between them. If $\\Delta \\le 0$, $f(x)$ matches $a$ everywhere (zero at the repeated root if $\\Delta = 0$). Solve inequalities by zeroing one side, finding roots, and mapping intervals.",
         ),
       },
     ],
     worked: [
       {
-        problem: L("أوجد مجموعة حل المتباينة x² − 5x + 6 ≤ 0 في ح.", "Solve x² − 5x + 6 ≤ 0 in R."),
+        problem: L("أوجد مجموعة حل المتباينة $\\text{س}^2 - 5\\text{س} + 6 \\le 0$ في $\\mathbb{R}$.", "Solve $x^2 - 5x + 6 \\le 0$ in $\\mathbb{R}$."),
         steps: [
-          L("نحلل الطرف الأيمن: (x − 2)(x − 3) ≤ 0، الجذور هي 2 و 3.", "Factor: (x − 2)(x − 3) ≤ 0 -> roots 2 and 3."),
-          L("بما أن معامل x² موجب (a = 1 > 0)، فالدالة سالبة بين الجذرين وموجبة خارجهما.", "Since a = 1 > 0, the quadratic is negative between 2 and 3."),
-          L("لوجود علامة ≤ نغلق الفترة عند الجذرين: مجموعة الحل = [2, 3].", "Including endpoints for ≤ yields closed interval [2, 3]."),
+          L("نحلل الطرف الأيمن: $(\\text{س} - 2)(\\text{س} - 3) \\le 0$، الجذور هي $2$ و$3$.", "Factor: $(x - 2)(x - 3) \\le 0$, giving roots $2$ and $3$."),
+          L("بما أن معامل $\\text{س}^2$ موجب ($\\text{أ} = 1 > 0$)، فالدالة سالبة بين الجذرين وموجبة خارجهما.", "Since $a = 1 > 0$, the quadratic is negative between $2$ and $3$."),
+          L("لوجود علامة $\\le$ نغلق الفترة عند الجذرين: مجموعة الحل $= [2, 3]$.", "Including endpoints for $\\le$ yields closed interval $[2, 3]$."),
         ],
-        takeaway: L("تحقّق دائمًا من علامة التباين (> مفتوحة، ≥ مغلقة) ومن إشارة المعامل الرئيسي a.", "Verify strict vs. non-strict inequality bounds and leading sign a."),
+        takeaway: L("تحقّق دائمًا من علامة التباين ($>$ مفتوحة، $\\ge$ مغلقة) ومن إشارة المعامل الرئيسي $\\text{أ}$.", "Verify strict vs. non-strict inequality bounds and leading sign $a$."),
       },
     ],
     mistakes: [
-      L("إغلاق الفترة عند استخدام علامة < أو > الصريحة.", "Including boundary roots in strict inequalities (< or >)."),
+      L("إغلاق الفترة عند استخدام علامة $<$ أو $>$ الصريحة.", "Including boundary roots in strict inequalities ($<$ or $>$)."),
     ],
     questions: [
       {
         id: "sec1-math4-q1",
-        prompt: L("ما مجموعة حل المتباينة x² − 9 < 0 في مجموعة الأعداد الحقيقية؟", "What is the real solution set of x² − 9 < 0?"),
+        prompt: L("ما مجموعة حل المتباينة $\\text{س}^2 - 9 < 0$ في مجموعة الأعداد الحقيقية؟", "What is the real solution set of $x^2 - 9 < 0$?"),
         choices: [
-          L("[-3, 3]", "[-3, 3]"),
-          L("(-3, 3)", "(-3, 3)"),
-          L("ح \\ [-3, 3]", "R \\ [-3, 3]"),
-          L("(-∞, 3)", "(-∞, 3)"),
+          L("$[-3, 3]$", "$[-3, 3]$"),
+          L("$(-3, 3)$", "$(-3, 3)$"),
+          L("$\\mathbb{R} - [-3, 3]$", "$\\mathbb{R} \\setminus [-3, 3]$"),
+          L("$(-\\infty, 3)$", "$(-\\infty, 3)$"),
         ],
         correct_index: 1,
-        explanation: L("الجذور هي −3 و 3 ومعامل x² موجب، فتكون الدالة سالبة تمامًا في الفترة المفتوحة (−3, 3).", "Roots are −3 and 3 with a > 0, so x² − 9 < 0 strictly between −3 and 3: (−3, 3)."),
-        hint: L("العلامة < تعني فترة مفتوحة عند الجذرين.", "Strict < requires parentheses (open interval)."),
+        explanation: L("الجذور هي $-3$ و$3$ ومعامل $\\text{س}^2$ موجب، فتكون الدالة سالبة تمامًا في الفترة المفتوحة $(-3, 3)$.", "Roots are $-3$ and $3$ with $a > 0$, so $x^2 - 9 < 0$ strictly between $-3$ and $3$: $(-3, 3)$."),
+        hint: L("العلامة $<$ تعني فترة مفتوحة عند الجذرين.", "Strict $<$ requires parentheses (open interval)."),
         difficulty: "standard",
       },
       {
         id: "sec1-math4-q2",
-        prompt: L("إذا كان f(x) = x² + 4، فأين تكون إشارة الدالة سالبة في ح؟", "For f(x) = x² + 4, where is f(x) negative over R?"),
+        prompt: L("إذا كان $\\text{د}(\\text{س}) = \\text{س}^2 + 4$، فأين تكون إشارة الدالة سالبة في $\\mathbb{R}$؟", "For $f(x) = x^2 + 4$, where is $f(x)$ negative over $\\mathbb{R}$?"),
         choices: [
-          L("(-2, 2)", "(-2, 2)"),
-          L("∅ (موجبة دائمًا لكل x ∈ ح)", "∅ (always positive for all real x)"),
-          L("x < 0 فقط", "x < 0 only"),
-          L("R \\ {0}", "R \\ {0}"),
+          L("$(-2, 2)$", "$(-2, 2)$"),
+          L("$\\varnothing$ (موجبة دائمًا لكل $\\text{س} \\in \\mathbb{R}$)", "$\\varnothing$ (always positive for all real $x$)"),
+          L("$\\text{س} < 0$ فقط", "$x < 0$ only"),
+          L("$\\mathbb{R} - \\{0\\}$", "$\\mathbb{R} \\setminus \\{0\\}$"),
         ],
         correct_index: 1,
-        explanation: L("المميز Δ = 0 − 16 < 0 ومعامل x² موجب (a = 1 > 0)، فتبقى الدالة موجبة دائمًا لكل عدد حقيقي.", "Δ < 0 and a = 1 > 0, so f(x) is strictly positive across all of R."),
-        hint: L("هل توجد جذور حقيقية للمعادلة x² + 4 = 0؟", "Does x² + 4 = 0 have any real roots?"),
+        explanation: L("المميز $\\Delta = 0 - 16 < 0$ ومعامل $\\text{س}^2$ موجب ($\\text{أ} = 1 > 0$)، فتبقى الدالة موجبة دائمًا لكل عدد حقيقي.", "$\\Delta < 0$ and $a = 1 > 0$, so $f(x)$ is strictly positive across all of $\\mathbb{R}$."),
+        hint: L("هل توجد جذور حقيقية للمعادلة $\\text{س}^2 + 4 = 0$؟", "Does $x^2 + 4 = 0$ have any real roots?"),
         difficulty: "challenging",
       },
     ],
     flashcards: [
-      { front: L("إشارة ax²+bx+c عندما Δ < 0", "Sign of ax²+bx+c when Δ < 0"), back: L("تأخذ الدالة إشارة المعامل a دائمًا لكل قيم x الحقيقية.", "Same sign as leading coefficient 'a' for all real x.") },
+      { front: L("إشارة $\\text{أ}\\text{س}^2+\\text{ب}\\text{س}+\\text{جـ}$ عندما $\\Delta < 0$", "Sign of $ax^2+bx+c$ when $\\Delta < 0$"), back: L("تأخذ الدالة إشارة المعامل $\\text{أ}$ دائمًا لكل قيم $\\text{س}$ الحقيقية.", "Same sign as leading coefficient $a$ for all real $x$.") },
     ],
   },
 
@@ -763,7 +749,7 @@ const TOPIC_MODULES: readonly TopicModule[] = [
           "الموقف الفلسفي يتسم بالدهشة والتساؤل والشك المنهجي والنقد والتحليل والتسامح الفكري. وفي المنطق: الحد له مفهوم (الصفات) وماصدق (الأفراد) والعلاقة عكسية، والقضية الحملية تنقسم وفق الكم والكيف (A, E, I, O)، والقياس يتكون من مقدمتين ونتيجة يربطهما حد أوسط.",
           "Key traits of philosophical stance: wonder, questioning, methodical doubt, criticism, analysis, dialogue. In logic: Concept vs. Denotation vary inversely; categorical propositions classify into A, E, I, O; syllogistic inference links two premises via a middle term.",
         ),
-        formulaOrRule: L("A: كلية موجبة | E: كلية سالبة | I: جزئية موجبة | O: جزئية سالبة", "A: Universal Aff. | E: Universal Neg. | I: Particular Aff. | O: Particular Neg."),
+        formulaOrRule: L("A: كلية موجبة؛ E: كلية سالبة؛ I: جزئية موجبة؛ O: جزئية سالبة", "A: Universal Aff.; E: Universal Neg.; I: Particular Aff.; O: Particular Neg."),
       },
     ],
     worked: [
@@ -820,7 +806,7 @@ const TOPIC_MODULES: readonly TopicModule[] = [
       },
     ],
     flashcards: [
-      { front: L("المفهوم مقابل الماصدق", "Intension vs. Denotation"), back: L("المفهوم: الصفات الذهنية للحد | الماصدق: الأفراد التي ينطبق عليها الحد (العلاقة عكسية).", "Concept: defining attributes | Denotation: matching individuals (inverse relation).") },
+      { front: L("المفهوم مقابل الماصدق", "Intension vs. Denotation"), back: L("المفهوم: الصفات الذهنية للحد؛ والماصدق: الأفراد التي ينطبق عليها الحد (العلاقة عكسية).", "Concept: defining attributes; Denotation: matching individuals (inverse relation).") },
       { front: L("الشك المنهجي", "Methodical doubt"), back: L("تعليق الحكم مؤقتًا وفحص الأدلة للوصول للحقيقة، لا إنكار المعرفة مطلقًا.", "Temporary suspension of judgment to test evidence systematically.") },
     ],
   },
@@ -839,8 +825,8 @@ const TOPIC_MODULES: readonly TopicModule[] = [
         id: "civ-vs-hist",
         title: L("مفهوم الحضارة والتاريخ والعصور التاريخية", "Civilization vs. History & Historical Eras"),
         body: L(
-          "الحضارة هي ثمرة تفاعل الإنسان مع بيئته لتحسين ظروف الحياة ماديًا ومعنويًا. أما التاريخ فهو دراسة النشاط الإنساني في الماضي بالاستناد إلى الأدلة والمصادر لتفسير التغير وفهم الحاضر. وتنتقل مراكز الحضارة عبر التبادل والتأثير بين الشرق والبحر المتوسط والحضارة الإسلامية وأوروبا.",
-          "Civilization is humanity's material and cultural achievement from interacting with environment; History studies past human activity through evidence. Historical eras divide broadly into Ancient (to ~476 CE), Middle (476–1453 CE), Modern (1453–late 18th c.), and Contemporary.",
+          "الحضارة هي ثمرة تفاعل الإنسان مع بيئته لتحسين ظروف الحياة ماديًا ومعنويًا. أما التاريخ فهو دراسة النشاط الإنساني في الماضي بالاستناد إلى الأدلة والمصادر لتفسير التغير وفهم الحاضر. وتنقسم العصور التاريخية إلى قديمة (حتى ٤٧٦م)، ووسطى (٤٧٦–١٤٥٣م)، وحديثة (١٤٥٣–١٧٨٩م)، ومعاصرة منذ الثورة الفرنسية ١٧٨٩م.",
+          "Civilization is humanity's material and cultural achievement from interacting with environment; History studies past human activity through evidence. Historical eras divide into Ancient (to ~476 CE), Middle (476–1453 CE), Modern (1453–1789 CE), and Contemporary (since 1789 CE).",
         ),
         formulaOrRule: L("المصادر الأولية (آثار، نقوش، برديات، أوستراكا، نقود) أقوى توثيقًا لزمن الحدث من المصادر الثانوية (دراسات لاحقة)", "Primary Sources (inscriptions, papyri, ostraca, coins, monuments) date directly to the era vs. Secondary Sources (modern analyses)"),
       },
@@ -913,8 +899,8 @@ const TOPIC_MODULES: readonly TopicModule[] = [
       },
     ],
     flashcards: [
-      { front: L("المصادر الأولية مقابل الثانوية", "Primary vs. Secondary Sources"), back: L("الأولية: آثار ونقوش وبرديات وأوستراكا معاصرة للحدث | الثانوية: دراسات وكتب الباحثين اللاحقة.", "Primary: contemporary artefacts/texts | Secondary: later scholarly interpretations.") },
-      { front: L("تقسيم العصور التاريخية", "Major Historical Eras"), back: L("قديمة (حتى ~476م) -> وسطى (حتى 1453م) -> حديثة -> معاصرة.", "Ancient (to ~476 CE) -> Middle (476-1453 CE) -> Modern -> Contemporary.") },
+      { front: L("المصادر الأولية مقابل الثانوية", "Primary vs. Secondary Sources"), back: L("الأولية: آثار ونقوش وبرديات وأوستراكا معاصرة للحدث؛ الثانوية: دراسات وكتب الباحثين اللاحقة.", "Primary: contemporary artefacts and texts; Secondary: later scholarly interpretations.") },
+      { front: L("تقسيم العصور التاريخية", "Major Historical Eras"), back: L("قديمة (حتى ٤٧٦م) ← وسطى (٤٧٦–١٤٥٣م) ← حديثة (١٤٥٣–١٧٨٩م) ← معاصرة (منذ ١٧٨٩م).", "Ancient (to 476 CE) -> Middle (476-1453 CE) -> Modern (1453-1789 CE) -> Contemporary (1789 CE-present).") },
     ],
   },
 
@@ -935,7 +921,7 @@ const TOPIC_MODULES: readonly TopicModule[] = [
           "الكلمة: اسم (يقبل الـ والتنوين والجر والنداء)، فعل (ماضٍ مبني، مضارع معرب يرفع بالضمة وينصب بعد لن/أن ويجزم بعد لم، وأمر مبني)، وحرف. المعرب يتغير آخره بتغير العامل (جاء محمدٌ، رأيت محمدًا، مررت بمحمدٍ)، والمبني يلزم آخره صورة واحدة (هذا، الذي، الضمائر، الماضي والأمر).",
           "Arabic classifies words into nouns, verbs (past/present/imperative), and particles. Inflected words shift endings by syntax; invariant words stay fixed.",
         ),
-        formulaOrRule: L("المرفوعات: المبتدأ، الخبر، الفاعل، نائب الفاعل، اسم كان، خبر إنّ | علامات الرفع: الضمة (أصلية) والألف (المثنى) والواو (جمع المذكر والأسماء الخمسة)", "Nominatives: Subject, Predicate, Doer, Deputy Doer, Noun of Kana, Predicate of Inna | Markers: Damma / Alif / Waw"),
+        formulaOrRule: L("المرفوعات: المبتدأ، الخبر، الفاعل، نائب الفاعل، اسم كان، خبر إنّ؛ علامات الرفع: الضمة (أصلية)، والألف (المثنى)، والواو (جمع المذكر والأسماء الخمسة)", "Nominatives: Subject, Predicate, Doer, Deputy Doer, Noun of Kana, Predicate of Inna; Markers: Damma, Alif, and Waw"),
       },
       {
         id: "literature-texts",
@@ -1001,8 +987,8 @@ const TOPIC_MODULES: readonly TopicModule[] = [
       },
     ],
     flashcards: [
-      { front: L("الحالات الإعرابية المختصة بالأسماء والأفعال", "Inflectional Scope: Nouns vs. Verbs"), back: L("الجر خاص بالأسماء | الجزم خاص بالفعل المضارع | الرفع والنصب مشتركان.", "Jarr = nouns only | Jazm = present verbs only | Raf' & Nasb = shared.") },
-      { front: L("عمل كان مقابل إنّ", "Kana vs. Inna sisters"), back: L("كان: ترفع الاسم وتنصب الخبر | إنّ: تنصب الاسم وترفع الخبر.", "Kana raises noun / accusative predicate | Inna does the opposite.") },
+      { front: L("الحالات الإعرابية المختصة بالأسماء والأفعال", "Inflectional Scope: Nouns vs. Verbs"), back: L("الجر خاص بالأسماء؛ الجزم خاص بالفعل المضارع؛ والرفع والنصب مشتركان.", "Jarr = nouns only; Jazm = present verbs only; Raf' & Nasb = shared.") },
+      { front: L("عمل كان مقابل إنّ", "Kana vs. Inna sisters"), back: L("كان: ترفع الاسم وتنصب الخبر؛ إنّ: تنصب الاسم وترفع الخبر.", "Kana raises noun and puts predicate in accusative; Inna does the opposite.") },
     ],
   },
 
@@ -1023,7 +1009,7 @@ const TOPIC_MODULES: readonly TopicModule[] = [
           "Past Simple (verb+ed / irregular) describes completed events and sequences. Past Continuous (was/were + V-ing) describes ongoing background actions (While we were walking, the guide called us). For obligation: mustn't = strictly prohibited; don't have to = unnecessary (optional); should = advice.",
           "Past Simple narrates completed actions; Past Continuous frames ongoing background actions interrupted by 'when' or paired with 'while'. Key modal contrast: 'mustn't' means forbidden/not allowed, whereas 'don't have to' means not necessary.",
         ),
-        formulaOrRule: L("Conditionals: Zero (present, present) | First (present, will+inf) | Second (past simple, would+inf)", "Conditionals: 0 (If+pres, pres) | 1st (If+pres, will+V) | 2nd (If+past, would+V)"),
+        formulaOrRule: L("Conditionals: Zero (present, present); First (present, will+inf); Second (past simple, would+inf)", "Conditionals: 0 (If+pres, pres); 1st (If+pres, will+V); 2nd (If+past, would+V)"),
       },
       {
         id: "patterns-quantifiers",
@@ -1116,7 +1102,7 @@ const TOPIC_MODULES: readonly TopicModule[] = [
       },
     ],
     flashcards: [
-      { front: L("mustn't مقابل don't have to", "mustn't vs. don't have to"), back: L("mustn't = ممنوع تمامًا | don't have to = غير ضروري (اختياري).", "mustn't = prohibited | don't have to = not necessary.") },
+      { front: L("mustn't مقابل don't have to", "mustn't vs. don't have to"), back: L("mustn't = ممنوع تمامًا؛ don't have to = غير ضروري (اختياري).", "mustn't = prohibited; don't have to = not necessary.") },
       { front: L("الأسماء غير المعدودة ومحدداتها", "Uncountable nouns & quantifiers"), back: L("information / advice / homework + much / a little / little (بدون جمع أو a/an).", "information / advice / homework + much / a little / little.") },
     ],
   },
@@ -1133,45 +1119,31 @@ function findTopicModule(input: {
   trackSlug?: string | null;
   subjectKey?: string | null;
   position?: number | null;
-}): TopicModule {
+}): TopicModule | null {
   const idSlug = normalizeText(input.lessonIdOrSlug);
   const titleCombined = `${normalizeText(input.titleAr)} ${normalizeText(input.titleEn)}`;
-  const subjectHint = normalizeText(input.subjectKey) || normalizeText(input.trackSlug?.replace(/-(ar|en)$/, ""));
+  const subjectHint =
+    normalizeText(input.subjectKey) || normalizeText(input.trackSlug?.replace(/-(ar|en)$/, ""));
 
-  // 1. Exact slug or alias match
-  for (const mod of TOPIC_MODULES) {
-    if (mod.slug === idSlug || mod.aliases.some((alias) => idSlug.includes(alias) || titleCombined.includes(alias.toLowerCase()))) {
-      return mod;
-    }
-  }
+  // 1. Exact module slug.
+  const exact = TOPIC_MODULES.find((mod) => mod.slug === idSlug);
+  if (exact) return exact;
 
-  // 2. Match by subject + position
-  const subjectMods = TOPIC_MODULES.filter((mod) => subjectHint && mod.subject.includes(subjectHint));
-  if (subjectMods.length) {
-    const pos = Math.max(1, input.position ?? 1);
-    return subjectMods.find((mod) => mod.position === pos) ?? subjectMods[(pos - 1) % subjectMods.length];
+  // 2. Alias match, constrained to the lesson's own subject whenever it is known. Position-based
+  //    and keyword-regex guessing were removed: they displayed another lesson's material (e.g. the
+  //    Water Cycle inside breathing and motion lessons).
+  const eligible = subjectHint
+    ? TOPIC_MODULES.filter((mod) => mod.subject === subjectHint)
+    : TOPIC_MODULES;
+  for (const mod of eligible) {
+    const hit = mod.aliases.some((alias) => {
+      const needle = alias.toLowerCase();
+      if (needle.length < 4) return false;
+      return titleCombined.includes(needle) || (/^[a-z0-9 -]+$/.test(needle) && idSlug.includes(needle));
+    });
+    if (hit) return mod;
   }
-
-  // 3. Fallback by keywords inside titles
-  if (/complex|discriminant|quadratic|vieta|جذور|مركبة|متباينات|مصفوف|معادلة/.test(titleCombined)) {
-    return TOPIC_MODULES.find((m) => m.subject === "mathematics")!;
-  }
-  if (/water|hydrosphere|osmosis|ph|enzyme|ماء|غلاف مائي|أسموزية|كثافة/.test(titleCombined)) {
-    return TOPIC_MODULES.find((m) => m.subject === "integrated-science")!;
-  }
-  if (/history|civilization|nile|حضارة|تاريخ|مصادر|مصر القديمة|أوستراكا/.test(titleCombined)) {
-    return TOPIC_MODULES.find((m) => m.subject === "history")!;
-  }
-  if (/thinking|philosophy|logic|تفكير|فلسفة|منطق|استدلال/.test(titleCombined)) {
-    return TOPIC_MODULES.find((m) => m.subject === "philosophy-logic")!;
-  }
-  if (/past|modal|conditional|heritage|english/.test(titleCombined)) {
-    return TOPIC_MODULES.find((m) => m.subject === "english")!;
-  }
-  if (/نحو|إعراب|بناء|مرفوع|عنترة|حاتم|السموأل|كعب/.test(titleCombined)) {
-    return TOPIC_MODULES.find((m) => m.subject === "arabic-language")!;
-  }
-  return TOPIC_MODULES[0];
+  return null;
 }
 
 export function getLessonStudyCompanion(input: {
@@ -1185,34 +1157,35 @@ export function getLessonStudyCompanion(input: {
 }): LessonStudyCompanion {
   const lang = input.contentLanguage;
   const pick = (loc: LocalizedText) => (lang === "en" ? loc.en : loc.ar);
-  const slugKey = (input.lessonIdOrSlug ?? "").trim().toLowerCase();
-  const hasDirectTopicSlug = slugKey
-    ? TOPIC_MODULES.some((m) => m.slug === slugKey)
-    : false;
-  const exactPack = !hasDirectTopicSlug ? getLessonStudyPack(input.lessonIdOrSlug, lang) : null;
+  // Canonical per-lesson packs always win. Resolution uses the real `lessons.slug` (UUIDs never match).
+  const exactPack = getLessonStudyPack(input.lessonIdOrSlug, lang);
+
+  const buildPrompts = (lessonName: string): string[] =>
+    lang === "en"
+      ? [
+          `Explain "${lessonName}" step by step with simple real-life examples.`,
+          `Quiz me on "${lessonName}" with 3 exam-style questions and check my answers.`,
+          `What are the most common exam mistakes in "${lessonName}" and how do I avoid them?`,
+          `Create concise study flashcards summarizing the laws and definitions in "${lessonName}".`,
+        ]
+      : [
+          `اشرح لي درس «${lessonName}» خطوة بخطوة بأسلوب مبسط مع أمثلة.`,
+          `اختبرني في درس «${lessonName}» بثلاثة أسئلة بمستوى الامتحان وصحّح لي إجاباتي.`,
+          `ما أكثر الأخطاء الشائعة في امتحان درس «${lessonName}» وكيف أتجنبها؟`,
+          `لخّص القوانين والتعريفات الأساسية في درس «${lessonName}» في بطاقات مراجعة سريعة.`,
+        ];
 
   if (exactPack) {
     const lessonName =
       (lang === "en" ? input.titleEn : input.titleAr) || exactPack.title;
     return {
       matchedTopic: exactPack.title,
+      source: "pack",
+      hook: exactPack.hook,
       keyConcepts: exactPack.keyConcepts,
       workedExamples: exactPack.workedExamples,
       commonMistakes: exactPack.commonMistakes,
-      aiTutorPrompts:
-        lang === "en"
-          ? [
-              `Explain "${lessonName}" step by step with simple real-life examples.`,
-              `Quiz me on "${lessonName}" with 3 exam-style questions and check my answers.`,
-              `What are the most common exam mistakes in "${lessonName}" and how do I avoid them?`,
-              `Create concise study flashcards summarizing the laws and definitions in "${lessonName}".`,
-            ]
-          : [
-              `اشرح لي درس «${lessonName}» خطوة بخطوة بأسلوب مبسط مع أمثلة.`,
-              `اختبرني في درس «${lessonName}» بثلاثة أسئلة بمستوى الامتحان وصحّح لي إجاباتي.`,
-              `ما أكثر الأخطاء الشائعة في امتحان درس «${lessonName}» وكيف أتجنبها؟`,
-              `لخّص القوانين والتعريفات الأساسية في درس «${lessonName}» في بطاقات مراجعة سريعة.`,
-            ],
+      aiTutorPrompts: buildPrompts(lessonName),
       curatedQuestions: exactPack.questions.map((q) => ({
         ...q,
         lessonTitle: lessonName,
@@ -1222,10 +1195,24 @@ export function getLessonStudyCompanion(input: {
   }
 
   const mod = findTopicModule(input);
+  if (!mod) {
+    const lessonName = (lang === "en" ? input.titleEn : input.titleAr) || "";
+    return {
+      matchedTopic: lessonName,
+      source: "none",
+      keyConcepts: [],
+      workedExamples: [],
+      commonMistakes: [],
+      aiTutorPrompts: lessonName ? buildPrompts(lessonName) : [],
+      curatedQuestions: [],
+      flashcards: [],
+    };
+  }
   const lessonName = (lang === "en" ? input.titleEn : input.titleAr) || pick(mod.title);
 
   return {
     matchedTopic: pick(mod.title),
+    source: "module",
     keyConcepts: mod.concepts.map((c) => ({
       id: c.id,
       title: pick(c.title),
@@ -1239,20 +1226,7 @@ export function getLessonStudyCompanion(input: {
       takeaway: pick(w.takeaway),
     })),
     commonMistakes: mod.mistakes.map(pick),
-    aiTutorPrompts:
-      lang === "en"
-        ? [
-            `Explain "${lessonName}" step by step with simple real-life examples.`,
-            `Quiz me on "${lessonName}" with 3 exam-style questions and check my answers.`,
-            `What are the most common exam mistakes in "${lessonName}" and how do I avoid them?`,
-            `Create concise study flashcards summarizing the laws and definitions in "${lessonName}".`,
-          ]
-        : [
-            `اشرح لي درس «${lessonName}» خطوة بخطوة بأسلوب مبسط مع أمثلة.`,
-            `اختبرني في درس «${lessonName}» بثلاثة أسئلة بمستوى الامتحان وصحّح لي إجاباتي.`,
-            `ما أكثر الأخطاء الشائعة في امتحان درس «${lessonName}» وكيف أتجنبها؟`,
-            `لخّص القوانين والتعريفات الأساسية في درس «${lessonName}» في بطاقات مراجعة سريعة.`,
-          ],
+    aiTutorPrompts: buildPrompts(lessonName),
     curatedQuestions: mod.questions.map((q) => ({
       id: q.id,
       question_type: "multiple-choice",

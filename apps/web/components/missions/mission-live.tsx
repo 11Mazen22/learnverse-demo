@@ -48,6 +48,7 @@ type UnitOption = {
 
 type LessonOption = {
   id: string;
+  slug?: string | null;
   unit_id: string;
   position: number;
   title_ar: string;
@@ -104,6 +105,7 @@ export function MissionLive() {
   const [selectedTrackId, setSelectedTrackId] = useState<string>("");
   const [selectedUnitId, setSelectedUnitId] = useState<string>("");
   const [lessonId, setLessonId] = useState<string | null>(null);
+  const [lessonSlug, setLessonSlug] = useState<string | null>(null);
   const [lessonTitle, setLessonTitle] = useState({ ar: "المهام", en: "Missions" });
   const [activeTrackSlug, setActiveTrackSlug] = useState<string>("");
   const [hasCourseTrack, setHasCourseTrack] = useState(false);
@@ -140,6 +142,7 @@ export function MissionLive() {
     async (
       targetLesson: {
         id: string;
+        slug?: string | null;
         unit_id: string;
         position?: number | null;
         title_ar: string;
@@ -164,6 +167,7 @@ export function MissionLive() {
 
       try {
         setLessonId(targetLesson.id);
+        setLessonSlug(targetLesson.slug?.trim() || null);
         setLessonTitle({ ar: targetLesson.title_ar, en: targetLesson.title_en });
 
         let resolvedTrack = knownTrack;
@@ -222,7 +226,7 @@ export function MissionLive() {
         let mergedQuestions: MissionQuestion[] = dbPrimary;
         if (hasTrack && dbPrimary.length < 5) {
           const companion = getLessonStudyCompanion({
-            lessonIdOrSlug: targetLesson.id,
+            lessonIdOrSlug: targetLesson.slug?.trim() || targetLesson.id,
             titleAr: targetLesson.title_ar,
             titleEn: targetLesson.title_en,
             trackSlug: resolvedTrack?.slug || undefined,
@@ -352,7 +356,7 @@ export function MissionLive() {
               if (unitIds.length > 0) {
                 const lessonsRes = await supabase
                   .from("lessons")
-                  .select("id,unit_id,position,title_ar,title_en")
+                  .select("id,slug,unit_id,position,title_ar,title_en")
                   .in("unit_id", unitIds)
                   .order("position");
                 if (!active) return;
@@ -366,10 +370,14 @@ export function MissionLive() {
         }
 
         if (requestedLesson) {
+          const isUuid =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              requestedLesson,
+            );
           const { data: reqLessonData, error: readError } = await supabase
             .from("lessons")
-            .select("id,unit_id,position,title_ar,title_en,units(course_id)")
-            .eq("id", requestedLesson)
+            .select("id,slug,unit_id,position,title_ar,title_en,units(course_id)")
+            .eq(isUuid ? "id" : "slug", requestedLesson)
             .maybeSingle();
           if (!active) return;
           if (readError) throw readError;
@@ -383,6 +391,7 @@ export function MissionLive() {
             await loadMissionForLesson(
               {
                 id: reqLessonData.id,
+                slug: reqLessonData.slug,
                 unit_id: reqLessonData.unit_id,
                 position: reqLessonData.position,
                 title_ar: reqLessonData.title_ar,
@@ -894,7 +903,7 @@ export function MissionLive() {
                   source: "mission",
                   action: "concept_clarify",
                   subject: activeTrackSlug,
-                  lessonId,
+                  lessonId: lessonSlug || lessonId,
                   topic: resolveCurriculumText(effectiveLang, lessonTitle.ar, lessonTitle.en),
                 })}
                 className="btn btn-secondary"

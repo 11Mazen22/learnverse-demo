@@ -539,6 +539,49 @@ export const ARABIC_IRAB_SENTENCES: ArabicIrabSentence[] = [
       },
     ],
   },
+  {
+    id: "lam-jussive",
+    textAr: "لم يُهمِلِ الطالبُ واجبَهُ",
+    sentenceTypeAr: "جملة فعلية (مضارع مجزوم)",
+    tokens: [
+      {
+        word: "لم",
+        roleId: "harf-jazm",
+        roleAr: "حرف نفي وجزم وقلب مبني",
+        markerId: "mabni",
+        markerAr: "مبني على السكون",
+        explanationAr: "أداة جزم تدخل على الفعل المضارع فتجزمه وتنفي حدوثه في الزمن الماضي.",
+        explanationEn: "Jussive particle negating the verb in the past and placing the present verb in the jussive mood.",
+      },
+      {
+        word: "يُهمِلِ",
+        roleId: "mudari-majzum",
+        roleAr: "فعل مضارع مجزوم بلم",
+        markerId: "sukun-kasra",
+        markerAr: "السكون المُقدّر لالتقاء الساكنين (حُرِّك بالكسر)",
+        explanationAr: "مجزوم بلم وعلامة جزمه السكون الظاهر أصلًا، وكُسر منعًا لالتقاء الساكنين قبل «الطالب».",
+        explanationEn: "Jussive verb marked by sukun, vocalized with kasra purely to prevent two consecutive consonants before «الطالب».",
+      },
+      {
+        word: "الطالبُ",
+        roleId: "fail",
+        roleAr: "فاعل مرفوع",
+        markerId: "damma",
+        markerAr: "الضمة الظاهرة",
+        explanationAr: "من قام بالفعل، وحكم الفاعل الرفع دائمًا.",
+        explanationEn: "Grammatical subject (doer) of the verb, always nominative.",
+      },
+      {
+        word: "واجبَهُ",
+        roleId: "maful-bihi",
+        roleAr: "مفعول به منصوب + مضاف إليه",
+        markerId: "fatha",
+        markerAr: "الفتحة الظاهرة (والهاء في محل جر مضاف إليه)",
+        explanationAr: "«واجبَ» مفعول به منصوب بالفتحة، والهاء ضمير متصل مبني في محل جر مضاف إليه.",
+        explanationEn: "Direct object marked with Fatha, while the attached pronoun suffix is in genitive possessive position.",
+      },
+    ],
+  },
 ];
 
 export type SourceRubricInput = {
@@ -792,6 +835,56 @@ export const ENGLISH_TRANSFORM_CASES: EnglishTransformCase[] = [
       },
     },
   },
+  {
+    id: "gerund-after-avoid",
+    category: "collocation",
+    promptEn: "To stay focused before exams, students must avoid _____ late on social media.",
+    contextHintAr: "أفعال محددة مثل avoid و enjoy و suggest يتبعها المصدر المنتهي بـ ing.",
+    options: ["to stay", "staying", "stay"],
+    correctOption: "staying",
+    diagnoseByOption: {
+      "to stay": {
+        ok: false,
+        reasonEn: "'avoid' never takes a to-infinitive; it governs a gerund (-ing).",
+        reasonAr: "الفعل avoid لا يأخذ to + المصدر أبدًا، بل يتبعه صيغة V-ing.",
+      },
+      staying: {
+        ok: true,
+        reasonEn: "Exact! 'avoid + V-ing' is the required verb-pattern collocation.",
+        reasonAr: "صحيح! يتبع الفعل avoid صيغة الفعل المنتهي بـ ing دائمًا.",
+      },
+      stay: {
+        ok: false,
+        reasonEn: "Bare infinitive 'stay' cannot follow 'avoid' directly.",
+        reasonAr: "المصدر المجرد بدون -ing غير صحيح بعد avoid.",
+      },
+    },
+  },
+  {
+    id: "do-research-collocation",
+    category: "collocation",
+    promptEn: "Our biology team will _____ experiments on dissolved oxygen tomorrow morning.",
+    contextHintAr: "تذكّر الفرق بين المتلازمات اللفظية do و make مع الأنشطة العلمية والبحثية.",
+    options: ["make", "do", "create"],
+    correctOption: "do",
+    diagnoseByOption: {
+      make: {
+        ok: false,
+        reasonEn: "English pairs 'do' (or 'conduct / carry out') with 'research' and 'experiments', while 'make' fits 'decisions/mistakes'.",
+        reasonAr: "المتلازمة الفصيحة في الإنجليزية هي do/conduct experiments وليس make.",
+      },
+      do: {
+        ok: true,
+        reasonEn: "Correct! 'do experiments / do research' is the natural collocation.",
+        reasonAr: "ممتاز! الفعل do يتلازم مع experiments و research.",
+      },
+      create: {
+        ok: false,
+        reasonEn: "'create experiments' is unnatural here; use 'do', 'conduct', or 'carry out'.",
+        reasonAr: "الترجمة الحرفية create غير مألوفة هنا مقارنة بـ do / conduct.",
+      },
+    },
+  },
 ];
 
 export function evaluateEnglishCase(
@@ -985,23 +1078,23 @@ export const SUBJECT_LAB_SPECS: Record<SubjectLabId, SubjectLabSpec> = {
       "Water Polarity, H-Bond & 4°C Density Anomaly Lab",
     ),
     learningObjective: L(
-      "ربط الشكل المنحني 104.5° لـ H₂O بالروابط الهيدروجينية وشذوذ الكثافة عند 4°C ومقياس pH عند 25°C.",
-      "Connect H₂O's 104.5° bent polarity to hydrogen bonding, maximum density near 4°C, and pH classification at 25°C.",
+      "ربط الشكل المنحني $104.5^\\circ$ لـ $\\text{H}_2\\text{O}$ بالروابط الهيدروجينية وشذوذ الكثافة عند $4^\\circ\\text{C}$ ومقياس $\\text{pH}$ عند $25^\\circ\\text{C}$.",
+      "Connect $\\text{H}_2\\text{O}$'s $104.5^\\circ$ bent polarity to hydrogen bonding, maximum density near $4^\\circ\\text{C}$, and $\\text{pH}$ classification at $25^\\circ\\text{C}$.",
     ),
     interactionGuide: L(
-      "بدّل بين مستكشف القطبية والـ pH ومحاكي الكثافة عبر الحرارة (−5°C إلى 25°C) لملاحظة طفو الجليد وعزله للأحياء المائية.",
-      "Switch between the Polarity & pH view and Temperature slider (−5°C to 25°C) to watch ice float and insulate deeper 4°C water.",
+      "بدّل بين مستكشف القطبية والـ $\\text{pH}$ ومحاكي الكثافة عبر الحرارة ($-5^\\circ\\text{C}$ إلى $25^\\circ\\text{C}$) لملاحظة طفو الجليد وعزله للأحياء المائية.",
+      "Switch between the Polarity & $\\text{pH}$ view and Temperature slider ($-5^\\circ\\text{C}$ to $25^\\circ\\text{C}$) to watch ice float and insulate deeper $4^\\circ\\text{C}$ water.",
     ),
     scientificCaveat: L(
-      "نقطة التعادل pH = 7 مرجعية عند ~25°C للماء النقي، وتختلف درجة التأين الذاتي للماء بتغيّر الحرارة.",
-      "Note: neutral pH = 7 applies to pure water at the ~25°C reference temperature.",
+      "نقطة التعادل $\\text{pH} = 7$ مرجعية عند $\\approx 25^\\circ\\text{C}$ للماء النقي، وتختلف درجة التأين الذاتي للماء بتغيّر الحرارة.",
+      "Note: neutral $\\text{pH} = 7$ applies to pure water at the $\\approx 25^\\circ\\text{C}$ reference temperature.",
     ),
     fallbackBlocks: {
       ar: [
         {
           type: "chemistry",
           display: true,
-          equation: "H₂O: ∠(H–O–H) ≈ 104.5°, ρmax ≈ 1.00 g/cm³ at 4°C",
+          equation: "H2O: angle(H-O-H) = 104.5 deg, rho_max = 1.00 g/cm^3 at 4 C",
           tex: "\\text{H}_2\\text{O}: \\angle(\\text{H–O–H}) \\approx 104.5^\\circ, \\quad \\rho_{\\max} \\approx 1.00\\,\\text{g/cm}^3 \\text{ at } 4^\\circ\\text{C}",
         },
         {
@@ -1015,7 +1108,7 @@ export const SUBJECT_LAB_SPECS: Record<SubjectLabId, SubjectLabSpec> = {
         {
           type: "chemistry",
           display: true,
-          equation: "H₂O: ∠(H–O–H) ≈ 104.5°, ρmax ≈ 1.00 g/cm³ at 4°C",
+          equation: "H2O: angle(H-O-H) = 104.5 deg, rho_max = 1.00 g/cm^3 at 4 C",
           tex: "\\text{H}_2\\text{O}: \\angle(\\text{H–O–H}) \\approx 104.5^\\circ, \\quad \\rho_{\\max} \\approx 1.00\\,\\text{g/cm}^3 \\text{ at } 4^\\circ\\text{C}",
         },
         {
@@ -1167,7 +1260,7 @@ export const SUBJECT_LAB_SPECS: Record<SubjectLabId, SubjectLabSpec> = {
           type: "callout",
           variant: "rule",
           title: "قاعدة النواسخ والمرفوعات",
-          content: "كان وأخواتها ترفع الاسم وتنصب الخبر | إنّ وأخواتها تنصب الاسم وترفع الخبر | الجر للأسماء والجزم للمضارع.",
+          content: "كان وأخواتها ترفع الاسم وتنصب الخبر، بينما إنّ وأخواتها تنصب الاسم وترفع الخبر؛ والجر يختص بالأسماء والجزم بالفعل المضارع.",
         },
       ],
       en: [
@@ -1361,7 +1454,7 @@ export const SUBJECT_LAB_SPECS: Record<SubjectLabId, SubjectLabSpec> = {
           type: "callout",
           variant: "rule",
           title: "مفاتيح التمييز السريع",
-          content: "mustn't = ممنوع تمامًا | don't have to = غير ضروري | information & advice = غير معدود (little / much).",
+          content: "`mustn't` تفيد المنع الصارم، بينما `don't have to` تعني عدم الضرورة؛ والأسماء غير المعدودة مثل `information` و `advice` تُعامل مع `little / much`.",
         },
       ],
       en: [
@@ -1369,7 +1462,7 @@ export const SUBJECT_LAB_SPECS: Record<SubjectLabId, SubjectLabSpec> = {
           type: "callout",
           variant: "rule",
           title: "Quick English Grammar Contrast",
-          content: "mustn't = forbidden | don't have to = optional | avoid + V-ing | information/advice + little/much.",
+          content: "`mustn't` = forbidden; `don't have to` = optional; `avoid + V-ing`; and uncountable nouns (`information`, `advice`) pair with `little / much`.",
         },
       ],
     },
@@ -1410,6 +1503,12 @@ export function resolveSubjectLabForLesson(input: {
   const rawSlug = (input.lessonIdOrSlug ?? "").trim().toLowerCase();
   const rawTitle = (input.lessonTitle ?? "").trim().toLowerCase();
   const subject = (input.subjectKey ?? "").trim().toLowerCase();
+
+  // Standalone multi-lesson demo pathways (physics kinematics & respiratory biology) stay isolated
+  // from aquatic-chemistry and quadratic-parabola simulators.
+  if (rawSlug.startsWith("motion-") || rawSlug.startsWith("respiratory-")) {
+    return null;
+  }
 
   // Exact slug mappings across all 6 core curriculum families
   if (rawSlug === "math-complex-intro" || rawSlug === "g10-math-01") {

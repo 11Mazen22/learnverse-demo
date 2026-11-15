@@ -41,6 +41,7 @@ import {
 
 type LessonRow = {
   id: string;
+  slug?: string | null;
   unit_id: string;
   position?: number | null;
   title_ar: string;
@@ -203,12 +204,14 @@ export function LessonLive({ id }: { id: string }) {
 
     void (async () => {
       try {
+        const isUuid =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         const lessonRes = await supabase
           .from("lessons")
           .select(
-            "id,unit_id,position,title_ar,title_en,content,xp_reward,coin_reward,units(id,course_id,title_ar,title_en)",
+            "id,slug,unit_id,position,title_ar,title_en,content,xp_reward,coin_reward,units(id,course_id,title_ar,title_en)",
           )
-          .eq("id", id)
+          .eq(isUuid ? "id" : "slug", id)
           .maybeSingle();
 
         if (!alive) return;
@@ -218,6 +221,7 @@ export function LessonLive({ id }: { id: string }) {
           return;
         }
 
+        const canonicalLessonId = lessonRes.data.id;
         const courseId =
           (lessonRes.data.units as { course_id?: string | null } | null)?.course_id ?? null;
 
@@ -227,7 +231,7 @@ export function LessonLive({ id }: { id: string }) {
             .select(
               "id,question_type,variant_of,position,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
             )
-            .eq("lesson_id", id)
+            .eq("lesson_id", canonicalLessonId)
             .in("publication_status", ["published_demo", "published"])
             .order("position", { ascending: true }),
           courseId
@@ -271,7 +275,7 @@ export function LessonLive({ id }: { id: string }) {
             .from("lesson_progress")
             .select("completed_at,best_score")
             .eq("user_id", account.user.id)
-            .eq("lesson_id", id)
+            .eq("lesson_id", canonicalLessonId)
             .maybeSingle();
 
           if (!alive) return;
@@ -450,8 +454,10 @@ export function LessonLive({ id }: { id: string }) {
     content.translation_note_en,
   );
 
+  const lessonSlug = lesson.slug?.trim() || lesson.id;
+
   const companion = getLessonStudyCompanion({
-    lessonIdOrSlug: lesson.id,
+    lessonIdOrSlug: lessonSlug,
     titleAr: lesson.title_ar,
     titleEn: lesson.title_en,
     trackSlug: track?.slug || undefined,
@@ -591,6 +597,7 @@ export function LessonLive({ id }: { id: string }) {
       return;
     }
 
+    const revisionToken = account.revision.current;
     setAnswerStates((prev) => ({
       ...prev,
       [idx]: { ...currentState, grading: true, error: undefined },
@@ -605,6 +612,7 @@ export function LessonLive({ id }: { id: string }) {
         p_idempotency_key: idempotencyKey,
         p_practice_repeat: true,
       });
+      if (revisionToken !== account.revision.current) return;
       if (rpcError) throw rpcError;
       attemptGuard.current.clearAttempt(item.id);
       const result = (data ?? {}) as {
@@ -643,6 +651,7 @@ export function LessonLive({ id }: { id: string }) {
         },
       }));
     } catch {
+      if (revisionToken !== account.revision.current) return;
       setAnswerStates((prev) => ({
         ...prev,
         [idx]: {
@@ -669,7 +678,9 @@ export function LessonLive({ id }: { id: string }) {
           ? "arabic"
           : trackSlug.includes("philosophy")
             ? "philosophy"
-            : "general";
+            : trackSlug.includes("english") || lessonSlug.startsWith("eng-")
+              ? "english"
+              : "general";
 
   // Stages definition
   const STAGES = [
@@ -710,7 +721,7 @@ export function LessonLive({ id }: { id: string }) {
     },
   ];
 
-  const studyHrefBase = `/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(lessonTitle)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`;
+  const studyHrefBase = `/study?lesson=${encodeURIComponent(lessonSlug)}&title=${encodeURIComponent(lessonTitle)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`;
   const resolvedSubjectKey =
     trackDefinition(trackSlug)?.subject ??
     (trackSlug ? trackSlug.replace(/-(ar|en)$/, "") : "");
@@ -783,6 +794,7 @@ export function LessonLive({ id }: { id: string }) {
                 )
               }
               dir={contentDir}
+              locale={contentLanguage}
             />
           </div>
         </div>
@@ -837,7 +849,7 @@ export function LessonLive({ id }: { id: string }) {
             <Link
               className="btn btn-secondary"
               style={{ justifyContent: "center", fontSize: 12.5 }}
-              href={buildAiHref("explain_simply", trackSlug, id, lessonTitle)}
+              href={buildAiHref("explain_simply", trackSlug, lessonSlug, lessonTitle)}
             >
               <Icon name="sparkles" size={14} />
               <span>{t("اسأل المعلم الذكي", "Ask AI Tutor")}</span>
@@ -934,7 +946,9 @@ export function LessonLive({ id }: { id: string }) {
                             ? t("التحليل البلاغي واللغوي: المعنى السياقي وتذوق التراكيب الأدبية", "Linguistic Inquiry: Contextual semantics & rhetorical structure")
                             : disciplineType === "philosophy"
                               ? t("التفكير الفلسفي: تشريح المقدمات وبناء الحجج العقلانية المستقلة", "Philosophical Inquiry: Examining premises & rational argumentation")
-                              : t("إرشادات المذاكرة الفعالة", "Effective Study Guidelines")}
+                              : disciplineType === "english"
+                                ? t("إتقان التراكيب والسياق الإنجليزي: القواعد المتصلة، المتلازمات اللفظية، وتقنيات الترجمة", "English Mastery: Contextual grammar, lexical collocations, and precision translation")
+                                : t("إرشادات المذاكرة الفعالة", "Effective Study Guidelines")}
                   </span>
                 </div>
                 <p style={{ margin: 0, fontSize: 14, lineHeight: 1.85, color: "var(--ink)" }}>
@@ -948,7 +962,7 @@ export function LessonLive({ id }: { id: string }) {
               {hasRealTrack && (
                 <>
                   <PreLessonDiagnostic
-                    lessonIdOrSlug={lesson.id}
+                    lessonIdOrSlug={lessonSlug}
                     subjectKey={resolvedSubjectKey}
                     uiLocale={locale}
                     contentLocale={contentLanguage}
@@ -978,7 +992,7 @@ export function LessonLive({ id }: { id: string }) {
                       ]).map((chip, idx) => (
                         <Link
                           key={chip.action}
-                          href={buildAiHref(chip.action, trackSlug, id, lessonTitle)}
+                          href={buildAiHref(chip.action, trackSlug, lessonSlug, lessonTitle)}
                           className="btn btn-secondary"
                           style={{ fontSize: 12, padding: "6px 12px" }}
                         >
@@ -1027,47 +1041,13 @@ export function LessonLive({ id }: { id: string }) {
                   {summary ? (
                     summary.split("\n\n").map((para, i) => (
                       <div key={i} style={{ margin: "0 0 14px" }}>
-                        <StudyRichText content={para} />
+                        <StudyRichText content={para} dir={contentDir} locale={contentLanguage} />
                       </div>
                     ))
                   ) : (
                     <p>{t("محتوى الدرس غير منشور في المصدر المتصل.", "Lesson content is not published in the connected source.")}</p>
                   )}
                 </article>
-              ) : hasMoreSummary ? (
-                <details
-                  className="noata-summary-details"
-                  style={{
-                    borderRadius: 14,
-                    border: "1px solid var(--line)",
-                    background: "var(--surface-soft)",
-                    padding: "10px 14px",
-                  }}
-                >
-                  <summary
-                    style={{
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      fontSize: 13.5,
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {t(
-                      "قراءة النص التمهيدي الكامل للدرس (اختياري)",
-                      "Expand Full Syllabus Overview (Optional)",
-                    )}
-                  </summary>
-                  <article
-                    style={{ fontSize: 15.5, lineHeight: 1.9, color: "var(--ink)", marginTop: 12 }}
-                    dir={contentDir}
-                  >
-                    {summary.split("\n\n").map((para, i) => (
-                      <div key={i} style={{ margin: "0 0 12px" }}>
-                        <StudyRichText content={para} />
-                      </div>
-                    ))}
-                  </article>
-                </details>
               ) : null}
 
               {hasRealTrack && companion.keyConcepts.length > 0 && (
@@ -1078,42 +1058,72 @@ export function LessonLive({ id }: { id: string }) {
                       "Structured Concept Breakdown · Sec. 1 Study Pack",
                     )}
                   </h3>
-                  {companion.keyConcepts.map((concept) => (
-                    <div key={concept.id} className="noata-concept-card">
-                      <div className="noata-concept-card-head">
-                        <h3>{concept.title}</h3>
-                        <Link
-                          href={buildAiHref("concept_clarify", trackSlug, id, concept.title)}
-                          className="btn btn-secondary"
-                          style={{ fontSize: 11.5, padding: "4px 10px" }}
-                        >
-                          <Icon name="sparkles" size={12} />
-                          <span>{t("استفسر من AI", "Ask AI")}</span>
-                        </Link>
-                      </div>
-                      <div style={{ lineHeight: 1.85, color: "var(--ink)" }}>
-                        <StudyRichText content={concept.body} />
-                      </div>
-                      {concept.formulaOrRule && (
-                        <div className="noata-concept-formula">
-                          <StudyRichText content={concept.formulaOrRule} />
+                  {companion.keyConcepts.map((concept) => {
+                    const hasBlocks = Array.isArray(concept.blocks) && concept.blocks.length > 0;
+                    const stageLabel =
+                      concept.stage === "foundation"
+                        ? t("التمهيد", "Foundation")
+                        : concept.stage === "mechanism"
+                          ? t("التفكيك", "Mechanism")
+                          : concept.stage === "application"
+                            ? t("التطبيق", "Application")
+                            : null;
+                    return (
+                      <div key={concept.id} className="noata-concept-card" data-concept-id={concept.id}>
+                        <div className="noata-concept-card-head">
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            {stageLabel ? (
+                              <span className="noata-concept-stage-pill" data-stage={concept.stage}>
+                                {stageLabel}
+                              </span>
+                            ) : null}
+                            <h3 dir={contentDir}>
+                              <StudyRichText content={concept.title} dir={contentDir} locale={contentLanguage} inline />
+                            </h3>
+                          </div>
+                          <Link
+                            href={buildAiHref("concept_clarify", trackSlug, lessonSlug, concept.title)}
+                            className="btn btn-secondary"
+                            style={{ fontSize: 11.5, padding: "4px 10px" }}
+                          >
+                            <Icon name="sparkles" size={12} />
+                            <span>{t("استفسر من AI", "Ask AI")}</span>
+                          </Link>
                         </div>
-                      )}
-                      {concept.example && (
-                        <div className="noata-concept-example">
-                          <strong style={{ color: "var(--ink)" }}>
-                            {t("مثال تطبيقي: ", "Example: ")}
-                          </strong>
-                          <StudyRichText content={concept.example} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        {hasBlocks ? (
+                          <StudyRichText
+                            blocks={concept.blocks}
+                            dir={contentDir}
+                            locale={contentLanguage}
+                          />
+                        ) : (
+                          <>
+                            <div style={{ lineHeight: 1.85, color: "var(--ink)" }}>
+                              <StudyRichText content={concept.body} dir={contentDir} locale={contentLanguage} />
+                            </div>
+                            {concept.formulaOrRule && (
+                              <div className="noata-concept-formula">
+                                <StudyRichText content={concept.formulaOrRule} dir={contentDir} locale={contentLanguage} />
+                              </div>
+                            )}
+                            {concept.example && (
+                              <div className="noata-concept-example">
+                                <strong style={{ color: "var(--ink)" }}>
+                                  {t("مثال تطبيقي: ", "Example: ")}
+                                </strong>
+                                <StudyRichText content={concept.example} dir={contentDir} locale={contentLanguage} />
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
               <SubjectLabRouter
-                lessonIdOrSlug={id}
+                lessonIdOrSlug={lessonSlug}
                 lessonTitle={[lesson.title_ar, lesson.title_en].filter(Boolean).join(" ")}
                 subjectKey={resolvedSubjectKey}
                 uiLocale={locale}
@@ -1122,7 +1132,8 @@ export function LessonLive({ id }: { id: string }) {
 
               {translationNote && (
                 <div style={{ padding: 14, borderRadius: 12, background: "var(--surface-soft)", border: "1px solid var(--line)", fontSize: 13, color: "var(--muted)" }} dir={contentDir}>
-                  <strong>{t("ملاحظة ترجمة معتمدة:", "Curriculum Translation Note:")}</strong> {translationNote}
+                  <strong>{t("ملاحظة ترجمة معتمدة:", "Curriculum Translation Note:")}</strong>{" "}
+                  <StudyRichText content={translationNote} dir={contentDir} locale={contentLanguage} inline />
                 </div>
               )}
             </>
@@ -1145,26 +1156,43 @@ export function LessonLive({ id }: { id: string }) {
                 </div>
               </div>
 
-              {worked && (
-                <div className={`noata-discipline-panel ${disciplineType}`}>
-                  <div className="noata-discipline-badge">
-                    <Icon name="check" size={14} />
-                    <span>{t("نموذج حل تطبيقي تفصيلي", "Detailed Guided Model Solution")}</span>
+              {(() => {
+                const normCmp = (s: string) => s.replace(/[\s$]+/g, "").toLowerCase();
+                const workedNorm = normCmp(worked);
+                const workedDuplicatesCompanion =
+                  Boolean(workedNorm) &&
+                  hasRealTrack &&
+                  companion.workedExamples.some((ex) => {
+                    const exCombined = normCmp([ex.problem, ...ex.steps].join(" "));
+                    const probNorm = normCmp(ex.problem);
+                    return (
+                      exCombined === workedNorm ||
+                      (probNorm.length >= 16 && workedNorm.includes(probNorm)) ||
+                      (workedNorm.length >= 20 && exCombined.includes(workedNorm))
+                    );
+                  });
+
+                return worked && !workedDuplicatesCompanion ? (
+                  <div className={`noata-discipline-panel ${disciplineType}`}>
+                    <div className="noata-discipline-badge">
+                      <Icon name="check" size={14} />
+                      <span>{t("نموذج حل تطبيقي تفصيلي", "Detailed Guided Model Solution")}</span>
+                    </div>
+                    <div style={{ fontSize: 15.5, lineHeight: 1.9, color: "var(--ink)" }} dir={contentDir}>
+                      {worked.split("\n\n").map((chunk, i) => (
+                        <div key={i} style={{ margin: "0 0 12px" }}>
+                          <StudyRichText content={chunk} dir={contentDir} locale={contentLanguage} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 15.5, lineHeight: 1.9, color: "var(--ink)" }} dir={contentDir}>
-                    {worked.split("\n\n").map((chunk, i) => (
-                      <div key={i} style={{ margin: "0 0 12px" }}>
-                        <StudyRichText content={chunk} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                ) : null;
+              })()}
 
               {hasRealTrack && companion.workedExamples.length > 0 ? (
                 <div className="noata-study-sections" dir={contentDir}>
                   {companion.workedExamples.map((example, exIdx) => {
-                    const revealed = revealedStepsByExample[exIdx] ?? example.steps.length;
+                    const revealed = revealedStepsByExample[exIdx] ?? 1;
                     const showingCount = Math.min(Math.max(1, revealed), example.steps.length);
                     return (
                       <div key={exIdx} className="noata-worked-stepper">
@@ -1177,7 +1205,7 @@ export function LessonLive({ id }: { id: string }) {
                               )}
                             </span>
                             <div style={{ fontWeight: 700, fontSize: 15.5, marginTop: 4, color: "var(--ink)" }}>
-                              <StudyRichText content={example.problem} />
+                              <StudyRichText content={example.problem} dir={contentDir} locale={contentLanguage} />
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1216,7 +1244,7 @@ export function LessonLive({ id }: { id: string }) {
                             <li key={stepIdx} className="noata-worked-step-item">
                               <span className="noata-worked-step-index">{stepIdx + 1}</span>
                               <div style={{ flex: 1 }}>
-                                <StudyRichText content={stepText} />
+                                <StudyRichText content={stepText} dir={contentDir} locale={contentLanguage} />
                               </div>
                             </li>
                           ))}
@@ -1226,7 +1254,7 @@ export function LessonLive({ id }: { id: string }) {
                           <strong style={{ marginInlineEnd: 6 }}>
                             {t("القاعدة المستخلصة:", "Key Takeaway:")}
                           </strong>
-                          <StudyRichText content={example.takeaway} />
+                          <StudyRichText content={example.takeaway} dir={contentDir} locale={contentLanguage} />
                         </div>
                       </div>
                     );
@@ -1262,7 +1290,7 @@ export function LessonLive({ id }: { id: string }) {
                   {mistakes.map((mistake, idx) => (
                     <div key={idx} className="noata-misconception-item" dir={contentDir}>
                       <span style={{ color: "var(--warning)", fontWeight: 800 }}>⚠️</span>
-                      <StudyRichText content={mistake} />
+                      <StudyRichText content={mistake} dir={contentDir} locale={contentLanguage} />
                     </div>
                   ))}
                 </div>
@@ -1432,7 +1460,13 @@ export function LessonLive({ id }: { id: string }) {
                         color: "var(--muted)",
                       }}
                     >
-                      <strong>{t("تلميح:", "Hint:")}</strong> {activeQuestion.hint}
+                      <strong>{t("تلميح:", "Hint:")}</strong>{" "}
+                      <StudyRichText
+                        content={activeQuestion.hint}
+                        dir={contentDir}
+                        locale={contentLanguage}
+                        inline
+                      />
                     </div>
                   )}
 
@@ -1469,7 +1503,7 @@ export function LessonLive({ id }: { id: string }) {
                           href={buildAiHref(
                             activeAnswerState.correct ? "concept_clarify" : "mistake_repair",
                             trackSlug,
-                            id,
+                            lessonSlug,
                             lessonTitle,
                           )}
                           className="btn btn-secondary"
@@ -1629,7 +1663,7 @@ export function LessonLive({ id }: { id: string }) {
 
           <Link
             className="btn btn-secondary"
-            href={buildAiHref("explain_simply", trackSlug, id, lessonTitle)}
+            href={buildAiHref("explain_simply", trackSlug, lessonSlug, lessonTitle)}
           >
             <Icon name="sparkles" size={16} />
             <span>{t("استشر Noäta AI", "Ask Noäta AI")}</span>

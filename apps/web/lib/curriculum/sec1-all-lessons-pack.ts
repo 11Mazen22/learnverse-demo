@@ -1,66 +1,22 @@
 import type { ContentLanguage } from "./catalog.ts";
+import type { CanonicalLessonStudyPack, CuratedStudyQuestion } from "./pack-types.ts";
+import { RENAISSANCE_LESSON_STUDY_PACKS } from "./packs/index.ts";
 
-export type SubjectSlugKey =
-  | "integrated-science"
-  | "mathematics"
-  | "arabic-language"
-  | "english"
-  | "history"
-  | "philosophy-logic";
+export type {
+  CanonicalFlashcard,
+  CanonicalLessonStudyPack,
+  CuratedStudyQuestion,
+  StudyConceptSection,
+  StudyWorkedExample,
+  SubjectSlugKey,
+} from "./pack-types.ts";
 
-export type StudyConceptSection = {
-  id: string;
-  title: string;
-  body: string;
-  formulaOrRule?: string;
-  example?: string;
-};
-
-export type StudyWorkedExample = {
-  problem: string;
-  steps: string[];
-  takeaway: string;
-};
-
-export type CuratedStudyQuestion = {
-  id: string;
-  question_type: "multiple-choice";
-  prompt: string;
-  choices: string[];
-  correct_index: number;
-  explanation: string;
-  hint: string;
-  difficulty: "foundational" | "standard" | "challenging";
-  lessonTitle?: string;
-};
-
-export type CanonicalFlashcard = {
-  front: string;
-  back: string;
-  hint?: string;
-};
-
-export type CanonicalLessonStudyPack = {
-  id: string;
-  lessonSlug: string;
-  trackSlug: string;
-  subject: SubjectSlugKey;
-  contentLanguage: ContentLanguage;
-  position: number;
-  title: string;
-  titleAr: string;
-  titleEn: string;
-  isExtraReview?: boolean;
-  summary: string;
-  formulaOrRule?: string;
-  keyConcepts: StudyConceptSection[];
-  workedExamples: StudyWorkedExample[];
-  commonMistakes: string[];
-  questions: CuratedStudyQuestion[];
-  cards: CanonicalFlashcard[];
-};
-
-const ALL_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = [
+/**
+ * Legacy Phase-0 packs. Any pack whose `id` is also exported by a Renaissance subject
+ * file in `./packs/` is replaced at load time (see `ALL_LESSON_STUDY_PACKS` below), so the
+ * legacy entry is retained only as a rollback reference until it is pruned.
+ */
+const LEGACY_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = [
   // =========================================================================
   // 1A. INTEGRATED SCIENCE — ARABIC TRACK (5 EXACT LESSONS)
   // =========================================================================
@@ -3590,6 +3546,28 @@ const ALL_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = [
   }
 ];
 
+/**
+ * Effective pack list: each Renaissance pack replaces the legacy pack with the same `id`;
+ * Renaissance packs with a brand-new `id` (e.g. respiratory and motion pathways) are appended.
+ */
+function mergeRenaissancePacks(
+  legacy: readonly CanonicalLessonStudyPack[],
+  renaissance: readonly CanonicalLessonStudyPack[],
+): CanonicalLessonStudyPack[] {
+  const byId = new Map(renaissance.map((pack) => [pack.id, pack] as const));
+  const merged = legacy.map((pack) => byId.get(pack.id) ?? pack);
+  const legacyIds = new Set(legacy.map((pack) => pack.id));
+  for (const pack of renaissance) {
+    if (!legacyIds.has(pack.id)) merged.push(pack);
+  }
+  return merged;
+}
+
+export const ALL_LESSON_STUDY_PACKS: CanonicalLessonStudyPack[] = mergeRenaissancePacks(
+  LEGACY_LESSON_STUDY_PACKS,
+  RENAISSANCE_LESSON_STUDY_PACKS,
+);
+
 const PACKS_BY_TRACK = new Map<string, CanonicalLessonStudyPack[]>();
 for (const pack of ALL_LESSON_STUDY_PACKS) {
   const existing = PACKS_BY_TRACK.get(pack.trackSlug) ?? [];
@@ -3610,18 +3588,39 @@ export function getTrackLessonStudyPacks(trackSlug: string): CanonicalLessonStud
   return PACKS_BY_TRACK.get(normalized) ?? [];
 }
 
+const UUID_LIKE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Candidate pack keys for a DB lesson slug: exact, then without the `-en` translation-track suffix. */
+function slugCandidates(lessonSlug: string): string[] {
+  const clean = lessonSlug.trim();
+  if (!clean || UUID_LIKE.test(clean)) return [];
+  const withoutEn = clean.replace(/-en$/i, "");
+  return withoutEn === clean ? [clean] : [clean, withoutEn];
+}
+
+/**
+ * Resolve the canonical pack for a real `lessons.slug`. DB English clones are stored as
+ * `<slug>-en`; packs are keyed by the base slug plus content language. UUIDs never match
+ * (callers must pass `lessons.slug`), so a wrong-lesson pack can never be returned.
+ */
 export function getLessonStudyPack(
   lessonSlug?: string | null,
   contentLanguage?: ContentLanguage
 ): CanonicalLessonStudyPack | null {
   if (!lessonSlug) return null;
+  const candidates = slugCandidates(lessonSlug);
+  if (candidates.length === 0) return null;
   if (contentLanguage) {
-    const exact = PACKS_BY_LESSON_LANG.get(`${lessonSlug}::${contentLanguage}`);
-    if (exact) return exact;
+    for (const key of candidates) {
+      const exact = PACKS_BY_LESSON_LANG.get(`${key}::${contentLanguage}`);
+      if (exact) return exact;
+    }
   }
-  return (
-    ALL_LESSON_STUDY_PACKS.find((pack) => pack.lessonSlug === lessonSlug) ?? null
-  );
+  for (const key of candidates) {
+    const any = ALL_LESSON_STUDY_PACKS.find((pack) => pack.lessonSlug === key);
+    if (any) return any;
+  }
+  return null;
 }
 
 export function findPackQuestionById(questionId: string): CuratedStudyQuestion | null {

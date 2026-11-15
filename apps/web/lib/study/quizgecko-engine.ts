@@ -241,15 +241,22 @@ export function generateAlgorithmicBundle(options: GenerateOptions): QuizGeckoBu
         topicCheck
       );
 
-    if (looksLikeSec1Topic) {
-      const companion = getLessonStudyCompanion({
-        lessonIdOrSlug: options.lessonId,
-        titleAr: locale === "ar" ? options.lessonTitle || options.topic : undefined,
-        titleEn: locale === "en" ? options.lessonTitle || options.topic : undefined,
-        subjectKey: options.subject,
-        contentLanguage: locale,
-      });
+    const companion = looksLikeSec1Topic
+      ? getLessonStudyCompanion({
+          lessonIdOrSlug: options.lessonId,
+          titleAr: locale === "ar" ? options.lessonTitle || options.topic : undefined,
+          titleEn: locale === "en" ? options.lessonTitle || options.topic : undefined,
+          subjectKey: options.subject,
+          contentLanguage: locale,
+        })
+      : null;
 
+    if (
+      companion &&
+      companion.source !== "none" &&
+      companion.curatedQuestions.length > 0 &&
+      companion.flashcards.length > 0
+    ) {
       const companionTitle = cleanText(
         options.lessonTitle || options.topic || companion.matchedTopic
       );

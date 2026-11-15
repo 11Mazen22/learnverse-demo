@@ -93,7 +93,12 @@ function WaterPolarityDensityLab({
             aria-pressed={tab === "polarity"}
             onClick={() => setTab("polarity")}
           >
-            {tUi("قطبية H₂O والروابط والـ pH", "H₂O Polarity & pH")}
+            <StudyRichText
+              content={tUi("قطبية $\\text{H}_2\\text{O}$ والروابط والـ $\\text{pH}$", "$\\text{H}_2\\text{O}$ Polarity & $\\text{pH}$")}
+              dir={uiLocale === "ar" ? "rtl" : "ltr"}
+              locale={contentLocale}
+              inline
+            />
           </button>
           <button
             type="button"
@@ -147,8 +152,10 @@ function WaterPolarityDensityLab({
                     strokeWidth="3"
                     strokeDasharray="6 5"
                   />
-                  <rect x="144" y="64" width="54" height="18" rx="6" fill="var(--surface-soft)" stroke="var(--warning)" />
-                  <text x="171" y="76" textAnchor="middle" fontSize="9.5" fontWeight="800" fill="var(--ink)">H-bond</text>
+                  <rect x="136" y="64" width="68" height="18" rx="6" fill="var(--surface-soft)" stroke="var(--warning)" />
+                  <text x="170" y="76" textAnchor="middle" fontSize="9.5" fontWeight="800" fill="var(--ink)">
+                    {tContent("هيدروجينية", "H-bond")}
+                  </text>
 
                   <line x1="208" y1="68" x2="236" y2="108" stroke="var(--ink)" strokeWidth="4" />
                   <line x1="208" y1="68" x2="246" y2="54" stroke="var(--ink)" strokeWidth="4" />
@@ -162,8 +169,11 @@ function WaterPolarityDensityLab({
                 </g>
               ) : null}
 
-              <text x="88" y="166" textAnchor="middle" fontSize="10" fill="var(--muted)" fontWeight="700">
-                Solid line = Polar Covalent O–H (strong)
+              <text x="140" y="166" textAnchor="middle" fontSize="10" fill="var(--muted)" fontWeight="700">
+                {tContent(
+                  "خط متصل = رابطة تساهمية قطبية قوية (O–H)",
+                  "Solid line = Polar Covalent O–H (strong)",
+                )}
               </text>
             </svg>
           </div>
@@ -172,13 +182,25 @@ function WaterPolarityDensityLab({
             <div className="noata-lab-preset-row">
               <button
                 type="button"
+                aria-label={
+                  showNeighbourHBond
+                    ? tUi("إظهار الرابطة الهيدروجينية بين الجزيئات", "Intermolecular H-Bond: ON")
+                    : tUi("عرض جزيء H2O منفرد", "Single H2O only")
+                }
                 className={`noata-lab-preset-btn ${showNeighbourHBond ? "is-active" : ""}`}
                 aria-pressed={showNeighbourHBond}
                 onClick={() => setShowNeighbourHBond((v) => !v)}
               >
                 {showNeighbourHBond
                   ? tUi("إظهار الرابطة الهيدروجينية بين الجزيئات ✓", "Intermolecular H-Bond: ON")
-                  : tUi("عرض جزيء H₂O منفرد", "Single H₂O only")}
+                  : (
+                      <StudyRichText
+                        content={tUi("عرض جزيء $\\text{H}_2\\text{O}$ منفرد", "Single $\\text{H}_2\\text{O}$ only")}
+                        dir={uiLocale === "ar" ? "rtl" : "ltr"}
+                        locale={contentLocale}
+                        inline
+                      />
+                    )}
               </button>
             </div>
 
@@ -221,11 +243,18 @@ function WaterPolarityDensityLab({
                 <span>
                   {tUi("التصنيف عند 25°C:", "Classification (25°C):")}{" "}
                   <strong>
-                    {phState.category === "acidic"
-                      ? tContent("وسط حمضي — تركيز [H⁺] أعلى", "Acidic — higher [H⁺]")
-                      : phState.category === "basic"
-                        ? tContent("وسط قاعدي — تركيز [OH⁻] أعلى", "Basic — higher [OH⁻]")
-                        : tContent("وسط متعادل — ماء نقي [H⁺] = [OH⁻]", "Neutral — [H⁺] = [OH⁻]")}
+                    <StudyRichText
+                      content={
+                        phState.category === "acidic"
+                          ? tContent("وسط حمضي — تركيز $[\\text{H}^+]$ أعلى", "Acidic — higher $[\\text{H}^+]$")
+                          : phState.category === "basic"
+                            ? tContent("وسط قاعدي — تركيز $[\\text{OH}^-]$ أعلى", "Basic — higher $[\\text{OH}^-]$")
+                            : tContent("وسط متعادل — ماء نقي $[\\text{H}^+] = [\\text{OH}^-]$", "Neutral — $[\\text{H}^+] = [\\text{OH}^-]$")
+                      }
+                      dir={contentLocale === "ar" ? "rtl" : "ltr"}
+                      locale={contentLocale}
+                      inline
+                    />
                   </strong>
                 </span>
               </div>
@@ -265,7 +294,9 @@ function WaterPolarityDensityLab({
               <line x1="32" y1="146" x2="266" y2="146" stroke="var(--line-strong)" strokeWidth="1.5" />
               {/* 4°C vertical peak marker */}
               <line x1="100.4" y1="26" x2="100.4" y2="146" stroke="var(--success)" strokeDasharray="4 3" />
-              <text x="103" y="24" fontSize="9.5" fontWeight="800" fill="var(--success)">max ~4°C</text>
+              <text x="103" y="24" fontSize="9.5" fontWeight="800" fill="var(--success)">
+                {tContent("الذروة ~4°C", "max ~4°C")}
+              </text>
               {/* 0°C freezing transition */}
               <line x1="70" y1="26" x2="70" y2="146" stroke="var(--warning)" strokeDasharray="2 3" />
               <text x="66" y="160" textAnchor="middle" fontSize="9.5" fill="var(--muted)">0°C</text>
@@ -439,7 +470,10 @@ function AquaticSolutionExperimentLab({
               {/* External bath background */}
               <rect x="10" y="10" width="260" height="165" rx="18" fill="var(--subject-accent)" fillOpacity="0.1" stroke="var(--line-strong)" />
               <text x="24" y="30" fontSize="10.5" fontWeight="700" fill="var(--ink)">
-                External bath: {state.externalSalinityPpt} ppt
+                {tContent(
+                  `الوسط الخارجي: ${state.externalSalinityPpt} ppt`,
+                  `External bath: ${state.externalSalinityPpt} ppt`,
+                )}
               </text>
 
               {/* Living cell ellipse scaling slightly with turgor state */}
@@ -453,13 +487,15 @@ function AquaticSolutionExperimentLab({
                 strokeWidth="3.5"
                 strokeDasharray="6 3"
               />
-              <text x="140" y="95" textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--ink)">Cell: 9 ppt</text>
+              <text x="140" y="95" textAnchor="middle" fontSize="11" fontWeight="800" fill="var(--ink)">
+                {tContent("الخلية: 9 ppt", "Cell: 9 ppt")}
+              </text>
               <text x="140" y="112" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="var(--muted)">
                 {state.osmoticDirection === "efflux-shrink"
-                  ? "Net H₂O OUT → shrinks"
+                  ? tContent("صافي الماء للخارج ← انكماش", "Net H₂O OUT → shrinks")
                   : state.osmoticDirection === "influx-swell"
-                    ? "Net H₂O IN → swells"
-                    : "Dynamic equilibrium ⇄"}
+                    ? tContent("صافي الماء للداخل ← انتفاخ", "Net H₂O IN → swells")
+                    : tContent("اتزان ديناميكي ⇄", "Dynamic equilibrium ⇄")}
               </text>
 
               {/* Directional osmosis arrows */}
@@ -475,7 +511,7 @@ function AquaticSolutionExperimentLab({
                 </>
               ) : (
                 <text x="140" y="160" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--success)">
-                  Balanced bidirectional H₂O flux
+                  {tContent("تدفق متوازن للماء في الاتجاهين", "Balanced bidirectional H₂O flux")}
                 </text>
               )}
             </svg>
@@ -529,16 +565,28 @@ function AquaticSolutionExperimentLab({
               <div className="noata-lab-metrics-row">
                 <span>
                   {tUi("الخواص التجميعية:", "Colligative shifts:")}{" "}
-                  <strong dir="ltr">ΔTb ≈ +{state.boilingElevationNote}°C | ΔTf ≈ {state.freezingDepressionNote}°C</strong>
+                  <strong>
+                    <StudyRichText
+                      content={`$\\Delta T_b \\approx +${state.boilingElevationNote}^\\circ\\text{C}$ · $\\Delta T_f \\approx ${state.freezingDepressionNote}^\\circ\\text{C}$`}
+                      dir="ltr"
+                      locale={contentLocale}
+                      inline
+                    />
+                  </strong>
                 </span>
                 <span>
-                  {tUi("توافر O₂ المذاب:", "Dissolved O₂:")}{" "}
+                  <StudyRichText
+                    content={tUi("توافر $\\text{O}_2$ المذاب:", "Dissolved $\\text{O}_2$:")}
+                    dir={uiLocale === "ar" ? "rtl" : "ltr"}
+                    locale={contentLocale}
+                    inline
+                  />{" "}
                   <strong>
                     {state.dissolvedO2Index === "high"
                       ? tContent("مرتفع (مياه باردة وعذبة نسبيًا)", "High (cooler, lower salinity)")
                       : state.dissolvedO2Index === "moderate"
                         ? tContent("متوسط", "Moderate")
-                        : tContent("منخفض (حرارة/ملوحة مرتفعة)", "Low (warm/saline stress)")}
+                        : tContent("منخفض (حرارة أو ملوحة مرتفعة)", "Low (warm or saline stress)")}
                   </strong>
                 </span>
               </div>

@@ -5,6 +5,10 @@ import { Icon } from "@/components/ui/icon";
 import { StudyRichText } from "@/components/study/study-rich-text";
 import { getPreLessonDiagnosticItems } from "@/lib/curriculum/knowledge-map";
 
+function stripMathDelimiters(text: string): string {
+  return text.replace(/\$\$/g, "").replace(/\$/g, "").replace(/\s+/g, " ").trim();
+}
+
 export type PreLessonDiagnosticProps = {
   lessonIdOrSlug: string;
   subjectKey: string;
@@ -83,7 +87,11 @@ export function PreLessonDiagnostic({
                 <StudyRichText content={q.prompt} />
               </div>
 
-              <div className="noata-diag-options" role="radiogroup" aria-label={q.prompt}>
+              <div
+                className="noata-diag-options"
+                role="radiogroup"
+                aria-label={stripMathDelimiters(q.prompt)}
+              >
                 {q.options.map((opt) => {
                   const active = picked === opt.id;
                   const optRight = Boolean(picked && opt.id === q.correctId);
@@ -94,7 +102,7 @@ export function PreLessonDiagnostic({
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      aria-label={opt.label}
+                      aria-label={stripMathDelimiters(opt.label)}
                       className={`noata-diag-opt ${active ? "is-picked" : ""} ${
                         optRight ? "is-right" : optWrong ? "is-wrong" : ""
                       }`}
@@ -103,7 +111,7 @@ export function PreLessonDiagnostic({
                       }
                     >
                       <span>
-                        <StudyRichText content={opt.label} inline />
+                        <StudyRichText content={opt.label} dir={contentLocale === "en" ? "ltr" : "rtl"} inline />
                       </span>
                     </button>
                   );
@@ -113,7 +121,13 @@ export function PreLessonDiagnostic({
               {picked ? (
                 <div className={`noata-diag-feedback ${isCorrect ? "is-right" : "is-wrong"}`}>
                   <Icon name={isCorrect ? "check-circle" : "alert-circle"} size={15} />
-                  <span>{isCorrect ? q.feedbackCorrect : q.feedbackMissed}</span>
+                  <span>
+                    <StudyRichText
+                      content={isCorrect ? q.feedbackCorrect : q.feedbackMissed}
+                      dir={contentLocale === "en" ? "ltr" : "rtl"}
+                      inline
+                    />
+                  </span>
                 </div>
               ) : null}
             </div>

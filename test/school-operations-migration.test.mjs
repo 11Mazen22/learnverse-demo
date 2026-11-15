@@ -65,8 +65,8 @@ test("M3 never grants staff/admin bypass onto owner-only private student study t
   assert.match(m2, /create policy "study sessions owner select" on public\.study_sessions/);
 });
 
-test("recovery rehearsal count and SQL regressions reflect M3", () => {
-  assert.match(rehearsal, /assert\.equal\(delta\.length,34\)/);
+test("recovery rehearsal count and SQL regressions reflect M3 and M4", () => {
+  assert.match(rehearsal, /assert\.equal\(delta\.length,35\)/);
   assert.match(regressions, /admin denied read on student private deck/);
   assert.match(regressions, /teacher denied feature flag mutation/);
   assert.match(regressions, /student denied log_staff_export RPC/);

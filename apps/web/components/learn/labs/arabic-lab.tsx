@@ -18,6 +18,7 @@ export type ArabicLabProps = {
 
 type PoetryFocusItem = {
   id: string;
+  specimenId: "samawal" | "antara";
   labelAr: string;
   labelEn: string;
   categoryAr: string;
@@ -29,6 +30,7 @@ type PoetryFocusItem = {
 const POETRY_FOCUS_ITEMS: PoetryFocusItem[] = [
   {
     id: "jussive-lam",
+    specimenId: "samawal",
     labelAr: "لم يدنسْ",
     labelEn: "lam yadnas (لم يدنسْ)",
     categoryAr: "إعراب الفعل المضارع",
@@ -40,6 +42,7 @@ const POETRY_FOCUS_ITEMS: PoetryFocusItem[] = [
   },
   {
     id: "tashbih-baligh",
+    specimenId: "samawal",
     labelAr: "كل رداءٍ يرتديه",
     labelEn: "Every garment worn (رِداء)",
     categoryAr: "بلاغة واستعارة تصريحية",
@@ -51,6 +54,7 @@ const POETRY_FOCUS_ITEMS: PoetryFocusItem[] = [
   },
   {
     id: "sarf-jamil",
+    specimenId: "samawal",
     labelAr: "جميل (صيغة فعيل)",
     labelEn: "jamīl (فَعِيل pattern)",
     categoryAr: "صرف ومعنى الصفة",
@@ -60,19 +64,64 @@ const POETRY_FOCUS_ITEMS: PoetryFocusItem[] = [
     analysisEn:
       "Stative adjective on the 'faʿīl' pattern denoting an enduring quality, serving here as the nominative predicate.",
   },
-];
-
-const SAMAWAL_POETRY_BLOCK: StructuredStudyBlock[] = [
   {
-    type: "poetry_couplet",
-    hemistich1: "إِذا المَرءُ لَم يَدنَس مِنَ اللُؤمِ عِرضُهُ",
-    hemistich2: "فَكُلُّ رِداءٍ يَرتَديهِ جَميلُ",
-    meter: "البحر الطويل",
-    poet: "السموأل",
-    blockId: "lab-samawal-verse-1",
-    conceptId: "arabic-samawal-poetry",
+    id: "antara-simile",
+    specimenId: "antara",
+    labelAr: "سيوفًا كالشُّهبِ (تشبيه)",
+    labelEn: "Swords like meteors (Simile)",
+    categoryAr: "التشبيه البليغ والأركان",
+    categoryEn: "Rhetorical Simile",
+    analysisAr:
+      "تشبيه تام الأركان: المشبّه (السيوف)، وأداة التشبيه (الكاف)، والمشبّه به (الشُّهب)، ووجه الشبه اللمعان والسرعة لإبراز الفروسية.",
+    analysisEn:
+      "Full simile comparing swords to bright meteors with the particle كـ to evoke speed and heroic brilliance.",
+  },
+  {
+    id: "antara-khabar",
+    specimenId: "antara",
+    labelAr: "فإني (التوكيد بإنَّ)",
+    labelEn: "Emphasis via إِنَّ",
+    categoryAr: "أسلوب التوكيد والخبر",
+    categoryEn: "Nominal Emphasis",
+    analysisAr:
+      "توكيد الخبر بالحرف الناسخ (إنّ) واسمها الضمير المتصل (ياء المتكلم)، ما يرسخ ثقة الفارس بنفسه أمام قومه.",
+    analysisEn:
+      "The particle إِنَّ strengthens the assertion with its attached pronoun subject, reinforcing self-confidence.",
   },
 ];
+
+const POETRY_SPECIMENS: Record<"samawal" | "antara", { titleAr: string; titleEn: string; block: StructuredStudyBlock[] }> = {
+  samawal: {
+    titleAr: "السموأل — الفخر والوفاء",
+    titleEn: "Al-Samaw'al — Honor & Steadfastness",
+    block: [
+      {
+        type: "poetry_couplet",
+        hemistich1: "إِذا المَرءُ لَم يَدنَس مِنَ اللُؤمِ عِرضُهُ",
+        hemistich2: "فَكُلُّ رِداءٍ يَرتَديهِ جَميلُ",
+        meter: "البحر الطويل",
+        poet: "السموأل",
+        blockId: "lab-samawal-verse-1",
+        conceptId: "arabic-samawal-poetry",
+      },
+    ],
+  },
+  antara: {
+    titleAr: "عنترة بن شداد — شجاعة وفروسية",
+    titleEn: "Antarah ibn Shaddad — Valor & Chivalry",
+    block: [
+      {
+        type: "poetry_couplet",
+        hemistich1: "ولَقَد ذَكَرتُكِ والرِّماحُ نَواهِلٌ",
+        hemistich2: "مِنّي وبيضُ الهِندِ تَقطُرُ مِن دَمي",
+        meter: "البحر الكامل",
+        poet: "عنترة بن شداد",
+        blockId: "lab-antara-verse-1",
+        conceptId: "arabic-antara-poetry",
+      },
+    ],
+  },
+};
 
 export function ArabicLab({
   initialMode,
@@ -84,7 +133,9 @@ export function ArabicLab({
     initialMode === "poetry" ? "poetry" : "irab",
   );
   const [sentenceId, setSentenceId] = useState<string>(ARABIC_IRAB_SENTENCES[0].id);
-  const [selectedTokenIndex, setSelectedTokenIndex] = useState<number>(0);
+  const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
+  const [revealedTokens, setRevealedTokens] = useState<Record<string, boolean>>({});
+  const [poetrySpecimen, setPoetrySpecimen] = useState<"samawal" | "antara">("samawal");
   const [selectedPoetryId, setSelectedPoetryId] = useState<string>(POETRY_FOCUS_ITEMS[0].id);
 
   const tUi = (ar: string, en: string) => (uiLocale === "ar" ? ar : en);
@@ -98,24 +149,36 @@ export function ArabicLab({
   );
 
   const safeTokenIndex =
-    selectedTokenIndex >= 0 && selectedTokenIndex < activeSentence.tokens.length
+    selectedTokenIndex !== null &&
+    selectedTokenIndex >= 0 &&
+    selectedTokenIndex < activeSentence.tokens.length
       ? selectedTokenIndex
-      : 0;
-  const activeToken = activeSentence.tokens[safeTokenIndex];
+      : null;
+  const activeToken = safeTokenIndex !== null ? activeSentence.tokens[safeTokenIndex] : null;
+
+  const specimenFocusItems = useMemo(
+    () => POETRY_FOCUS_ITEMS.filter((p) => p.specimenId === poetrySpecimen),
+    [poetrySpecimen],
+  );
 
   const activePoetryFocus = useMemo(
     () =>
-      POETRY_FOCUS_ITEMS.find((p) => p.id === selectedPoetryId) ??
-      POETRY_FOCUS_ITEMS[0],
-    [selectedPoetryId],
+      specimenFocusItems.find((p) => p.id === selectedPoetryId) ??
+      specimenFocusItems[0],
+    [specimenFocusItems, selectedPoetryId],
   );
 
   const liveStatusText =
     mode === "irab"
-      ? tUi(
-          `تحليل كلمة «${activeToken.word}»: ${activeToken.roleAr}، وعلامة الإعراب: ${activeToken.markerAr}.`,
-          `Parsing '${activeToken.word}': ${activeToken.roleAr} (${activeToken.markerAr}).`,
-        )
+      ? activeToken
+        ? tUi(
+            `تحليل كلمة «${activeToken.word}»: ${activeToken.roleAr}، وعلامة الإعراب: ${activeToken.markerAr}.`,
+            `Parsing '${activeToken.word}': ${activeToken.roleAr} (${activeToken.markerAr}).`,
+          )
+        : tUi(
+            `اختر أي كلمة في جملة «${activeSentence.textAr}» لكشف موقعها الإعرابي دون حرق الإجابة.`,
+            `Select any word in "${activeSentence.textAr}" to reveal its syntactic parsing.`,
+          )
       : tUi(
           `موضع التحليل الشعري: ${activePoetryFocus.labelAr} (${activePoetryFocus.categoryAr}).`,
           `Poetry analysis focus: ${activePoetryFocus.labelEn} (${activePoetryFocus.categoryEn}).`,
@@ -170,7 +233,7 @@ export function ArabicLab({
                   dir="rtl"
                   onClick={() => {
                     setSentenceId(sentence.id);
-                    setSelectedTokenIndex(0);
+                    setSelectedTokenIndex(null);
                   }}
                 >
                   <span>{sentence.sentenceTypeAr}</span>
@@ -187,17 +250,24 @@ export function ArabicLab({
               aria-label={tUi("كلمات الجملة التفاعلية", "Interactive sentence words")}
             >
               {activeSentence.tokens.map((tok, index) => {
+                const tokenKey = `${activeSentence.id}:${index}`;
                 const active = index === safeTokenIndex;
+                const isRevealed = Boolean(revealedTokens[tokenKey]);
                 return (
                   <button
                     key={`${activeSentence.id}-${tok.word}`}
                     type="button"
                     className={`noata-lab-token-btn ${active ? "is-active" : ""}`}
                     aria-pressed={active}
-                    onClick={() => setSelectedTokenIndex(index)}
+                    onClick={() => {
+                      setSelectedTokenIndex(index);
+                      setRevealedTokens((prev) => ({ ...prev, [tokenKey]: true }));
+                    }}
                   >
                     <span className="noata-lab-token-word">{tok.word}</span>
-                    <span className="noata-lab-token-chip">{tok.roleAr}</span>
+                    <span className="noata-lab-token-chip">
+                      {isRevealed ? tok.roleAr : tUi("اكشف الإعراب", "Reveal role")}
+                    </span>
                   </button>
                 );
               })}
@@ -205,25 +275,62 @@ export function ArabicLab({
           </div>
 
           <div className="noata-lab-inspector-card" dir={contentLocale === "ar" ? "rtl" : "ltr"}>
-            <div className="noata-lab-formula-grid">
-              <div className="noata-lab-stat">
-                <span>{tUi("الموقع الإعرابي", "Syntactic Role")}</span>
-                <strong dir="rtl">{activeToken.roleAr}</strong>
-              </div>
-              <div className="noata-lab-stat">
-                <span>{tUi("علامة الإعراب", "Case Marker")}</span>
-                <strong dir="rtl">{activeToken.markerAr}</strong>
-              </div>
-            </div>
-            <p className="noata-lab-explanation">
-              {tContent(activeToken.explanationAr, activeToken.explanationEn)}
-            </p>
+            {activeToken ? (
+              <>
+                <div className="noata-lab-formula-grid">
+                  <div className="noata-lab-stat">
+                    <span>{tUi("الموقع الإعرابي", "Syntactic Role")}</span>
+                    <strong dir="rtl">{activeToken.roleAr}</strong>
+                  </div>
+                  <div className="noata-lab-stat">
+                    <span>{tUi("علامة الإعراب", "Case Marker")}</span>
+                    <strong dir="rtl">{activeToken.markerAr}</strong>
+                  </div>
+                </div>
+                <p className="noata-lab-explanation">
+                  {tContent(activeToken.explanationAr, activeToken.explanationEn)}
+                </p>
+              </>
+            ) : (
+              <p className="noata-lab-explanation">
+                {tUi(
+                  "اختبر توقّعك الإعرابي أولًا ثم اضغط على أي كلمة بالأعلى لكشف موقعها وعلامتها وسبب الإعراب.",
+                  "Predict the grammatical role first, then tap any Arabic word above to reveal its role, case marker, and explanation.",
+                )}
+              </p>
+            )}
           </div>
         </div>
       ) : (
         <div className="noata-lab-stack">
+          <div
+            className="noata-lab-preset-row"
+            role="group"
+            aria-label={tUi("اختر النص الشعري", "Select poetry specimen")}
+          >
+            {(["samawal", "antara"] as const).map((key) => {
+              const active = poetrySpecimen === key;
+              const entry = POETRY_SPECIMENS[key];
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`noata-lab-preset-btn ${active ? "is-active" : ""}`}
+                  aria-pressed={active}
+                  onClick={() => {
+                    setPoetrySpecimen(key);
+                    const first = POETRY_FOCUS_ITEMS.find((p) => p.specimenId === key);
+                    if (first) setSelectedPoetryId(first.id);
+                  }}
+                >
+                  {tContent(entry.titleAr, entry.titleEn)}
+                </button>
+              );
+            })}
+          </div>
+
           <div dir="rtl">
-            <StudyRichText blocks={SAMAWAL_POETRY_BLOCK} dir="rtl" locale="ar" />
+            <StudyRichText blocks={POETRY_SPECIMENS[poetrySpecimen].block} dir="rtl" locale="ar" />
           </div>
 
           <div
@@ -231,7 +338,7 @@ export function ArabicLab({
             role="group"
             aria-label={tUi("مواطن التحليل النحوي والبلاغي", "Verse analysis spotlights")}
           >
-            {POETRY_FOCUS_ITEMS.map((item) => {
+            {specimenFocusItems.map((item) => {
               const active = item.id === activePoetryFocus.id;
               return (
                 <button

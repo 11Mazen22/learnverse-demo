@@ -74,6 +74,36 @@ const FALLACY_CASES: FallacyCase[] = [
     diagnosisEn:
       "Attacking the speaker's appearance or traits rather than addressing the empirical argument is logically irrelevant.",
   },
+  {
+    id: "straw-man",
+    titleAr: "مغالطة رجل القش (تحريف الحجة)",
+    titleEn: "Straw Man Fallacy",
+    statementAr:
+      "«تقول إن علينا تقليل هدر المياه في الري؟ إذن أنت تريد تجفيف الأراضي الزراعية وتجويع المزارعين!»",
+    statementEn:
+      "\"You recommend reducing irrigation waste? So you want to shut down farming completely and starve everyone!\"",
+    tagAr: "مغالطة تشويه الحجة",
+    tagEn: "Distortion Fallacy",
+    diagnosisAr:
+      "تحريف دعوى الخصم إلى موقف متطرف يسهل دحضه ثم مهاجمة الصورة المشوَّهة بدل الحجة الأصلية.",
+    diagnosisEn:
+      "Replacing the opponent's actual moderate proposal with an exaggerated caricature makes refutation illusory.",
+  },
+  {
+    id: "false-dilemma",
+    titleAr: "مغالطة القسمة الزائفة (الأبيض أو الأسود)",
+    titleEn: "False Dilemma",
+    statementAr:
+      "«إما أن تحفظ الدرس حرفيًا دون سؤال، أو أنك سترسب في الامتحان لا محالة!»",
+    statementEn:
+      "\"Either memorize every page verbatim without questioning, or you are guaranteed to fail the exam!\"",
+    tagAr: "حصر وهمي للبدائل",
+    tagEn: "False Dichotomy",
+    diagnosisAr:
+      "افتراض وجود بديلين فقط متنافرين وإهمال بدائل وسطية راجحة مثل الفهم التحليلي وحل المسائل المتدرجة.",
+    diagnosisEn:
+      "Presenting only two extremes while ignoring viable middle alternatives such as conceptual understanding and guided practice.",
+  },
 ];
 
 export function PhilosophyLab({

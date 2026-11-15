@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, type ReactNode, useState } from "react";
+import { Component, type KeyboardEvent, type ReactNode, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { StudyRichText } from "@/components/study/study-rich-text";
 import type { BilingualText, SubjectLabSpec } from "@/lib/curriculum/subject-labs";
@@ -56,6 +56,10 @@ function pickText(text: BilingualText, lang: "ar" | "en"): string {
   return lang === "ar" ? text.ar : text.en;
 }
 
+function stripKatexForAria(text: string): string {
+  return text.replace(/\$\$?/g, "").replace(/\\([a-zA-Z]+)/g, "$1 ").replace(/\s+/g, " ").trim();
+}
+
 export type SubjectLabFrameProps = {
   spec: SubjectLabSpec;
   uiLocale: "ar" | "en";
@@ -81,10 +85,35 @@ export function SubjectLabFrame({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [checkedChoice, setCheckedChoice] = useState<string | null>(null);
   const [showFallbackText, setShowFallbackText] = useState(false);
+  const choiceRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const tUi = (ar: string, en: string) => (uiLocale === "ar" ? ar : en);
   const uiDir = uiLocale === "ar" ? "rtl" : "ltr";
   const contentDir = contentLocale === "ar" ? "rtl" : "ltr";
+
+  const handleRadioKeyDown = (e: KeyboardEvent<HTMLButtonElement>, idx: number) => {
+    const choices = spec.prediction.choices;
+    if (choices.length <= 1) return;
+    const isRtl = contentDir === "rtl";
+    const forwardKey = isRtl ? "ArrowLeft" : "ArrowRight";
+    const backKey = isRtl ? "ArrowRight" : "ArrowLeft";
+    let nextIdx: number | null = null;
+    if (e.key === forwardKey || e.key === "ArrowDown") {
+      nextIdx = (idx + 1) % choices.length;
+    } else if (e.key === backKey || e.key === "ArrowUp") {
+      nextIdx = (idx - 1 + choices.length) % choices.length;
+    } else if (e.key === "Home") {
+      nextIdx = 0;
+    } else if (e.key === "End") {
+      nextIdx = choices.length - 1;
+    }
+    if (nextIdx === null) return;
+    e.preventDefault();
+    const nextChoice = choices[nextIdx];
+    setSelectedChoice(nextChoice.id);
+    if (checkedChoice !== null) setCheckedChoice(null);
+    choiceRefs.current[nextIdx]?.focus();
+  };
 
   const fallbackBlocks =
     contentLocale === "ar" ? spec.fallbackBlocks.ar : spec.fallbackBlocks.en;
@@ -107,7 +136,7 @@ export function SubjectLabFrame({
       data-lab-id={spec.id}
       data-subject-accent={spec.accent}
       dir={uiDir}
-      aria-label={pickText(spec.title, uiLocale)}
+      aria-label={stripKatexForAria(pickText(spec.title, uiLocale))}
     >
       <header className="noata-lab-header">
         <div className="noata-lab-header-main">
@@ -131,15 +160,30 @@ export function SubjectLabFrame({
             </button>
           </div>
           <h3 className="noata-lab-title" dir={contentDir}>
-            {pickText(spec.title, contentLocale)}
+            <StudyRichText
+              content={pickText(spec.title, contentLocale)}
+              dir={contentDir}
+              locale={contentLocale}
+              inline
+            />
           </h3>
           <p className="noata-lab-objective" dir={contentDir}>
             <strong dir={uiDir}>{tUi("هدف التعلّم:", "Learning objective:")}</strong>{" "}
-            {pickText(spec.learningObjective, contentLocale)}
+            <StudyRichText
+              content={pickText(spec.learningObjective, contentLocale)}
+              dir={contentDir}
+              locale={contentLocale}
+              inline
+            />
           </p>
           <p className="noata-lab-guide" dir={uiDir}>
             <Icon name="compass" size={14} />
-            <span>{pickText(spec.interactionGuide, uiLocale)}</span>
+            <StudyRichText
+              content={pickText(spec.interactionGuide, uiLocale)}
+              dir={uiDir}
+              locale={uiLocale}
+              inline
+            />
           </p>
         </div>
         {headerActions ? <div className="noata-lab-header-actions">{headerActions}</div> : null}
@@ -148,7 +192,12 @@ export function SubjectLabFrame({
       {spec.scientificCaveat ? (
         <div className="noata-lab-caveat" dir={contentDir} role="note">
           <Icon name="info" size={16} />
-          <span>{pickText(spec.scientificCaveat, contentLocale)}</span>
+          <StudyRichText
+            content={pickText(spec.scientificCaveat, contentLocale)}
+            dir={contentDir}
+            locale={contentLocale}
+            inline
+          />
         </div>
       ) : null}
 
@@ -173,7 +222,12 @@ export function SubjectLabFrame({
         <span className="noata-lab-live-label" dir={uiDir}>
           {tUi("القراءة المباشرة:", "Live state:")}
         </span>{" "}
-        <span>{liveStatusText}</span>
+        <StudyRichText
+          content={liveStatusText}
+          dir={contentDir}
+          locale={contentLocale}
+          inline
+        />
       </div>
 
       <section
@@ -201,9 +255,9 @@ export function SubjectLabFrame({
           aria-labelledby={`${spec.prediction.id}-heading`}
           dir={contentDir}
         >
-          {spec.prediction.choices.map((choice) => {
+          {spec.prediction.choices.map((choice, idx) => {
             const rawLabel = pickText(choice.label, contentLocale);
-            const accessibleChoiceLabel = rawLabel.replace(/\$\$?/g, "").replace(/\\([a-zA-Z]+)/g, "$1 ").trim();
+            const accessibleChoiceLabel = stripKatexForAria(rawLabel);
             const isSelected = selectedChoice === choice.id;
             const showCorrect =
               isPredictionSubmitted && choice.id === spec.prediction.correctId;
@@ -211,17 +265,23 @@ export function SubjectLabFrame({
               isPredictionSubmitted &&
               checkedChoice === choice.id &&
               choice.id !== spec.prediction.correctId;
+            const isTabStop = selectedChoice ? isSelected : idx === 0;
 
             return (
               <button
                 key={choice.id}
+                ref={(el) => {
+                  choiceRefs.current[idx] = el;
+                }}
                 type="button"
                 role="radio"
+                tabIndex={isTabStop ? 0 : -1}
                 aria-checked={isSelected}
                 aria-label={accessibleChoiceLabel || rawLabel}
                 className={`noata-lab-choice ${isSelected ? "is-selected" : ""} ${
                   showCorrect ? "is-correct" : ""
                 } ${showWrong ? "is-wrong" : ""}`}
+                onKeyDown={(e) => handleRadioKeyDown(e, idx)}
                 onClick={() => {
                   setSelectedChoice(choice.id);
                   if (checkedChoice !== null) setCheckedChoice(null);

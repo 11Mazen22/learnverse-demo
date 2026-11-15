@@ -29,6 +29,7 @@ export function EnglishLab({
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const tUi = (ar: string, en: string) => (uiLocale === "ar" ? ar : en);
+  const tContent = (ar: string, en: string) => (contentLocale === "ar" ? ar : en);
 
   const modeCases = useMemo(() => {
     const filtered = ENGLISH_TRANSFORM_CASES.filter((c) => c.category === mode);
@@ -44,10 +45,10 @@ export function EnglishLab({
   );
 
   const liveStatusText = evaluation
-    ? tUi(evaluation.reasonAr, evaluation.reasonEn)
-    : tUi(
-        `الجملة النشطة: ${activeCase.promptEn}. اختر الصيغة اللغوية الأدق.`,
-        `Active sentence: ${activeCase.promptEn}. Choose the accurate structure.`,
+    ? tContent(evaluation.reasonAr, evaluation.reasonEn)
+    : tContent(
+        `الجملة النشطة: ${activeCase.promptEn} — اختر الصيغة اللغوية الأدق.`,
+        `Active sentence: ${activeCase.promptEn} — Choose the accurate structure.`,
       );
 
   return (
@@ -120,12 +121,17 @@ export function EnglishLab({
           <div className="noata-lab-english-sentence" dir="ltr">
             {activeCase.promptEn}
           </div>
-          {uiLocale === "ar" ? (
+          {contentLocale === "ar" ? (
             <p className="noata-lab-hint-ar" dir="rtl">
               <Icon name="compass" size={14} />
               <span>تلميح السياق: {activeCase.contextHintAr}</span>
             </p>
-          ) : null}
+          ) : (
+            <p className="noata-lab-hint-ar" dir="ltr">
+              <Icon name="compass" size={14} />
+              <span>Grammar cue: inspect tense agreement, modal necessity, or noun countability.</span>
+            </p>
+          )}
 
           <div
             className="noata-lab-preset-row"
@@ -154,12 +160,13 @@ export function EnglishLab({
             <div
               className={`noata-lab-feedback ${evaluation.ok ? "is-correct" : "is-wrong"}`}
               role="status"
+              dir={contentLocale === "ar" ? "rtl" : "ltr"}
             >
               <Icon
                 name={evaluation.ok ? "check-circle" : "alert-circle"}
                 size={16}
               />
-              <span>{uiLocale === "ar" ? evaluation.reasonAr : evaluation.reasonEn}</span>
+              <span>{tContent(evaluation.reasonAr, evaluation.reasonEn)}</span>
             </div>
           ) : null}
         </div>

@@ -86,6 +86,25 @@ const ARTEFACT_PRESETS: ArtefactPreset[] = [
       preservation: 12,
     },
   },
+  {
+    id: "rosetta-decree",
+    labelAr: "حجر رشيد (مرسوم ثلاثي اللغات)",
+    labelEn: "Rosetta Stone Trilingual Decree",
+    kindAr: "وثيقة منقوشة متعددة اللغات",
+    kindEn: "Inscribed Bilingual Primary Decree",
+    summaryAr:
+      "مرسوم كهنوتي بطلمي (196 ق.م) مكتوب بالهيروغليفية والديموطيقية واليونانية؛ موثوق ماديًا ومفيد لفهم التفاعل الإداري والديني.",
+    summaryEn:
+      "Ptolemaic priestly decree (196 BCE) in three scripts; physically well preserved and cross-checkable across scripts.",
+    weights: {
+      authenticity: 20,
+      eyewitnessProximity: 19,
+      biasControl: 8,
+      contextualClarity: 14,
+      corroboration: 13,
+      preservation: 13,
+    },
+  },
 ];
 
 type TimelineEra = {
@@ -124,9 +143,9 @@ const TIMELINE_ERAS: TimelineEra[] = [
     id: "modern",
     eraAr: "التاريخ الحديث",
     eraEn: "Early Modern & Modern Era",
-    span: "1453 CE – 1914 CE",
-    hallmarksAr: "النهضة الأوروبية، الكشوف الجغرافية، الثورة الصناعية وحركة الاستعمار، وصولًا إلى الحرب العالمية الأولى.",
-    hallmarksEn: "European Renaissance, maritime voyages, Industrial Revolution, colonial expansion up to WWI.",
+    span: "1453 CE – 1789 CE",
+    hallmarksAr: "النهضة الأوروبية، الكشوف الجغرافية، الثورة الصناعية وحركة الاستعمار، وصولًا إلى قيام الثورة الفرنسية ١٧٨٩م.",
+    hallmarksEn: "European Renaissance, maritime voyages, Industrial Revolution, and colonial expansion leading up to the 1789 French Revolution.",
     centerOfGravityAr: "الانتقال إلى القوى الأوروبية الأطلسية",
     centerOfGravityEn: "Shift toward Atlantic European industrial powers",
   },
@@ -134,9 +153,9 @@ const TIMELINE_ERAS: TimelineEra[] = [
     id: "contemporary",
     eraAr: "التاريخ المعاصر",
     eraEn: "Contemporary History",
-    span: "1914 CE – Present",
-    hallmarksAr: "حركات التحرر الوطني من الاستعمار، الثورة التكنولوجية والمعلوماتية، الهبوط على القمر، وتحديات العولمة.",
-    hallmarksEn: "Anti-colonial independence movements, digital/space revolution, globalization & environmental challenges.",
+    span: "1789 CE – Present",
+    hallmarksAr: "تبدأ بالثورة الفرنسية (١٧٨٩م) ثم حركات التحرر الوطني، الثورة المعلوماتية، والهبوط على القمر (تُشير بعض المدارس أيضًا إلى ١٩١٤م كبداية).",
+    hallmarksEn: "Begins with the 1789 French Revolution through decolonization, digital revolution, and globalization (some curricula also mark 1914 as an internal shift).",
     centerOfGravityAr: "ترابط عالمي وتعدد مراكز المعرفة",
     centerOfGravityEn: "Interconnected global network & multipolar hubs",
   },
