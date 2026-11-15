@@ -190,6 +190,7 @@ export function SubjectLabFrame({
               content={pickText(spec.prediction.prompt, contentLocale)}
               dir={contentDir}
               locale={contentLocale}
+              inline
             />
           </h4>
         </div>
@@ -230,6 +231,7 @@ export function SubjectLabFrame({
                   content={rawLabel}
                   dir={contentDir}
                   locale={contentLocale}
+                  inline
                 />
               </button>
             );

@@ -29,7 +29,7 @@ export function AttachmentMessage({metadata}:{metadata?:Record<string,unknown>})
           <small>{isImage ? t("صورة مرفقة","Attached image") : text!==null ? t("نص المستند المستخلص","Extracted document text") : t("مرفق","Attachment")}</small>
         </span>
         {(text !== null || signed) ? (
-          <button type="button" onClick={()=>setOpen(true)} aria-label={t("معاينة ","Preview ")+name}>{t("معاينة","Preview")}<Icon name="arrow" size={14}/>
+          <button type="button" onClick={()=>setOpen(true)} aria-label={t("معاينة ","Preview ")+name}>{t("معاينة","Preview")}<Icon name="arrow-end" size={14}/>
           </button>
         ) : (
           <small>{t("رابط المعاينة منتهي. أعد فتح المحادثة.","This preview link expired. Reopen the conversation.")}</small>

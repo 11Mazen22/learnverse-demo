@@ -31,7 +31,7 @@ export function AuthJourney({
         <div className="auth-journey-content">{children}</div>
         <div className="auth-journey-footer">
           <Link href="/login" className="auth-journey-back">
-            <Icon name="arrow" size={16} />{t("تسجيل الدخول","Sign in")}</Link>
+            <Icon name="arrow-start" size={16} />{t("تسجيل الدخول","Sign in")}</Link>
           <span>{t("حسابك ورحلتك التعليمية في أمان","Your account and learning journey are secure")}</span>
         </div>
       </section>

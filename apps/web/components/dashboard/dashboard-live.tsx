@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
@@ -22,6 +22,11 @@ import {
   type DashboardPreferences,
   type DashboardWidgetId,
 } from "@/lib/dashboard/preferences";
+import {
+  mergeDashboardIntoExistingPreferences,
+  mergeShellIntoDashboardPreferences,
+  readScopedShellPreferences,
+} from "@/lib/shell/sidebar-preferences";
 import { localized, useLocale } from "@/lib/i18n/locale";
 import {
   SUBJECT_CATALOG,
@@ -158,6 +163,7 @@ export function DashboardLive() {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState<string[]>([]);
   const [preferences, setPreferences] = useState<DashboardPreferences>(DEFAULT_DASHBOARD_PREFERENCES);
+  const rawServerDashPrefsRef = useRef<unknown>(null);
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -379,6 +385,7 @@ export function DashboardLive() {
           }
 
           if (!settingsRes.error && settingsRes.data?.dashboard_preferences) {
+            rawServerDashPrefsRef.current = settingsRes.data.dashboard_preferences;
             const parsedServerPrefs = parseDashboardPreferences(settingsRes.data.dashboard_preferences);
             next.preferences = parsedServerPrefs;
             if (alive && revision === account.revision.current) {
@@ -608,13 +615,22 @@ export function DashboardLive() {
         }
 
         if (account.user) {
+          const liveShell = readScopedShellPreferences(
+            typeof window !== "undefined" ? window.localStorage : null,
+            account.user.id,
+          );
+          const serializedDash = serializeDashboardPreferences(normalized);
+          const mergedPayload = liveShell
+            ? mergeShellIntoDashboardPreferences(
+                mergeDashboardIntoExistingPreferences(rawServerDashPrefsRef.current, serializedDash),
+                liveShell,
+              )
+            : mergeDashboardIntoExistingPreferences(rawServerDashPrefsRef.current, serializedDash);
+          rawServerDashPrefsRef.current = mergedPayload;
           const { error: saveErr } = await supabase.from("user_settings").upsert(
             {
               user_id: account.user.id,
-              dashboard_preferences: serializeDashboardPreferences(normalized) as Record<
-                string,
-                never
-              >,
+              dashboard_preferences: mergedPayload as Record<string, never>,
             },
             { onConflict: "user_id" },
           );
@@ -1492,7 +1508,7 @@ export function DashboardLive() {
           <div className="nk-home-hero-actions">
             <Link href={recommended.href} className="btn btn-primary">
               <span>{t(recommended.ctaAr, recommended.ctaEn)}</span>
-              <Icon name="arrow" size={16} />
+              <Icon name="arrow-end" size={16} />
             </Link>
             <Link
               href={`/study?tab=generator${state.activeTrackSlug ? `&track=${encodeURIComponent(state.activeTrackSlug)}` : ""}`}
@@ -1557,7 +1573,7 @@ export function DashboardLive() {
           <div className="nk-next-card-foot">
             <Link href={recommended.href} className="nk-next-card-cta">
               <span>{t(recommended.ctaAr, recommended.ctaEn)}</span>
-              <Icon name="arrow" size={15} />
+              <Icon name="arrow-end" size={15} />
             </Link>
             <Link href="/learn" className="db-section-link">
               {t("تغيير المسار", "Switch track")}

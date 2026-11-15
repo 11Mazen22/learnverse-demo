@@ -6,11 +6,17 @@
 
 @layer tokens {
   :root {
-    --sidebar-w-expanded: clamp(268px, 20vw, 304px);
-    --sidebar-w-collapsed: 78px;
+    --sidebar-user-w: 288px;
+    --sidebar-w-expanded: clamp(248px, var(--sidebar-user-w, 288px), 420px);
+    --sidebar-w-collapsed: 72px;
     --sidebar-ease: cubic-bezier(0.16, 1, 0.3, 1);
     --sidebar-duration: 0.26s;
     --sidebar-current-w: var(--sidebar-w-expanded);
+    --dir-sign: 1;
+  }
+
+  html[dir="rtl"] {
+    --dir-sign: -1;
   }
 }
 
@@ -25,8 +31,18 @@
     transition: grid-template-columns var(--sidebar-duration) var(--sidebar-ease);
   }
 
+  html[data-sidebar-collapsed="true"] .noata-shell,
   .noata-shell[data-sidebar-collapsed="true"] {
     --sidebar-current-w: var(--sidebar-w-collapsed);
+  }
+
+  html:not([data-shell-ready="true"]) .noata-shell,
+  html:not([data-shell-ready="true"]) .noata-sidebar-aura,
+  .noata-shell[data-sidebar-resizing="true"],
+  .noata-shell[data-sidebar-resizing="true"] .noata-sidebar-aura,
+  html[data-sidebar-resizing="true"] .noata-shell,
+  html[data-sidebar-resizing="true"] .noata-sidebar-aura {
+    transition: none;
   }
 
   .noata-main {
@@ -52,8 +68,49 @@
     z-index: var(--z-sidebar, 40);
     overflow: hidden;
     transition: width var(--sidebar-duration) var(--sidebar-ease);
-    box-shadow: 2px 0 28px color-mix(in srgb, var(--ink) 5%, transparent);
+    box-shadow: 0 6px 28px color-mix(in srgb, var(--ink) 5%, transparent);
     user-select: none;
+  }
+
+  .noata-sidebar-resizer {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: 10px;
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    background: transparent;
+    outline: none;
+  }
+
+  .noata-sidebar-resizer::after {
+    content: "";
+    width: 3px;
+    height: 36px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 0%, transparent);
+    transition:
+      background-color 0.16s ease,
+      height 0.16s ease,
+      width 0.16s ease;
+  }
+
+  .noata-sidebar-resizer:hover::after,
+  .noata-sidebar-resizer:focus-visible::after,
+  .noata-shell[data-sidebar-resizing="true"] .noata-sidebar-resizer::after {
+    width: 3.5px;
+    height: 56px;
+    background: var(--accent);
+  }
+
+  .noata-sidebar-resizer:focus-visible {
+    outline: 2.5px solid var(--accent);
+    outline-offset: -3px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
   }
 
   .noata-sidebar-aura::before {
@@ -391,12 +448,7 @@
     background: var(--hover-bg);
     border-color: color-mix(in srgb, var(--line) 75%, transparent);
     color: var(--ink);
-    transform: translateX(3px);
-  }
-
-  html[dir="rtl"] .noata-sidebar .noata-nav-item.nav-link:hover,
-  html[dir="rtl"] .noata-nav-item:hover {
-    transform: translateX(-3px);
+    transform: translateX(calc(var(--dir-sign, 1) * 3px));
   }
 
   .noata-nav-item:hover .noata-nav-icon-wrap {
@@ -421,14 +473,11 @@
     transform: translateY(-50%) scaleY(0);
     width: 4px;
     height: 22px;
-    border-radius: 0 4px 4px 0;
+    border-start-end-radius: 4px;
+    border-end-end-radius: 4px;
     background: var(--accent);
     box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent);
     transition: transform 0.22s var(--sidebar-ease);
-  }
-
-  html[dir="rtl"] .noata-nav-indicator {
-    border-radius: 4px 0 0 4px;
   }
 
   .noata-nav-item.is-active .noata-nav-indicator {
@@ -613,11 +662,7 @@
   .noata-curriculum-item:hover {
     background: var(--surface-soft);
     color: var(--accent);
-    transform: translateX(2.5px);
-  }
-
-  html[dir="rtl"] .noata-curriculum-item:hover {
-    transform: translateX(-2.5px);
+    transform: translateX(calc(var(--dir-sign, 1) * 2.5px));
   }
 
   .noata-curriculum-item.is-active {
@@ -1083,7 +1128,11 @@
      -------------------------------------------------------------------------- */
   @media (min-width: 768px) and (max-width: 1180px) {
     :root {
-      --sidebar-w-expanded: clamp(236px, 27vw, 276px);
+      --sidebar-w-expanded: min(var(--sidebar-user-w, 276px), clamp(236px, 27vw, 276px));
+    }
+
+    .noata-sidebar-resizer {
+      display: none;
     }
 
     .noata-shell {
@@ -1117,7 +1166,8 @@
     }
 
     .noata-sidebar.noata-sidebar-aura:not(.is-mobile-drawer-view),
-    .noata-sidebar-aura:not(.is-mobile-drawer-view) {
+    .noata-sidebar-aura:not(.is-mobile-drawer-view),
+    .noata-sidebar-resizer {
       display: none;
     }
 
@@ -1583,6 +1633,7 @@
   @media (prefers-reduced-motion: reduce) {
     .noata-shell,
     .noata-sidebar-aura,
+    .noata-sidebar-resizer::after,
     .noata-nav-item,
     .noata-nav-indicator,
     .noata-group-chevron,
@@ -1601,6 +1652,14 @@
       animation: none;
       transform: none;
     }
+  }
+
+  html[data-reduced-motion="true"] :is(.noata-shell, .noata-sidebar-aura, .noata-sidebar-resizer::after, .noata-nav-item, .noata-nav-indicator, .noata-group-chevron, .noata-group-content-animator, .noata-curriculum-item, .noata-sidebar-toggle, .nk-cmd-item, .shell-topbar, .shell-topbar .command-trigger, .shell-topbar .noata-user-account-trigger-row, .shell-topbar .aura-tour-trigger-btn, .shell-topbar .noata-context-coach-trigger, .shell-topbar .top-actions .top-icon, .shell-topbar a.notification-bell),
+  html[data-noata-motion="reduce"] :is(.noata-shell, .noata-sidebar-aura, .noata-sidebar-resizer::after, .noata-nav-item, .noata-nav-indicator, .noata-group-chevron, .noata-group-content-animator, .noata-curriculum-item, .noata-sidebar-toggle, .nk-cmd-item, .shell-topbar, .shell-topbar .command-trigger, .shell-topbar .noata-user-account-trigger-row, .shell-topbar .aura-tour-trigger-btn, .shell-topbar .noata-context-coach-trigger, .shell-topbar .top-actions .top-icon, .shell-topbar a.notification-bell),
+  html[data-noata-motion="off"] :is(.noata-shell, .noata-sidebar-aura, .noata-sidebar-resizer::after, .noata-nav-item, .noata-nav-indicator, .noata-group-chevron, .noata-group-content-animator, .noata-curriculum-item, .noata-sidebar-toggle, .nk-cmd-item, .shell-topbar, .shell-topbar .command-trigger, .shell-topbar .noata-user-account-trigger-row, .shell-topbar .aura-tour-trigger-btn, .shell-topbar .noata-context-coach-trigger, .shell-topbar .top-actions .top-icon, .shell-topbar a.notification-bell) {
+    transition: none;
+    animation: none;
+    transform: none;
   }
 
   .noata-shell:has(.mushaf-focused) > .mobile-nav,

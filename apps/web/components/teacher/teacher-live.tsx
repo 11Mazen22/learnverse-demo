@@ -637,7 +637,7 @@ export function TeacherLive() {
                         }
                       />
                       <span style={{ fontSize: 13, lineHeight: 1.6, minWidth: 0, flex: 1 }}>
-                        <StudyRichText content={locale === "en" ? q.prompt_en : q.prompt_ar} />
+                        <StudyRichText content={locale === "en" ? q.prompt_en : q.prompt_ar} inline />
                       </span>
                     </label>
                   ))}

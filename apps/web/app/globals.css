@@ -94,16 +94,6 @@ html[data-theme="light"] {
 }
 html[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #edf4ff;
-  --muted: #a5b6d1;
-  --surface: #0d1d38;
-  --surface-soft: #071327;
-  --line: #293951;
-  --accent: #63beff;
-  --accent-soft: #153252;
-  --success: #9bd0a5;
-  --warning: #f2c77d;
-  --danger: #ffadad;
   --shadow-soft: 0 12px 35px #0002;
 }
 }
@@ -4560,7 +4550,13 @@ html[data-theme=dark] .aura-workshop-send{color:#071327}
 }
 /* Forward arrows follow the interface direction; explicit outer rotations remain usable for Back. */
 @layer components {
-svg[data-icon="arrow"]:dir(ltr) path { transform-box: fill-box; transform-origin: center; transform: scaleX(-1); }
+svg[data-icon="arrow"]:dir(ltr) path,
+svg[data-icon="arrow-end"]:dir(ltr) path,
+svg[data-icon="arrow-start"]:dir(ltr) path {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleX(-1);
+}
 }
 @layer shell {
 @media(max-width:760px){

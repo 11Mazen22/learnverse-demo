@@ -1,7 +1,7 @@
 "use client";
 
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useConfirmedMutation } from "@/lib/supabase/use-confirmed-mutation";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +18,15 @@ import {
   getActiveModeConstraint,
   type PaletteModeConstraint,
 } from "@/lib/appearance/mode";
+import {
+  SERVER_REDUCED_MOTION_PREFIX,
+  THEME_PREF_PREFIX,
+  applyAndPersistMotionPreference,
+  readScopedDevicePreference,
+  readScopedMotionPreference,
+  syncMotionDomAttributes,
+  writeScopedDevicePreference,
+} from "@/lib/appearance/device-preferences";
 import { measureTokenContrast, normalizeCssColorToHex } from "@/lib/appearance/theme";
 import {
   ALL_DASHBOARD_WIDGET_IDS,
@@ -30,6 +39,11 @@ import {
   type DashboardPreferences,
   type DashboardWidgetId,
 } from "@/lib/dashboard/preferences";
+import {
+  mergeDashboardIntoExistingPreferences,
+  mergeShellIntoDashboardPreferences,
+  readScopedShellPreferences,
+} from "@/lib/shell/sidebar-preferences";
 import { DesignStudio } from "@/components/preferences/design-studio";
 import { applyLocale, localized, useLocale } from "@/lib/i18n/locale";
 import type { Json } from "@/lib/supabase/database.types";
@@ -103,12 +117,8 @@ function normalizeSettings(
     ai_memory_enabled: row?.ai_memory_enabled !== false,
   };
 }
-function applyThemeOnly(theme: "system" | "light" | "dark") {
-  try {
-    localStorage.setItem("noata-theme", theme);
-  } catch {
-    /* Account persistence still succeeded. */
-  }
+function applyThemeOnly(theme: "system" | "light" | "dark", explicitUserId?: string | null) {
+  writeScopedDevicePreference(THEME_PREF_PREFIX, theme, { userId: explicitUserId });
   const pal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
   const constraint = getActiveModeConstraint();
   if (typeof document !== "undefined") {
@@ -122,29 +132,24 @@ function applyThemeOnly(theme: "system" | "light" | "dark") {
   }
 }
 
-function applySettings(settings: Settings, shouldSyncLocale = false) {
-  try {
-    localStorage.setItem("noata-theme", settings.theme);
-  } catch {
-    /* Account persistence still succeeded. */
-  }
+function applyMotionOnly(reducedMotion: boolean, explicitUserId?: string | null) {
+  if (typeof document === "undefined") return;
+  const currentMotion = readScopedMotionPreference(explicitUserId);
+  const nextMotion = reducedMotion
+    ? (currentMotion === "off" ? "off" : "reduce")
+    : (currentMotion === "reduce" ? "system" : currentMotion);
+  applyAndPersistMotionPreference(nextMotion, {
+    userId: explicitUserId,
+    serverReducedMotion: reducedMotion,
+  });
+}
+
+function applySettings(settings: Settings, shouldSyncLocale = false, explicitUserId?: string | null) {
+  applyThemeOnly(settings.theme, explicitUserId);
   if (shouldSyncLocale && typeof document !== "undefined" && settings.locale && settings.locale !== document.documentElement.lang) {
-    applyLocale(settings.locale);
+    applyLocale(settings.locale, true, explicitUserId);
   }
-  const pal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
-  const constraint = getActiveModeConstraint();
-  if (typeof document !== "undefined") {
-    document.documentElement.dataset.theme = resolveAppearance(
-      settings.theme,
-      pal,
-      window.matchMedia("(prefers-color-scheme: dark)").matches,
-      constraint
-    );
-    document.documentElement.dataset.reducedMotion = settings.reduced_motion
-      ? "true"
-      : "false";
-    syncBrowserThemeColor();
-  }
+  applyMotionOnly(settings.reduced_motion, explicitUserId);
 }
 
 function GrandThemeGrid({
@@ -215,6 +220,7 @@ function GrandThemeGrid({
               if (isAllowed) onSelectTheme(o.value);
             }}
             onKeyDown={(e) => {
+              if (e.key === " ") e.preventDefault();
               if (isAllowed && (e.key === "Enter" || e.key === " ")) {
                 onSelectTheme(o.value);
               }
@@ -534,7 +540,7 @@ function LiveDesignSystemShowcase({
                   onClick={() => triggerFeedback(t("متابعة الدرس المنهجي", "Continue Lesson"))}
                 >
                   <span>{t("متابعة الدرس", "Continue")}</span>
-                  <Icon name="arrow" size={12} />
+                  <Icon name="arrow-end" size={12} />
                 </button>
               </div>
             </div>
@@ -649,6 +655,7 @@ export function SettingsLive() {
   const [activePalette, setActivePalette] = useState("classic");
   const [activeConstraint, setActiveConstraint] = useState<PaletteModeConstraint>("both");
   const [systemDark, setSystemDark] = useState(false);
+  const rawDashPrefsRef = useRef<unknown>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -695,10 +702,11 @@ export function SettingsLive() {
     setEmail("");
     setName("");
     let localTheme: "system" | "light" | "dark" = "system";
-    try {
-      const stored = localStorage.getItem("noata-theme");
-      if (stored === "light" || stored === "dark" || stored === "system") localTheme = stored;
-    } catch {}
+    const stored = readScopedDevicePreference(THEME_PREF_PREFIX, {
+      userId: account.user?.id ?? null,
+      legacyKey: "noata-theme",
+    });
+    if (stored === "light" || stored === "dark" || stored === "system") localTheme = stored;
     const curPal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
     const curCons = getActiveModeConstraint();
     if (!isThemeModeAllowed(localTheme, curPal, curCons)) {
@@ -749,6 +757,7 @@ export function SettingsLive() {
           fallbackLoc
         );
         let storedDashRaw: unknown = preferences.data?.dashboard_preferences;
+        rawDashPrefsRef.current = storedDashRaw ?? null;
         if (!storedDashRaw) {
           try {
             const localRaw = localStorage.getItem(scopedDashboardPreferencesKey(user.id));
@@ -756,6 +765,15 @@ export function SettingsLive() {
           } catch {}
         }
         const nextDashPrefs = parseDashboardPreferences(storedDashRaw);
+        writeScopedDevicePreference(
+          SERVER_REDUCED_MOTION_PREFIX,
+          next.reduced_motion ? "true" : "false",
+          { userId: user.id },
+        );
+        syncMotionDomAttributes({
+          mode: readScopedMotionPreference(user.id),
+          serverReducedMotion: next.reduced_motion,
+        });
         const displayName = profile.data?.display_name ?? "";
         setName(displayName);
         setSettings(next);
@@ -828,6 +846,17 @@ export function SettingsLive() {
     const token = account.revision.current;
     const cleanDashPrefs = parseDashboardPreferences(dashPrefs);
     const serializedDashPrefs = serializeDashboardPreferences(cleanDashPrefs);
+    const liveShell = readScopedShellPreferences(
+      typeof window !== "undefined" ? window.localStorage : null,
+      userId,
+    );
+    const mergedDashPrefsPayload = liveShell
+      ? mergeShellIntoDashboardPreferences(
+          mergeDashboardIntoExistingPreferences(rawDashPrefsRef.current, serializedDashPrefs),
+          liveShell,
+        )
+      : mergeDashboardIntoExistingPreferences(rawDashPrefsRef.current, serializedDashPrefs);
+    rawDashPrefsRef.current = mergedDashPrefsPayload;
     await run(async (check) => {
       try {
         // Two distinct RLS-protected records. Never report success if either write fails.
@@ -849,7 +878,7 @@ export function SettingsLive() {
             {
               user_id: userId,
               ...settings,
-              dashboard_preferences: serializedDashPrefs as Json,
+              dashboard_preferences: mergedDashPrefsPayload as Json,
               updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" },
@@ -870,7 +899,7 @@ export function SettingsLive() {
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event("noata-dashboard-preferences-change"));
         }
-        applySettings(settings, true);
+        applySettings(settings, true, userId);
         setName(cleanName);
         setDashPrefs(cleanDashPrefs);
         setInitial(JSON.stringify({ name: cleanName, settings, dashPrefs: cleanDashPrefs }));
@@ -1055,7 +1084,7 @@ export function SettingsLive() {
                 systemDark={systemDark}
                 onSelectTheme={(mode) => {
                   setSettings((s) => ({ ...s, theme: mode }));
-                  applyThemeOnly(mode);
+                  applyThemeOnly(mode, userId || null);
                 }}
                 locale={locale}
                 t={t}
@@ -1101,9 +1130,9 @@ export function SettingsLive() {
                   type="checkbox"
                   checked={settings.reduced_motion}
                   onChange={(e) => {
-                    const next = { ...settings, reduced_motion: e.target.checked };
-                    setSettings(next);
-                    applySettings(next, false);
+                    const checked = e.target.checked;
+                    setSettings((s) => ({ ...s, reduced_motion: checked }));
+                    applyMotionOnly(checked, userId || null);
                   }}
                 />
               </label>
@@ -1392,7 +1421,7 @@ export function SettingsLive() {
               </div>
               <button type="button" className="aura-settings-signout"
                 onClick={() => void logoutFromSettings()} disabled={logoutBusy}>
-                <Icon name="arrow" size={18} />
+                <Icon name="arrow-start" size={18} />
                 {logoutBusy ? t("جارٍ تسجيل الخروج…", "Signing out…") : t("تسجيل الخروج من حسابي", "Sign out of my account")}
               </button>
             </div>

@@ -41,6 +41,7 @@ export function AppShell({
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false);
   const [recentHrefs, setRecentHrefs] = useState<string[]>([]);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const wasMenuOpen = useRef(false);
@@ -147,6 +148,7 @@ export function AppShell({
       className="noata-shell"
       data-workspace={role}
       data-sidebar-collapsed={isSidebarCollapsed}
+      data-sidebar-resizing={isSidebarResizing}
     >
       {/* Signature Noäta Aura Sidebar */}
       <Sidebar
@@ -155,6 +157,7 @@ export function AppShell({
         onNavigate={openRoute}
         onOpenSearch={() => setSearch(true)}
         onCollapsedChange={setIsSidebarCollapsed}
+        onResizingChange={setIsSidebarResizing}
       />
 
       <div className="noata-main">
@@ -210,7 +213,7 @@ export function AppShell({
             <ContextualCoach active={active} />
             <TourTrigger />
             <span className="nk-topbar-divider nk-topbar-divider-assist" aria-hidden="true" />
-            {!account.loading && !account.user && <LocaleControl />}
+            <LocaleControl />
             <ThemeControl />
             <NotificationBell />
             <span className="nk-topbar-divider nk-topbar-divider-account" aria-hidden="true" />

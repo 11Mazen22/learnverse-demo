@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { isReducedMotionActive } from "@/lib/appearance/device-preferences";
 import {
   computeExamAchievementSummary,
   computeLessonAchievementSummary,
@@ -52,10 +53,7 @@ function useAnimatedValue(target: number, durationMs = 650): number {
       setValue(0);
       return;
     }
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
-    ) {
+    if (isReducedMotionActive()) {
       setValue(safeTarget);
       return;
     }

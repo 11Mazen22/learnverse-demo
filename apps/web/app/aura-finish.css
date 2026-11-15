@@ -503,21 +503,27 @@
     font-weight: 700;
     opacity: 1;
   }
-  html[data-theme="dark"] .mobile-nav {
-    background: #0d1d38;
-    border-color: #354965;
+  html[data-theme="dark"] .mobile-nav,
+  html[data-palette="midnight"] .mobile-nav {
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border-color: var(--line);
   }
   html[data-theme="dark"] .mobile-nav > a,
   html[data-theme="dark"] .mobile-nav > button,
-  html[data-theme="dark"] .mobile-nav > :is(a,button) > small {
-    color: #d2e2f9;
+  html[data-theme="dark"] .mobile-nav > :is(a,button) > small,
+  html[data-palette="midnight"] .mobile-nav > a,
+  html[data-palette="midnight"] .mobile-nav > button,
+  html[data-palette="midnight"] .mobile-nav > :is(a,button) > small {
+    color: var(--muted);
   }
-  html[data-theme="dark"] .mobile-nav > a.active {
-    background: #173c61;
-    color: #e3f4ff;
+  html[data-theme="dark"] .mobile-nav > a.active,
+  html[data-palette="midnight"] .mobile-nav > a.active {
+    background: var(--accent-soft);
+    color: var(--accent);
   }
-  html[data-theme="dark"] .mobile-nav > a.active > small {
-    color: #e3f4ff;
+  html[data-theme="dark"] .mobile-nav > a.active > small,
+  html[data-palette="midnight"] .mobile-nav > a.active > small {
+    color: var(--accent);
   }
 }
 
@@ -546,6 +552,20 @@
 .noata-user-account { position: relative; min-width: 0; z-index: 45; }
 .noata-user-account-trigger-row { display: flex; align-items: center; gap: 10px; }
 .noata-user-summary { text-align: end; display: grid; gap: 2px; min-width: 0; }
+button.noata-user-summary {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  appearance: none;
+  border-radius: 8px;
+}
+button.noata-user-summary:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 4px;
+}
 .noata-user-summary strong { font-size: 12px; font-weight: 800; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .noata-user-summary small { color: var(--muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .noata-account-trigger {

@@ -17,7 +17,7 @@ export function NoataLaunchpad({signedIn,disabled,onSelect}:{signedIn:boolean;di
     <span className="noata-launch-copy"><strong>{locale==="ar"?item.titleAr:item.titleEn}</strong>
      <small>{!signedIn&&!launchActionEnabled(item.id,signedIn)?t("يتطلب تسجيل الدخول","Sign-in required"):
        locale==="ar"?item.descriptionAr:item.descriptionEn}</small></span>
-    <Icon name="arrow" size={17}/>
+    <Icon name="arrow-end" size={17}/>
    </button>)}
   </div>
  </section>;

@@ -3,6 +3,18 @@ import {
   purgeForeignOrExpiredStudyDrafts,
   wipeAllStudyDrafts,
 } from "@/lib/study/draft-storage";
+import {
+  purgeForeignOrSignedOutShellPreferences,
+  SIDEBAR_PREFS_EVENT,
+} from "@/lib/shell/sidebar-preferences";
+import { SIDEBAR_DEFAULT_WIDTH } from "@/lib/shell/sidebar-config";
+import {
+  MOTION_PREFERENCE_EVENT,
+  purgeForeignOrSignedOutDevicePreferences,
+  syncMotionDomAttributes,
+} from "@/lib/appearance/device-preferences";
+import { resolveAppearance } from "@/lib/appearance/mode";
+import { clearCustomDesign } from "@/lib/appearance/theme";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { boundedRead } from "./bounded-read";
@@ -94,7 +106,25 @@ export function VerifiedAccountProvider({ children }: { children: React.ReactNod
       if (event === "SIGNED_OUT") {
         ++revision.current;
         candidate.current = null;
-        if (typeof window !== "undefined") wipeAllStudyDrafts(window.localStorage);
+        if (typeof window !== "undefined") {
+          wipeAllStudyDrafts(window.localStorage);
+          purgeForeignOrSignedOutShellPreferences(window.localStorage, null);
+          purgeForeignOrSignedOutDevicePreferences(null, window.localStorage);
+          const root = document.documentElement;
+          clearCustomDesign();
+          root.dataset.palette = "classic";
+          root.dataset.modeConstraint = "none";
+          const osDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false;
+          root.dataset.theme = resolveAppearance("system", "classic", osDark, "both");
+          root.style.colorScheme = root.dataset.theme === "dark" ? "dark" : "light";
+          syncMotionDomAttributes({ mode: "system", root });
+          root.style.setProperty("--sidebar-user-w", `${SIDEBAR_DEFAULT_WIDTH}px`);
+          root.removeAttribute("data-sidebar-collapsed");
+          window.dispatchEvent(new Event("noata-palette-change"));
+          window.dispatchEvent(new Event("noata-custom-theme-change"));
+          window.dispatchEvent(new Event(MOTION_PREFERENCE_EVENT));
+          window.dispatchEvent(new Event(SIDEBAR_PREFS_EVENT));
+        }
         setUser(null);
         setFailed(false);
         setLoading(false);
@@ -103,6 +133,9 @@ export function VerifiedAccountProvider({ children }: { children: React.ReactNod
         candidate.current = session.user.id;
         if (typeof window !== "undefined") {
           purgeForeignOrExpiredStudyDrafts(window.localStorage, session.user.id, revision.current);
+          purgeForeignOrSignedOutShellPreferences(window.localStorage, session.user.id);
+          purgeForeignOrSignedOutDevicePreferences(session.user.id, window.localStorage);
+          window.dispatchEvent(new Event(SIDEBAR_PREFS_EVENT));
         }
         setUser(null);
         setLoading(true);

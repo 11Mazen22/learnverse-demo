@@ -297,7 +297,7 @@ export function StudySpeedMatch({
                   onClick={() => handleSelectLeft(tile.cardId)}
                   className={`noata-speed-tile ${selected ? "is-selected" : ""} ${matched ? "is-matched" : ""} ${wrong ? "is-wrong" : ""}`}
                 >
-                  <StudyRichText content={tile.text} />
+                  <StudyRichText content={tile.text} inline />
                 </button>
               );
             })}
@@ -318,7 +318,7 @@ export function StudySpeedMatch({
                   onClick={() => handleSelectRight(tile.cardId)}
                   className={`noata-speed-tile ${selected ? "is-selected" : ""} ${matched ? "is-matched" : ""} ${wrong ? "is-wrong" : ""}`}
                 >
-                  <StudyRichText content={tile.text} />
+                  <StudyRichText content={tile.text} inline />
                 </button>
               );
             })}

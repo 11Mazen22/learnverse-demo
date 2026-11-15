@@ -1,6 +1,11 @@
 "use client";
 
 import { createContext, createElement, useContext, useCallback, useSyncExternalStore, type ReactNode } from "react";
+import {
+  LOCALE_PREF_PREFIX,
+  getActiveAccountScope,
+  writeScopedDevicePreference,
+} from "@/lib/appearance/device-preferences";
 
 export type Locale = "ar" | "en";
 const EVENT = "noata-locale-change";
@@ -14,12 +19,15 @@ export function readLocale(): Locale {
   return document.documentElement.lang === "en" ? "en" : "ar";
 }
 
-export function applyLocale(locale: Locale, persist = true) {
+export function applyLocale(locale: Locale, persist = true, explicitUserId?: string | null) {
   document.documentElement.lang = locale;
   document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
   if (persist) {
-    try { localStorage.setItem("noata-locale", locale); }
-    catch { /* The account preference remains authoritative. */ }
+    try {
+      writeScopedDevicePreference(LOCALE_PREF_PREFIX, locale, {
+        userId: explicitUserId,
+      });
+    } catch { /* The account preference remains authoritative. */ }
   }
   // A non-sensitive preference lets the next server render start in the chosen language.
   try { document.cookie = "noata_locale=" + locale + "; Path=/; Max-Age=31536000; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : ""); } catch { /* The current language still works when cookies are disabled. */ }
@@ -28,7 +36,11 @@ export function applyLocale(locale: Locale, persist = true) {
 
 function subscribe(onChange: () => void) {
   const onStorage = (event: StorageEvent) => {
-    if (event.key === "noata-locale" && (event.newValue === "ar" || event.newValue === "en")) {
+    const scopedKey = `${LOCALE_PREF_PREFIX}${getActiveAccountScope()}`;
+    if (
+      (event.key === scopedKey || event.key === "noata-locale") &&
+      (event.newValue === "ar" || event.newValue === "en")
+    ) {
       applyLocale(event.newValue, false);
     }
     onChange();

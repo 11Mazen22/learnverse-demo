@@ -1,6 +1,8 @@
 export default function Loading() {
   return (
     <main
+      id="noata-main"
+      tabIndex={-1}
       style={{
         minHeight: "100vh",
         padding: 28,

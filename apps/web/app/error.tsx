@@ -18,6 +18,8 @@ export default function ErrorPage({
 
   return (
     <main
+      id="noata-main"
+      tabIndex={-1}
       style={{
         minHeight: "100vh",
         display: "grid",

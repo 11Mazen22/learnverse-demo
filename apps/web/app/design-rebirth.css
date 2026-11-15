@@ -803,7 +803,7 @@ section.aura-settings-section {
   font-size: 11.5px !important;
   font-weight: 800 !important;
   background: color-mix(in srgb, var(--accent) 16%, var(--surface)) !important;
-  color: var(--accent) !important;
+  color: var(--accent-ink, color-mix(in srgb, var(--accent) 74%, var(--ink))) !important;
   border: 1.5px solid var(--accent) !important;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 25%, transparent) !important;
 }
@@ -860,7 +860,7 @@ section.aura-settings-section {
   font-size: 10px !important;
   font-weight: 750 !important;
   background: color-mix(in srgb, var(--accent) 15%, var(--surface)) !important;
-  color: var(--accent) !important;
+  color: var(--accent-ink, color-mix(in srgb, var(--accent) 74%, var(--ink))) !important;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
 }
 
@@ -945,7 +945,7 @@ section.aura-settings-section {
   padding: 5px 13px !important;
   border-radius: 20px !important;
   background: color-mix(in srgb, var(--accent) 12%, var(--surface)) !important;
-  color: var(--accent) !important;
+  color: var(--accent-ink, color-mix(in srgb, var(--accent) 74%, var(--ink))) !important;
   border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
   box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 10%, transparent) !important;
 }
@@ -960,20 +960,16 @@ section.aura-settings-section {
 }
 
 .noata-ds-contrast-tag {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  font-size: 11px !important;
-  font-weight: 750 !important;
-  padding: 5px 12px !important;
-  border-radius: 20px !important;
-  background: color-mix(in srgb, #10b981 12%, var(--surface)) !important;
-  color: #047857 !important;
-  border: 1.5px solid color-mix(in srgb, #10b981 30%, transparent) !important;
-}
-html[data-theme="dark"] .noata-ds-contrast-tag {
-  background: color-mix(in srgb, #10b981 18%, transparent) !important;
-  color: #34d399 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 750;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--success-soft, color-mix(in srgb, var(--success) 12%, var(--surface)));
+  color: var(--success);
+  border: 1.5px solid color-mix(in srgb, var(--success) 32%, transparent);
 }
 
 @keyframes dsPulse {
@@ -1179,7 +1175,7 @@ html[data-theme="dark"] .noata-pill-check-icon {
 
 .noata-ds-pill-ai {
   background: color-mix(in srgb, var(--accent) 10%, var(--surface)) !important;
-  color: var(--accent) !important;
+  color: var(--accent-ink, color-mix(in srgb, var(--accent) 74%, var(--ink))) !important;
   border: 1.5px solid color-mix(in srgb, var(--accent) 32%, transparent) !important;
 }
 
@@ -1244,7 +1240,7 @@ html[data-theme="dark"] .noata-ds-pill-challenge {
   padding: 3px 8px !important;
   border-radius: 6px !important;
   background: var(--accent-soft) !important;
-  color: var(--accent) !important;
+  color: var(--accent-ink, color-mix(in srgb, var(--accent) 74%, var(--ink))) !important;
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent) !important;
 }
 
@@ -1340,33 +1336,29 @@ html[data-theme="dark"] .noata-ds-pill-challenge {
 }
 
 .noata-ds-contrast-banner {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  padding: 9px 12px !important;
-  border-radius: 10px !important;
-  background: color-mix(in srgb, #10b981 10%, var(--surface)) !important;
-  border: 1px solid color-mix(in srgb, #10b981 25%, transparent) !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: #047857 !important;
-  line-height: 1.45 !important;
-}
-html[data-theme="dark"] .noata-ds-contrast-banner {
-  color: #34d399 !important;
-  background: color-mix(in srgb, #10b981 16%, transparent) !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--success-soft, color-mix(in srgb, var(--success) 12%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--success) 28%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
+  line-height: 1.45;
 }
 
 .noata-ds-contrast-check {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 18px !important;
-  height: 18px !important;
-  border-radius: 50% !important;
-  background: #047857 !important;
-  color: #ffffff !important;
-  flex-shrink: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--success);
+  color: var(--on-accent, #ffffff);
+  flex-shrink: 0;
 }
 
 /* Toast Message */
@@ -1377,7 +1369,7 @@ html[data-theme="dark"] .noata-ds-contrast-banner {
   padding: 9px 16px !important;
   border-radius: 12px !important;
   background: color-mix(in srgb, var(--accent) 15%, var(--surface)) !important;
-  color: var(--accent) !important;
+  color: var(--accent-ink, color-mix(in srgb, var(--accent) 74%, var(--ink))) !important;
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
   font-size: 12.5px !important;
   font-weight: 750 !important;
@@ -1407,7 +1399,7 @@ html[data-theme="dark"] .noata-ds-contrast-banner {
   min-width: 26px !important;
   border-radius: 50% !important;
   background: color-mix(in srgb, var(--accent) 14%, var(--surface)) !important;
-  color: var(--accent) !important;
+  color: var(--accent-ink, color-mix(in srgb, var(--accent) 74%, var(--ink))) !important;
   border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
   flex-shrink: 0 !important;
 }

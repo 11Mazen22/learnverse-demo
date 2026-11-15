@@ -10,6 +10,7 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
  * See docs/THIRD_PARTY_NOTICES.md.
  */
 import { NoataLogo } from "@/components/ui/noata-logo";
+import { isReducedMotionActive } from "@/lib/appearance/device-preferences";
 import {answerModelLabel} from "@/lib/ai/answer-model";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -88,10 +89,7 @@ function useSmoothStreamText(targetText: string, active: boolean): string {
       setRevealedLen(0);
       return;
     }
-    const reduced =
-      typeof window !== "undefined" &&
-      (document.documentElement.dataset.noataMotion === "off" ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    const reduced = isReducedMotionActive();
     if (!active || reduced) {
       lenRef.current = targetText.length;
       setRevealedLen(targetText.length);
@@ -869,7 +867,7 @@ export function NoataAIClient() {
                                 onClick={() => void send(undefined, "continue")}
                                 title={t("كمّل الرد","Continue answer")}
                               >
-                                <Icon name="arrow" size={14} />
+                                <Icon name="arrow-end" size={14} />
                               </button>
                             </>
                           )}
@@ -975,9 +973,7 @@ export function NoataAIClient() {
                 const el = scroller.current;
                 if (!el) return;
                 // Honor the user's motion setting on both layers.
-                const motionOff =
-                  document.documentElement.dataset.noataMotion === "off" ||
-                  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                const motionOff = isReducedMotionActive();
                 follow.current = true;
                 el.scrollTo({
                   top: el.scrollHeight,
@@ -1256,7 +1252,7 @@ export function NoataAIClient() {
                     }
                     aria-label={t("إرسال","Send")}
                   >
-                    <Icon name="arrow" size={17} />
+                    <Icon name="arrow-end" size={17} />
                   </button>
                 )}
               </div>

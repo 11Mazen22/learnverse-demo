@@ -1280,7 +1280,7 @@ export function LessonLive({ id }: { id: string }) {
               <div className="noata-stage-header">
                 <div className="noata-stage-header-title">
                   <span className="noata-stage-icon-circle" style={{ color: "var(--accent)" }}>
-                    <Icon name="arrow" size={20} />
+                    <Icon name="arrow-end" size={20} />
                   </span>
                   <div>
                     <h2>{t("نقطة التحقق التفاعلية والانطلاق للمهمة", "Multi-Question Checkpoint & Mission Launch")}</h2>
@@ -1322,6 +1322,9 @@ export function LessonLive({ id }: { id: string }) {
                           <button
                             key={qItem.id}
                             type="button"
+                            role="tab"
+                            aria-selected={qIdx === safePracticeIndex}
+                            aria-label={t(`السؤال ${qIdx + 1}`, `Question ${qIdx + 1}`)}
                             className={`noata-practice-pill ${qIdx === safePracticeIndex ? "is-active" : ""} ${stateClass}`}
                             onClick={() => {
                               setPracticeIndex(qIdx);
@@ -1581,7 +1584,7 @@ export function LessonLive({ id }: { id: string }) {
                 onClick={() => setActiveStage((s) => Math.min(STAGES.length - 1, s + 1))}
               >
                 <span>{t("المرحلة التالية", "Next Stage")}</span>
-                <Icon name="arrow" size={14} />
+                <Icon name="arrow-end" size={14} />
               </button>
             ) : (
               <Link
@@ -1589,7 +1592,7 @@ export function LessonLive({ id }: { id: string }) {
                 href={`/missions?lesson=${encodeURIComponent(lesson.id)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`}
               >
                 <span>{t("انطلق للمهمة", "Launch Mission")}</span>
-                <Icon name="arrow" size={14} />
+                <Icon name="arrow-end" size={14} />
               </Link>
             )}
           </div>
@@ -1610,10 +1613,6 @@ export function LessonLive({ id }: { id: string }) {
         <div className="noata-lesson-action-dock-right">
           <Link
             className="btn btn-primary"
-            style={{
-              background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, var(--success)))",
-              color: "var(--on-accent, #ffffff)",
-            }}
             href={`${studyHrefBase}&tab=generator`}
           >
             <Icon name="sparkles" size={16} />
@@ -1641,7 +1640,7 @@ export function LessonLive({ id }: { id: string }) {
             href={`/missions?lesson=${encodeURIComponent(lesson.id)}${trackSlug ? `&track=${encodeURIComponent(trackSlug)}` : ""}`}
           >
             <span>{t("المهمة التعليمية", "Launch Mission")}</span>
-            <Icon name="arrow" size={16} />
+            <Icon name="arrow-end" size={16} />
           </Link>
         </div>
       </footer>

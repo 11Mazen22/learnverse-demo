@@ -71,15 +71,55 @@ export const metadata: Metadata = {
 const NOATA_PREHYDRATION_BOOT_SCRIPT = `(() => {
   try {
     var r = document.documentElement;
-    var p = localStorage.getItem("noata-palette");
+    var scope = localStorage.getItem("noata:active-account-scope") || "guest";
+    var isGuest = scope === "guest";
+    var getScoped = function (prefix, legacy) {
+      var v = localStorage.getItem(prefix + scope);
+      if (v !== null) return v;
+      return isGuest && legacy ? localStorage.getItem(legacy) : null;
+    };
+    var p = getScoped("noata:palette:", "noata-palette");
     var pal = ["classic","aura","ocean","forest","sunset","rose","midnight","custom"].indexOf(p) !== -1 ? p : "classic";
     r.dataset.palette = pal;
     r.dataset.modeConstraint = pal === "midnight" ? "dark" : "none";
-    var m = localStorage.getItem("noata-theme");
+    var m = getScoped("noata:theme:", "noata-theme");
     var d = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
     var t = pal === "midnight" ? "dark" : (m === "dark" ? "dark" : m === "light" ? "light" : (d ? "dark" : "light"));
     r.dataset.theme = t;
     r.style.colorScheme = t;
+    var mot = getScoped("noata:motion:", "noata-ai-motion-v1");
+    var srvMot = localStorage.getItem("noata:server-reduced-motion:" + scope);
+    if (mot === "off") {
+      r.dataset.noataMotion = "off";
+      r.dataset.reducedMotion = "true";
+    } else if (mot === "reduce" || (mot !== "full" && srvMot === "true")) {
+      r.dataset.noataMotion = "reduce";
+      r.dataset.reducedMotion = "true";
+    } else if (mot === "full") {
+      r.dataset.noataMotion = "full";
+      r.dataset.reducedMotion = srvMot === "true" ? "true" : "false";
+    } else if (srvMot === "false") {
+      r.dataset.reducedMotion = "false";
+    }
+    var spRaw = localStorage.getItem("noata:shell-prefs:" + scope);
+    if (spRaw) {
+      try {
+        var sp = JSON.parse(spRaw);
+        if (sp && typeof sp === "object") {
+          if (typeof sp.widthPx === "number" && isFinite(sp.widthPx)) {
+            var w = Math.max(248, Math.min(420, Math.round(sp.widthPx)));
+            r.style.setProperty("--sidebar-user-w", w + "px");
+          }
+          if (sp.collapsed === true) {
+            r.dataset.sidebarCollapsed = "true";
+          } else {
+            r.removeAttribute("data-sidebar-collapsed");
+          }
+        }
+      } catch (e2) {}
+    } else if (isGuest && localStorage.getItem("noata_sidebar_collapsed") === "1") {
+      r.dataset.sidebarCollapsed = "true";
+    }
   } catch (e) {}
 })();`;
 

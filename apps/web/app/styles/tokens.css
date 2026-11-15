@@ -114,6 +114,7 @@
 
     --accent: #0065b5;
     --accent-hover: color-mix(in srgb, var(--accent) 88%, #041528);
+    --accent-ink: color-mix(in srgb, var(--accent) 74%, var(--ink));
     --accent-soft: #e6f3ff;
     --on-accent: #ffffff;
 

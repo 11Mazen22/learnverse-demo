@@ -305,9 +305,11 @@ export function FlashcardReviewStudio({
       if (e.isComposing) return;
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      if (tag === "input" || tag === "textarea" || tag === "select" || target?.isContentEditable) return;
 
       if (e.code === "Space" || e.code === "Enter") {
+        // Let interactive controls and .noata-3d-scene ([role="button"]) handle Enter/Space without double-toggling
+        if (target?.closest?.('button, a, summary, [role="button"], [role="link"]')) return;
         e.preventDefault();
         handleFlip();
       } else if (isFlipped && !busy && !isComplete) {
@@ -356,7 +358,7 @@ export function FlashcardReviewStudio({
               setMatchResult(null);
             }}
           >
-            <Icon name="arrow" size={16} />
+            <Icon name="arrow-end" size={16} />
             <span>{t("إعادة مراجعة المجموعة", "Review Deck Again")}</span>
           </Button>
         }
@@ -545,7 +547,25 @@ export function FlashcardReviewStudio({
       </div>
 
       {/* 3D CSS-Grid Flip Scene (arbitrary height grows naturally cleanly with KaTeX/Bilingual prose) */}
-      <div className="noata-3d-scene" onClick={handleSceneClick}>
+      <div
+        className="noata-3d-scene"
+        role="button"
+        tabIndex={0}
+        aria-pressed={isFlipped}
+        aria-label={
+          isFlipped
+            ? t("وجه الإجابة، اضغط لقلب البطاقة", "Answer side, press to flip card")
+            : t("وجه السؤال، اضغط لكشف الإجابة", "Prompt side, press to reveal answer")
+        }
+        onClick={handleSceneClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFlip();
+          }
+        }}
+      >
         <div className={`noata-3d-card ${isFlipped ? "is-flipped" : ""}`}>
           {/* FRONT FACE */}
           <div className="noata-3d-face is-front">

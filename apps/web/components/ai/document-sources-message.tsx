@@ -28,7 +28,7 @@ export function DocumentSourcesMessage({sources}:{sources:unknown}){
           aria-label={t("معاينة مصدر ","Preview source ")+item.name}>
           <Icon name="book" size={17}/>
           <span><strong>{item.name}</strong><small>{t("محتوى مستخلص · مصدر","Extracted content · Source")}{index+1}</small></span>
-          <Icon name="arrow" size={14}/>
+          <Icon name="arrow-end" size={14}/>
         </button>
       ))}
     </div>

@@ -302,7 +302,8 @@
   opacity: 0.92;
 }
 .km-node-btn:focus-visible {
-  outline: none;
+  outline: 3px solid var(--focus-ring, var(--accent));
+  outline-offset: 4px;
 }
 .km-subject-tab {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);

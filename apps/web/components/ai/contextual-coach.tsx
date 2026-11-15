@@ -68,7 +68,7 @@ export function ContextualCoach({active}:{active:string}){
         <div className="noata-context-coach-meta"><small>{t("الرسالة مش هتتبعت تلقائيًا، ومساعد Noäta ما يغيّرش درجات أو مكافآت أو إعدادات من نفسه.","This message is not sent automatically. Noäta AI cannot change grades, rewards or settings on its own.")}</small><span dir="ltr">{draft.length}/1800</span></div>
         {error&&<p className="noata-context-coach-error" role="alert">{error} <a href="/ai">{t("افتح المحادثة","Open the conversation")}</a></p>}
         <button className="noata-context-coach-submit" type="button" disabled={busy||!validatedCoachPrompt(draft)}
-          onClick={()=>void prepare()}>{busy?t("بنجهّز الطلب…","Preparing your request…"):t("افتح الطلب في Noäta AI","Open in Noäta AI")}<Icon name="arrow" size={17}/></button>
+          onClick={()=>void prepare()}>{busy?t("بنجهّز الطلب…","Preparing your request…"):t("افتح الطلب في Noäta AI","Open in Noäta AI")}<Icon name="arrow-end" size={17}/></button>
       </div>
     </Dialog>
   </>);

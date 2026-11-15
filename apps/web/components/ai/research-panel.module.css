@@ -1,4 +1,6 @@
 /* Actual research evidence. All colors follow the active Noata palette. */
+@keyframes reveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@layer study {
 .panel{margin-block:22px;border:1px solid var(--line);border-radius:20px;background:var(--surface);color:var(--ink);overflow:hidden;min-width:0;box-shadow:0 8px 26px color-mix(in srgb,var(--accent) 4%,transparent)}
 .panel :global(.noata-research-summary){display:flex;align-items:center;gap:12px;padding:15px 18px;min-height:64px;cursor:pointer;list-style:none;font-size:.9rem;font-weight:650;line-height:1.55;transition:background 180ms ease}
 .panel :global(.noata-research-summary)::-webkit-details-marker{display:none}
@@ -32,8 +34,10 @@
 .panel :global(.noata-research-links) p{margin:9px 0 0;font-size:.8rem;line-height:1.7;color:var(--muted)}
 .panel :global(.noata-research-disclaimer){display:flex;align-items:flex-start;gap:9px;margin:16px 0 0;padding-block-start:13px;border-block-start:1px solid var(--line);font-size:.76rem;line-height:1.65;color:var(--muted)}
 .panel :global(.noata-research-disclaimer) svg{flex:none;margin-block-start:3px}
-@keyframes reveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @supports(interpolate-size:allow-keywords){.panel{interpolate-size:allow-keywords}.panel::details-content{height:0;overflow:clip;transition:height 240ms cubic-bezier(.2,.75,.25,1),content-visibility 240ms allow-discrete}.panel[open]::details-content{height:auto}}
 @media(max-width:600px){.panel{border-radius:16px}.panel :global(.noata-research-summary){padding:12px;gap:9px;font-size:.82rem}.panel :global(.noata-research-expand){display:none}.panel :global(.noata-research-chevron){margin-inline-start:auto}.panel :global(.noata-research-detail){padding-inline:12px}.panel :global(.noata-research-links)>li{padding:12px}.panel :global(.noata-research-activity) li{font-size:.78rem}}
 @media(prefers-reduced-motion:reduce){.panel::details-content,.panel :global(*){animation:none!important;transition:none!important}}
-:global(html[data-noata-motion="off"]) .panel::details-content,:global(html[data-noata-motion="off"]) .panel :global(*){animation:none!important;transition:none!important}
+}
+@layer utilities {
+:global(html[data-reduced-motion="true"]) .panel::details-content,:global(html[data-reduced-motion="true"]) .panel :global(*),:global(html[data-noata-motion="reduce"]) .panel::details-content,:global(html[data-noata-motion="reduce"]) .panel :global(*),:global(html[data-noata-motion="off"]) .panel::details-content,:global(html[data-noata-motion="off"]) .panel :global(*){animation:none!important;transition:none!important}
+}

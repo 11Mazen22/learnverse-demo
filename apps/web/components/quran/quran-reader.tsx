@@ -3,6 +3,14 @@ import {reciterDisplayName} from "@/lib/i18n/quran-labels";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import { useEffect, useState, type FormEvent } from "react";
 import useSWR from "swr";
+import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
+import {
+  QURAN_BOOKMARKS_PREFIX,
+  QURAN_READING_SIZE_PREFIX,
+  isReducedMotionActive,
+  readScopedDevicePreference,
+  writeScopedDevicePreference,
+} from "@/lib/appearance/device-preferences";
 import { Icon } from "@/components/ui/icon";
 import { QuranNavigator } from "./quran-navigator";
 import { ReciterPicker } from "./reciter-picker";
@@ -24,6 +32,8 @@ const options = { revalidateOnFocus: false, shouldRetryOnError: false };
 
 export function QuranReader() {
  const t=useTranslation(),locale=useLocale();
+  const account = useVerifiedAccount();
+  const scopeUserId = account.user?.id ?? null;
   const [selected, setSelected] = useState(1);
   const [reciterId, setReciterId] = useState<ReciterId>("minshawi");
   const [bookmarks, setBookmarks] = useState<string[]>([]);
@@ -81,12 +91,24 @@ export function QuranReader() {
     return () => { engine.onEnded = undefined; };
   }, [engine, sequence, playback.repeat, selected, reciterId, verses.length, availability.data, chapter.name, chapter.englishName, locale, t]);
   useEffect(() => {
+    if (account.loading) return;
     try {
-      const saved = localStorage.getItem(READING_SIZE_KEY);
+      const saved = readScopedDevicePreference(QURAN_READING_SIZE_PREFIX, {
+        userId: scopeUserId,
+        legacyKey: READING_SIZE_KEY,
+      });
       if (saved && /^\d{2,3}$/.test(saved)) setReaderSize(boundSize(Number(saved)));
-      const stored: unknown = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]");
+      else setReaderSize(100);
+      const rawBookmarks = readScopedDevicePreference(QURAN_BOOKMARKS_PREFIX, {
+        userId: scopeUserId,
+        legacyKey: LOCAL_KEY,
+      });
+      const stored: unknown = JSON.parse(rawBookmarks ?? "[]");
       if (Array.isArray(stored)) setBookmarks(stored.filter((id): id is string => typeof id === "string" && /^\d{1,3}:\d{1,3}$/.test(id) && Number(id.split(":")[0]) >= 1 && Number(id.split(":")[0]) <= 114 && Number(id.split(":")[1]) >= 1 && Number(id.split(":")[1]) <= 286).slice(-300));
+      else setBookmarks([]);
     } catch { /* Preserve the existing explicitly device-local preference fallback. */ }
+  }, [account.loading, scopeUserId]);
+  useEffect(() => {
     const restoreReference = () => {
       const params = new URLSearchParams(window.location.search);
       const surah = Number(params.get("surah") ?? 1), ayah = Number(params.get("ayah"));
@@ -104,7 +126,7 @@ export function QuranReader() {
     if (number > 5 && !expanded && verses.some(v => v.number === number)) { setExpanded(true); return; }
     const element = document.getElementById(`ayah-${targetAyah.replace(":", "-")}`);
     if (!element) { setNotice(t("هذا المرجع ليس ضمن آيات السورة المتاحة.","This reference is outside the available surah verses.")); setTargetAyah(null); return; }
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.reducedMotion === "true";
+    const reduced = isReducedMotionActive();
     element.scrollIntoView({ behavior: reduced ? "instant" : "smooth", block: "center" }); element.focus({ preventScroll: true });
     setHighlighted(targetAyah); setTargetAyah(null);
   }, [targetAyah, selected, expanded, verses, reading.isLoading, reading.error, reading.data]);
@@ -130,14 +152,18 @@ export function QuranReader() {
   }
   function changeReadingSize(next: number) {
     const percent = boundSize(next); setReaderSize(percent);
-    try { localStorage.setItem(READING_SIZE_KEY, String(percent)); }
-    catch { setNotice(t("حجم الخط متاح لهذه الجلسة فقط؛ تعذّر حفظه على الجهاز.","Font size is set for this session. It could not be saved on your device.")); }
+    if (!writeScopedDevicePreference(QURAN_READING_SIZE_PREFIX, String(percent), { userId: scopeUserId })) {
+      setNotice(t("حجم الخط متاح لهذه الجلسة فقط؛ تعذّر حفظه على الجهاز.","Font size is set for this session. It could not be saved on your device."));
+    }
   }
   function toggleBookmark(number: number) {
     const id = `${selected}:${number}`; const removing = bookmarks.includes(id);
     const next = removing ? bookmarks.filter(item => item !== id) : [...bookmarks, id].slice(-300); setBookmarks(next);
-    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)); setNotice(removing ? t("أُزيلت علامة الآية.","Bookmark removed.") : t("حُفظ موضع الآية على هذا الجهاز فقط.","Verse bookmarked on this device.")); }
-    catch { setNotice(t("العلامة متاحة خلال هذه الجلسة فقط؛ تعذّر حفظها على الجهاز.","Bookmark kept for this session. It could not be saved on your device.")); }
+    if (writeScopedDevicePreference(QURAN_BOOKMARKS_PREFIX, JSON.stringify(next), { userId: scopeUserId })) {
+      setNotice(removing ? t("أُزيلت علامة الآية.","Bookmark removed.") : t("حُفظ موضع الآية على هذا الجهاز فقط.","Verse bookmarked on this device."));
+    } else {
+      setNotice(t("العلامة متاحة خلال هذه الجلسة فقط؛ تعذّر حفظها على الجهاز.","Bookmark kept for this session. It could not be saved on your device."));
+    }
   }
   function submitJump(event: FormEvent) {
     event.preventDefault(); const number = Number(normalizeQuranQuery(jump));
@@ -162,7 +188,7 @@ export function QuranReader() {
           <div className="mushaf-reading-tools"><label className="mushaf-surah-select"><span className="sr-only">{t("السورة","Surah")}</span><select value={selected} onChange={e => selectChapter(Number(e.target.value))} aria-label={t("اختيار سورة","Choose a surah")}>{(chapters.length ? chapters : [chapter]).map(s => <option key={s.number} value={s.number}>{s.number.toLocaleString(locale==="en"?"en":"ar-EG")}. {locale==="en"?s.englishName:s.name}</option>)}</select></label><button className="mushaf-focus-button" type="button" aria-pressed={focused} onClick={() => setFocused(v => !v)}><Icon name="screen" size={16}/>{focused ? t("إظهار الفهرس","Show index") : t("قراءة مركزة","Focused reading")}</button><a className="mushaf-listen-link" href="#mushaf-recitation-dock"><Icon name="volume" size={16}/>{t("استمع للسورة","Listen")}</a></div>
           <header className="aura-quran-chapter mushaf-chapter"><span className="mushaf-chapter-kicker">{t("المصحف الشريف · السورة ","The Holy Quran · Surah ")}{selected.toLocaleString(locale==="en"?"en":"ar-EG")}</span><h2>{locale==="en"?chapter.englishName:chapter.name}</h2><p>{chapter.numberOfAyahs > 0 ? `${chapter.numberOfAyahs.toLocaleString(locale==="en"?"en":"ar-EG")} ${t("آيات","verses")}` : t("جارٍ تحميل السورة","Loading surah")}{chapter.revelationType === "Meccan" ? t(" · مكية"," · Meccan") : chapter.revelationType === "Medinan" ? t(" · مدنية"," · Medinan") : ""}</p><span className="mushaf-chapter-rule" aria-hidden="true"/></header>
           <div className="mushaf-reading-toolbar"><div className="mushaf-reader-controls"><div className="mushaf-segmented" aria-label={t("طريقة القراءة","Reading mode")}><button type="button" aria-pressed={mode === "verses"} onClick={() => setMode("verses")}>{t("آية بآية","Verse by verse")}</button><button type="button" aria-pressed={mode === "flow"} onClick={() => setMode("flow")}>{t("قراءة متصلة","Continuous reading")}</button></div><div className="aura-quran-font"><span className="sr-only">{t("حجم القراءة","Reading size")}</span><button type="button" onClick={() => changeReadingSize(readerSize - 10)} disabled={readerSize <= 80} aria-label={t("تصغير خط القرآن","Decrease scripture font size")}>−</button><button type="button" onClick={() => changeReadingSize(100)} aria-label={locale==="en"?`Reading size ${readerSize}%, reset to 100%`:`حجم القراءة ${readerSize}%، إعادة الضبط إلى ١٠٠٪`}>{readerSize.toLocaleString(locale==="en"?"en":"ar-EG")}{t("٪","%")}</button><button type="button" onClick={() => changeReadingSize(readerSize + 10)} disabled={readerSize >= 160} aria-label={t("تكبير خط القرآن","Increase scripture font size")}>+</button></div></div>
-          <div className="mushaf-jump"><form onSubmit={submitJump}><label htmlFor="mushaf-jump">{t("انتقل إلى آية","Jump to a verse")}</label><input id="mushaf-jump" inputMode="numeric" maxLength={3} value={jump} onChange={e => setJump(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && (e.nativeEvent.isComposing || e.keyCode === 229)) e.preventDefault(); }} aria-invalid={!!jumpError} aria-describedby={jumpError ? "mushaf-jump-error" : undefined}/><button type="submit" disabled={!verses.length || !jump}>{t("انتقال","Go")}<Icon name="arrow" size={15}/></button></form>{jumpError && <p id="mushaf-jump-error" role="alert">{jumpError}</p>}</div></div>
+          <div className="mushaf-jump"><form onSubmit={submitJump}><label htmlFor="mushaf-jump">{t("انتقل إلى آية","Jump to a verse")}</label><input id="mushaf-jump" inputMode="numeric" maxLength={3} value={jump} onChange={e => setJump(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && (e.nativeEvent.isComposing || e.keyCode === 229)) e.preventDefault(); }} aria-invalid={!!jumpError} aria-describedby={jumpError ? "mushaf-jump-error" : undefined}/><button type="submit" disabled={!verses.length || !jump}>{t("انتقال","Go")}<Icon name="arrow-end" size={15}/></button></form>{jumpError && <p id="mushaf-jump-error" role="alert">{jumpError}</p>}</div></div>
           {reading.isLoading && <div className="mushaf-loading" role="status"><span/><span/><span/><p>{t("جارٍ جلب النص القرآني من مصدره…","Loading Quran text from its source…")}</p></div>}
           {reading.error && <div className="mushaf-reading-error" role="alert"><Icon name="book" size={30}/><h3>{t("تعذّر تحميل السورة","Could not load the surah")}</h3><p>{t("راجع الاتصال وحاول مرة أخرى. لا نعرض نصًا بديلًا عن المصدر.","Check your connection and try again. No substitute scripture is displayed.")}</p><button type="button" onClick={() => void reading.mutate()}>{t("إعادة تحميل السورة","Reload surah")}</button></div>}
           {!reading.isLoading && !reading.error && <QuranVerses verses={expanded ? verses : verses.slice(0, 5)} surah={selected} bookmarks={bookmarks} size={readerSize} mode={mode} highlighted={highlighted} onBookmark={toggleBookmark} onPlayVerse={playVerse} playingVerse={playingVerse} pendingVerse={pendingVerse} reciterName={reciterDisplayName(identity.name,locale)} availableVerses={availableVerses}/>}

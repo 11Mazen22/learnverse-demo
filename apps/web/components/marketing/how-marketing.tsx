@@ -157,10 +157,12 @@ export function HowMarketing() {
               {METHODOLOGY_STEPS.map((s, idx) => {
                 const isActive = activeStepIndex === idx;
                 return (
-                  <div
+                  <button
                     key={s.step}
+                    type="button"
+                    aria-pressed={isActive}
                     onClick={() => setActiveStepIndex(idx)}
-                    className={`p-glass rounded-2xl p-5 cursor-pointer border transition-all relative overflow-hidden flex flex-col justify-between ${
+                    className={`p-glass rounded-2xl p-5 cursor-pointer border transition-all relative overflow-hidden flex flex-col justify-between text-start w-full appearance-none ${
                       isActive
                         ? "bg-white/[0.08] shadow-2xl scale-[1.02]"
                         : "bg-white/[0.02] border-white/[0.07] hover:bg-white/[0.05]"
@@ -171,13 +173,14 @@ export function HowMarketing() {
                     }}
                   >
                     {isActive && (
-                      <div
-                        className="absolute top-0 left-0 right-0 h-1.5"
+                      <span
+                        aria-hidden="true"
+                        className="block absolute top-0 left-0 right-0 h-1.5"
                         style={{ backgroundColor: s.color }}
                       />
                     )}
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
+                    <span className="block w-full">
+                      <span className="flex items-center justify-between mb-3">
                         <span
                           className="text-xs font-bold px-2.5 py-0.5 rounded-full"
                           style={{
@@ -188,21 +191,21 @@ export function HowMarketing() {
                           {locale === "en" ? s.badgeEn : s.badgeAr}
                         </span>
                         <span className="text-2xl font-black font-mono text-white/20">{s.step}</span>
-                      </div>
-                      <h3 className="text-base font-bold text-white mb-2">
+                      </span>
+                      <span className="block text-base font-bold text-white mb-2">
                         {locale === "en" ? s.titleEn : s.titleAr}
-                      </h3>
-                      <p className="text-xs text-[#94a3b8] leading-relaxed line-clamp-2">
+                      </span>
+                      <span className="block text-xs text-[#94a3b8] leading-relaxed line-clamp-2">
                         {locale === "en" ? s.summaryEn : s.summaryAr}
-                      </p>
-                    </div>
-                    <div className="pt-3 mt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px]">
+                      </span>
+                    </span>
+                    <span className="pt-3 mt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] w-full">
                       <span style={{ color: s.color }} className="font-semibold">
                         {isActive ? (isRtl ? "المرحلة المعروضة" : "Active Stage") : (isRtl ? "اضغط للتفاصيل" : "Click to view")}
                       </span>
                       <span aria-hidden="true" style={{ color: s.color }}>{isRtl ? "←" : "→"}</span>
-                    </div>
-                  </div>
+                    </span>
+                  </button>
                 );
               })}
             </div>

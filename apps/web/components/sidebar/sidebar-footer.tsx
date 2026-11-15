@@ -55,7 +55,7 @@ export function SidebarFooter({
 
       {/* Legal Links (Expanded Only) */}
       {!isCollapsed && (
-        <div className="noata-sidebar-legal" role="contentinfo">
+        <div className="noata-sidebar-legal">
           <Link href="/privacy" className="noata-legal-link">
             {t("الخصوصية", "Privacy")}
           </Link>

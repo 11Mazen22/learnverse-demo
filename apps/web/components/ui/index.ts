@@ -33,3 +33,4 @@ export {
   StaffConsoleSection,
 } from "./patterns";
 export { ErrorBoundary, type ErrorBoundaryProps } from "./error-boundary";
+export { ChoiceCardGroup } from "./choice-card-group";

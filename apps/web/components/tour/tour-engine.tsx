@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
+import { isReducedMotionActive } from "@/lib/appearance/device-preferences";
 import { localized, useLocale } from "@/lib/i18n/locale";
 import { boundedRead, useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
@@ -506,9 +507,7 @@ export function AuraTourProvider({ children }: { children: React.ReactNode }) {
         rect.right > window.innerWidth - 20;
       if (offscreen) {
         element.scrollIntoView({
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-            ? "auto"
-            : "smooth",
+          behavior: isReducedMotionActive() ? "auto" : "smooth",
           block: "center",
           inline: "nearest",
         });
@@ -782,7 +781,7 @@ function AuraTourModal({
               onClick={isLast ? onFinish : onNext}
             >
               <span>{isLast ? t("إتمام الجولة", "Finish tour") : t("التالي", "Next")}</span>
-              <Icon name="arrow" size={13} />
+              <Icon name="arrow-end" size={13} />
             </button>
           </div>
         </footer>

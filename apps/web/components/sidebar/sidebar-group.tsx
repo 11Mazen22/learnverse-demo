@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { localized, useLocale } from "@/lib/i18n/locale";
 
@@ -12,6 +12,8 @@ type SidebarGroupProps = {
   badge?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  controlledOpen?: boolean;
+  onOpenChange?: (id: string, open: boolean) => void;
   hasActiveChild?: boolean;
   isCollapsedSidebar: boolean;
   children: React.ReactNode;
@@ -25,19 +27,37 @@ export function SidebarGroup({
   badge,
   collapsible = false,
   defaultExpanded = true,
+  controlledOpen,
+  onOpenChange,
   hasActiveChild = false,
   isCollapsedSidebar,
   children,
 }: SidebarGroupProps) {
   const locale = useLocale();
-  const [isOpen, setIsOpen] = useState(defaultExpanded || hasActiveChild);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultExpanded || hasActiveChild);
+  const prevActiveChild = useRef(hasActiveChild);
+  const isControlled = typeof controlledOpen === "boolean";
+  const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
 
-  // If a child becomes active, automatically expand the group
+  // When a route transitions into this group, expand it if currently closed
   useEffect(() => {
-    if (hasActiveChild) {
-      setIsOpen(true);
+    if (hasActiveChild && !prevActiveChild.current) {
+      if (isControlled) {
+        if (!controlledOpen) onOpenChange?.(id, true);
+      } else {
+        setUncontrolledOpen(true);
+      }
     }
-  }, [hasActiveChild]);
+    prevActiveChild.current = hasActiveChild;
+  }, [hasActiveChild, isControlled, controlledOpen, id, onOpenChange]);
+
+  const handleToggle = () => {
+    const next = !isOpen;
+    if (!isControlled) {
+      setUncontrolledOpen(next);
+    }
+    onOpenChange?.(id, next);
+  };
 
   const title = localized(locale, titleAr, titleEn);
 
@@ -64,7 +84,7 @@ export function SidebarGroup({
             className="noata-group-trigger"
             aria-expanded={isOpen}
             aria-controls={`group-content-${id}`}
-            onClick={() => setIsOpen((open) => !open)}
+            onClick={handleToggle}
           >
             <span className="noata-group-title-wrap">
               {icon && (

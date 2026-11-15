@@ -103,7 +103,7 @@ export function PreLessonDiagnostic({
                       }
                     >
                       <span>
-                        <StudyRichText content={opt.label} />
+                        <StudyRichText content={opt.label} inline />
                       </span>
                     </button>
                   );

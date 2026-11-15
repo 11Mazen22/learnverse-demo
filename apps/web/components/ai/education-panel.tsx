@@ -161,7 +161,7 @@ export function EducationPanel({ onUse, onSend, canSend = true }: Props) {
 
       <div className="aura-workshop-actions">
         {onSend && (
-          <button type="button" className="aura-workshop-send" onClick={() => run(onSend)} disabled={!ready || !canSend}>{t("ابدأ الآن","Start now")}<Icon name="arrow" size={17} />
+          <button type="button" className="aura-workshop-send" onClick={() => run(onSend)} disabled={!ready || !canSend}>{t("ابدأ الآن","Start now")}<Icon name="arrow-end" size={17} />
           </button>
         )}
         <button type="button" className="aura-workshop-draft" onClick={() => run(onUse)} disabled={!ready}>{t("ضعه في المحادثة لأعدّله","Add to chat for editing")}</button>

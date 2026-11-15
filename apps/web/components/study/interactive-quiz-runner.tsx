@@ -327,7 +327,7 @@ export function InteractiveQuizRunner({
 
           <div className="nk-report-actions">
             <Button variant="primary" onClick={onRestart}>
-              <Icon name="arrow" size={16} />
+              <Icon name="arrow-end" size={16} />
               <span>{t("اختبار جديد", "New Assessment")}</span>
             </Button>
 
@@ -563,7 +563,7 @@ export function InteractiveQuizRunner({
                 >
                   <span className="noata-quiz-opt-marker">{letterMarker}</span>
                   <span className="nk-quiz-opt-text" dir="auto">
-                    <StudyRichText content={opt} />
+                    <StudyRichText content={opt} inline />
                   </span>
                   {showFeedback && optIdx === currentQ.correctIndex && <span aria-hidden="true">✓</span>}
                   {showFeedback && isSelected && optIdx !== currentQ.correctIndex && <span aria-hidden="true">✗</span>}

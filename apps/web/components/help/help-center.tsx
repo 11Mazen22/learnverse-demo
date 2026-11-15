@@ -3,6 +3,7 @@ import {useLocale,useTranslation} from "@/lib/i18n/locale";
 import Link from "next/link";
 import {useEffect,useMemo,useRef,useState} from "react";
 import {Icon} from "@/components/ui/icon";
+import {isReducedMotionActive} from "@/lib/appearance/device-preferences";
 
 type Category="getting-started"|"learning"|"ai"|"account";
 type Topic={id:string;category:Category;title:string;body:string;href:string;link:string};
@@ -47,7 +48,7 @@ const STEPS=[
   setOpen(prev=>prev.includes(raw)?prev:[...prev,raw]);
   const el=document.getElementById("help-topic-"+raw);
   if(el){
-   const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches||document.documentElement.dataset.reducedMotion==="true";
+   const reduced=isReducedMotionActive();
    requestAnimationFrame(()=>el.scrollIntoView({behavior:reduced?"instant":"smooth",block:"center"}));
   }
  },[]);
@@ -100,7 +101,7 @@ const STEPS=[
      </button>
      <div className="aura-help-panel" id={"help-"+topic.id} hidden={isOpen?undefined:("until-found" as unknown as boolean)}>
       <div className="aura-help-answer">
-       <p>{topic.body}</p><Link href={topic.href}>{topic.link} <Icon name="arrow" size={15}/></Link>
+       <p>{topic.body}</p><Link href={topic.href}>{topic.link} <Icon name="arrow-end" size={15}/></Link>
       </div>
      </div>
     </article>;

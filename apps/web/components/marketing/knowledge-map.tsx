@@ -530,20 +530,22 @@ export function KnowledgeMap() {
         {STAGES.map((stage) => {
           const isSelected = selectedStage.id === stage.id;
           return (
-            <div
+            <button
               key={stage.id}
+              type="button"
+              aria-pressed={isSelected}
               onClick={() => {
                 setSelectedStage(stage);
                 setSelectedQuizOption(null);
               }}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+              className={`p-3.5 rounded-xl border transition-all cursor-pointer text-start w-full appearance-none ${
                 isSelected
                   ? "bg-white/[0.1] border-cyan-400/80 shadow-lg"
                   : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.05]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div
+              <span className="flex items-center gap-3 w-full">
+                <span
                   className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs"
                   style={{
                     backgroundColor: `${stage.color}25`,
@@ -552,9 +554,9 @@ export function KnowledgeMap() {
                   }}
                 >
                   {stage.step}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
+                </span>
+                <span className="block flex-1 min-w-0">
+                  <span className="flex items-center justify-between">
                     <strong className="text-sm text-white">{locale === "en" ? stage.en : stage.ar}</strong>
                     <span
                       className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -565,10 +567,10 @@ export function KnowledgeMap() {
                     >
                       {locale === "en" ? stage.tagEn : stage.tagAr}
                     </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+                  </span>
+                </span>
+              </span>
+            </button>
           );
         })}
       </div>
@@ -578,14 +580,16 @@ export function KnowledgeMap() {
         {STAGES.map((s) => {
           const isSelected = selectedStage.id === s.id;
           return (
-            <div
+            <button
               key={s.id}
+              type="button"
+              aria-pressed={isSelected}
               onClick={() => {
                 setSelectedStage(s);
                 setSelectedQuizOption(null);
               }}
               data-selected={isSelected}
-              className={`km-node-card text-center p-3.5 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
+              className={`km-node-card text-center p-3.5 rounded-2xl border transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer w-full appearance-none ${
                 isSelected
                   ? "bg-white/[0.08] shadow-lg"
                   : "bg-white/[0.02] border-white/[0.07] hover:bg-white/[0.05]"
@@ -596,12 +600,13 @@ export function KnowledgeMap() {
               }}
             >
               {isSelected && (
-                <div
-                  className="absolute top-0 left-0 right-0 h-1"
+                <span
+                  aria-hidden="true"
+                  className="block absolute top-0 left-0 right-0 h-1"
                   style={{ backgroundColor: s.color }}
                 />
               )}
-              <div className="flex items-center justify-center gap-1.5 mb-1.5">
+              <span className="flex items-center justify-center gap-1.5 mb-1.5 w-full">
                 <span
                   className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: s.color }}
@@ -609,12 +614,12 @@ export function KnowledgeMap() {
                 <span className="text-xs font-bold uppercase tracking-wider text-[#cbd5e1] whitespace-nowrap">
                   {locale === "en" ? s.en : s.ar}
                 </span>
-              </div>
-              <div className="text-xs font-semibold text-white mb-2 whitespace-nowrap">
+              </span>
+              <span className="block text-xs font-semibold text-white mb-2 whitespace-nowrap w-full">
                 {locale === "en" ? s.tagEn : s.tagAr}
-              </div>
-              <div
-                className="km-status-badge text-[10px] px-2.5 py-1 justify-center whitespace-nowrap"
+              </span>
+              <span
+                className="km-status-badge text-[10px] px-2.5 py-1 justify-center whitespace-nowrap w-full"
                 style={{
                   backgroundColor: `${s.color}15`,
                   color: s.color,
@@ -630,8 +635,8 @@ export function KnowledgeMap() {
                   : s.step === 4
                   ? t("تدريب وتصحيح", "Deterministic Check")
                   : t("مثال فواصل تقديرية", "Estimated Interval Example")}
-              </div>
-            </div>
+              </span>
+            </button>
           );
         })}
       </div>

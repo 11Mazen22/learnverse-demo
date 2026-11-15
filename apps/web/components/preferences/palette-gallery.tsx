@@ -9,6 +9,12 @@ import {
   safeAppearance,
   getPaletteModeConstraint,
 } from "@/lib/appearance/mode";
+import {
+  PALETTE_PREF_PREFIX,
+  THEME_PREF_PREFIX,
+  readScopedDevicePreference,
+  writeScopedDevicePreference,
+} from "@/lib/appearance/device-preferences";
 import { clearCustomDesign } from "@/lib/appearance/theme";
 import { SavedDesignChoices } from "@/components/preferences/design-studio";
 import { localized, useLocale } from "@/lib/i18n/locale";
@@ -56,25 +62,21 @@ export function syncBrowserThemeColor() {
   });
 }
 
-export function applyPalette(value: string | null) {
+export function applyPalette(value: string | null, explicitUserId?: string | null) {
   if (typeof document === "undefined") return;
   const palette = valid(value) ? value : "classic";
   clearCustomDesign();
   document.documentElement.dataset.palette = palette;
   const constraint = getPaletteModeConstraint(palette);
-  let wanted: string | null = null;
-  try {
-    wanted = localStorage.getItem("noata-theme");
-  } catch {
-    /* private device */
-  }
+  let wanted = readScopedDevicePreference(THEME_PREF_PREFIX, {
+    userId: explicitUserId,
+    legacyKey: "noata-theme",
+  });
 
   // If palette is midnight or dark-only, enforce dark theme immediately
   if (constraint === "dark-only") {
     wanted = "dark";
-    try {
-      localStorage.setItem("noata-theme", "dark");
-    } catch {}
+    writeScopedDevicePreference(THEME_PREF_PREFIX, "dark", { userId: explicitUserId });
   }
 
   document.documentElement.dataset.theme = resolveAppearance(
@@ -86,13 +88,12 @@ export function applyPalette(value: string | null) {
   syncBrowserThemeColor();
 }
 
-function storedPalette(): Palette {
-  try {
-    const value = localStorage.getItem(KEY);
-    return valid(value) ? value : "classic";
-  } catch {
-    return "classic";
-  }
+function storedPalette(explicitUserId?: string | null): Palette {
+  const value = readScopedDevicePreference(PALETTE_PREF_PREFIX, {
+    userId: explicitUserId,
+    legacyKey: KEY,
+  });
+  return valid(value) ? value : "classic";
 }
 
 export function PaletteGallery({ compact = false }: { compact?: boolean }) {
@@ -112,9 +113,9 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
         setSelected(null);
         return;
       }
-      const value = storedPalette();
+      const value = storedPalette(account.user?.id ?? null);
       setSelected(value);
-      applyPalette(value);
+      applyPalette(value, account.user?.id ?? null);
     };
     update();
     window.addEventListener("storage", update);
@@ -125,7 +126,7 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
       window.removeEventListener("noata-palette-change", update);
       window.removeEventListener("noata-custom-theme-change", update);
     };
-  }, []);
+  }, [account.user?.id]);
 
   useEffect(() => {
     if (account.loading) return;
@@ -142,12 +143,10 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
         if (data?.active_design_id) return;
         if (!alive || seq !== saveSequence.current || !valid(data?.palette)) return;
         setSelected(data.palette);
-        applyPalette(data.palette);
-        try {
-          localStorage.setItem(KEY, data.palette);
-        } catch {
-          /* session preference still works */
-        }
+        applyPalette(data.palette, account.user!.id);
+        writeScopedDevicePreference(PALETTE_PREF_PREFIX, data.palette, {
+          userId: account.user!.id,
+        });
         window.dispatchEvent(new Event("noata-palette-change"));
       } catch {
         /* Device preference is the safe fallback if the account is offline. */
@@ -159,12 +158,12 @@ export function PaletteGallery({ compact = false }: { compact?: boolean }) {
   }, [account.loading, account.user, supabase]);
 
   async function choose(value: Palette) {
+    const scopeId = account.user?.id ?? null;
     setSelected(value);
-    applyPalette(value);
-    try {
-      localStorage.setItem(KEY, value);
+    applyPalette(value, scopeId);
+    if (writeScopedDevicePreference(PALETTE_PREF_PREFIX, value, { userId: scopeId })) {
       setNotice(t("تم تفعيل الطابع وحفظه على هذا الجهاز", "Palette saved on this device"));
-    } catch {
+    } else {
       setNotice(t("الطابع يعمل لهذه الجلسة فقط", "Palette active for this session only"));
     }
     window.dispatchEvent(new Event("noata-palette-change"));

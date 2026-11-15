@@ -13,6 +13,11 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { PaletteGallery, syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 import { localized, useLocale } from "@/lib/i18n/locale";
+import {
+  THEME_PREF_PREFIX,
+  readScopedDevicePreference,
+  writeScopedDevicePreference,
+} from "@/lib/appearance/device-preferences";
 
 type Theme = "light" | "dark" | "system";
 const choices: {
@@ -84,12 +89,11 @@ export function ThemeControl() {
 
   useEffect(() => {
     let active = true;
-    let stored: string | null = null;
-    try {
-      stored = localStorage.getItem("noata-theme");
-    } catch {
-      setNotice(t("تعذّر حفظ المظهر على هذا الجهاز.", "Could not save appearance on this device."));
-    }
+    const scopeUserId = account.user?.id ?? null;
+    const stored = readScopedDevicePreference(THEME_PREF_PREFIX, {
+      userId: scopeUserId,
+      legacyKey: "noata-theme",
+    });
     const initial: Theme = isTheme(stored) ? stored : "system";
     setTheme(initial);
     apply(initial);
@@ -105,9 +109,7 @@ export function ThemeControl() {
         if (!isThemeModeAllowed(prev, curPalette, curConstraint)) {
           const fallback: Theme = curConstraint === "light-only" ? "light" : "dark";
           apply(fallback);
-          try {
-            localStorage.setItem("noata-theme", fallback);
-          } catch {}
+          writeScopedDevicePreference(THEME_PREF_PREFIX, fallback, { userId: scopeUserId });
           return fallback;
         }
         return prev;
@@ -121,10 +123,10 @@ export function ThemeControl() {
 
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const osChanged = () => {
-      let current: string | null = null;
-      try {
-        current = localStorage.getItem("noata-theme");
-      } catch {}
+      const current = readScopedDevicePreference(THEME_PREF_PREFIX, {
+        userId: scopeUserId,
+        legacyKey: "noata-theme",
+      });
       if (!isTheme(current) || current === "system") apply("system");
     };
     media.addEventListener("change", osChanged);
@@ -145,9 +147,7 @@ export function ThemeControl() {
           .maybeSingle();
         if (!active || !isTheme(data?.theme)) return;
         setTheme(data.theme);
-        try {
-          localStorage.setItem("noata-theme", data.theme);
-        } catch {}
+        writeScopedDevicePreference(THEME_PREF_PREFIX, data.theme, { userId: user.id });
         apply(data.theme);
       } catch {
         // Device preference stays functional offline.
@@ -200,9 +200,11 @@ export function ThemeControl() {
     setOpen(false);
     trigger.current?.focus();
     setNotice("");
-    try {
-      localStorage.setItem("noata-theme", next);
-    } catch {
+    if (
+      !writeScopedDevicePreference(THEME_PREF_PREFIX, next, {
+        userId: account.user?.id ?? null,
+      })
+    ) {
       setNotice(
         t(
           "المظهر مفعّل لهذه الجلسة فقط؛ تعذّر حفظه على الجهاز.",
@@ -381,7 +383,7 @@ export function ThemeControl() {
           >
             <Icon name="sparkles" size={17} />
             <span>{t("ابتكر تصميمك الذكي مع Noäta AI", "Craft your design with Noäta AI")}</span>
-            <Icon name="arrow" size={15} />
+            <Icon name="arrow-end" size={15} />
           </a>
         </div>
       )}

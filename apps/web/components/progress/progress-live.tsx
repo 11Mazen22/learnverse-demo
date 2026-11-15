@@ -223,7 +223,7 @@ const LABELS: Record<string, string> = {
         <span className="eyebrow">{t("رحلتك مع Noata","Your Noata journey")}</span>
         <h1>{t("كل محاولة بتكشف خطوة جديدة.","Every attempt reveals a new step.")}</h1>
         <p>{t("سجّل الدخول علشان تعرف المهارات اللي أتقنتها، والمراجعات المستحقة، والأسئلة المستقلة اللي حلّيتها.","Sign in to see your mastered skills, reviews due and independently answered questions.")}</p>
-        <Link href="/login?next=/progress" className="aura-progress-primary">{t("سجّل الدخول","Sign in")}<Icon name="arrow" size={17} />
+        <Link href="/login?next=/progress" className="aura-progress-primary">{t("سجّل الدخول","Sign in")}<Icon name="arrow-end" size={17} />
         </Link>
       </section>
     );
@@ -254,7 +254,7 @@ const LABELS: Record<string, string> = {
               className="aura-progress-primary"
             >
               {due.length ? t("ابدأ المراجعات المستحقة","Start reviews due") : t("استكشف مهمة جديدة","Explore a new mission")}
-              <Icon name="arrow" size={17} />
+              <Icon name="arrow-end" size={17} />
             </Link>
             <Link href="/learn" className="aura-progress-secondary">{t("افتح رحلة التعلّم","Open the learning journey")}</Link>
             <Link href="/ai" onClick={prepareAiProgressContext} className="aura-progress-secondary" aria-label={t("تحليل تقدّمي مع Noata AI، مراجعة الرسالة قبل إرسالها","Analyze my progress with Noata AI; review the message before sending")}>
@@ -438,14 +438,14 @@ const LABELS: Record<string, string> = {
                         className="noata-skill-drill-link"
                       >
                         {t("تدرّب / أنشئ حزمة", "Practice / create deck")}
-                        <Icon name="arrow" size={13} />
+                        <Icon name="arrow-end" size={13} />
                       </Link>
                       <Link
                         href={`/study?topic=${encodeURIComponent(skillTitle(row))}&tab=review`}
                         className="noata-skill-drill-link"
                       >
                         {t("أصلح الأخطاء", "Repair mistakes")}
-                        <Icon name="arrow" size={13} />
+                        <Icon name="arrow-end" size={13} />
                       </Link>
                     </div>
                   )}

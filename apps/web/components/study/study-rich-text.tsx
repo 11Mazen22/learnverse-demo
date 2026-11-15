@@ -81,6 +81,18 @@ const MarkdownContent = memo(function MarkdownContent({
           ...(inline
             ? {
                 p: ({ children }) => <span className="noata-study-inline-p">{children}</span>,
+                h1: ({ children }) => <span className="noata-study-inline-heading">{children}</span>,
+                h2: ({ children }) => <span className="noata-study-inline-heading">{children}</span>,
+                h3: ({ children }) => <span className="noata-study-inline-heading">{children}</span>,
+                h4: ({ children }) => <span className="noata-study-inline-heading">{children}</span>,
+                h5: ({ children }) => <span className="noata-study-inline-heading">{children}</span>,
+                h6: ({ children }) => <span className="noata-study-inline-heading">{children}</span>,
+                blockquote: ({ children }) => <span className="noata-study-inline-quote">{children}</span>,
+                ul: ({ children }) => <span className="noata-study-inline-list">{children}</span>,
+                ol: ({ children }) => <span className="noata-study-inline-list">{children}</span>,
+                li: ({ children }) => <span className="noata-study-inline-li">{children}</span>,
+                pre: ({ children }) => <code className="noata-study-inline-pre">{children}</code>,
+                hr: () => null,
               }
             : {}),
           a: ({ href, children, ...rest }) => {

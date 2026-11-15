@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { NoataBrand } from "@/components/ui/noata-logo";
 import { LocaleControl } from "@/components/preferences/locale-control";
+import { isReducedMotionActive } from "@/lib/appearance/device-preferences";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import "../../app/premium-home.css";
 import "../../app/marketing.css";
@@ -70,7 +71,7 @@ export function Reveal({ children, className = "" }: { children: ReactNode; clas
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (isReducedMotionActive()) {
       setVisible(true);
       return;
     }
@@ -179,7 +180,7 @@ export function MarketingShell({ children, tone = "dark" }: { children: ReactNod
         </div>
       </nav>
 
-      <main className="mk-main" id="mk-main">{children}</main>
+      <main className="mk-main" id="noata-main" tabIndex={-1}>{children}</main>
 
       <footer className="mk-footer">
         {/* Top Brand & Mission Banner */}

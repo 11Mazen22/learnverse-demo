@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { applyLocale, localized, useLocale } from "@/lib/i18n/locale";
 import { matchesStaffSearch } from "@/lib/dashboard/staff-search";
 import { getActiveModeConstraint, isThemeModeAllowed, resolveAppearance } from "@/lib/appearance/mode";
+import { THEME_PREF_PREFIX, writeScopedDevicePreference } from "@/lib/appearance/device-preferences";
 import { syncBrowserThemeColor } from "@/components/preferences/palette-gallery";
 import {
   buildCommandActions,
@@ -108,6 +109,14 @@ export function CommandPalette({
   }, [activeIndex, open, filteredActions.length]);
 
   function executeAction(action: CommandAction) {
+    if (action.effect === "toggle-sidebar") {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("noata:toggle-sidebar"));
+      }
+      onClose();
+      return;
+    }
+
     if (action.effect === "toggle-locale") {
       const nextLocale = locale === "ar" ? "en" : "ar";
       applyLocale(nextLocale);
@@ -137,11 +146,7 @@ export function CommandPalette({
       }
       const next = resolveAppearance(targetTheme, palette, targetTheme === "dark", constraint);
       document.documentElement.dataset.theme = next;
-      try {
-        localStorage.setItem("noata-theme", next);
-      } catch {
-        /* Storage optional */
-      }
+      writeScopedDevicePreference(THEME_PREF_PREFIX, next);
       syncBrowserThemeColor();
       setCurrentTheme(next);
       push({

@@ -475,11 +475,11 @@ export function StudyMistakeHub({
                   <div className="noata-mistake-comparison">
                     {m.user_answer ? (
                       <div className="noata-mistake-wrong-ans">
-                        <strong>{t("إجابتك:", "Your answer:")}</strong> <StudyRichText content={m.user_answer} />
+                        <strong>{t("إجابتك:", "Your answer:")}</strong> <StudyRichText content={m.user_answer} inline />
                       </div>
                     ) : null}
                     <div className="noata-mistake-expected-ans">
-                      <strong>{t("الصحيح:", "Expected:")}</strong> <StudyRichText content={m.expected_answer} />
+                      <strong>{t("الصحيح:", "Expected:")}</strong> <StudyRichText content={m.expected_answer} inline />
                     </div>
                   </div>
                   {m.explanation ? (

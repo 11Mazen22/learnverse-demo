@@ -130,8 +130,12 @@ export function UserMenu() {
   return (
     <div className="noata-user-account" ref={menuRef}>
       <div className="noata-user-account-trigger-row">
-        <div
+        <button
+          type="button"
           className="noata-user-summary"
+          disabled={busy}
+          aria-expanded={menuOpen}
+          aria-controls="noata-account-menu"
           onClick={() => {
             if (!busy) setMenuOpen((open) => !open);
           }}
@@ -143,7 +147,7 @@ export function UserMenu() {
                ? `${roles[profile.role]} · ${profile.coins.toLocaleString(locale === "en" ? "en" : "ar-EG")}${t(" عملة", " coins")}`
                : t("بيانات الرصيد غير متاحة", "Balance unavailable")}
           </small>
-        </div>
+        </button>
         <button
           type="button"
           className="avatar noata-account-trigger"
@@ -214,7 +218,7 @@ export function UserMenu() {
           </button>
           <div className="noata-account-menu-separator" />
           <button type="button" role="menuitem" tabIndex={-1} className="noata-account-logout" onClick={() => void logout()} disabled={busy}>
-            <Icon name="arrow" size={18} />
+            <Icon name="arrow-start" size={18} />
              {busy ? t("جارٍ تسجيل الخروج…", "Signing out…") : t("تسجيل الخروج", "Sign out")}
           </button>
         </div>

@@ -33,7 +33,7 @@ export function QuranPassage({ surah, start, end }: { surah: number; start: numb
       <span className="noata-quran-symbol" aria-hidden="true"><Icon name="book" size={18}/></span>
       <span><strong>{state.status === "ready" ? state.name : t("آيات من القرآن الكريم","Quran verses")}</strong>
         <small>{t("الآيات","Verses")} {digits(start)}{end !== start ? "–" + digits(end) : ""}</small></span>
-      <Link href={"/quran?surah=" + surah} className="noata-quran-open">{t("افتح المصحف","Open Mushaf")} <Icon name="arrow" size={13}/></Link>
+      <Link href={"/quran?surah=" + surah} className="noata-quran-open">{t("افتح المصحف","Open Mushaf")} <Icon name="arrow-end" size={13}/></Link>
     </figcaption>
     {state.status === "loading" ? <div className="noata-quran-loading" role="status">{t("بنحمّل النص المعتمد من المصحف…","Loading the verified Uthmani text…")}</div> :
       state.status === "error" ? <p className="noata-quran-error" role="alert">{t("تعذّر التحقق من النص الآن، لذلك لن نعرض آيات غير موثّقة. افتح المصحف وحاول مرة أخرى.","The source could not be verified. Unverified verses will not be displayed. Open the Mushaf and try again.")}</p> :

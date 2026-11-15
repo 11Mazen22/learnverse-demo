@@ -23,6 +23,12 @@ import {
   getActiveModeConstraint,
   type PaletteModeConstraint,
 } from "@/lib/appearance/mode";
+import {
+  PALETTE_PREF_PREFIX,
+  THEME_PREF_PREFIX,
+  readScopedDevicePreference,
+  writeScopedDevicePreference,
+} from "@/lib/appearance/device-preferences";
 import { onlyOwnedRecords } from "@/lib/appearance/account-scope";
 import { localized, useLocale } from "@/lib/i18n/locale";
 import { AI_FUNCTION } from "@/lib/ai/workspace";
@@ -41,11 +47,11 @@ export function sanitizeBrandName(text: string): string {
 
 const MAX_DESIGNS = 8;
 
-function effectiveMode() {
-  let saved: string | null = null;
-  try {
-    saved = localStorage.getItem("noata-theme");
-  } catch {}
+function effectiveMode(explicitUserId?: string | null) {
+  const saved = readScopedDevicePreference(THEME_PREF_PREFIX, {
+    userId: explicitUserId,
+    legacyKey: "noata-theme",
+  });
   const pal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
   const constraint = getActiveModeConstraint();
   if (typeof document !== "undefined") {
@@ -66,10 +72,9 @@ function renderCustom(tokens: DesignTokens, modeConstraint: PaletteModeConstrain
 }
 
 function restoreStock() {
-  let palette: string | null = null;
-  try {
-    palette = localStorage.getItem("noata-palette");
-  } catch {}
+  const palette = readScopedDevicePreference(PALETTE_PREF_PREFIX, {
+    legacyKey: "noata-palette",
+  });
   applyPalette(palette);
   window.dispatchEvent(new Event("noata-custom-theme-change"));
 }
@@ -586,11 +591,9 @@ export function DesignStudio() {
           throw Error(t("تعذّر استعادة الطابع الافتراضي على الخادم.", "Could not confirm resetting to the stock palette."));
       }
       setActiveId(null);
-      try {
-        localStorage.setItem("noata-palette", "classic");
-      } catch {}
-      applyPalette("classic");
-      effectiveMode();
+      writeScopedDevicePreference(PALETTE_PREF_PREFIX, "classic", { userId: owner });
+      applyPalette("classic", owner);
+      effectiveMode(owner);
       window.dispatchEvent(new Event("noata-custom-theme-change"));
       setNotice(
         t("تمت استعادة الطابع الافتراضي الكلاسيكي لـNoäta.", "Restored Noäta's stock Classic palette.")

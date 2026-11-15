@@ -8,26 +8,61 @@ import { resolveAppearance, safeAppearance } from "@/lib/appearance/mode";
 import { applyCustomDesign, isDesignRecord } from "@/lib/appearance/theme";
 import { applyLocale } from "@/lib/i18n/locale";
 
+import {
+  LOCALE_PREF_PREFIX,
+  PALETTE_PREF_PREFIX,
+  SERVER_REDUCED_MOTION_PREFIX,
+  THEME_PREF_PREFIX,
+  readScopedDevicePreference,
+  readScopedMotionPreference,
+  readServerReducedMotionFlag,
+  setActiveAccountScope,
+  syncMotionDomAttributes,
+  writeScopedDevicePreference,
+} from "@/lib/appearance/device-preferences";
+
 export function ExperienceBoot() {
   const account = useVerifiedAccount();
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    if (account.loading) return;
+
     let alive = true;
+    const scopeUserId = account.user?.id ?? null;
+    setActiveAccountScope(scopeUserId);
+
     try {
-      applyPalette(localStorage.getItem("noata-palette"));
-      const localTheme = localStorage.getItem("noata-theme");
+      applyPalette(
+        readScopedDevicePreference(PALETTE_PREF_PREFIX, {
+          userId: scopeUserId,
+          legacyKey: "noata-palette",
+        }),
+        scopeUserId,
+      );
+      const localTheme = readScopedDevicePreference(THEME_PREF_PREFIX, {
+        userId: scopeUserId,
+        legacyKey: "noata-theme",
+      });
       document.documentElement.dataset.theme = resolveAppearance(
         safeAppearance(localTheme),
         document.documentElement.dataset.palette,
-        window.matchMedia("(prefers-color-scheme: dark)").matches
+        window.matchMedia("(prefers-color-scheme: dark)").matches,
       );
 
       syncBrowserThemeColor();
-      const localLocale = localStorage.getItem("noata-locale");
+      const localLocale = readScopedDevicePreference(LOCALE_PREF_PREFIX, {
+        userId: scopeUserId,
+        legacyKey: "noata-locale",
+      });
       if (localLocale === "ar" || localLocale === "en") {
-        applyLocale(localLocale, false);
+        applyLocale(localLocale, false, scopeUserId);
       }
+
+      syncMotionDomAttributes({
+        mode: readScopedMotionPreference(scopeUserId),
+        serverReducedMotion: readServerReducedMotionFlag(scopeUserId),
+      });
     } catch {
       /* Device storage can be disabled; OS appearance remains usable. */
     }
@@ -35,7 +70,10 @@ export function ExperienceBoot() {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const handleOsSchemeChange = () => {
       try {
-        const storedTheme = localStorage.getItem("noata-theme");
+        const storedTheme = readScopedDevicePreference(THEME_PREF_PREFIX, {
+          userId: scopeUserId,
+          legacyKey: "noata-theme",
+        });
         if (storedTheme && storedTheme !== "system") return;
       } catch {
         /* Proceed with system fallback when localStorage is unavailable. */
@@ -50,7 +88,7 @@ export function ExperienceBoot() {
         "system",
         palette,
         media.matches,
-        customConstraint
+        customConstraint,
       );
       syncBrowserThemeColor();
     };
@@ -71,21 +109,17 @@ export function ExperienceBoot() {
           typeof data.palette === "string" &&
           ["classic", "aura", "ocean", "forest", "sunset", "rose", "midnight"].includes(data.palette)
         ) {
-          applyPalette(data.palette);
-          try {
-            localStorage.setItem("noata-palette", data.palette);
-          } catch {
-            /* device storage is optional */
-          }
+          applyPalette(data.palette, user.id);
+          writeScopedDevicePreference(PALETTE_PREF_PREFIX, data.palette, { userId: user.id });
           window.dispatchEvent(new Event("noata-palette-change"));
         }
 
-        localStorage.setItem("noata-theme", data.theme);
+        writeScopedDevicePreference(THEME_PREF_PREFIX, data.theme, { userId: user.id });
 
         document.documentElement.dataset.theme = resolveAppearance(
           safeAppearance(data.theme),
           document.documentElement.dataset.palette,
-          window.matchMedia("(prefers-color-scheme: dark)").matches
+          window.matchMedia("(prefers-color-scheme: dark)").matches,
         );
         syncBrowserThemeColor();
 
@@ -101,41 +135,40 @@ export function ExperienceBoot() {
             document.documentElement.dataset.theme = resolveAppearance(
               safeAppearance(data.theme),
               "custom",
-              window.matchMedia("(prefers-color-scheme: dark)").matches
+              window.matchMedia("(prefers-color-scheme: dark)").matches,
             );
             syncBrowserThemeColor();
             window.dispatchEvent(new Event("noata-custom-theme-change"));
           }
         }
 
-        // Respect explicit local device locale preference; sync to account if different
-        let localPreference: string | null = null;
-        try {
-          localPreference = localStorage.getItem("noata-locale");
-        } catch {}
+        const localPreference = readScopedDevicePreference(LOCALE_PREF_PREFIX, {
+          userId: user.id,
+        });
 
-        if (!localPreference && typeof document !== "undefined") {
-          localPreference = document.documentElement.lang === "en" ? "en" : "ar";
-          try {
-            localStorage.setItem("noata-locale", localPreference);
-          } catch {}
-        }
-
-        if (localPreference === "ar" || localPreference === "en") {
-          if (data.locale !== localPreference) {
+        if (data.locale === "ar" || data.locale === "en") {
+          if (!localPreference) {
+            applyLocale(data.locale, true, user.id);
+          } else if ((localPreference === "ar" || localPreference === "en") && data.locale !== localPreference) {
             void supabase
               .from("user_settings")
               .update({ locale: localPreference, updated_at: new Date().toISOString() })
               .eq("user_id", user.id);
           }
-        } else if (data.locale === "ar" || data.locale === "en") {
-          try {
-            localStorage.setItem("noata-locale", data.locale);
-          } catch {}
-          applyLocale(data.locale, false);
+        } else if (localPreference === "ar" || localPreference === "en") {
+          applyLocale(localPreference, false, user.id);
         }
 
-        document.documentElement.dataset.reducedMotion = data.reduced_motion ? "true" : "false";
+        const serverReduced = data.reduced_motion === true;
+        writeScopedDevicePreference(
+          SERVER_REDUCED_MOTION_PREFIX,
+          serverReduced ? "true" : "false",
+          { userId: user.id },
+        );
+        syncMotionDomAttributes({
+          mode: readScopedMotionPreference(user.id),
+          serverReducedMotion: serverReduced,
+        });
       } catch {
         /* Keep the last device preference when account preferences are unavailable. */
       }
@@ -145,7 +178,7 @@ export function ExperienceBoot() {
       alive = false;
       media.removeEventListener("change", handleOsSchemeChange);
     };
-  }, [supabase, account.user]);
+  }, [supabase, account.user, account.loading]);
 
   return null;
 }
