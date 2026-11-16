@@ -272,3 +272,34 @@ not content-verified.
   the shifting element).
 - Static gates re-run after the split: `check:text` PASS (804 files), `typecheck` PASS,
   `modern:test` 719/717 pass, `legacy:check` 815/806 pass, clean build PASS.
+
+---
+
+## 9. Follow-up: Dead Legacy Pack Prune & Per-Track Lazy Curriculum Loading
+
+### What changed
+1. **Pruned 47 shadowed legacy packs** from `apps/web/lib/curriculum/sec1-all-lessons-pack.ts` (`3,624` removed lines whose IDs were already unconditionally overwritten by `mergeRenaissancePacks`), leaving only the canonical `64` renaissance lesson packs.
+2. **Extracted static index & pure selectors**:
+   - `scripts/generate-pack-index.mjs` generates `apps/web/lib/curriculum/packs/index-map.ts` (`PACK_INDEX`, `PACK_TRACK_COUNTS`) so list metadata, counts, and track lookups require zero pack chunks.
+   - `apps/web/lib/curriculum/pack-select.ts` holds pure selector helpers shared between eager (`sec1-all-lessons-pack.ts`) and lazy (`live-packs.ts`) paths, verified by `apps/web/lib/curriculum/live-packs.test.ts`.
+3. **Per-track dynamic pack loader & proxy** (`apps/web/lib/curriculum/live-packs.ts`):
+   - `useCurriculumPacks` dynamically imports per-track modules (`packs/*.ts`) and defers loading `sec1-study-pack.ts` + `quizgecko-engine.ts` (`loadStudyEngine()`), with async safety in `generateQuizGeckoBundle`.
+   - Wired into `study-live.tsx` (with ~680 px navigator skeleton reservation when expanded so `CLS` stays near `0`, plus `packsReady` starter-quiz hydration), `review-live.tsx` (session build gated on `packsReady`), and `lesson-live.tsx` (unconditional `useCurriculumPacks(packTrackSlug)` hoisted above early returns to satisfy Rules of Hooks).
+
+### Measured result (clean production build, `1440×960` EN)
+
+| Route | §8 Prior | After Pack Split | Net vs Phase 3/4 Initial | LCP / CLS / INP (isolated) |
+|---|---|---|---|---|
+| `/study` | 785.1 KB gz | **592.8 KB gz** | **−215.8 KB (−26.7 %)** | 632 ms / **0.0000** / 24 ms |
+| `/review` | 772.3 KB gz | **588.5 KB gz** | **−188.0 KB (−24.2 %)** | 960 ms / **0.0000** / 0 ms |
+| `/lesson/sci-1-1` | 804.0 KB gz | **620.7 KB gz** | **−184.9 KB (−23.0 %)** | 720 ms / **0.0006** / 40 ms |
+| `/` | 412.3 KB gz | 412.6 KB gz | +0.3 KB | 1932 ms / 0.0012 / 64 ms |
+| `/ai` | 672.9 KB gz | **621.4 KB gz** | **−51.5 KB (−7.7 %)** | 1044 ms / 0.0011 / 64 ms |
+
+- **Chunk attribution (`scripts/chunk-attribution.mjs`):** All three learning routes shed the heavy 187 KB dataset chunk from initial JS (retaining only the ~25.7 KB tiny index/metadata + shared markdown `120.8 KB` / KaTeX `77.2 KB` / Supabase `59.4 KB`).
+- **Core Web Vitals (`scripts/phase4-vitals.mjs`):** All `13/13` routes pass `LCP <= 1932 ms` (under `2.5 s`), `CLS <= 0.0402` (under `0.1`; `/study` CLS `0.0000` isolated / `0.0099` sweep), `INP <= 64 ms`.
+- **Runtime & A11y Verification:**
+  - `scripts/split-verify.mjs`: **6/7** views pass cleanly (`study generator`, `flashcard studio`, `speed match`, `mistake hub`, `quiz tab`, `review session` mount with `0` pending placeholders and `0` errors); `/lesson/sci-1-1` fails in unauthenticated offline mode solely due to `net::ERR_NAME_NOT_RESOLVED` to offline Supabase.
+  - Mocked-Supabase end-to-end Chromium verification (`verify-phase3-browser.mjs`): **26/26** checks pass, verifying `/lesson/math-complex-intro` full content + stage 2 reload persistence, `/study?mode=due`, `/review?skill=sk-weak-1`, `/assignments?focus=a-pending-1`, `/settings`, and `0` WCAG 2.2 AA violations.
+  - `scripts/phase4-platform-sweep.mjs` (`NOATA_ROUTES="/study,/review,/lesson/sci-1-1,/learn,/"` × `320,1440` × AR-dark/EN-light): **20/20** page checks and **20/20** axe checks pass with `0` failures.
+- **Static & Test Gates (post-final edit):** `pnpm check:text` PASS (`804` tracked files), `pnpm typecheck` PASS, `pnpm modern:test` `723` tests (`721` pass, `0` fail, `2` skipped), `pnpm legacy:check` `819` tests (`810` pass, `0` fail, `9` skipped), clean `pnpm build` PASS (`42/42` generated routes).

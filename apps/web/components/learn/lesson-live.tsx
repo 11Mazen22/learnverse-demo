@@ -35,7 +35,9 @@ import {
 import {
   evaluateLocalChoice,
   getLessonStudyCompanion,
-} from "@/lib/curriculum/sec1-study-pack";
+  lessonIndexEntry,
+  useCurriculumPacks,
+} from "@/lib/curriculum/live-packs";
 import {
   ACCOUNT_DRAFT_EPOCH,
   loadScopedStudyDraft,
@@ -236,6 +238,12 @@ export function LessonLive({ id }: { id: string }) {
   const [hintVisible, setHintVisible] = useState(false);
   const [answerStates, setAnswerStates] = useState<Record<number, PracticeAnswerState>>({});
   const draftReadyForLessonRef = useRef<string | null>(null);
+
+  // Hoisted unconditionally before early loading/missing returns to satisfy Rules of Hooks.
+  const packTrackSlug = lesson
+    ? (lessonIndexEntry(lesson.slug?.trim() || lesson.id)?.trackSlug ?? "all")
+    : (lessonIndexEntry(id)?.trackSlug ?? "idle");
+  useCurriculumPacks(packTrackSlug);
 
   useEffect(() => {
     if (account.loading) return;

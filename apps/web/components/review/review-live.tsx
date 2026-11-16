@@ -25,11 +25,10 @@ import {
 import {
   evaluateLocalChoice,
   getSubjectQuestionBank,
-} from "@/lib/curriculum/sec1-study-pack";
-import {
-  getLessonStudyPack,
-  getTrackLessonStudyPacks,
-} from "@/lib/curriculum/sec1-all-lessons-pack";
+  lessonPack,
+  trackPacks,
+  useCurriculumPacks,
+} from "@/lib/curriculum/live-packs";
 
 /** The celebration overlay only renders after the last question, so it is fetched on completion. */
 const AchievementCelebration = dynamic(
@@ -132,13 +131,19 @@ export function ReviewLive() {
   });
   const didReadUrlRef = useRef(false);
 
+  // Pack bodies load per track (see lib/curriculum/live-packs.ts); the session is only
+  // built once the packs it draws from are in memory.
+  const { ready: packsReady } = useCurriculumPacks(
+    selectedTrackSlug === "all" ? "all" : selectedTrackSlug,
+  );
+
   const trackLessonPacks = useMemo(
-    () => (selectedTrackSlug === "all" ? [] : getTrackLessonStudyPacks(selectedTrackSlug)),
-    [selectedTrackSlug],
+    () => (selectedTrackSlug === "all" ? [] : trackPacks(selectedTrackSlug)),
+    [selectedTrackSlug, packsReady],
   );
   const activeLessonPack = useMemo(
-    () => (selectedLessonSlug !== "all" ? getLessonStudyPack(selectedLessonSlug) : null),
-    [selectedLessonSlug],
+    () => (selectedLessonSlug !== "all" ? lessonPack(selectedLessonSlug) : null),
+    [selectedLessonSlug, packsReady],
   );
 
   const [idx, setIdx] = useState(0);
@@ -292,7 +297,7 @@ export function ReviewLive() {
 
         const lessonCuratedItems: ReviewQuestion[] = [];
         const focusedLessonPack =
-          targetLessonSlug !== "all" ? getLessonStudyPack(targetLessonSlug) : null;
+          targetLessonSlug !== "all" ? lessonPack(targetLessonSlug) : null;
 
         if (focusedLessonPack) {
           const trackSpec = TRACK_CATALOG.find((tr) => tr.slug === focusedLessonPack.trackSlug);
@@ -332,7 +337,7 @@ export function ReviewLive() {
         const curatedItems: ReviewQuestion[] = [];
         for (const spec of catalogPool) {
           // Include exact Sec. 1 lesson study packs in this track so review draws from real lessons
-          const packs = getTrackLessonStudyPacks(spec.slug);
+          const packs = trackPacks(spec.slug);
           for (const pack of packs) {
             for (const q of pack.questions) {
               const key = q.prompt.trim().toLowerCase();
@@ -422,7 +427,7 @@ export function ReviewLive() {
           }
         }
         if (paramLesson) {
-          const matchedPack = getLessonStudyPack(paramLesson);
+          const matchedPack = lessonPack(paramLesson);
           if (matchedPack) {
             prefsRef.current.lesson = matchedPack.lessonSlug;
             setSelectedLessonSlug(matchedPack.lessonSlug);
@@ -622,7 +627,7 @@ export function ReviewLive() {
   );
 
   useEffect(() => {
-    if (account.loading) return;
+    if (account.loading || !packsReady) return;
     let active = true;
     attemptGuard.current.resetAll();
     setQuestions([]);
@@ -658,7 +663,7 @@ export function ReviewLive() {
     return () => {
       active = false;
     };
-  }, [account.loading, reload, loadSession, t]);
+  }, [account.loading, reload, loadSession, t, packsReady]);
 
   async function applyModeOrFilter(
     nextMode: "due" | "topic",
@@ -1061,7 +1066,7 @@ export function ReviewLive() {
       {(() => {
         const companionPack =
           activeLessonPack ||
-          (current?.lessonSlug ? getLessonStudyPack(current.lessonSlug) : null);
+          (current?.lessonSlug ? lessonPack(current.lessonSlug) : null);
         if (!companionPack) return null;
         return (
           <section

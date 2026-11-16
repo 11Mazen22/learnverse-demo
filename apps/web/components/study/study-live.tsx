@@ -20,7 +20,7 @@ import {
   createBundleFromLessonPack,
   exportToAnkiTSV,
   generateQuizGeckoBundle,
-} from "@/lib/study/quizgecko-engine";
+} from "@/lib/curriculum/live-packs";
 import {
   type FlashcardMetadata,
   type ImportedStudyCard,
@@ -35,9 +35,12 @@ import {
   getCanonicalStudyDecks,
   getLessonStudyPack,
   getTrackLessonStudyPacks,
+  indexEntriesForTrack,
+  lessonIndexEntry,
+  useCurriculumPacks,
   type CanonicalLessonStudyPack,
   type CanonicalStudyDeck,
-} from "@/lib/curriculum/sec1-study-pack";
+} from "@/lib/curriculum/live-packs";
 import { ACCOUNT_DRAFT_EPOCH, loadScopedStudyDraft, saveScopedStudyDraft } from "@/lib/study/draft-storage";
 import type { StudioCardItem } from "./flashcard-review-studio";
 import type { QuizMistakeRecord } from "./interactive-quiz-runner";
@@ -520,8 +523,12 @@ export function StudyLive() {
     summary?: string;
   } | null>(null);
 
+  // Curriculum packs and the study engine load after mount (lib/curriculum/live-packs.ts)
+  // instead of riding in the route's initial JS.
+  const { ready: packsReady } = useCurriculumPacks("all");
+
   // Sec. 1 Term 1 Canonical Curriculum Library & Exact-Lesson Navigator
-  const canonicalDecks = useMemo(() => getCanonicalStudyDecks(), []);
+  const canonicalDecks = useMemo(() => getCanonicalStudyDecks(), [packsReady]);
   const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<string>("integrated-science-ar");
   const [selectedLessonSlug, setSelectedLessonSlug] = useState<string>("sci-hydrosphere");
   const [showLessonCompanionDetail, setShowLessonCompanionDetail] = useState<boolean>(false);
@@ -540,12 +547,15 @@ export function StudyLive() {
   const selectLibraryTrack = useCallback((trackSlug: string, preferredLessonSlug?: string | null) => {
     setSelectedLibraryTrack(trackSlug);
     const packs = getTrackLessonStudyPacks(trackSlug);
-    if (preferredLessonSlug && packs.some((p) => p.lessonSlug === preferredLessonSlug)) {
+    const slugs = packs.length > 0
+      ? packs.map((p) => p.lessonSlug)
+      : indexEntriesForTrack(trackSlug).map((entry) => entry.lessonSlug);
+    if (preferredLessonSlug && slugs.includes(preferredLessonSlug)) {
       setSelectedLessonSlug(preferredLessonSlug);
       setTaskLessonSlug(preferredLessonSlug);
-    } else if (packs[0]) {
-      setSelectedLessonSlug(packs[0].lessonSlug);
-      setTaskLessonSlug(packs[0].lessonSlug);
+    } else if (slugs[0]) {
+      setSelectedLessonSlug(slugs[0]);
+      setTaskLessonSlug(slugs[0]);
     }
   }, []);
 
@@ -605,12 +615,13 @@ export function StudyLive() {
                 "study_saved_quizzes",
               )
             : null;
-        setSavedQuizzes(
-          storedQuizzes && Array.isArray(storedQuizzes)
-            ? storedQuizzes
-            : makeInitialSavedQuizzes(isEn),
-        );
-        savedQuizzesHydrated.current = true;
+        if (storedQuizzes && Array.isArray(storedQuizzes)) {
+          setSavedQuizzes(storedQuizzes);
+          savedQuizzesHydrated.current = true;
+        } else if (packsReady) {
+          setSavedQuizzes(makeInitialSavedQuizzes(isEn));
+          savedQuizzesHydrated.current = true;
+        }
       }
       setLoading(false);
       return;
@@ -739,7 +750,13 @@ export function StudyLive() {
       );
     }
     setLoading(false);
-  }, [account.revision, account.user, canSyncAccount, isEn, supabase, t]);
+  }, [account.revision, account.user, canSyncAccount, isEn, packsReady, supabase, t]);
+
+  useEffect(() => {
+    if (!packsReady || savedQuizzesHydrated.current || canSyncAccount || account.user) return;
+    setSavedQuizzes(makeInitialSavedQuizzes(isEn));
+    savedQuizzesHydrated.current = true;
+  }, [account.user, canSyncAccount, isEn, packsReady]);
 
   // Persist local preview workspace & saved quizzes across reloads
   useEffect(() => {
@@ -796,8 +813,11 @@ export function StudyLive() {
         setLibraryExpanded(true);
       } else if (lessonId) {
         const packHit = getLessonStudyPack(lessonId, isEn ? "en" : "ar");
+        const indexHit = packHit ? null : lessonIndexEntry(lessonId);
         if (packHit) {
           selectLibraryTrack(packHit.trackSlug, packHit.lessonSlug);
+        } else if (indexHit) {
+          selectLibraryTrack(indexHit.trackSlug, indexHit.lessonSlug);
         }
       }
 
@@ -2180,8 +2200,34 @@ export function StudyLive() {
 
       {/* Sec. 1 Term 1 Exact-Lesson Navigator & Curriculum Library */}
       {(() => {
-        const activeCanonicalDeck: CanonicalStudyDeck =
+        const activeCanonicalDeck: CanonicalStudyDeck | undefined =
           canonicalDecks.find((d) => d.trackSlug === selectedLibraryTrack) ?? canonicalDecks[0];
+        if (!activeCanonicalDeck) {
+          return (
+            <section
+              className="panel study-navigator-panel"
+              style={{
+                marginBottom: 16,
+                padding: "16px 20px",
+                display: "grid",
+                gap: 14,
+                minHeight: libraryExpanded ? 680 : 72,
+                alignContent: "start",
+              }}
+              aria-label={t("مستكشف دروس أولى ثانوي · الترم الأول", "Sec. 1 Term 1 Exact-Lesson Navigator")}
+              aria-busy="true"
+            >
+              <div className="skeleton" style={{ height: 28, width: "44%", borderRadius: 10 }} />
+              {libraryExpanded ? (
+                <>
+                  <div className="skeleton" style={{ height: 84, width: "100%", borderRadius: 14 }} />
+                  <div className="skeleton" style={{ height: 42, width: "85%", borderRadius: 12 }} />
+                  <div className="skeleton" style={{ height: 480, width: "100%", borderRadius: 16 }} />
+                </>
+              ) : null}
+            </section>
+          );
+        }
         const deckIsEn = activeCanonicalDeck.contentLanguage === "en";
         const deckTitleText = deckIsEn ? activeCanonicalDeck.titleEn : activeCanonicalDeck.titleAr;
         const deckDescText = deckIsEn
