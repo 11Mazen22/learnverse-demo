@@ -26,6 +26,12 @@
   - Recent `audit_events` for admin governance actions (`set_user_role`, term activation, feature flag switches).
   - `support_tickets` triage queues and delivery status.
 
+### Support Ticket Delivery
+- Public support identity is `support@enterpriseworkhub.online`; the domain has live MX records and a published Resend DKIM key. Never route support to `noata.app` — that domain is unregistered and cannot receive mail.
+- Tickets are persisted before delivery is attempted. Without `RESEND_API_KEY`, rows remain `queued_no_provider` and the API reports the missing variable truthfully; guest submissions are still captured.
+- To activate email delivery: add `RESEND_API_KEY` as a sensitive Vercel production variable, keep `SUPPORT_SENDER_EMAIL="Noäta Support <notifications@enterpriseworkhub.online>"` on the verified domain, redeploy, submit one disposable ticket, confirm status `sent`, then delete the row.
+- Triage requires an account with `profiles.role = 'admin'`; the admin console is `/admin`.
+
 ### Incident Alert Thresholds & Response
 | Signal | Escalation Threshold | Immediate Triage Action |
 | :--- | :--- | :--- |

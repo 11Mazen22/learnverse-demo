@@ -327,14 +327,14 @@ async function verifyWritingAndTheme(){
   invariant(await evaluate('document.activeElement?.matches(".aura-theme-picker>button")'),"Theme focus restored after Escape");
   await evaluate('document.querySelector(".aura-theme-picker button").click()');
   await evaluate('Array.from(document.querySelectorAll(".aura-theme-menu button")).find(b=>b.textContent.includes("نهاري")).click()');
-  invariant(await evaluate('document.documentElement.dataset.theme==="light"&&localStorage.getItem("noata-theme")==="light"'),"Theme selection persists on device");
-  await evaluate('localStorage.removeItem("noata-theme")');
+  invariant(await evaluate('document.documentElement.dataset.theme==="light"&&(localStorage.getItem("noata:theme:guest")==="light"||localStorage.getItem("noata-theme")==="light")'),"Theme selection persists on device");
+  await evaluate('localStorage.removeItem("noata:theme:guest");localStorage.removeItem("noata-theme")');
 }
 async function verifyPaletteBrandConsistency(){
   // Regresses the reported Forest screenshot defect using real computed styles.
   const palettes=["classic","aura","ocean","forest","sunset","rose","midnight"],seen=new Map();
   await navigate("/settings");
-  await evaluate('localStorage.setItem("noata-theme","light")');
+  await evaluate('localStorage.setItem("noata:theme:guest","light")');
   invariant(await evaluate('!!document.querySelector("#noata-ai-design-studio") && !!document.querySelector("#noata-ai-design-studio textarea")'),"Guest AI Design Studio includes user-editable prompt and login guidance");
   await evaluate('(()=>{if(!document.querySelector(".aura-theme-menu"))document.querySelector(".aura-theme-picker>button").click()})()');
   await waitFor(async()=>await evaluate('document.querySelectorAll(".noata-palette-grid button").length===7'),"seven theme choices");
@@ -343,7 +343,7 @@ async function verifyPaletteBrandConsistency(){
     invariant(selected,"Palette "+name+" has an actual selector");
     await waitFor(async()=>await evaluate('document.documentElement.dataset.palette==='+JSON.stringify(name)),"palette applied "+name);
     invariant(await evaluate('document.documentElement.dataset.theme==='+JSON.stringify(name==="midnight"?"dark":"light")),"Midnight is dark-only while every other world respects light");
-    invariant(await evaluate('localStorage.getItem("noata-palette")==='+JSON.stringify(name)),"palette persisted "+name);
+    invariant(await evaluate('(localStorage.getItem("noata:palette:guest")==='+JSON.stringify(name)+')||localStorage.getItem("noata-palette")==='+JSON.stringify(name)),"palette persisted "+name);
     await navigate("/");
     await waitFor(async()=>await evaluate('!!document.querySelector(".dashboard-hero .noata-logo-vector")'),"original brand visible "+name);
     const result=await evaluate('(()=>{const root=getComputedStyle(document.documentElement),hero=document.querySelector(".dashboard-hero"),logo=hero.querySelector(".noata-logo-vector"),brand=document.querySelector(".sidebar-brand .noata-logo-vector");return {background:getComputedStyle(hero).backgroundImage,ribbon:getComputedStyle(logo.querySelector(".noata-mark-ribbon")).fill,outline:getComputedStyle(brand.querySelector(".noata-mark-outline")).fill,accent:root.getPropertyValue("--accent"),overflow:document.documentElement.scrollWidth-window.innerWidth}})()',"palette render "+name);
@@ -362,7 +362,7 @@ async function verifyPaletteBrandConsistency(){
     invariant(seen.get(a).background!==seen.get(b).background,"hero is distinctly themed "+a+" "+b);
     invariant(seen.get(a).ribbon!==seen.get(b).ribbon,"original Noata logo ribbon follows theme "+a+" "+b);
   }
-  await evaluate('localStorage.removeItem("noata-palette");localStorage.removeItem("noata-theme");document.documentElement.dataset.palette="classic";window.dispatchEvent(new Event("noata-palette-change"))');
+  await evaluate('localStorage.removeItem("noata:palette:guest");localStorage.removeItem("noata:theme:guest");localStorage.removeItem("noata-palette");localStorage.removeItem("noata-theme");document.documentElement.dataset.palette="classic";window.dispatchEvent(new Event("noata-palette-change"))');
 }
 async function verifyDocuments(){
   for(const [name,marker] of [["source.txt","مصدر فعلي"],["source.md","محتوى Markdown"],["source.csv","المفهوم"],["source.json","محتوى JSON"],["arabic-longform.docx","تجربة تعلّم"],["arabic-longform.pdf",null]]){
