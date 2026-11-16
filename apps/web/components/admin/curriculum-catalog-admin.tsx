@@ -28,6 +28,14 @@ type TrackRow = {
 
 const STATUSES = ["published", "pending_source", "draft", "retired"] as const;
 
+// Database enums never reach the operator UI as raw identifiers.
+const STATUS_LABELS: Record<(typeof STATUSES)[number], { ar: string; en: string }> = {
+  published: { ar: "منشور", en: "Published" },
+  pending_source: { ar: "بانتظار اعتماد المصدر", en: "Pending source" },
+  draft: { ar: "مسودة", en: "Draft" },
+  retired: { ar: "متوقف", en: "Retired" },
+};
+
 type TrackLabels = {
   arabic: string;
   english: string;
@@ -49,7 +57,9 @@ function TrackEditor({
   onStatus: (value: TrackRow["publication_status"]) => void;
   onTitles: (titleAr: string, titleEn: string) => void;
   labels: TrackLabels;
-}) {  const [titleAr, setTitleAr] = useState(track.title_ar);
+}) {
+  const locale = useLocale();
+  const [titleAr, setTitleAr] = useState(track.title_ar);
   const [titleEn, setTitleEn] = useState(track.title_en);
   useEffect(() => {
     setTitleAr(track.title_ar);
@@ -109,7 +119,7 @@ function TrackEditor({
             >
               {STATUSES.map((value) => (
                 <option key={value} value={value}>
-                  {value}
+                  {locale === "en" ? STATUS_LABELS[value].en : STATUS_LABELS[value].ar}
                 </option>
               ))}
             </select>
@@ -253,7 +263,7 @@ export function CurriculumCatalogAdmin() {
       </div>
       <p style={{ margin: "0 0 14px", color: "var(--muted)", fontSize: 12.5 }}>
         {t(
-          "كل مسار يملك لغته ومسار 학습 ودروسه وأسئلته وتقدّمه. Sciences و Mathematics لهما مساران: عربي وإنجليزي.",
+          "كل مسار يملك لغته ومسار تعلّمه ودروسه وأسئلته وتقدّمه. العلوم المتكاملة والرياضيات لكل منهما مساران: عربي وإنجليزي.",
           "Every track owns its language, learning path, lessons, questions and progress. Integrated Science and Mathematics each have an Arabic and an English track.",
         )}
       </p>

@@ -95,4 +95,24 @@ test("computeNextAction falls back to first incomplete lesson and truthful guest
   });
   assert.equal(guestAction.kind, "guest-onboarding");
   assert.equal(guestAction.href, "/learn");
+
+  const slugLessonAction = computeNextAction({
+    signedIn: true,
+    evidenceReady: true,
+    progressReady: true,
+    dueAssignments: [],
+    dueFlashcards: 0,
+    dueSkills: 0,
+    nextLesson: { id: "uuid-99", slug: "complex-numbers-intro", title_ar: "الأعداد المركبة", title_en: "Complex Numbers" },
+    activeTrack: {
+      slug: "math-ar",
+      titleAr: "الرياضيات",
+      titleEn: "Mathematics",
+      contentLanguage: "ar",
+      done: 0,
+      total: 5,
+    },
+    nowMs: NOW,
+  });
+  assert.equal(slugLessonAction.href, "/lesson/complex-numbers-intro");
 });

@@ -86,3 +86,121 @@ All three items below already have clear recommended defaults; Phase 1 can begin
   - `pnpm legacy:check`: `791` pass, `0` fail, `9` skipped (`2` `pdftoppm` + `7` Linux CI Chrome fault-fixture tests)
   - `verify-final-release.mjs`: `21/21` pass (`0` WCAG 2.2 AA violations, mocked Supabase `fetch`)
   - Locally unavailable on Windows (CI-gated): Docker Postgres migration/recovery replay (`database-migrations-smoke.mjs`, `database-recovery-rehearsal.mjs`, `security-regressions.sql`), Deno edge check (`deno check supabase/functions/noata-ai`), Poppler (`pdftoppm`), Linux CI Chrome fault fixtures.
+
+---
+
+# FINAL PRODUCTION-READINESS SIGN-OFF — Phase 5
+
+**Initiative:** Noäta 2.0 — Ultimate Learning Experience & Platform Renaissance
+**Branch:** `feat/product-renaissance-final` (never merged to `master`, never deployed)
+**Date:** 2026-11-15 · **Host:** Windows 11, Node 24.18.1, pnpm 10.17.1
+**Verdict:** Engineering work complete and locally verified. **Production deployment is
+NOT approved by this report** — explicit user sign-off is still required, and four
+checks can only pass in CI/staging.
+
+---
+
+## 1. What was executed in this phase
+
+### Phase 3 checkpoint (pre-commit fix + commit)
+- Tour popover surface made opaque (`app/tour-system.css`): the card no longer lets hero
+  buttons bleed through at narrow widths. Verified by the 320 px AR/EN screenshots.
+- Phase 3 committed and pushed to `origin/feat/product-renaissance-final`.
+
+### Phase 4 (whole-platform alignment)
+25 alignment items landed — full register in `architecture-and-scope.md` §5.
+Highlights: single `/help` surface, zero personal mailbox in shipped code and API
+responses, `/admin` WAI-ARIA tabs + recovered translations, dead marketing buttons
+wired to the real AI studio, bilingual API errors, CLDR Arabic plurals, server
+metadata on every workspace route, complete env-driven sitemap, and real
+`next/dynamic` splitting for the AI studios and Office exporters.
+
+### Phase 5 (verification)
+Clean build, all static/unit/legacy gates, a 300-audit Chromium + axe sweep, isolated
+Core Web Vitals, gzipped bundle weight, and direct inspection of ten screenshots.
+
+---
+
+## 2. Verified evidence (commands actually run after the final edit)
+
+| Gate | Command | Result |
+|---|---|---|
+| Text integrity | `pnpm check:text` | PASS — 802 files |
+| Types | `pnpm typecheck` | PASS |
+| Modern unit/contract tests | `pnpm modern:test` | 719 tests, **717 pass**, 0 fail, 2 skipped |
+| Legacy suite | `pnpm legacy:check` | 815 tests, **806 pass**, 0 fail, 9 skipped |
+| Production build | `rm -rf apps/web/.next && pnpm build` | PASS — 46 routes |
+| Browser + axe sweep | `node scripts/phase4-platform-sweep.mjs` | **300/300 audits clean**, 0 axe WCAG 2.2 AA violations |
+| Core Web Vitals | `node scripts/phase4-vitals.mjs` | 13/13 routes within LCP/CLS/INP budgets |
+| Bundle weight | `node scripts/phase4-bundle-weight.mjs` | `/ai` 672.9 KB gz (baseline 648.4 KB — no reduction) |
+| Screenshots | `artifacts/phase4/*.png` | 10 PNGs inspected directly with an image reader |
+
+### Responsive / locale / theme coverage proven
+`320, 360, 768, 1024, 1440, 1920` × `{AR-RTL / Midnight-dark, EN-LTR / Classic-light}`
+across 25 routes: zero horizontal overflow, zero axe violations, zero language
+leakage in the audited surfaces, zero leaked personal emails.
+
+### Core Web Vitals (isolated tab per route)
+| Metric | Budget | Worst observed | Routes passing |
+|---|---|---|---|
+| LCP | `<= 2.5 s` | `2524 ms` (`/`, cold) | 13 / 13 |
+| CLS | `<= 0.1` | `0.0279` (`/settings`) | 13 / 13 |
+| INP proxy | `<= 200 ms` | `56 ms` | 13 / 13 |
+
+---
+
+## 3. Known gaps and honest limitations
+
+1. **Bundle target missed.** `/ai` is `672.9 KB` gz vs the `648.4 KB` Phase 0 baseline
+   (+3.8 %); `/lesson/[id]`, `/study`, `/review` now sit at `776–809 KB`. Splitting
+   infrastructure is in place, but no net reduction was achieved. This is a P2, not a
+   release blocker.
+2. **`/` LCP at 2524 ms** on a cold first load — inside budget by 24 ms, no headroom.
+   Warm loads are `~600–900 ms`.
+3. **Authenticated journeys were not exercised end-to-end** (sign-in, submissions,
+   reward claims, teacher grading) because this host has no live Supabase credentials —
+   only the offline fixture. Journeys A/B/C from earlier phases were previously
+   verified; they were **not** re-run here.
+4. **Migration not applied.** `20261115120000_support_identity_alignment.sql` is written
+   but has never run against a database. It changes the support insert policy, so
+   support tickets will fail RLS until it is applied. **This is the one ordering
+   constraint on release:** apply it to staging, verify a guest ticket, then production.
+5. **CI-only checks not run:** database recovery rehearsal (Docker Postgres), Deno edge
+   function tests, Poppler PDF fixtures.
+6. **`pnpm check:text` counts include the new docs/scripts** but the repository PII
+   guard lives in `support.test.ts` and scans only shipped app code, deliberately.
+
+---
+
+## 4. Release checklist (requires explicit approval before each step)
+
+- [ ] Review this report and the diff on `feat/product-renaissance-final`.
+- [ ] Apply `20261115120000_support_identity_alignment.sql` to **staging**.
+- [ ] On staging, submit one guest support ticket end-to-end; confirm the row is saved and
+      `email_destination = 'support@noata.app'`.
+- [ ] Set `NOATA_SUPPORT_EMAIL` and `RESEND_API_KEY` in staging secrets if a real inbox
+      should receive tickets; otherwise the API truthfully reports `queued_no_provider`.
+- [ ] Re-run `scripts/database-recovery-rehearsal.mjs` and the Deno/Poppler suites in CI.
+- [ ] Repeat the axe sweep against the staging URL (the sweep is origin-agnostic:
+      `NOATA_BASE_URL=https://… node scripts/phase4-platform-sweep.mjs`).
+- [ ] Sign in as student / teacher / admin on staging and run journeys A, B, C.
+- [ ] Obtain explicit user approval to merge to `master`.
+- [ ] Obtain explicit user approval to deploy to production (Vercel).
+
+**No merge, no production deployment and no production Supabase change has been
+performed by this phase.**
+
+---
+
+## 5. Post-edit re-verification (final state of the branch)
+
+After the last three copy/markup edits, everything was regenerated and re-run:
+
+- `pnpm check:text` → PASS, 802 files
+- `pnpm typecheck` → PASS
+- `pnpm modern:test` → 719 tests, 717 pass, 0 fail, 2 skipped
+- `pnpm legacy:check` → 815 tests, 806 pass, 0 fail, 9 skipped
+- clean `pnpm build` → PASS, 46 routes
+- focused Chromium + axe sweep (`NOATA_WIDTHS="320,1440"`) → **100 audits, 0 failures**
+
+`artifacts/phase4/` (screenshots + JSON reports) is git-ignored and stays local.

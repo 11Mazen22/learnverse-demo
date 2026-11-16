@@ -177,21 +177,6 @@ export function CustomizeDashboardDrawer({
                 />
               )}
             </Field>
-
-            <Field
-              label={t("هدف التركيز اليومي بالدقائق (10–240)", "Daily focus target in minutes (10–240)")}
-            >
-              {(props) => (
-                <Input
-                  {...props}
-                  type="number"
-                  min={10}
-                  max={240}
-                  value={draft.goals.dailyMinutesTarget}
-                  onChange={(e) => updateGoal("dailyMinutesTarget", e.target.value)}
-                />
-              )}
-            </Field>
           </div>
         </section>
 

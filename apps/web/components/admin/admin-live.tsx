@@ -478,21 +478,47 @@ export function AdminLive() {
         </article>
       </section>
 
-      <div className="noata-admin-tabs" data-tour="admin-sections" style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}>
+      <div
+        className="noata-admin-tabs"
+        data-tour="admin-sections"
+        role="tablist"
+        aria-label={t("أقسام إدارة المنصة", "Administration sections")}
+        style={{ display: "flex", gap: 8, marginTop: 18, flexWrap: "wrap" }}
+      >
         {(
           ["content", "curriculum", "support", "users", "classes", "operations"] as const
-        ).map((x) => (
+        ).map((x, index, all) => (
           <button
             key={x}
+            id={`admin-tab-${x}`}
             data-tour={`admin-tab-${x}`}
             type="button"
-            aria-pressed={tab === x}
+            role="tab"
+            aria-selected={tab === x}
+            aria-controls={`admin-panel-${x}`}
+            tabIndex={tab === x ? 0 : -1}
             onClick={() => setTab(x)}
+            onKeyDown={(event) => {
+              const forward = locale === "ar" ? "ArrowLeft" : "ArrowRight";
+              const backward = locale === "ar" ? "ArrowRight" : "ArrowLeft";
+              let next = -1;
+              if (event.key === forward) next = (index + 1) % all.length;
+              else if (event.key === backward) next = (index - 1 + all.length) % all.length;
+              else if (event.key === "Home") next = 0;
+              else if (event.key === "End") next = all.length - 1;
+              if (next < 0) return;
+              event.preventDefault();
+              setTab(all[next]);
+              requestAnimationFrame(() =>
+                document.getElementById(`admin-tab-${all[next]}`)?.focus(),
+              );
+            }}
             className="btn"
             style={{
               background: tab === x ? "var(--accent)" : "var(--surface)",
               color: tab === x ? "var(--on-accent, #ffffff)" : "var(--ink)",
               borderColor: "var(--line)",
+              minHeight: 44,
             }}
           >
             {
@@ -523,6 +549,12 @@ export function AdminLive() {
         </div>
       )}
 
+      <div
+        role="tabpanel"
+        id={`admin-panel-${tab}`}
+        aria-labelledby={`admin-tab-${tab}`}
+        tabIndex={0}
+      >
       {tab === "content" && (
         <>
           <section className="content-grid">
@@ -763,9 +795,19 @@ export function AdminLive() {
                   <div className="quest" key={q.id}>
                     <div className="quest-icon" aria-hidden="true">{questionPage.start + i}</div>
                     <div>
-                      <div role="heading" aria-level={3} style={{ fontWeight: 700, lineHeight: 1.55, marginBottom: 4 }}>
-                        <StudyRichText content={locale === "en" ? q.prompt_en : q.prompt_ar} />
-                      </div>
+                      <h3
+                        style={{
+                          fontSize: "inherit",
+                          fontWeight: 700,
+                          lineHeight: 1.55,
+                          margin: "0 0 4px",
+                        }}
+                      >
+                        <StudyRichText
+                          content={locale === "en" ? q.prompt_en : q.prompt_ar}
+                          inline
+                        />
+                      </h3>
                       <p>
                         {(
                           {
@@ -794,6 +836,7 @@ export function AdminLive() {
                     <div style={{ display: "flex", gap: 6 }}>
                       {q.review_status === "in_review" && (
                         <button
+                          type="button"
                           className="btn noata-staff-warning-btn"
                           disabled={busy}
                           onClick={() =>
@@ -803,6 +846,7 @@ export function AdminLive() {
                       )}
                       {action && (
                         <button
+                          type="button"
                           className="btn"
                           disabled={busy}
                           onClick={() => void transition(q.id, action.action)}
@@ -1135,6 +1179,7 @@ export function AdminLive() {
                               ?.display_name || t("طالب","Student")}
                           </span>
                           <button
+                            type="button"
                             onClick={() =>
                               void removeStudent(c.id, m.student_id)
                             }
@@ -1170,6 +1215,7 @@ export function AdminLive() {
                               ?.display_name || t("معلّم","Teacher")}
                           </span>
                           <button
+                            type="button"
                             onClick={() =>
                               void removeTeacher(c.id, teacher.teacher_id)
                             }
@@ -1194,6 +1240,7 @@ export function AdminLive() {
           </section>
         </div>
       )}
+      </div>
     </div>
   );
 }

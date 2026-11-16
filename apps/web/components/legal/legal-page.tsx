@@ -87,7 +87,7 @@ export function LegalPage({
             ))}
             <div className="noata-legal-related">
               <strong>{arabic ? "المزيد من المعلومات" : "Explore further"}</strong>
-              <p>{arabic ? "قبل إنشاء حساب، راجع الوثيقتين واسأل عن أي نقطة مش واضحة." : "Review both documents before creating an account, and ask about anything unclear."}</p>
+              <p>{arabic ? "قبل إنشاء حساب، راجع الوثيقتين واسأل فريق الدعم عن أي نقطة غير واضحة." : "Review both documents before creating an account, and ask our support team about anything unclear."}</p>
               <div>
                 <Link href="/privacy">{arabic ? "سياسة الخصوصية" : "Privacy policy"}</Link>
                 <Link href="/terms">{arabic ? "شروط الاستخدام" : "Terms of use"}</Link>
@@ -99,7 +99,11 @@ export function LegalPage({
       </div>
       <footer className="noata-legal-footer">
         <span>© 2026 Noäta · {arabic ? "تعلّم بفضول وتقدّم بثقة" : "Learn with curiosity, grow with confidence"}</span>
-        <div><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></div>
+        <div>
+          <Link href="/privacy">{arabic ? "سياسة الخصوصية" : "Privacy"}</Link>
+          <Link href="/terms">{arabic ? "شروط الاستخدام" : "Terms"}</Link>
+          <Link href="/help">{arabic ? "مركز المساعدة" : "Help"}</Link>
+        </div>
       </footer>
     </main>
   );

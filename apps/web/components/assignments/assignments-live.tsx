@@ -10,6 +10,12 @@ import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
 import { StudyRichText } from "@/components/study/study-rich-text";
 import { buildStructuredAiHandoffHref } from "@/lib/ai/handoff-contract";
 import {
+  ACCOUNT_DRAFT_EPOCH,
+  loadScopedStudyDraft,
+  removeScopedStudyDraft,
+  saveScopedStudyDraft,
+} from "@/lib/study/draft-storage";
+import {
   boundedRead,
   useVerifiedAccount,
 } from "@/lib/supabase/use-verified-account";
@@ -55,7 +61,8 @@ export function AssignmentsLive() {
     userId = account.user?.id ?? "";
   const sequence = useRef(0),
     lock = useRef(false),
-    attemptKeys = useRef(new Map<string, string>());
+    attemptKeys = useRef(new Map<string, string>()),
+    didFocusUrlRef = useRef(false);
   const progress = useRef(
     new Map<
       string,
@@ -135,14 +142,24 @@ export function AssignmentsLive() {
     };
   }, [account.user, account.loading]);
   function saveProgress() {
-    if (selected)
-      progress.current.set(selected, {
-        fingerprint: items.map((i) => i.question_id).join(","),
-        idx,
-        answer,
-        grade,
-        results,
-      });
+    if (!selected) return;
+    const snap = {
+      fingerprint: items.map((i) => i.question_id).join(","),
+      idx,
+      answer,
+      grade,
+      results,
+    };
+    progress.current.set(selected, snap);
+    if (typeof window !== "undefined" && items.length > 0) {
+      saveScopedStudyDraft(
+        window.localStorage,
+        userId || null,
+        ACCOUNT_DRAFT_EPOCH,
+        `assignment_${selected}`,
+        snap,
+      );
+    }
   }
   function closeAssignment() {
     if (lock.current) return;
@@ -179,15 +196,28 @@ export function AssignmentsLive() {
       if (result.error) throw result.error;
       const next = (result.data ?? []) as Item[];
       setItems(next);
-      const saved = progress.current.get(id);
-      if (
-        saved &&
-        saved.fingerprint === next.map((i) => i.question_id).join(",")
-      ) {
-        setIdx(saved.idx);
-        setAnswer(saved.answer);
-        setGrade(saved.grade);
-        setResults(saved.results);
+      const fingerprint = next.map((i) => i.question_id).join(",");
+      const localDraft =
+        typeof window !== "undefined"
+          ? loadScopedStudyDraft<{
+              fingerprint: string;
+              idx: number;
+              answer: string;
+              grade: Grade | null;
+              results: Record<string, boolean>;
+            }>(
+              window.localStorage,
+              userId || null,
+              ACCOUNT_DRAFT_EPOCH,
+              `assignment_${id}`,
+            )
+          : null;
+      const saved = progress.current.get(id) ?? localDraft;
+      if (saved && saved.fingerprint === fingerprint) {
+        setIdx(Math.min(Math.max(0, saved.idx ?? 0), Math.max(0, next.length - 1)));
+        setAnswer(saved.answer ?? "");
+        setGrade(saved.grade ?? null);
+        setResults(saved.results ?? {});
       }
     } catch {
       if (seq === sequence.current && token === account.revision.current)
@@ -204,8 +234,44 @@ export function AssignmentsLive() {
   const selectedAssignment = rows.find((x) => x.id === selected);
   const existing = submissions.find((x) => x.assignment_id === selected);
 
+  useEffect(() => {
+    if (loading || selected || didFocusUrlRef.current || !rows.length || typeof window === "undefined") {
+      return;
+    }
+    const focusId = new URLSearchParams(window.location.search).get("focus")?.trim();
+    if (focusId && rows.some((r) => r.id === focusId)) {
+      didFocusUrlRef.current = true;
+      void openAssignment(focusId);
+    }
+  }, [loading, rows, selected]);
+
+  useEffect(() => {
+    if (!selected || itemLoading || !items.length || existing?.submitted_at) return;
+    if (typeof window === "undefined") return;
+    const snap = {
+      fingerprint: items.map((i) => i.question_id).join(","),
+      idx,
+      answer,
+      grade,
+      results,
+    };
+    progress.current.set(selected, snap);
+    saveScopedStudyDraft(
+      window.localStorage,
+      userId || null,
+      ACCOUNT_DRAFT_EPOCH,
+      `assignment_${selected}`,
+      snap,
+    );
+  }, [answer, existing?.submitted_at, grade, idx, itemLoading, items, results, selected, userId]);
+
   useUnsavedWork(
-    Boolean(account.user && selected && answer && !existing?.submitted_at),
+    Boolean(
+      account.user &&
+        selected &&
+        !existing?.submitted_at &&
+        (answer.trim() || Object.keys(results).length > 0),
+    ),
   );
   async function check(e: FormEvent) {
     e.preventDefault();
@@ -301,6 +367,14 @@ export function AssignmentsLive() {
         saved as Submission,
       ]);
       progress.current.delete(selected);
+      if (typeof window !== "undefined") {
+        removeScopedStudyDraft(
+          window.localStorage,
+          userId || null,
+          ACCOUNT_DRAFT_EPOCH,
+          `assignment_${selected}`,
+        );
+      }
     } catch {
       if (seq === sequence.current && token === account.revision.current)
         setError(
@@ -325,7 +399,7 @@ export function AssignmentsLive() {
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>{t("بنرتّب واجباتك…","Loading your assignments…")}</h2>
+        <h2>{t("جارٍ تحميل واجباتك…","Loading your assignments…")}</h2>
       </section>
     );
   if (error && !rows.length)
@@ -396,7 +470,7 @@ export function AssignmentsLive() {
             <div role={error ? "alert" : "status"}>
               <p>
                 {itemLoading
-                  ? t("بنحمّل أسئلة الواجب…","Loading assignment questions…")
+                  ? t("جارٍ تحميل أسئلة الواجب…","Loading assignment questions…")
                   : error ||
                     t("لا توجد أسئلة متاحة لهذا الواجب. تواصل مع المدرّس.","No questions are available for this assignment. Contact your teacher.")}
               </p>
@@ -646,7 +720,7 @@ export function AssignmentsLive() {
           <section
             className="panel"
             style={{ padding: 30, textAlign: "center", color: "var(--muted)" }}
-          >{t("مفيش واجبات منشورة ليك حاليًا.","No assignments are currently published for you.")}</section>
+          >{t("لا توجد واجبات منشورة لك حاليًا.","No assignments are currently published for you.")}</section>
         )}
       </section>
     </div>

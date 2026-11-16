@@ -385,8 +385,24 @@ export function SchoolGovernancePanels({ adminId }: { adminId: string | undefine
               onClick={() => {
                 const started = downloadCsv(
                   "noata-academic-terms.csv",
-                  ["Slug", "Arabic", "English", "Year", "Starts", "Ends", "Active"],
-                  terms.map((x) => [x.slug, x.title_ar, x.title_en, x.academic_year, x.starts_on, x.ends_on, x.is_active ? "Yes" : "No"]),
+                  [
+                    t("المعرّف", "Slug"),
+                    t("الاسم بالعربية", "Arabic"),
+                    t("الاسم بالإنجليزية", "English"),
+                    t("العام الدراسي", "Year"),
+                    t("تاريخ البداية", "Starts"),
+                    t("تاريخ النهاية", "Ends"),
+                    t("نشط", "Active"),
+                  ],
+                  terms.map((x) => [
+                    x.slug,
+                    x.title_ar,
+                    x.title_en,
+                    x.academic_year,
+                    x.starts_on,
+                    x.ends_on,
+                    x.is_active ? t("نعم", "Yes") : t("لا", "No"),
+                  ]),
                 );
                 if (started) {
                   void supabase.rpc("log_staff_export", { p_entity_type: "academic_terms", p_row_count: terms.length }).then(null, () => {});

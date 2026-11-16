@@ -222,7 +222,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
         <div className="auth-aside-copy">
           <p className="auth-aside-kicker">NOATA · YOUR LEARNING SPACE</p>
           <h2>{t("مساحة هادية.","A calm space.")}<span>{t("إنجازات كبيرة.","Meaningful progress.")}</span></h2>
-          <p>{t("تعلّم على مهلك، واسأل بذكاء، وراقب إنجازاتك في مكان واحد. كل خطوة ليها قيمة.","Learn at your own pace, ask questions and follow your achievements in one place. Every step matters.")}</p>
+          <p>{t("تعلّم على مهلك، واسأل بذكاء، وتابع إنجازاتك في مكان واحد. لكل خطوة قيمتها.","Learn at your own pace, ask questions and follow your achievements in one place. Every step matters.")}</p>
         </div>
         <div className="auth-aside-stage" aria-hidden="true">
           <span className="auth-aside-stage-glow" />
@@ -251,9 +251,49 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
         </div>
 
         {showTabs && (
-          <div className="auth-tabs" role="tablist" aria-label={t("طريقة الدخول","Sign-in method")}>
-            <button type="button" role="tab" aria-selected={mode === "signin"} onClick={() => switchMode("signin")}>{t("تسجيل الدخول","Sign in")}</button>
-            <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => switchMode("signup")}>{t("حساب جديد","New account")}</button>
+          <div
+            className="auth-tabs"
+            role="tablist"
+            aria-label={t("طريقة الدخول", "Sign-in method")}
+          >
+            <button
+              id="auth-tab-signin"
+              type="button"
+              role="tab"
+              aria-selected={mode === "signin"}
+              aria-controls="auth-mode-panel"
+              tabIndex={mode === "signin" ? 0 : -1}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                  event.preventDefault();
+                  const next = mode === "signin" ? "signup" : "signin";
+                  switchMode(next);
+                  requestAnimationFrame(() =>
+                    document.getElementById(`auth-tab-${next}`)?.focus(),
+                  );
+                }
+              }}
+              onClick={() => switchMode("signin")}
+            >{t("تسجيل الدخول","Sign in")}</button>
+            <button
+              id="auth-tab-signup"
+              type="button"
+              role="tab"
+              aria-selected={mode === "signup"}
+              aria-controls="auth-mode-panel"
+              tabIndex={mode === "signup" ? 0 : -1}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                  event.preventDefault();
+                  const next = mode === "signup" ? "signin" : "signup";
+                  switchMode(next);
+                  requestAnimationFrame(() =>
+                    document.getElementById(`auth-tab-${next}`)?.focus(),
+                  );
+                }
+              }}
+              onClick={() => switchMode("signup")}
+            >{t("حساب جديد","New account")}</button>
           </div>
         )}
 
@@ -290,7 +330,16 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
               </>
             )}
 
-            <form onSubmit={submit} className="auth-form" noValidate={false}>
+            <form
+              onSubmit={submit}
+              className="auth-form"
+              noValidate={false}
+              id={showTabs ? "auth-mode-panel" : undefined}
+              role={showTabs ? "tabpanel" : undefined}
+              aria-labelledby={
+                showTabs ? (mode === "signup" ? "auth-tab-signup" : "auth-tab-signin") : undefined
+              }
+            >
               {mode === "signup" && (
                 <label className="auth-field">
                   <span>{t("الاسم","Name")}</span>
@@ -340,7 +389,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; lead: string }> = {
               )}
               {error && <p id="auth-form-error" className="auth-alert is-error" role="alert">{error}</p>}
               {message && <p className="auth-alert is-success" role="status">{message}</p>}
-              <button className="auth-primary" disabled={busy !== ""}>
+              <button type="submit" className="auth-primary" disabled={busy !== ""}>
                 {busy === "form"
                   ? t("جارٍ التنفيذ…","Please wait…")
                   : mode === "signin"

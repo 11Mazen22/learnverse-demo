@@ -106,3 +106,102 @@ Every audited route must pass with **`0` horizontal page overflow** (`documentEl
 | **Phase 3 Exit** | All Phase 1–2 checks + persistence round-trip tests (lesson stages, `/study?mode=due`, assignments, quizzes, missions, account-scoped shell/Quran/theme storage, error banner visibility), **Journey B** pass. |
 | **Phase 4 Exit** | All Phase 1–3 checks + `/help`, `/admin`, `/teacher`, `/landing`, `/how`, `/faq`, notifications/legal/auth 4-way i18n/contrast/metadata/sitemap tests, bundle chunk split verification, **Journey C** pass. |
 | **Phase 5 Final Sign-Off** | Full clean build + complete 4-Way Matrix + `320–1920px` sweep + CWV re-measurement (`LCP <= 2.5s`, `INP <= 200ms`, `CLS <= 0.1`) + honest report of CI/Docker-only suites before asking explicit user approval to deploy. |
+
+---
+
+## Phase 4 / Phase 5 Verified Results (post-final-edit)
+
+**Branch:** `feat/product-renaissance-final` · **Host:** Windows, Node 24.18.1, pnpm 10.17.1
+**Build:** clean (`rm -rf apps/web/.next` + `pnpm build`) with the offline fixture env
+(`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`).
+
+### 1. Static, unit and legacy gates
+
+| Command | Result | Exact output |
+|---|---|---|
+| `pnpm check:text` | **PASS** | `802 tracked UTF-8 text files; no replacement glyphs or bidi controls` |
+| `pnpm typecheck` | **PASS** | `packages/core` + `apps/web` (`next typegen && tsc --noEmit`) clean |
+| `pnpm modern:test` | **PASS** | `tests 719 · pass 717 · fail 0 · skipped 2` |
+| `pnpm legacy:check` | **PASS** | `tests 815 · pass 806 · fail 0 · skipped 9` |
+| `pnpm build` | **PASS** | 46 routes emitted (24 pages, 7 API routes, `robots.txt`, `sitemap.xml`) |
+
+New tests added in Phase 4 (and passing):
+
+- `apps/web/lib/i18n/plural.test.ts` — CLDR Arabic plural selection
+  (`0 → "لا آيات"`, `2 → "آيتان"`, `4 → "٤ آيات"`, `11 → "١١ آية"`, `100 → "١٠٠ آية"`,
+  notifications `11 → "١١ إشعارًا"`, `100 → "١٠٠ إشعار"`).
+- `apps/web/lib/support/support.test.ts` —
+  official-identity assertion, template leak assertion, and a repository guard that
+  walks `apps/web/{app,components,lib}` and fails if any shipped `.ts/.tsx` contains
+  `gmail.com` (the legacy Help Center file was deleted for this to hold).
+
+### 2. Whole-platform headless Chromium + axe sweep
+
+`node scripts/phase4-platform-sweep.mjs` against `next start -p 3100`.
+
+| Dimension | Coverage |
+|---|---|
+| Routes | 25 (`/`, `/landing`, `/about`, `/features`, `/how`, `/faq`, `/curriculum`, `/help`, `/quran`, `/learn`, `/study`, `/review`, `/missions`, `/boss`, `/progress`, `/rewards`, `/assignments`, `/notifications`, `/settings`, `/ai`, `/teacher`, `/admin`, `/privacy`, `/terms`, `/login`) |
+| Widths | 320, 360, 768, 1024, 1440, 1920 |
+| Modes | AR RTL + Midnight (dark) · EN LTR + Classic (light) |
+| axe-core | 4.11.1, tags `wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa`, on 320/768/1440 |
+| Total checks | **300 page audits** |
+
+**Result: 300 / 300 audits with zero issues.**
+
+- `0` axe WCAG 2.2 AA violations (contrast included, after two Phase 4 fixes).
+- `0` horizontal overflow (`scrollWidth <= innerWidth + 2`) at every width.
+- `0` leaked personal mailbox strings in HTML or rendered text.
+- `0` uncaught page errors.
+- `0` console errors attributable to the app. Requests to the Supabase fixture host
+  fail DNS (`ERR_NAME_NOT_RESOLVED`) because this host is offline; those are counted
+  separately and are not page defects.
+
+### 3. Visual inspection of real PNGs
+
+Ten screenshots were written to `artifacts/phase4/` and inspected directly (not via DOM
+queries):
+
+| Screenshot | Finding |
+|---|---|
+| `home-desktop-ar-dark.png` | RTL shell correct (sidebar right, logical spacing), hero/action-card hierarchy clean, metric cards show neutral skeletons because the fixture returns no records — expected offline |
+| `home-mobile-en-light.png` | 320 px: header + compact action row, stacked CTAs, bottom dock, no clipping or overflow |
+| `help-desktop-ar-dark.png` | **Single** cohesive Help Center: one hero, one search field, category pills, article grid. The legacy panel is gone |
+| `admin-desktop-ar-dark.png` | Guest sees only the role-gate sign-in card — no admin chrome leaks before authorization |
+| `ai-desktop-en-light.png`, `landing-mobile-ar-dark.png`, `curriculum-mobile-ar-dark.png`, `help-mobile-en-light.png`, `home-desktop-en-light.png`, `home-mobile-ar-dark.png` | Used to confirm the light/dark pairs and RTL/LTR mirroring of the same surfaces |
+
+### 4. Core Web Vitals and bundle weight
+
+Recorded in `performance-audit.md` §7: LCP `296–2524 ms` (13/13 within `2.5 s`),
+CLS `0.0000–0.0279` (13/13 within `0.1`), INP proxy `<= 56 ms`.
+Bundle weight: `/ai` `672.9 KB` gz vs the `648.4 KB` Phase 0 baseline (**+24.5 KB**);
+no reduction achieved, stated as such.
+
+### 5. Checks that could NOT be run on this host
+
+| Check | Why | Where it must run |
+|---|---|---|
+| `scripts/database-recovery-rehearsal.mjs` | needs a disposable Postgres/Docker instance | Linux CI |
+| New migration `20261115120000_support_identity_alignment.sql` applied + RLS exercised | needs staging Supabase | Staging first, then production with approval |
+| Deno edge-function tests (`supabase/functions/*`) | Deno not installed | CI |
+| Poppler-backed PDF fixtures | Poppler absent on Windows | CI |
+| Authenticated journeys (signed-in teacher/admin, submissions, reward claims) | no live Supabase credentials in this offline fixture | Staging with real accounts |
+
+### 6. Final re-verification after the last edit
+
+The full 300-audit matrix above ran on the build that contained every CSS change.
+Three copy/markup edits landed afterwards (help component deletion, formal MSA copy in
+`error.tsx` / `login` / `auth/check-email`). The production build was regenerated and a
+focused sweep re-ran every route at `320` and `1440` in both modes:
+
+```
+NOATA_WIDTHS="320,1440" node scripts/phase4-platform-sweep.mjs
+→ checks 100 · failures 0
+```
+
+Gates re-run after that same final edit: `pnpm check:text` PASS (802 files),
+`pnpm typecheck` PASS, `pnpm modern:test` 719/717 pass, `pnpm legacy:check` 815/806 pass,
+clean `pnpm build` PASS.
+
+> Screenshots and sweep JSON live in `artifacts/phase4/`, which is git-ignored
+> (`.gitignore:22`); they are local evidence and are not shipped in the repository.

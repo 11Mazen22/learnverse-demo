@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { HELP_ARTICLES, type HelpArticle } from "@/lib/support/knowledge-base";
 import { SUPPORT_CATEGORIES, type SupportCategory } from "@/lib/support/types";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { Badge, Button, Card, Field, Input, Select, Textarea } from "@/components/ui";
+import { SUPPORT_EMAIL } from "@/lib/support/identity";
 
 export function HelpCenterLive({ showFaq = true }: { showFaq?: boolean } = {}) {
   const t = useTranslation();
@@ -20,14 +21,30 @@ export function HelpCenterLive({ showFaq = true }: { showFaq?: boolean } = {}) {
   const [activeArticle, setActiveArticle] = useState<HelpArticle | null>(null);
 
   // Contact Form state
-  const [formName, setFormName] = useState(account.user?.user_metadata?.full_name || "");
-  const [formEmail, setFormEmail] = useState(account.user?.email || "");
+  const [formName, setFormName] = useState<string>(account.user?.user_metadata?.full_name || "");
+  const [formEmail, setFormEmail] = useState<string>(account.user?.email || "");
   const [formSubject, setFormSubject] = useState("");
   const [formCategory, setFormCategory] = useState<SupportCategory>("general");
   const [formMessage, setFormMessage] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+
+  // The provider resolves the session asynchronously, so prefill once the account
+  // arrives without ever overwriting what the visitor has already typed.
+  useEffect(() => {
+    const name = account.user?.user_metadata?.full_name;
+    if (typeof name === "string" && name.trim()) {
+      setFormName((current) => (current.trim() ? current : name));
+    }
+  }, [account.user]);
+
+  useEffect(() => {
+    const email = account.user?.email;
+    if (typeof email === "string" && email.trim()) {
+      setFormEmail((current) => (current.trim() ? current : email));
+    }
+  }, [account.user]);
   const [submissionResult, setSubmissionResult] = useState<{
     ticketCode: string;
     emailDelivery: {
@@ -270,7 +287,7 @@ export function HelpCenterLive({ showFaq = true }: { showFaq?: boolean } = {}) {
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs" style={{ color: "var(--muted)" }}>
-                    {t("منصة نقطة · دليل المنتج", "Noäta Platform · Product guide")}
+                    {t("Noäta · دليل المنتج", "Noäta Platform · Product guide")}
                   </span>
                   <Button variant="secondary" size="sm" onClick={() => setActiveArticle(null)}>
                     {t("تم، العودة للمركز", "Done, return to Help Center")}
@@ -328,7 +345,7 @@ export function HelpCenterLive({ showFaq = true }: { showFaq?: boolean } = {}) {
                   color: "var(--ink)",
                 }}
               >
-                mazenshazly011@gmail.com
+                {SUPPORT_EMAIL}
               </p>
               <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
                 {t(
@@ -397,7 +414,7 @@ export function HelpCenterLive({ showFaq = true }: { showFaq?: boolean } = {}) {
                       </span>
                       <Badge tone={submissionResult.emailDelivery.delivered ? "success" : "warning"}>
                         {submissionResult.emailDelivery.delivered
-                          ? `${t("تم الإرسال إلى", "Sent to")} mazenshazly011@gmail.com`
+                          ? `${t("تم الإرسال إلى", "Sent to")} ${SUPPORT_EMAIL}`
                           : t("مجدول بانتظار مزود البريد", "Queued (Provider Key Pending)")}
                       </Badge>
                     </div>

@@ -11,7 +11,7 @@ import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import type { QuizGeckoBundle, QuizFlashcard } from "@/lib/study/quizgecko-engine";
 import { convertMissedQuestionsToCards } from "@/lib/study/quizgecko-engine";
 import { matchAnswer } from "@/lib/study/answer-matcher";
-import { loadScopedStudyDraft, saveScopedStudyDraft } from "@/lib/study/draft-storage";
+import { loadScopedStudyDraft, removeScopedStudyDraft, saveScopedStudyDraft } from "@/lib/study/draft-storage";
 import { StudyRichText } from "./study-rich-text";
 
 export type QuizMistakeRecord = {
@@ -238,6 +238,9 @@ export function InteractiveQuizRunner({
 
     finishSubmittedLock.current = true;
     setIsFinished(true);
+    if (typeof window !== "undefined") {
+      removeScopedStudyDraft(window.localStorage, userId, authEpoch, `quiz_${bundle.id}`);
+    }
     const score = calculateScore();
     const { missedCards, mistakes } = buildMissedSummary();
     onFinish?.(score.percentage, missedCards, mistakes);

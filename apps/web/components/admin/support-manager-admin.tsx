@@ -7,6 +7,7 @@ import type { SupportCategory, SupportTicketRecord } from "@/lib/support/types";
 import { DataTable, type DataColumn } from "@/components/ui/table";
 import { Drawer } from "@/components/ui/drawer";
 import { localizedTimestamp } from "@/lib/dashboard/relative-time";
+import { SUPPORT_EMAIL } from "@/lib/support/identity";
 
 export function SupportManagerAdmin() {
   const t = useTranslation();
@@ -235,7 +236,7 @@ export function SupportManagerAdmin() {
             {t("إدارة تذاكر الدعم الفني", "Support Ticket Operations")}
           </h2>
           <small style={{ color: "var(--muted)" }}>
-            {t("الوجهة المعتمدة لإشعارات البريد: mazenshazly011@gmail.com", "Configured email destination: mazenshazly011@gmail.com")}
+            {t("الوجهة المعتمدة لإشعارات البريد:", "Configured email destination:")} {SUPPORT_EMAIL}
           </small>
         </div>
         <button

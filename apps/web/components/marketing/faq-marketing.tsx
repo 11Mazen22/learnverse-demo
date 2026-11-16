@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { MarketingShell, Reveal } from "./marketing-shell";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
+import { SUPPORT_EMAIL } from "@/lib/support/identity";
 
 interface FaqItem {
   id: string;
@@ -176,6 +177,7 @@ export function FaqMarketing() {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label={t("ابحث في الأسئلة الشائعة", "Search frequently asked questions")}
                 placeholder={t("ابحث في الأسئلة الشائعة...", "Search questions & topics...")}
                 className="w-full py-3.5 ps-12 pe-4 rounded-2xl bg-white/[0.04] border border-white/[0.12] text-white placeholder-[#64748b] text-sm focus:outline-none focus:border-indigo-400 focus:bg-white/[0.06] transition-all shadow-inner"
               />
@@ -191,16 +193,19 @@ export function FaqMarketing() {
             </div>
           </div>
 
-          {/* Category Filter Tabs */}
-          <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl mx-auto mb-8" role="tablist">
+          {/* Category filter pills (filters, not tabs: no tabpanel exists) */}
+          <div
+            className="flex flex-wrap items-center justify-center gap-2 max-w-4xl mx-auto mb-8"
+            role="group"
+            aria-label={t("تصفية الأسئلة حسب التصنيف", "Filter questions by category")}
+          >
             {categories.map((cat) => {
               const isActive = selectedCategory === cat.key;
               return (
                 <button
                   key={cat.key}
                   type="button"
-                  role="tab"
-                  aria-selected={isActive}
+                  aria-pressed={isActive}
                   onClick={() => setSelectedCategory(cat.key)}
                   className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer border flex items-center gap-2 ${
                     isActive
@@ -268,12 +273,12 @@ export function FaqMarketing() {
             <p className="text-sm text-[#cbd5e1] max-w-2xl mx-auto mb-6 leading-relaxed">
               {t(
                 "يمكنك إرسال تذكرة استفسار مباشرة. نؤكد حفظها ونوضح حالة إشعار البريد، من دون وعد بمدة رد غير موثقة:",
-                "Our support team is ready to assist you. Submit an inquiry ticket and our team will get back to you via our verified email within 24 working hours:",
+                "Submit an inquiry ticket. We confirm it is saved and report the email notification status, with no unverified response-time promise:",
               )}
             </p>
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.12] font-mono text-sm text-cyan-300 mb-6 shadow-sm">
               <span>✉️</span>
-              <span>mazenshazly011@gmail.com</span>
+              <span>{SUPPORT_EMAIL}</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link className="mp-btn mp-btn-primary" href="/help">

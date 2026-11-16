@@ -120,3 +120,94 @@ The Renaissance initiative adds substantive capabilities in Phases 1–3. Each a
      - `INP <= 200ms` (including sidebar drag, lesson stage transitions, ChoiceCard selection)
      - `CLS <= 0.1` (target `<= 0.02` across all viewports `320px–1920px`)
      - Substantial reduction in `/ai` initial gz JS from `648.4 KB` baseline and per-lesson bundle weight via per-subject `next/dynamic` splitting.
+
+---
+
+## 7. Phase 4 / Phase 5 Measured Results (Post-Edit, Production Build)
+
+**Status:** `[Phase 5 Re-Measurement Complete]` — measured on a clean production build
+(`next build` + `next start -p 3100`) on the Windows host, in English UI, 1440×960.
+
+### 7.1 Core Web Vitals (isolated tab per route)
+
+Each route was measured in a brand-new tab. An earlier sweep reused one tab across
+12 routes and produced impossible CLS values (0.28–0.50); the cause was measurement
+state carried across navigations, not the pages. The isolated run below is the
+authoritative figure.
+
+| Route | LCP | CLS | INP (event timing) | Verdict |
+|---|---|---|---|---|
+| `/` | 2524 ms | 0.0180 | 56 ms | LCP at ceiling (cold first load), CLS/INP pass |
+| `/learn` | 1176 ms | 0.0018 | 0 ms | Pass |
+| `/lesson/sci-1-1` | 1356 ms | 0.0006 | 56 ms | Pass |
+| `/study` | 1252 ms | 0.0000 | 32 ms | Pass |
+| `/review` | 1068 ms | 0.0000 | 24 ms | Pass |
+| `/assignments` | 296 ms | 0.0018 | 24 ms | Pass |
+| `/ai` | 1068 ms | 0.0008 | 24 ms | Pass |
+| `/settings` | 1036 ms | 0.0279 | 24 ms | Pass |
+| `/teacher` | 712 ms | 0.0000 | 24 ms | Pass |
+| `/admin` | 576 ms | 0.0000 | 24 ms | Pass |
+| `/landing` | 644 ms | 0.0097 | 56 ms | Pass |
+| `/help` | 644 ms | 0.0018 | 16 ms | Pass |
+| `/quran` | 1192 ms | 0.0012 | 24 ms | Pass |
+
+- **LCP**: `<= 2.5 s` on 13/13 routes; the single at-ceiling value is `/` at 2524 ms
+  on a cold, uncached first load. No route exceeds budget, but `/` has no headroom.
+- **CLS**: `<= 0.1` on 13/13 routes; the worst is `/settings` at `0.0279`.
+  The `data-noata-motion`, palette and theme preferences were applied before load,
+  which is the strictest realistic case.
+- **INP proxy**: max `56 ms` (`<= 200 ms` budget), sampled from real `Tab`
+  interactions via the Event Timing API.
+
+### 7.2 Initial Route JavaScript (gzipped, document-referenced scripts)
+
+`next start` on this host returns **uncompressed** JS (no `Content-Encoding` header),
+and the Next 16 Turbopack build does not print a per-route "First Load JS" table.
+To stay comparable with the Phase 0 baseline, the figures below gzip the exact
+script files referenced by each route's own HTML.
+
+| Route | gz JS | Phase 0 baseline | Delta |
+|---|---|---|---|
+| `/login` | 368.3 KB | 362.4 KB | **+5.9 KB** |
+| `/` | 412.3 KB | — | — |
+| `/landing` | 383.8 KB | — | — |
+| `/settings` | 384.3 KB | — | — |
+| `/quran` | 388.3 KB | — | — |
+| `/learn` | 396.4 KB | — | — |
+| `/assignments` | 577.1 KB | — | — |
+| `/teacher` | 577.0 KB | — | — |
+| `/help` | 575.1 KB | — | — |
+| `/admin` | 585.4 KB | — | — |
+| `/ai` | 672.9 KB | 648.4 KB | **+24.5 KB (+3.8 %)** |
+| `/review` | 776.5 KB | — | — |
+| `/lesson/[id]` | 805.6 KB | — | — |
+| `/study` | 808.6 KB | — | — |
+
+**Honest conclusion — no reduction achieved.** The target was a significant drop
+from the `648.4 KB` `/ai` baseline. It did not happen: `/ai` is `+24.5 KB` and
+`/login` is `+5.9 KB` versus Phase 0. The Phase 4 splitting work is real and
+verified (see 7.3), but the platform features added in Phases 1–3 (resizable shell
+boot, tour engine, Action Center, dashboards) consume more than the split removed.
+`/lesson/[id]`, `/study`, `/review` at `776–809 KB` are now the heaviest routes and
+the clearest next optimization target. Treat 7.3 as "the mechanism is in place",
+not as a performance win.
+
+### 7.3 Code splitting actually shipped in Phase 4
+
+| Change | File | Verified |
+|---|---|---|
+| `NoataCreativeStudio` behind `next/dynamic` (closed-mount, `loading: () => null`) | `apps/web/components/ai/noata-ai-client.tsx` | no static import remains; separate chunk emitted |
+| `WritingStudio` behind `next/dynamic` | same | same |
+| `RichMessage` (Markdown/KaTeX/highlight renderer) behind `next/dynamic` with a one-line skeleton | same | `owui-message-skeleton` in `app/ai-flow.css` |
+| Conversation DOCX export loaded at click time | same (`exportConversation`, now `async`) | `await import("@/lib/ai/docx-export")` |
+| Writing-studio DOCX/XLSX/PPTX exporters loaded at export time | `apps/web/components/ai/writing-studio.tsx` | all three `import()` call sites |
+| Plain-prose fast path skips the remark/rehype AST | `apps/web/components/study/study-rich-text.tsx` | `MARKDOWN_SYNTAX` guard; math/markdown still full pipeline |
+| `optimizePackageImports` for `@supabase/supabase-js` | `apps/web/next.config.ts` | production build passes |
+| `images` config | not added | no `next/image` usage anywhere in `app/` or `components/`; nothing to configure |
+
+### 7.4 Reproducible measurement scripts
+
+- `node scripts/phase4-vitals.mjs` → `artifacts/phase4/vitals-report.json`
+- `node scripts/phase4-bundle-weight.mjs` → `artifacts/phase4/bundle-weight-report.json`
+- `node scripts/phase4-platform-sweep.mjs` → `artifacts/phase4/sweep-report.json` + screenshots
+- `node scripts/phase4-cls-sources.mjs` → CLS culprit attribution

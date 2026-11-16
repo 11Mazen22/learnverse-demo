@@ -80,3 +80,41 @@ Observed via filesystem discovery across `apps/web/app/` (`34` `page.tsx` routes
 | **Phase 3 — Dashboard & Persistence Integrity** | 1. **Dashboard Redesign**: consolidate Hero vs Next Action CTAs; fix `/study?mode=due` & track-switch `nextLesson` sync; fix `account.error` rendering bug; remove ungrounded `dailyMinutesTarget` metric; fix `weak_radar` (`supported` state, sorting, `skill_id` link) & `units.position` ordering; improve empty/skeleton states.<br>2. **Saving & Recovery**: add confirmed checkpoint persistence for lesson stage/step progress, active assignment answers, study quiz completion draft cleanup, explicit Supabase `.error` surfacing (`ToastProvider` / retry banner), `mission_runs` resume evaluation, account-scoped Quran bookmarks, and strict "save-after-server-confirm" rule across Dashboard & Settings. | - Student Journey C (Learning Continuity: start -> mid-lesson refresh -> resume -> assignment draft -> quiz -> review -> DB match) passes in headless Chrome.<br>- Zero unconfirmed `"Saved"` states or premature `localStorage` corruption on rollback. |
 | **Phase 4 — Whole-Platform Alignment & Performance** | 1. Route-by-route alignment: merge `/help` split UI + fix prefill race + remove personal Gmail leaks across public pages/APIs; fix `/admin` Korean string `학습`, `"3mastery"`, raw enums & dark leaks; fix `/landing` dead AI demo buttons, `/how` EN preview strings, `/faq` SLA contradiction; unify AI studio motion store & Study/Review/Missions/Boss/Quran/Notifications/Auth/Legal localization & interactive accessibility; add server `metadata` + complete `sitemap.ts`.<br>2. Dynamic code splitting (`next/dynamic`) for Office Exporters, Creative/Image Studios, and Labs; optimize bundle & CWV. | - All 34 routes verified across `320px`, `360px`, `390px`, `768px`, `1024px`, `1280px`, `1440px`, `1920px`.<br>- Zero dead buttons, zero language leakage, zero exposed private emails. |
 | **Phase 5 — Production-Readiness Verification** | Full `check:text`, `typecheck`, `modern:test`, `legacy:check`, `@noata/web build`, Lighthouse/CWV measurement (`LCP <= 2.5s`, `INP <= 200ms`, `CLS <= 0.1`), 4-way Chrome WCAG 2.2 AA sweep, staging migration verification, and final `docs/product-renaissance-final/` sign-off report. | Zero blocking P0/P1 defects; exact test counts & staging evidence recorded; explicit user approval required before any merge or production deployment. |
+
+---
+
+## 5. Phase 4 Alignment Register (executed)
+
+| Item | Where | Status |
+|---|---|---|
+| `/help` split UI removed (legacy `HelpCenter` deleted, page renders one `HelpCenterLive`) | `app/help/page.tsx`; `components/help/help-center.tsx` deleted | Done |
+| Help form prefill race fixed (async account resolves after mount, never overwrites typing) | `components/help/help-center-live.tsx` | Done |
+| Personal mailbox removed from every public surface and API response | `lib/support/identity.ts` (new canonical `support@noata.app`), `email-dispatcher.ts` (`NOATA_SUPPORT_EMAIL` override), `faq-marketing.tsx`, `marketing-shell.tsx`, `support-manager-admin.tsx`, `help-center-live.tsx`, `knowledge-base.ts`, `api/support/ticket` | Done |
+| Support routing migrated to the official inbox (default + anonymous insert policy) | `supabase/migrations/20261115120000_support_identity_alignment.sql` (new, additive) | Written; not applied locally |
+| Korean `학습` removed from Arabic admin copy | `components/admin/curriculum-catalog-admin.tsx` | Done |
+| `"3mastery المهارات"` malformed count fixed | `components/admin/curriculum-manager.tsx` | Done |
+| Light-only `#fff3e8` / `#e9f7f0` admin surfaces replaced with palette tokens | `components/admin/curriculum-manager.tsx` (`--warning-soft` / `--success-soft`) | Done |
+| Raw publication enums replaced with AR/EN labels | `components/admin/curriculum-catalog-admin.tsx` (`STATUS_LABELS`) | Done |
+| English CSV headers localized (academic terms export) | `components/admin/school-governance-panels.tsx` | Done |
+| `/admin` tabs upgraded to WAI-ARIA tabs (`tablist`/`tab`/`aria-selected`/`aria-controls`/`tabpanel`, roving focus, RTL-aware arrows, Home/End, 44 px targets) | `components/admin/admin-live.tsx` | Done |
+| Missing `type="button"` on admin delete/transition controls | `components/admin/admin-live.tsx` | Done |
+| `StudyRichText` block-inside-heading fixed (`inline` + real `<h3>`) | `admin-live.tsx`, `mission-live.tsx`, `boss-live.tsx`, `review-live.tsx` | Done |
+| `/landing` dead AI buttons now deep-link into the real studio (`/ai?prompt=…`) | `components/marketing/home-marketing.tsx`, `components/ai/noata-ai-client.tsx` (one-shot prompt seeding) | Done |
+| `/how` preview panels localized in EN | `components/marketing/how-marketing.tsx` | Done |
+| KnowledgeMap SM-2 interval labels localized | `components/marketing/knowledge-map.tsx` | Done |
+| `/faq` SLA copy aligned AR/EN; search input labelled; filter `role="group"` + `aria-pressed` instead of panels-less tabs | `components/marketing/faq-marketing.tsx` | Done |
+| `/curriculum` table `<caption>` + focusable scroll region | `components/marketing/curriculum-marketing.tsx` | Done |
+| Legal page copy/formality + localized footer links | `components/legal/legal-page.tsx` | Done |
+| `/login` tabs wired to a real tabpanel (`aria-controls`, roving focus, arrows) and submit button `type="submit"` | `app/login/page.tsx` | Done |
+| Formal MSA copy in error/auth surfaces | `app/error.tsx`, `app/login/page.tsx`, `app/auth/check-email/page.tsx` | Done |
+| Bilingual API errors (locale from `Accept-Language`) | `lib/i18n/request-locale.ts` (new), `app/api/documents/pdf/route.ts`, `app/api/support/ticket/route.ts` | Done |
+| Arabic pluralization via CLDR (`Intl.PluralRules`) | `lib/i18n/plural.ts` (new), `quran-reader.tsx`, `notifications-live.tsx` | Done |
+| Server metadata on workspace routes | `app/{page,admin,assignments,boss,learn,missions,notifications,progress,review,rewards,settings,study,teacher}/page.tsx`, plus bilingual metadata for `how`, `curriculum`, `quran`, `help` | Done |
+| Complete sitemap without a hardcoded host | `app/sitemap.ts` (env-configurable origin, 20 public routes) | Done |
+| Tour popover opacity at narrow widths | `app/tour-system.css` (opaque `--surface`, no bleed-through) | Done |
+| `@supabase/supabase-js` barrel optimization | `next.config.ts` (`experimental.optimizePackageImports`) | Done |
+
+**Deliberately not changed:** the Arabic word «نقطة» remains in marketing prose and
+some root metadata where it is used as the Arabic product name alongside «Noäta»;
+it is not stale-brand drift in UI chrome. `study_notes` remains absent from every
+migration and type file (deferred scope preserved).

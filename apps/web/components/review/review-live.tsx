@@ -121,6 +121,7 @@ export function ReviewLive() {
     mode: "due" as "due" | "topic",
     track: "all",
     lesson: "all",
+    skill: "all",
     len: 10 as 5 | 10 | 15,
   });
   const didReadUrlRef = useRef(false);
@@ -152,6 +153,7 @@ export function ReviewLive() {
       availableTracks: TrackRow[],
       dueList: ReviewQuestion[],
       targetLessonSlug = "all",
+      targetSkillId = "all",
     ) => {
       setLoadingTopic(true);
       try {
@@ -165,6 +167,34 @@ export function ReviewLive() {
           .filter((cid): cid is string => Boolean(cid));
 
         const dbItems: ReviewQuestion[] = [];
+        const skillCourseMap = new Map<string, { id: string; course_id: string | null; title_ar: string | null; title_en: string | null }>();
+        const fetchedQuestionRows: DbReviewQuestion[] = [];
+
+        if (targetSkillId !== "all") {
+          const [skillRowRes, skillQRes] = await Promise.all([
+            supabase
+              .from("skills")
+              .select("id,course_id,title_ar,title_en")
+              .eq("id", targetSkillId)
+              .maybeSingle(),
+            supabase
+              .from("questions")
+              .select(
+                "id,skill_id,lesson_id,variant_of,question_type,prompt_ar,prompt_en,choices_ar,choices_en,metadata",
+              )
+              .eq("skill_id", targetSkillId)
+              .in("publication_status", ["published_demo", "published"])
+              .order("position")
+              .limit(20),
+          ]);
+          if (!skillRowRes.error && skillRowRes.data) {
+            skillCourseMap.set(skillRowRes.data.id, skillRowRes.data);
+          }
+          if (!skillQRes.error && skillQRes.data) {
+            fetchedQuestionRows.push(...(skillQRes.data as DbReviewQuestion[]));
+          }
+        }
+
         if (targetCourses.length > 0) {
           const skillsRes = await supabase
             .from("skills")
@@ -172,9 +202,9 @@ export function ReviewLive() {
             .in("course_id", targetCourses);
 
           if (!skillsRes.error && skillsRes.data?.length) {
-            const skillCourseMap = new Map(
-              skillsRes.data.map((s) => [s.id, s]),
-            );
+            for (const s of skillsRes.data) {
+              skillCourseMap.set(s.id, s);
+            }
             const skillIds = skillsRes.data.map((s) => s.id);
             const qRes = await supabase
               .from("questions")
@@ -187,7 +217,18 @@ export function ReviewLive() {
               .limit(40);
 
             if (!qRes.error && qRes.data) {
+              const seenIds = new Set(fetchedQuestionRows.map((row) => row.id));
               for (const row of qRes.data as DbReviewQuestion[]) {
+                if (!seenIds.has(row.id)) {
+                  seenIds.add(row.id);
+                  fetchedQuestionRows.push(row);
+                }
+              }
+            }
+          }
+        }
+
+        for (const row of fetchedQuestionRows) {
                 const meta =
                   row.metadata && typeof row.metadata === "object"
                     ? (row.metadata as Record<string, unknown>)
@@ -227,9 +268,14 @@ export function ReviewLive() {
                   ) || undefined,
                   metadata: row.metadata,
                 });
-              }
-            }
-          }
+        }
+
+        if (targetSkillId !== "all") {
+          dbItems.sort((a, b) => {
+            const aMatch = a.skill_id === targetSkillId ? 0 : 1;
+            const bMatch = b.skill_id === targetSkillId ? 0 : 1;
+            return aMatch - bMatch;
+          });
         }
 
         const seenPrompts = new Set(dbItems.map((i) => i.prompt.trim().toLowerCase()));
@@ -359,8 +405,16 @@ export function ReviewLive() {
         const params = new URLSearchParams(window.location.search);
         const paramTrack = params.get("track")?.trim() || params.get("subject")?.trim();
         const paramLesson = params.get("lesson")?.trim();
+        const paramSkill = params.get("skill")?.trim();
         const paramMode = params.get("mode")?.trim();
         const paramLen = Number(params.get("len"));
+        if (paramSkill) {
+          prefsRef.current.skill = paramSkill;
+          if (paramMode !== "due") {
+            prefsRef.current.mode = "topic";
+            setMode("topic");
+          }
+        }
         if (paramLesson) {
           const matchedPack = getLessonStudyPack(paramLesson);
           if (matchedPack) {
@@ -533,7 +587,23 @@ export function ReviewLive() {
           trackRows,
           pickedDue,
           activePrefs.lesson,
+          activePrefs.skill,
         );
+      } else if (activePrefs.skill !== "all") {
+        const skillDue = pickedDue.filter((q) => q.skill_id === activePrefs.skill);
+        if (skillDue.length > 0) {
+          setQuestions(skillDue.slice(0, activePrefs.len));
+        } else {
+          setMode("topic");
+          await buildTopicQueue(
+            activePrefs.track,
+            activePrefs.len,
+            trackRows,
+            pickedDue,
+            activePrefs.lesson,
+            activePrefs.skill,
+          );
+        }
       } else {
         const filtered =
           activePrefs.track === "all"
@@ -600,6 +670,7 @@ export function ReviewLive() {
       mode: nextMode,
       track: nextTrack,
       lesson: resolvedLesson,
+      skill: "all",
       len: nextLength,
     };
     setMode(nextMode);
@@ -1089,7 +1160,7 @@ export function ReviewLive() {
                 })()}
               </div>
               <h2 style={{ margin: "6px 0 0", lineHeight: 1.7 }} dir={contentDir}>
-                <StudyRichText content={current?.prompt ?? ""} />
+                <StudyRichText content={current?.prompt ?? ""} inline />
               </h2>
             </div>
             <b>
@@ -1155,6 +1226,7 @@ export function ReviewLive() {
                     </b>
                     <p style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
                       <StudyRichText
+                        inline
                         content={resolveCurriculumText(
                           contentLanguage,
                           grade.explanation_ar,

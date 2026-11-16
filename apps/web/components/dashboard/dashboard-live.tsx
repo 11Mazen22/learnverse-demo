@@ -89,7 +89,17 @@ type State = DashboardAvailability & {
   weakSkills: WeakSkill[];
   lessons: number;
   completedLessons: number;
-  nextLesson: { id: string; title_ar: string; title_en: string; unit_id?: string } | null;
+  nextLesson: {
+    id: string;
+    slug?: string | null;
+    title_ar: string;
+    title_en: string;
+    unit_id?: string;
+  } | null;
+  nextLessonsByTrack: Record<
+    string,
+    { id: string; slug?: string | null; title_ar: string; title_en: string; unit_id?: string } | null
+  >;
   activeSubject: SubjectKey;
   activeTrackSlug: string;
   tracks: TrackProgress[];
@@ -120,6 +130,7 @@ const initial: State = {
   lessons: 0,
   completedLessons: 0,
   nextLesson: null,
+  nextLessonsByTrack: {},
   activeSubject: "integrated-science",
   activeTrackSlug: "integrated-science-ar",
   tracks: [],
@@ -204,7 +215,7 @@ export function DashboardLive() {
         const [lessonsResult, tracksResult, auth] = await Promise.all([
           supabase
             .from("lessons")
-            .select("id,title_ar,title_en,position,unit_id")
+            .select("id,slug,title_ar,title_en,position,unit_id")
             .order("position"),
           supabase
             .from("curriculum_tracks")
@@ -219,23 +230,32 @@ export function DashboardLive() {
         if (lessonsResult.error || tracksResult.error) {
           throw lessonsResult.error ?? tracksResult.error;
         }
-        const allLessons = lessonsResult.data ?? [];
         const rawTracks = tracksResult.data ?? [];
 
         const trackCourses = new Set(
           rawTracks.map((row) => row.course_id).filter((id): id is string => Boolean(id)),
         );
         const unitCourse = new Map<string, string>();
+        const unitPosition = new Map<string, number>();
 
         if (trackCourses.size) {
           const units = await supabase
             .from("units")
-            .select("id,course_id")
-            .in("course_id", [...trackCourses]);
+            .select("id,course_id,position")
+            .in("course_id", [...trackCourses])
+            .order("position");
           for (const unit of units.data ?? []) {
             unitCourse.set(unit.id, unit.course_id);
+            unitPosition.set(unit.id, Number(unit.position ?? 0));
           }
         }
+
+        const allLessons = [...(lessonsResult.data ?? [])].sort((a, b) => {
+          const uA = a.unit_id ? (unitPosition.get(a.unit_id) ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
+          const uB = b.unit_id ? (unitPosition.get(b.unit_id) ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
+          if (uA !== uB) return uA - uB;
+          return Number(a.position ?? 0) - Number(b.position ?? 0);
+        });
 
         const lessonsByUnit = new Map<string, string[]>();
         for (const lesson of allLessons) {
@@ -359,7 +379,7 @@ export function DashboardLive() {
               .select("id,title,due_at,published_at")
               .not("published_at", "is", null)
               .order("due_at", { ascending: true, nullsFirst: false })
-              .limit(10),
+              .limit(50),
             supabase
               .from("assignment_submissions")
               .select("assignment_id,submitted_at")
@@ -398,11 +418,12 @@ export function DashboardLive() {
             next.weakSkills = (m.data as State["masteryRows"])
               .filter(
                 (row) =>
-                  row.mastery_score < 60 ||
+                  Number(row.mastery_score) < 70 ||
                   row.state === "reteach" ||
-                  row.state === "mixed" ||
-                  row.state === "review",
+                  row.state === "supported" ||
+                  row.state === "mixed",
               )
+              .sort((a, b) => Number(a.mastery_score) - Number(b.mastery_score))
               .slice(0, 4)
               .map((row) => ({
                 id: row.skill_id || row.skills?.id || "skill",
@@ -433,6 +454,27 @@ export function DashboardLive() {
 
           next.completedLessons = allLessons.filter((l) => doneSet.has(l.id)).length;
 
+          const trackNextMap: State["nextLessonsByTrack"] = {};
+          for (const tr of next.tracks) {
+            const trUnits = new Set<string>();
+            for (const [unitId, courseId] of unitCourse) {
+              if (courseId === tr.courseId) trUnits.add(unitId);
+            }
+            const firstIncomplete = allLessons.find(
+              (l) => l.unit_id && trUnits.has(l.unit_id) && !doneSet.has(l.id),
+            );
+            trackNextMap[tr.slug] = firstIncomplete
+              ? {
+                  id: firstIncomplete.id,
+                  slug: firstIncomplete.slug ?? null,
+                  title_ar: firstIncomplete.title_ar,
+                  title_en: firstIncomplete.title_en,
+                  unit_id: firstIncomplete.unit_id ?? undefined,
+                }
+              : null;
+          }
+          next.nextLessonsByTrack = trackNextMap;
+
           const enrolledTrackId = enrollment.data?.[0]?.track_id;
           const foundEnrolled = next.tracks.find((tr) => tr.id === enrolledTrackId);
           const activeTrack = foundEnrolled || next.tracks[0] || null;
@@ -440,16 +482,7 @@ export function DashboardLive() {
           if (activeTrack) {
             next.activeTrackSlug = activeTrack.slug;
             next.activeSubject = (activeTrack.subjectSlug as SubjectKey) || "integrated-science";
-
-            const activeUnits = new Set<string>();
-            for (const [unitId, courseId] of unitCourse) {
-              if (courseId === activeTrack.courseId) activeUnits.add(unitId);
-            }
-            const activeTrackLessons = allLessons.filter(
-              (l) => l.unit_id && activeUnits.has(l.unit_id),
-            );
-            const foundNext = activeTrackLessons.find((l) => !doneSet.has(l.id));
-            if (foundNext) next.nextLesson = foundNext;
+            next.nextLesson = trackNextMap[activeTrack.slug] ?? null;
           }
 
           if (next.notificationsReady) next.unread = n.count ?? 0;
@@ -515,11 +548,13 @@ export function DashboardLive() {
     (trackSlug: string) => {
       const tr = snapshot.tracks.find((item) => item.slug === trackSlug);
       if (!tr) return;
+      const revisionToken = account.revision.current;
       const apply = () =>
         setState((prev) => ({
           ...prev,
           activeTrackSlug: tr.slug,
           activeSubject: (tr.subjectSlug as SubjectKey) || prev.activeSubject,
+          nextLesson: prev.nextLessonsByTrack[tr.slug] ?? null,
         }));
       if (!account.user) {
         apply();
@@ -532,6 +567,7 @@ export function DashboardLive() {
           { onConflict: "user_id,track_id" },
         )
         .then(({ error: writeError }) => {
+          if (revisionToken !== account.revision.current) return;
           if (writeError) {
             pushToast({
               title: t("تعذّر حفظ اختيار المسار.", "Could not save track selection."),
@@ -539,16 +575,21 @@ export function DashboardLive() {
             });
           } else {
             apply();
+            pushToast({
+              title: t("تم اعتماد المسار النشط.", "Active track updated."),
+              tone: "success",
+            });
           }
         });
     },
-    [account.user, pushToast, snapshot.tracks, supabase, t],
+    [account.revision, account.user, pushToast, snapshot.tracks, supabase, t],
   );
 
   // Optimistic inline completion toggle for personal study tasks
   const handleToggleStudyTask = useCallback(
     async (task: StudyTaskItem) => {
       if (!account.user) return;
+      const revisionToken = account.revision.current;
       const completing = task.status !== "completed";
       const nowIso = new Date().toISOString();
       const nextStatus: StudyTaskItem["status"] = completing ? "completed" : "open";
@@ -556,6 +597,7 @@ export function DashboardLive() {
 
       setPendingTaskIds((curr) => [...curr, task.id]);
       const prevTasks = snapshot.studyTasks;
+      const prevEvents = snapshot.activityEvents;
 
       setState((prev) => ({
         ...prev,
@@ -575,10 +617,15 @@ export function DashboardLive() {
         .eq("id", task.id)
         .eq("user_id", account.user.id);
 
+      if (revisionToken !== account.revision.current) return;
       setPendingTaskIds((curr) => curr.filter((id) => id !== task.id));
 
       if (updateError) {
-        setState((prev) => ({ ...prev, studyTasks: prevTasks }));
+        setState((prev) => ({
+          ...prev,
+          studyTasks: prevTasks,
+          activityEvents: prevEvents,
+        }));
         pushToast({
           title: t("تعذّر تحديث حالة المهمة، أُعيدت كما كانت.", "Could not update task; reverted."),
           tone: "danger",
@@ -592,41 +639,32 @@ export function DashboardLive() {
         });
       }
     },
-    [account.user, pushToast, snapshot.studyTasks, supabase, t],
+    [account.revision, account.user, pushToast, snapshot.activityEvents, snapshot.studyTasks, supabase, t],
   );
 
-  // Save dashboard layout & weekly goals (user_settings.dashboard_preferences when signed in)
+  // Save dashboard layout & weekly goals strictly after server confirmation when signed in
   const handleSavePreferences = useCallback(
     async (nextPrefs: DashboardPreferences) => {
       const normalized = parseDashboardPreferences(nextPrefs);
-      const prevPrefs = preferences;
+      const userId = account.user?.id ?? null;
+      const revisionToken = account.revision.current;
       setSavingPrefs(true);
-      setPreferences(normalized);
-      setState((prev) => ({ ...prev, preferences: normalized }));
 
       try {
-        try {
-          localStorage.setItem(
-            scopedDashboardPreferencesKey(account.user?.id ?? null),
-            JSON.stringify(serializeDashboardPreferences(normalized)),
-          );
-        } catch {
-          /* Optional storage */
-        }
+        const serializedDash = serializeDashboardPreferences(normalized);
 
         if (account.user) {
           const liveShell = readScopedShellPreferences(
             typeof window !== "undefined" ? window.localStorage : null,
             account.user.id,
           );
-          const serializedDash = serializeDashboardPreferences(normalized);
           const mergedPayload = liveShell
             ? mergeShellIntoDashboardPreferences(
                 mergeDashboardIntoExistingPreferences(rawServerDashPrefsRef.current, serializedDash),
                 liveShell,
               )
             : mergeDashboardIntoExistingPreferences(rawServerDashPrefsRef.current, serializedDash);
-          rawServerDashPrefsRef.current = mergedPayload;
+
           const { error: saveErr } = await supabase.from("user_settings").upsert(
             {
               user_id: account.user.id,
@@ -634,26 +672,41 @@ export function DashboardLive() {
             },
             { onConflict: "user_id" },
           );
+          if (revisionToken !== account.revision.current) return;
           if (saveErr) throw saveErr;
+          rawServerDashPrefsRef.current = mergedPayload;
         }
 
+        try {
+          localStorage.setItem(
+            scopedDashboardPreferencesKey(userId),
+            JSON.stringify(serializedDash),
+          );
+        } catch {
+          /* Optional storage */
+        }
+
+        setPreferences(normalized);
+        setState((prev) => ({ ...prev, preferences: normalized }));
         pushToast({
           title: t("تم حفظ تخطيط لوحة التحكم وأهدافك الأسبوعية.", "Dashboard layout & goals saved."),
           tone: "success",
         });
         setCustomizerOpen(false);
       } catch {
-        setPreferences(prevPrefs);
-        setState((prev) => ({ ...prev, preferences: prevPrefs }));
-        pushToast({
-          title: t("تعذّر حفظ التفضيلات في الخادم، أُعيد التخطيط السابق.", "Could not save preferences; reverted."),
-          tone: "danger",
-        });
+        if (revisionToken === account.revision.current) {
+          pushToast({
+            title: t("تعذّر حفظ التفضيلات في الخادم، بقيت الإعدادات السابقة كما هي.", "Could not confirm server save; previous settings preserved."),
+            tone: "danger",
+          });
+        }
       } finally {
-        setSavingPrefs(false);
+        if (revisionToken === account.revision.current) {
+          setSavingPrefs(false);
+        }
       }
     },
-    [account.user, preferences, pushToast, supabase, t],
+    [account.revision, account.user, pushToast, supabase, t],
   );
 
   // Derived metrics (strictly server-backed, XP never conflated with Mastery)
@@ -971,8 +1024,8 @@ export function DashboardLive() {
             <div className="nk-goal-foot">
               <span>
                 {t(
-                  `هدف التركيز اليومي: ${preferences.goals.dailyMinutesTarget} دقيقة`,
-                  `Daily focus goal: ${preferences.goals.dailyMinutesTarget} min`,
+                  "أهدافك الأسبوعية تُقاس بالبطاقات والدروس الموثّقة فقط.",
+                  "Weekly targets reflect verified card reviews & lessons only.",
                 )}
               </span>
               <button
@@ -1096,7 +1149,11 @@ export function DashboardLive() {
             <div className="db-targets-fallback">
               <Link
                 className="db-target-item"
-                href={state.nextLesson ? `/lesson/${encodeURIComponent(state.nextLesson.id)}` : "/learn"}
+                href={
+                  state.nextLesson
+                    ? `/lesson/${encodeURIComponent(state.nextLesson.slug || state.nextLesson.id)}`
+                    : "/learn"
+                }
               >
                 <div className="db-target-badge">1</div>
                 <div className="db-target-copy">
@@ -1114,7 +1171,9 @@ export function DashboardLive() {
                     )}
                   </small>
                 </div>
-                <span className="db-target-time">→</span>
+                <span className="db-target-time" aria-hidden="true">
+                  <Icon name="arrow-end" size={14} />
+                </span>
               </Link>
 
               <Link className="db-target-item" href="/study">
@@ -1128,7 +1187,9 @@ export function DashboardLive() {
                     )}
                   </small>
                 </div>
-                <span className="db-target-time">→</span>
+                <span className="db-target-time" aria-hidden="true">
+                  <Icon name="arrow-end" size={14} />
+                </span>
               </Link>
             </div>
           )}
@@ -1172,7 +1233,7 @@ export function DashboardLive() {
                   </div>
                   <div className="db-weak-actions">
                     <Link
-                      href={`/review?mode=topic${state.activeTrackSlug ? `&track=${encodeURIComponent(state.activeTrackSlug)}` : ""}`}
+                      href={`/review?mode=topic${state.activeTrackSlug ? `&track=${encodeURIComponent(state.activeTrackSlug)}` : ""}${sk.id && sk.id !== "skill" ? `&skill=${encodeURIComponent(sk.id)}` : ""}`}
                       className="db-weak-drill"
                     >
                       {t("تدريب", "Drill")}
@@ -1417,14 +1478,15 @@ export function DashboardLive() {
       data-tour-page="dashboard"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
-      {/* Error / Retry Banner */}
-      {signedIn && (account.error || error) && (
+      {/* Error / Retry Banner — always visible even when account.error is active */}
+      {(account.error || (Boolean(account.user) && error)) && (
         <div className="error-banner" role="alert">
           <span>{account.error || error}</span>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => {
+              if (account.error) void account.refresh();
               setLoading(true);
               setRetry((r) => r + 1);
             }}
@@ -1506,10 +1568,6 @@ export function DashboardLive() {
           </p>
 
           <div className="nk-home-hero-actions">
-            <Link href={recommended.href} className="btn btn-primary">
-              <span>{t(recommended.ctaAr, recommended.ctaEn)}</span>
-              <Icon name="arrow-end" size={16} />
-            </Link>
             <Link
               href={`/study?tab=generator${state.activeTrackSlug ? `&track=${encodeURIComponent(state.activeTrackSlug)}` : ""}`}
               className="btn btn-secondary"
@@ -1523,6 +1581,10 @@ export function DashboardLive() {
             >
               <Icon name="ai" size={16} />
               <span>{t("سؤال Noäta AI", "Ask Noäta AI")}</span>
+            </Link>
+            <Link href="/learn" className="btn btn-secondary">
+              <Icon name="book" size={16} />
+              <span>{t("خريطة المنهج", "Curriculum Map")}</span>
             </Link>
           </div>
         </div>
@@ -1586,15 +1648,23 @@ export function DashboardLive() {
       {visibleOrder.length > 0 ? (
         <div className="nk-dashboard-widgets">
           {visibleOrder.map((widgetId, idx) => {
-            if (widgetId === "next_steps" && visibleOrder[idx + 1] === "weak_radar") {
+            const nextId = visibleOrder[idx + 1];
+            const prevId = visibleOrder[idx - 1];
+            const isPairStart =
+              (widgetId === "next_steps" && nextId === "weak_radar") ||
+              (widgetId === "weak_radar" && nextId === "next_steps");
+            const isPairSecond =
+              (widgetId === "weak_radar" && prevId === "next_steps") ||
+              (widgetId === "next_steps" && prevId === "weak_radar");
+            if (isPairStart && nextId) {
               return (
-                <div key="pair-steps-radar" className="db-two-col">
-                  {widgetMap.next_steps}
-                  {widgetMap.weak_radar}
+                <div key={`pair-${widgetId}-${nextId}`} className="db-two-col">
+                  {widgetMap[widgetId]}
+                  {widgetMap[nextId]}
                 </div>
               );
             }
-            if (widgetId === "weak_radar" && visibleOrder[idx - 1] === "next_steps") {
+            if (isPairSecond) {
               return null;
             }
             return widgetMap[widgetId];

@@ -44,7 +44,7 @@ function CheckEmailContent() {
             options: { emailRedirectTo: authCallbackUrl(origin, "signup", "/", process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL) },
           });
       if (result.error) { setError(localizeAuthError(result.error, locale)); return; }
-      setMessage(t("لو البريد مرتبط بحساب مؤهل، هتصلك رسالة جديدة قريبًا. راجع البريد الوارد والرسائل غير المرغوب فيها.","If this email belongs to an eligible account, a new message will arrive shortly. Check your inbox and spam folder."));
+      setMessage(t("إذا كان البريد مرتبطًا بحساب مؤهل، فستصلك رسالة جديدة قريبًا. راجع البريد الوارد ومجلد الرسائل غير المرغوب فيها.","If this email belongs to an eligible account, a new message will arrive shortly. Check your inbox and spam folder."));
     } catch {
       setError(t("تعذّر إرسال الرسالة الآن. جرّب مرة أخرى بعد قليل.","Could not send the email. Please try again shortly."));
     } finally {

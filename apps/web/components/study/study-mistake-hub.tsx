@@ -432,7 +432,7 @@ export function StudyMistakeHub({
                     className="nk-btn nk-btn--secondary nk-btn--sm"
                   >
                     <Icon name="ai" size={14} />
-                    {t("أصلح مع المعلم الذكي", "Repair with Noäta AI")}
+                    {t("أصلح مع Noäta AI", "Repair with Noäta AI")}
                   </Link>
                   <Button
                     size="sm"

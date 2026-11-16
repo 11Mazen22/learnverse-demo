@@ -26,9 +26,10 @@
 /* Luxury Tour Step Card */
 .aura-tour-card {
   width: min(400px, calc(100vw - 32px));
-  background: color-mix(in srgb, var(--surface) 97%, transparent);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  /* Opaque card surface: the tour sits above busy hero actions, so a translucent
+     glass panel let button labels bleed through the copy on narrow screens. */
+  background: var(--surface);
+  isolation: isolate;
   border: 1.5px solid color-mix(in srgb, var(--line) 70%, var(--accent) 30%);
   border-radius: 20px;
   box-shadow: 0 28px 72px -12px rgba(0, 0, 0, 0.45),
@@ -295,6 +296,7 @@
     width: auto !important;
     transform: none !important;
     border-radius: 18px;
+    background: var(--surface);
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
     animation: auraTourSheet 0.3s ease-out;
     max-height: min(74dvh, 620px);

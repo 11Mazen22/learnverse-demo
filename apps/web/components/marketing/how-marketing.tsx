@@ -190,7 +190,7 @@ export function HowMarketing() {
                         >
                           {locale === "en" ? s.badgeEn : s.badgeAr}
                         </span>
-                        <span className="text-2xl font-black font-mono text-white/20">{s.step}</span>
+                        <span className="text-2xl font-black font-mono text-white/60">{s.step}</span>
                       </span>
                       <span className="block text-base font-bold text-white mb-2">
                         {locale === "en" ? s.titleEn : s.titleAr}
@@ -272,11 +272,24 @@ export function HowMarketing() {
                   {activeStepIndex === 0 && (
                     <div className="space-y-3 text-xs">
                       <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-400/30 text-[#e2e8f0]">
-                        <span className="block font-bold text-cyan-300 mb-1">العلوم المتكاملة · الترم الأول 2026–2027</span>
-                        <p className="text-[11px] text-[#94a3b8]">المصدر: دليل المذاكرة الأصلي ذو البصمة المسجلة · ليس كتابًا رسميًا</p>
+                        <span className="block font-bold text-cyan-300 mb-1">
+                          {t(
+                            "العلوم المتكاملة · الترم الأول 2026–2027",
+                            "Integrated Science · Term 1 2026–2027",
+                          )}
+                        </span>
+                        <p className="text-[11px] text-[#94a3b8]">
+                          {t(
+                            "المصدر: دليل المذاكرة الأصلي ذو البصمة المسجلة · ليس كتابًا رسميًا",
+                            "Source: the original study guide with a recorded fingerprint · not an official textbook",
+                          )}
+                        </p>
                       </div>
                       <p className="text-xs text-[#cbd5e1] leading-relaxed">
-                        تُحفظ هوية ملف المصدر وبصمته عندما تتوفر. هذا الملف النصي لا يوفّر أرقام صفحات، لذلك لا نختلق إحالات صفحات.
+                        {t(
+                          "تُحفظ هوية ملف المصدر وبصمته عندما تتوفر. هذا الملف النصي لا يوفّر أرقام صفحات، لذلك لا نختلق إحالات صفحات.",
+                          "The source file's identity and fingerprint are recorded when available. This text file provides no page numbers, so we never invent page citations.",
+                        )}
                       </p>
                     </div>
                   )}
@@ -284,11 +297,19 @@ export function HowMarketing() {
                   {activeStepIndex === 1 && (
                     <div className="space-y-3 text-xs">
                       <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-400/30 text-[#e2e8f0]">
-                        <span className="block font-bold text-indigo-300 mb-1">الهدف: حساب مميز المعادلة التربيعية</span>
+                        <span className="block font-bold text-indigo-300 mb-1">
+                          {t(
+                            "الهدف: حساب مميز المعادلة التربيعية",
+                            "Goal: compute the quadratic discriminant",
+                          )}
+                        </span>
                         <p className="font-mono text-xs text-white">Δ = b² - 4ac = (-4)² - 4(1)(5) = 16 - 20 = -4 &lt; 0</p>
                       </div>
                       <div className="p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/25 text-amber-200 text-[11px]">
-                        ⚠️ تنبيه شائع: لا تخلط بين المميز السالب والمميز الصفري؛ السالب يعني جذرين مركبين مترافقين.
+                        {t(
+                          "⚠️ تنبيه شائع: لا تخلط بين المميز السالب والمميز الصفري؛ السالب يعني جذرين مركبين مترافقين.",
+                          "⚠️ Common pitfall: do not confuse a negative discriminant with a zero one — negative means a conjugate pair of complex roots.",
+                        )}
                       </div>
                     </div>
                   )}
@@ -296,12 +317,27 @@ export function HowMarketing() {
                   {activeStepIndex === 2 && (
                     <div className="space-y-3 text-xs">
                       <div className="p-3.5 rounded-xl bg-pink-950/30 border border-pink-400/30 text-[#e2e8f0]">
-                        <span className="block font-bold text-pink-300 mb-1">تقييم فوري وتصحيح معلل</span>
-                        <p className="text-white">س: ما نوع جذري المعادلة إذا كان المميز يساوي -16؟</p>
-                        <p className="text-emerald-300 font-semibold mt-1">✓ الصواب: جذران مركبان مترافقان (لأن Δ &lt; 0).</p>
+                        <span className="block font-bold text-pink-300 mb-1">
+                          {t("تقييم فوري وتصحيح معلل", "Instant grading with reasoned correction")}
+                        </span>
+                        <p className="text-white">
+                          {t(
+                            "س: ما نوع جذري المعادلة إذا كان المميز يساوي -16؟",
+                            "Q: What kind of roots does the equation have when the discriminant is -16?",
+                          )}
+                        </p>
+                        <p className="text-emerald-300 font-semibold mt-1">
+                          {t(
+                            "✓ الصواب: جذران مركبان مترافقان (لأن Δ < 0).",
+                            "✓ Correct: a conjugate pair of complex roots (because Δ < 0).",
+                          )}
+                        </p>
                       </div>
                       <p className="text-[11px] text-[#94a3b8]">
-                        التصحيح يشرح أسباب الخطأ والمغالطة الرياضية فورًا ولا يكتفي بوضع علامة خطأ.
+                        {t(
+                          "التصحيح يشرح أسباب الخطأ والمغالطة الرياضية فورًا ولا يكتفي بوضع علامة خطأ.",
+                          "Correction explains the misconception immediately instead of only marking the answer wrong.",
+                        )}
                       </p>
                     </div>
                   )}
@@ -309,24 +345,29 @@ export function HowMarketing() {
                   {activeStepIndex === 3 && (
                     <div className="space-y-3 text-xs">
                       <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-400/30 text-[#e2e8f0]">
-                        <span className="block font-bold text-emerald-300 mb-1">مثال تقديري لبطاقة جديدة</span>
+                        <span className="block font-bold text-emerald-300 mb-1">
+                          {t("مثال تقديري لبطاقة جديدة", "Illustrative new-card example")}
+                        </span>
                         <div className="grid grid-cols-3 gap-2 mt-2 text-center">
                           <div className="bg-black/30 p-2 rounded">
-                            <span className="text-[10px] text-[#94a3b8] block">مرة أخرى</span>
-                            <strong className="text-emerald-400">١٠ دقائق</strong>
+                            <span className="text-[10px] text-[#94a3b8] block">{t("مرة أخرى", "Again")}</span>
+                            <strong className="text-emerald-400">{t("١٠ دقائق", "10 minutes")}</strong>
                           </div>
                           <div className="bg-black/30 p-2 rounded">
-                            <span className="text-[10px] text-[#94a3b8] block">جيد</span>
-                            <strong className="text-emerald-400">يوم</strong>
+                            <span className="text-[10px] text-[#94a3b8] block">{t("جيد", "Good")}</span>
+                            <strong className="text-emerald-400">{t("يوم", "1 day")}</strong>
                           </div>
                           <div className="bg-black/30 p-2 rounded">
-                            <span className="text-[10px] text-[#94a3b8] block">سهل</span>
-                            <strong className="text-emerald-400">٤ أيام</strong>
+                            <span className="text-[10px] text-[#94a3b8] block">{t("سهل", "Easy")}</span>
+                            <strong className="text-emerald-400">{t("٤ أيام", "4 days")}</strong>
                           </div>
                         </div>
                       </div>
                       <p className="text-[11px] text-[#94a3b8]">
-                        هذا مثال موثق لقاعدة البطاقة الشخصية، وليس نتيجة متعلم أو دليل إتقان.
+                        {t(
+                          "هذا مثال موثق لقاعدة البطاقة الشخصية، وليس نتيجة متعلم أو دليل إتقان.",
+                          "This documents the flashcard scheduling rule; it is not learner data or mastery proof.",
+                        )}
                       </p>
                     </div>
                   )}

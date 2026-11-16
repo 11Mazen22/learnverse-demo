@@ -2,6 +2,7 @@ const DRAFT_PREFIX = "noata:study-draft:";
 const DASHBOARD_PREFS_PREFIX = "noata:dashboard-prefs:";
 const AI_DRAFT_PREFIX = "noata-ai-draft";
 export const STUDY_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+export const ACCOUNT_DRAFT_EPOCH = 1;
 
 export type StorageLike = {
   getItem(key: string): string | null;
@@ -81,6 +82,20 @@ export function loadScopedStudyDraft<T>(
   } catch {
     storage.removeItem(key);
     return null;
+  }
+}
+
+export function removeScopedStudyDraft(
+  storage: StorageLike | null | undefined,
+  userId: string | null | undefined,
+  epoch: number,
+  draftName: string,
+): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(scopedStudyDraftKey(userId, epoch, draftName));
+  } catch {
+    // Ignore storage removal errors silently
   }
 }
 

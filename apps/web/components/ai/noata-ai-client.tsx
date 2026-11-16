@@ -25,14 +25,26 @@ import {
 import { parseStructuredAiHandoff } from "@/lib/ai/handoff-contract";
 import { getLessonStudyPack } from "@/lib/curriculum/sec1-study-pack";
 
-import { downloadNoataDocx } from "@/lib/ai/docx-export";
+import dynamic from "next/dynamic";
 import { AttachmentMessage } from "./attachment-message";
 import { DocumentSourcesMessage } from "./document-sources-message";
-import { NoataCreativeStudio } from "./creative-studio";
+// Heavy studios and rich renderers are split out of the initial /ai route chunk.
+// Each keeps its own loading skeleton so nothing shifts after hydration (CLS 0).
+const NoataCreativeStudio = dynamic(
+  () => import("./creative-studio").then((mod) => mod.NoataCreativeStudio),
+  // These studios mount closed, so the loading state must render nothing to
+  // avoid inserting an empty box into the conversation layout.
+  { ssr: false, loading: () => null },
+);
 import { stageOriginalDocument } from "@/lib/ai/original-documents";
 import { ResponseAudioPlayer } from "./response-audio-player";
 import { useUnsavedWork } from "@/lib/use-unsaved-work";
-import { WritingStudio } from "./writing-studio";
+const WritingStudio = dynamic(
+  () => import("./writing-studio").then((mod) => mod.WritingStudio),
+  // These studios mount closed, so the loading state must render nothing to
+  // avoid inserting an empty box into the conversation layout.
+  { ssr: false, loading: () => null },
+);
 import {ResearchSources} from "./response-components";
 import {responseText} from "../../../../supabase/functions/noata-ai/response-ui.ts";
 import { EducationPanel } from "./education-panel";
@@ -41,7 +53,13 @@ import { Dialog } from "@/components/ui/dialog";
 import { ThemeControl } from "@/components/preferences/theme-control";
 import { TourTrigger } from "@/components/tour/tour-trigger";
 import { ConversationHistory } from "./conversation-history";
-import { RichMessage } from "./rich-message";
+const RichMessage = dynamic(
+  () => import("./rich-message").then((mod) => mod.RichMessage),
+  {
+    ssr: false,
+    loading: () => <span className="owui-message-skeleton" aria-busy="true" />,
+  },
+);
 import { useAIWorkspace } from "./use-ai-workspace";
 import {useAISuggestions,SuggestedActions} from "./use-ai-suggestions";
 import {NoataMotionControl} from "./motion-control";
@@ -211,6 +229,22 @@ export function NoataAIClient() {
     setTtsModel,
   } = workspace;
 
+  // Marketing showcase actions deep-link here with `?prompt=…` so the demo hands
+  // off to the real studio instead of being a decorative button. Applied once,
+  // never overwriting a draft the student already typed.
+  const deepLinkPromptApplied = useRef(false);
+  useEffect(() => {
+    if (deepLinkPromptApplied.current) return;
+    deepLinkPromptApplied.current = true;
+    if (typeof window === "undefined") return;
+    const prompt = new URLSearchParams(window.location.search).get("prompt");
+    const trimmed = (prompt ?? "").slice(0, 600).trim();
+    if (!trimmed) return;
+    setInput(trimmed);
+    requestAnimationFrame(() => composer.current?.focus());
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [composer, setInput]);
+
   // Suggested prompts and completed response text are not unsaved user work.
   // Warn only when the student has actually edited the composer or staged a
   // locally selected document that would be lost on navigation.
@@ -325,7 +359,7 @@ export function NoataAIClient() {
     setDriftedFromBottom(false);
   }, [activeId]);
 
-  function exportConversation(format: "markdown" | "json" | "docx") {
+  async function exportConversation(format: "markdown" | "json" | "docx") {
     const stamp = new Date().toISOString().slice(0, 10);
     const title = (activeConversation?.title || "noata-ai-chat").replace(
       /[\\/:*?"<>|]/g,
@@ -347,6 +381,7 @@ export function NoataAIClient() {
         setNotice(t("المحادثة طويلة جدًا لملف واحد. صدّرها بصيغة Markdown.","This conversation is too long for one document. Export it as Markdown."));
         return;
       }
+      const { downloadNoataDocx } = await import("@/lib/ai/docx-export");
       downloadNoataDocx(body, title + "-" + stamp + ".docx");
     } else if (format === "json") {
       downloadText(

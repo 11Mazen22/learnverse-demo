@@ -239,3 +239,14 @@ html[data-noata-motion="off"] .nk-jump-latest {
   scroll-behavior: auto;
 }
 }
+
+/* Deferred rich-message chunk: reserve one text line so streaming and history
+   never shift after the Markdown/KaTeX renderer hydrates (CLS stays 0). */
+@layer components {
+.owui-message-skeleton {
+  display: block;
+  min-height: 1.5em;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--line) 35%, transparent);
+}
+}

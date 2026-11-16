@@ -37,7 +37,7 @@ import {
   type CanonicalLessonStudyPack,
   type CanonicalStudyDeck,
 } from "@/lib/curriculum/sec1-study-pack";
-import { loadScopedStudyDraft, saveScopedStudyDraft } from "@/lib/study/draft-storage";
+import { ACCOUNT_DRAFT_EPOCH, loadScopedStudyDraft, saveScopedStudyDraft } from "@/lib/study/draft-storage";
 import {
   FlashcardReviewStudio,
   type StudioCardItem,
@@ -533,7 +533,7 @@ export function StudyLive() {
                 cards: Card[];
                 tasks: StudyTask[];
                 mistakes: MistakeLogItem[];
-              }>(window.localStorage, null, account.revision.current, "study_preview_workspace")
+              }>(window.localStorage, null, ACCOUNT_DRAFT_EPOCH, "study_preview_workspace")
             : null;
         const seed =
           storedWorkspace && Array.isArray(storedWorkspace.decks) && storedWorkspace.decks.length > 0
@@ -554,7 +554,7 @@ export function StudyLive() {
             ? loadScopedStudyDraft<SavedQuizRecord[]>(
                 window.localStorage,
                 null,
-                account.revision.current,
+                ACCOUNT_DRAFT_EPOCH,
                 "study_saved_quizzes",
               )
             : null;
@@ -617,7 +617,13 @@ export function StudyLive() {
 
     if (revision !== account.revision.current) return;
 
-    if (taskRes.error || deckRes.error || cardRes.error) {
+    if (
+      taskRes.error ||
+      deckRes.error ||
+      cardRes.error ||
+      mistakeRes.error ||
+      sessionRes.error
+    ) {
       setError(
         t(
           "تعذر تحميل بيانات المذاكرة من الحساب.",
@@ -695,11 +701,11 @@ export function StudyLive() {
     saveScopedStudyDraft(
       window.localStorage,
       null,
-      account.revision.current,
+      ACCOUNT_DRAFT_EPOCH,
       "study_preview_workspace",
       { decks, cards, tasks, mistakes },
     );
-  }, [account.revision, account.user, canSyncAccount, cards, decks, mistakes, tasks]);
+  }, [account.user, canSyncAccount, cards, decks, mistakes, tasks]);
 
   useEffect(() => {
     if (canSyncAccount || account.user || !savedQuizzesHydrated.current) return;
@@ -707,54 +713,66 @@ export function StudyLive() {
     saveScopedStudyDraft(
       window.localStorage,
       null,
-      account.revision.current,
+      ACCOUNT_DRAFT_EPOCH,
       "study_saved_quizzes",
       savedQuizzes,
     );
-  }, [account.revision, account.user, canSyncAccount, savedQuizzes]);
+  }, [account.user, canSyncAccount, savedQuizzes]);
 
-  // URL Query Params + Initial Load
+  // URL Query Params + Initial Load (plus popstate query transitions)
   useEffect(() => {
-    const parameters = new URLSearchParams(window.location.search);
-    const lessonId = parameters.get("lesson");
-    const title = parameters.get("title")?.trim();
-    const topicParam = parameters.get("topic")?.trim();
-    const trackParam = parameters.get("track")?.trim();
-    const tab = parameters.get("tab") ?? parameters.get("view");
-    const modeParam = parameters.get("mode")?.trim();
+    const applyQueryParams = () => {
+      const parameters = new URLSearchParams(window.location.search);
+      const lessonId = parameters.get("lesson");
+      const title = parameters.get("title")?.trim();
+      const topicParam = parameters.get("topic")?.trim();
+      const trackParam = parameters.get("track")?.trim();
+      const tab = parameters.get("tab") ?? parameters.get("view");
+      const modeParam = parameters.get("mode")?.trim();
 
-    if (tab && ["generator", "quiz", "review", "decks", "tasks"].includes(tab)) {
-      setView(tab as StudyTab);
-    }
-
-    if (modeParam && ["spaced", "cram", "speed_match", "mistake_hub"].includes(modeParam)) {
-      setReviewMode(modeParam as ReviewMode);
-    } else if (tab === "review" && topicParam) {
-      setReviewMode("mistake_hub");
-    }
-
-    if (trackParam) {
-      selectLibraryTrack(trackParam, lessonId);
-      setLibraryExpanded(true);
-    } else if (lessonId) {
-      const packHit = getLessonStudyPack(lessonId, isEn ? "en" : "ar");
-      if (packHit) {
-        selectLibraryTrack(packHit.trackSlug, packHit.lessonSlug);
+      if (tab && ["generator", "quiz", "review", "decks", "tasks"].includes(tab)) {
+        setView(tab as StudyTab);
       }
-    }
 
-    if (lessonId && title) {
-      setLinkedLesson({ id: lessonId, title });
-      setGenSource("lesson");
-      setGenTopic(title);
-      setTaskTitle((current) => current || t(`مذاكرة: ${title}`, `Study: ${title}`));
-      setDeckTitle((current) => current || title.slice(0, 160));
-    } else if (topicParam) {
-      setGenTopic(topicParam);
-    }
+      if (modeParam === "due" || modeParam === "srs") {
+        setReviewMode("spaced");
+        if (!tab) setView("review");
+      } else if (modeParam && ["spaced", "cram", "speed_match", "mistake_hub"].includes(modeParam)) {
+        setReviewMode(modeParam as ReviewMode);
+        if (!tab) setView("review");
+      } else if (tab === "review" && topicParam) {
+        setReviewMode("mistake_hub");
+      }
 
+      if (trackParam) {
+        selectLibraryTrack(trackParam, lessonId);
+        setLibraryExpanded(true);
+      } else if (lessonId) {
+        const packHit = getLessonStudyPack(lessonId, isEn ? "en" : "ar");
+        if (packHit) {
+          selectLibraryTrack(packHit.trackSlug, packHit.lessonSlug);
+        }
+      }
+
+      if (lessonId && title) {
+        setLinkedLesson({ id: lessonId, title });
+        setGenSource("lesson");
+        setGenTopic(topicParam || title);
+        setTaskTitle((current) => current || t(`مذاكرة: ${title}`, `Study: ${title}`));
+        setDeckTitle((current) => current || title.slice(0, 160));
+      } else if (topicParam) {
+        setGenTopic(topicParam);
+      }
+    };
+
+    applyQueryParams();
     reviewKeys.current.clear();
     if (!account.loading) void load();
+
+    window.addEventListener("popstate", applyQueryParams);
+    return () => {
+      window.removeEventListener("popstate", applyQueryParams);
+    };
   }, [account.loading, isEn, load, selectLibraryTrack, t]);
 
   // Derived collections
@@ -840,7 +858,7 @@ export function StudyLive() {
       const safeCompleted = Math.max(0, Math.min(safeTotal, payload.completedItems));
       const safeCorrect = Math.max(0, Math.min(safeCompleted, payload.correctItems));
 
-      await supabase.from("study_sessions").insert({
+      const { error: sessionErr } = await supabase.from("study_sessions").insert({
         user_id: currentUser.id,
         session_mode: payload.mode,
         title: payload.title.slice(0, 180),
@@ -851,8 +869,14 @@ export function StudyLive() {
         correct_items: safeCorrect,
         completed_at: payload.completed ? new Date().toISOString() : null,
       });
+      if (sessionErr) {
+        push(
+          t("تعذّر حفظ سجل جلسة المذاكرة في الحساب.", "Could not save study session record."),
+          "error",
+        );
+      }
     },
-    [account.user, canSyncAccount, supabase],
+    [account.user, canSyncAccount, push, supabase, t],
   );
 
   // Helper: log mistake (works in both Account DB & Local Preview)
@@ -914,20 +938,40 @@ export function StudyLive() {
           ? entry.cardId
           : null;
 
-      await supabase.from("study_mistake_logs").insert({
-        user_id: currentUser.id,
-        source_type: entry.sourceType,
-        deck_id: validDeckId,
-        card_id: validCardId,
-        lesson_id: isUuid(linkedLesson?.id) ? linkedLesson!.id : null,
-        topic: entry.topic.trim().slice(0, 180) || t("مذاكرة", "Study"),
-        prompt,
-        user_answer: entry.userAnswer.slice(0, 950),
-        expected_answer: expected,
-        explanation: entry.explanation.slice(0, 3900),
-      });
+      const { data: insertedMistake, error: mistakeErr } = await supabase
+        .from("study_mistake_logs")
+        .insert({
+          user_id: currentUser.id,
+          source_type: entry.sourceType,
+          deck_id: validDeckId,
+          card_id: validCardId,
+          lesson_id: isUuid(linkedLesson?.id) ? linkedLesson!.id : null,
+          topic: entry.topic.trim().slice(0, 180) || t("مذاكرة", "Study"),
+          prompt,
+          user_answer: entry.userAnswer.slice(0, 950),
+          expected_answer: expected,
+          explanation: entry.explanation.slice(0, 3900),
+        })
+        .select(
+          "id,source_type,deck_id,card_id,lesson_id,topic,prompt,user_answer,expected_answer,explanation,mistake_count,resolved_at,last_missed_at",
+        )
+        .maybeSingle();
+
+      if (mistakeErr) {
+        push(
+          t("تعذّر تسجيل الخطأ في بنك الأخطاء.", "Could not log mistake in Mistake Hub."),
+          "error",
+        );
+        return;
+      }
+      if (insertedMistake) {
+        setMistakes((prev) => [
+          insertedMistake as unknown as MistakeLogItem,
+          ...prev.filter((m) => m.id !== (insertedMistake as { id: string }).id),
+        ]);
+      }
     },
-    [account.user, canSyncAccount, linkedLesson?.id, supabase, t],
+    [account.user, canSyncAccount, linkedLesson?.id, push, supabase, t],
   );
 
   // 1. Smart Study Bundle Generator
@@ -1058,7 +1102,15 @@ export function StudyLive() {
       }));
 
       const cardsRes = await supabase.from("flashcards").insert(cardsInsert);
-      if (cardsRes.error) throw cardsRes.error;
+      if (cardsRes.error) {
+        // Best-effort cleanup so an empty deck is not orphaned when cards insert fails
+        await supabase
+          .from("flashcard_decks")
+          .delete()
+          .eq("id", newDeckId)
+          .eq("user_id", currentUser.id);
+        throw cardsRes.error;
+      }
 
       setSelectedDeck(newDeckId);
       await load();
@@ -1067,6 +1119,7 @@ export function StudyLive() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       setError(t("تعذّر حفظ البطاقات في الحساب. ", "Could not save cards to account. ") + msg);
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -1152,6 +1205,7 @@ export function StudyLive() {
   }
 
   async function handleUpdateSavedQuizScore(quizId: string, scorePct: number) {
+    const prevQuizzes = savedQuizzes;
     let updatedTarget: SavedQuizRecord | undefined;
     setSavedQuizzes((prev) =>
       prev.map((item) => {
@@ -1167,7 +1221,7 @@ export function StudyLive() {
 
     const currentUser = account.user;
     if (canSyncAccount && currentUser && updatedTarget?.sessionDbId) {
-      await supabase
+      const { error: updErr } = await supabase
         .from("study_sessions")
         .update({
           completed_items: updatedTarget.bundle.questions.length,
@@ -1178,6 +1232,13 @@ export function StudyLive() {
           } as unknown as Json,
         })
         .eq("id", updatedTarget.sessionDbId);
+      if (updErr) {
+        setSavedQuizzes(prevQuizzes);
+        push(
+          t("تعذّر تحديث درجة الاختبار في الحساب.", "Could not update saved quiz score in account."),
+          "error",
+        );
+      }
     }
   }
 
@@ -1194,11 +1255,25 @@ export function StudyLive() {
     });
     if (!confirmed) return;
 
+    const prevQuizzes = savedQuizzes;
+    const prevActiveId = activeSavedQuizId;
     setSavedQuizzes((prev) => prev.filter((item) => item.id !== quiz.id));
     if (activeSavedQuizId === quiz.id) setActiveSavedQuizId(null);
 
     if (canSyncAccount && account.user && quiz.sessionDbId) {
-      await supabase.from("study_sessions").delete().eq("id", quiz.sessionDbId);
+      const { error: delErr } = await supabase
+        .from("study_sessions")
+        .delete()
+        .eq("id", quiz.sessionDbId);
+      if (delErr) {
+        setSavedQuizzes(prevQuizzes);
+        setActiveSavedQuizId(prevActiveId);
+        push(
+          t("تعذّر حذف الاختبار من الحساب. حاول مرة أخرى.", "Could not delete saved quiz. Please try again."),
+          "error",
+        );
+        return;
+      }
     }
     push(t("تم حذف الاختبار من قائمتك.", "Saved quiz removed."), "info");
   }
@@ -1398,6 +1473,7 @@ export function StudyLive() {
       setBusy(true);
       setError("");
 
+      const revisionToken = account.revision.current;
       try {
         const fingerprint = `${cardId}:${rating}`;
         if (!reviewKeys.current.has(fingerprint)) {
@@ -1422,6 +1498,9 @@ export function StudyLive() {
         }
 
         const receipt = (result.data ?? {}) as ReviewReceipt;
+        if (revisionToken !== account.revision.current) {
+          return false;
+        }
         if (receipt.card_id === cardId && receipt.due_at) {
           reviewKeys.current.delete(fingerprint);
           setCards((prev) =>
@@ -1439,6 +1518,13 @@ export function StudyLive() {
           return true;
         }
 
+        push(
+          t(
+            "لم يتأكد حفظ المراجعة من الخادم. حاول مرة أخرى.",
+            "Review receipt was not confirmed by server. Please try again.",
+          ),
+          "error",
+        );
         return false;
       } finally {
         setBusy(false);
@@ -1824,7 +1910,7 @@ export function StudyLive() {
           {
             id: targetId!,
             title: deckName,
-            description: t("مستوردة عبر محرك نقطة", "Imported via Noäta Bulk Importer"),
+            description: t("مستوردة عبر محرك Noäta", "Imported via Noäta Bulk Importer"),
             status: "active",
             source_type: "manual",
             source_version: null,
@@ -1992,7 +2078,7 @@ export function StudyLive() {
               </Badge>
             ) : null}
           </div>
-          <h1>{t("استوديو نقطة للذكاء والمذاكرة النشطة", "Noäta Active Recall & Study Studio")}</h1>
+          <h1>{t("استوديو Noäta للذكاء والمذاكرة النشطة", "Noäta Active Recall & Study Studio")}</h1>
           <p className="noata-study-muted">
             {t(
               "ولّد اختبارات وبطاقات في ثوانٍ، تدرب بالكتابة الدقيقة أو الحذف المتعدد أو سباق المطابقة، وتابع أخطاءك بدقة SM-2.",
@@ -2625,7 +2711,7 @@ export function StudyLive() {
                           : t("شرح AI مساند", "AI Supplementary Explanation")}
                     </Badge>
                     {activeBundle.aiStatus === "fanar_ai" ? (
-                      <Badge tone="accent">{t("توليد Fanar AI", "Fanar AI Synthesized")}</Badge>
+                      <Badge tone="accent">{t("توليد Noäta AI", "Noäta AI Synthesized")}</Badge>
                     ) : null}
                   </div>
                   <h3>{activeBundle.title}</h3>
@@ -2752,7 +2838,7 @@ export function StudyLive() {
               <InteractiveQuizRunner
                 bundle={activeBundle}
                 userId={userId}
-                authEpoch={account.revision.current}
+                authEpoch={ACCOUNT_DRAFT_EPOCH}
                 onFinish={(score, _missed, mistakeRecords: QuizMistakeRecord[]) => {
                   if (activeSavedQuizId) {
                     void handleUpdateSavedQuizScore(activeSavedQuizId, score);
@@ -3075,29 +3161,44 @@ export function StudyLive() {
               onToggleResolveMistake={async (mistake, resolved) => {
                 const resolvedAt = resolved ? new Date().toISOString() : null;
                 const currentUser = account.user;
-    if (!canSyncAccount || !currentUser) {
+                if (!canSyncAccount || !currentUser) {
                   setMistakes((prev) => prev.map((m) => (m.id === mistake.id ? { ...m, resolved_at: resolvedAt } : m)));
                   return;
                 }
-                await supabase.from("study_mistake_logs").update({ resolved_at: resolvedAt }).eq("id", mistake.id);
+                const { error } = await supabase
+                  .from("study_mistake_logs")
+                  .update({ resolved_at: resolvedAt })
+                  .eq("id", mistake.id);
+                if (error) {
+                  push(t("تعذر تحديث حالة الخطأ. حاول مرة أخرى.", "Could not update mistake status. Please try again."), "error");
+                  return;
+                }
                 await load();
               }}
               onDeleteMistake={async (mistakeId) => {
                 const currentUser = account.user;
-    if (!canSyncAccount || !currentUser) {
+                if (!canSyncAccount || !currentUser) {
                   setMistakes((prev) => prev.filter((m) => m.id !== mistakeId));
                   return;
                 }
-                await supabase.from("study_mistake_logs").delete().eq("id", mistakeId);
+                const { error } = await supabase.from("study_mistake_logs").delete().eq("id", mistakeId);
+                if (error) {
+                  push(t("تعذر حذف الخطأ. حاول مرة أخرى.", "Could not delete mistake log. Please try again."), "error");
+                  return;
+                }
                 await load();
               }}
               onCompleteSession={async (sessionId) => {
                 const currentUser = account.user;
-      if (!canSyncAccount || !currentUser) return;
-                await supabase
+                if (!canSyncAccount || !currentUser) return;
+                const { error } = await supabase
                   .from("study_sessions")
                   .update({ status: "completed", completed_at: new Date().toISOString() })
                   .eq("id", sessionId);
+                if (error) {
+                  push(t("تعذر إنهاء جلسة المذاكرة. حاول مرة أخرى.", "Could not complete study session. Please try again."), "error");
+                  return;
+                }
                 await load();
               }}
             />

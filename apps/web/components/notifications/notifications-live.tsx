@@ -1,5 +1,6 @@
 "use client";
 import {useLocale,useTranslation} from "@/lib/i18n/locale";
+import { NOTIFICATION_FORMS, formatArabicCount, formatCount } from "@/lib/i18n/plural";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { safeHref } from "@/lib/ai/workspace";
@@ -202,7 +203,7 @@ export function NotificationsLive() {
           <p>
             {error
               ? t("تعذّر تحديث الصندوق","Could not refresh the inbox")
-              : locale==="en"?`${unread.length} unread notifications in the latest 100`:`${unread.length.toLocaleString("ar-EG")} إشعارات غير مقروءة في أحدث ١٠٠ إشعار`}
+              : locale==="en"?`${formatCount("en", unread.length, NOTIFICATION_FORMS, { singular: "unread notification" })} in the latest 100`:`${formatArabicCount(unread.length, NOTIFICATION_FORMS)} غير مقروءة في أحدث ١٠٠ إشعار`}
           </p>
         </div>
         <button

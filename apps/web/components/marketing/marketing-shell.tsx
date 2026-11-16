@@ -6,6 +6,7 @@ import { NoataBrand } from "@/components/ui/noata-logo";
 import { LocaleControl } from "@/components/preferences/locale-control";
 import { isReducedMotionActive } from "@/lib/appearance/device-preferences";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
+import { SUPPORT_EMAIL } from "@/lib/support/identity";
 import "../../app/premium-home.css";
 import "../../app/marketing.css";
 import "../../app/marketing-premium.css";
@@ -205,7 +206,7 @@ export function MarketingShell({ children, tone = "dark" }: { children: ReactNod
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-mono text-cyan-300">
                 <span>✉️</span>
-                <span>mazenshazly011@gmail.com</span>
+                <span>{SUPPORT_EMAIL}</span>
               </div>
               <Link
                 href="/signup"

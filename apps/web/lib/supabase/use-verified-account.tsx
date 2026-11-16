@@ -1,5 +1,6 @@
 "use client";
 import {
+  ACCOUNT_DRAFT_EPOCH,
   purgeForeignOrExpiredStudyDrafts,
   wipeAllStudyDrafts,
 } from "@/lib/study/draft-storage";
@@ -132,7 +133,7 @@ export function VerifiedAccountProvider({ children }: { children: React.ReactNod
         ++revision.current;
         candidate.current = session.user.id;
         if (typeof window !== "undefined") {
-          purgeForeignOrExpiredStudyDrafts(window.localStorage, session.user.id, revision.current);
+          purgeForeignOrExpiredStudyDrafts(window.localStorage, session.user.id, ACCOUNT_DRAFT_EPOCH);
           purgeForeignOrSignedOutShellPreferences(window.localStorage, session.user.id);
           purgeForeignOrSignedOutDevicePreferences(session.user.id, window.localStorage);
           window.dispatchEvent(new Event(SIDEBAR_PREFS_EVENT));

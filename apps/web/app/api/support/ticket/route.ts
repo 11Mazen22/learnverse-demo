@@ -9,6 +9,15 @@ import type {
   SupportTicketRecord,
   SupportTicketSubmission,
 } from "@/lib/support/types";
+import { localizedMessage, requestLocale, type RequestLocale } from "@/lib/i18n/request-locale";
+
+/** Validation failures answer in the caller's language, with both variants kept. */
+function failure(locale: RequestLocale, arabic: string, english: string, status: number) {
+  return NextResponse.json(
+    { ok: false, error: localizedMessage(locale, arabic, english), errorAr: arabic, errorEn: english },
+    { status },
+  );
+}
 
 // In-memory rate limiter (bounded to 1000 entries)
 const submissionLog = new Map<string, number[]>();
@@ -44,6 +53,7 @@ const VALID_CATEGORIES = new Set<SupportCategory>([
 ]);
 
 export async function POST(req: NextRequest) {
+  const locale = requestLocale(req.headers);
   try {
     if (!req.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
       return NextResponse.json({ ok: false, error: "Content-Type must be application/json." }, { status: 415 });
@@ -80,44 +90,46 @@ export async function POST(req: NextRequest) {
     const message = String(body.message || "").trim();
 
     if (!name || name.length < 2 || name.length > 100) {
-      return NextResponse.json(
-        { ok: false, error: "يرجى كتابة الاسم بشكل صحيح (بين حرفين و100 حرف)." },
-        { status: 400 },
+      return failure(
+        locale,
+        "يرجى كتابة الاسم بشكل صحيح (بين حرفين و100 حرف).",
+        "Enter a valid name between 2 and 100 characters.",
+        400,
       );
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email) || email.length > 255) {
-      return NextResponse.json(
-        { ok: false, error: "يرجى إدخال بريد إلكتروني صالح للتواصل." },
-        { status: 400 },
-      );
+      return failure(locale, "يرجى إدخال بريد إلكتروني صالح للتواصل.", "Enter a valid reply email address.", 400);
     }
 
     if (!subject || subject.length < 3 || subject.length > 200) {
-      return NextResponse.json(
-        { ok: false, error: "يرجى كتابة عنوان واضح للموضوع (بين 3 و200 حرف)." },
-        { status: 400 },
+      return failure(
+        locale,
+        "يرجى كتابة عنوان واضح للموضوع (بين 3 و200 حرف).",
+        "Enter a clear subject between 3 and 200 characters.",
+        400,
       );
     }
 
     if (!VALID_CATEGORIES.has(category)) {
-      return NextResponse.json(
-        { ok: false, error: "يرجى اختيار تصنيف صالح لطلب الدعم." },
-        { status: 400 },
-      );
+      return failure(locale, "يرجى اختيار تصنيف صالح لطلب الدعم.", "Choose a valid support category.", 400);
     }
 
     if (!message || message.length < 10 || message.length > 4000) {
-      return NextResponse.json(
-        { ok: false, error: "يرجى كتابة تفاصيل المشكلة أو الاستفسار (بين 10 و4000 حرف)." },
-        { status: 400 },
+      return failure(
+        locale,
+        "يرجى كتابة تفاصيل المشكلة أو الاستفسار (بين 10 و4000 حرف).",
+        "Describe the issue or question in 10 to 4000 characters.",
+        400,
       );
     }
     if (!checkRateLimit(`${ip}:${email}`, 3)) {
-      return NextResponse.json(
-        { ok: false, error: "يرجى الانتظار قبل إرسال طلب آخر.", errorEn: "Please wait before submitting another request." },
-        { status: 429 },
+      return failure(
+        locale,
+        "يرجى الانتظار قبل إرسال طلب آخر.",
+        "Please wait before submitting another request.",
+        429,
       );
     }
 
@@ -176,12 +188,22 @@ export async function POST(req: NextRequest) {
       });
     if (persistence.error) {
       return NextResponse.json(
-        { ok: false, saved: false, error: "تعذّر حفظ طلب الدعم؛ لم نرسل إشعار نجاح.", errorEn: "The support request could not be saved." },
+        {
+          ok: false,
+          saved: false,
+          error: localizedMessage(
+            locale,
+            "تعذّر حفظ طلب الدعم؛ لم نرسل إشعار نجاح.",
+            "The support request could not be saved, so no success notice was shown.",
+          ),
+          errorAr: "تعذّر حفظ طلب الدعم؛ لم نرسل إشعار نجاح.",
+          errorEn: "The support request could not be saved, so no success notice was shown.",
+        },
         { status: 503 },
       );
     }
 
-    // Execute real transactional email notification to mazenshazly011@gmail.com
+    // Execute the real transactional notification to the configured support inbox.
     const emailResult = await dispatchSupportTicketEmail(ticketRecord);
 
     const deliveryReceipt = await (await createClient()).rpc("record_support_ticket_delivery", {
@@ -209,9 +231,11 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    return NextResponse.json(
-      { ok: false, error: "حدث خطأ غير متوقع أثناء معالجة طلبك." },
-      { status: 500 },
+    return failure(
+      locale,
+      "حدث خطأ غير متوقع أثناء معالجة طلبك.",
+      "An unexpected error occurred while processing your request.",
+      500,
     );
   }
 }

@@ -57,6 +57,12 @@ function resolveDir(explicitDir: "auto" | "rtl" | "ltr" | undefined, sampleText:
   return inferTextDirection(sampleText);
 }
 
+// Plain prose (no Markdown or math markers) skips the whole remark/rehype AST
+// pipeline. It is the common case on review cards and short prompts, where
+// parsing cost is pure overhead; anything with real syntax still goes through
+// the full renderer so KaTeX stays instant.
+const MARKDOWN_SYNTAX = /[$`*_#|~[\]<>]|^\s{0,3}([-+*]|\d+[.)])\s/m;
+
 const MarkdownContent = memo(function MarkdownContent({
   markdown,
   resolvedDir,
@@ -71,6 +77,18 @@ const MarkdownContent = memo(function MarkdownContent({
   if (!normalized.trim()) return null;
 
   const Wrapper = inline ? "span" : "div";
+
+  if (!MARKDOWN_SYNTAX.test(normalized)) {
+    return (
+      <Wrapper className="noata-study-markdown" dir={resolvedDir}>
+        {inline ? (
+          <span className="noata-study-inline-p">{normalized}</span>
+        ) : (
+          <p>{normalized}</p>
+        )}
+      </Wrapper>
+    );
+  }
 
   return (
     <Wrapper className="noata-study-markdown" dir={resolvedDir}>

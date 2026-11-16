@@ -314,8 +314,31 @@ export function CurriculumMarketing() {
               </p>
             </div>
 
-            <div className="mp-table rounded-3xl overflow-hidden border border-white/[0.1] shadow-2xl">
+            <div
+              className="mp-table rounded-3xl overflow-hidden border border-white/[0.1] shadow-2xl"
+              role="region"
+              aria-label={t("جدول مقارنة المسارات", "Track comparison table")}
+              tabIndex={0}
+            >
               <table className="w-full text-start">
+                <caption
+                  style={{
+                    position: "absolute",
+                    width: 1,
+                    height: 1,
+                    padding: 0,
+                    margin: -1,
+                    overflow: "hidden",
+                    clip: "rect(0 0 0 0)",
+                    whiteSpace: "nowrap",
+                    border: 0,
+                  }}
+                >
+                  {t(
+                    "مقارنة المسارات: المادة، المسار، لغة المحتوى، عدد الدروس، عدد الأسئلة، وإجراء التسجيل.",
+                    "Track comparison: subject, track, content language, lesson count, question count, and enrolment action.",
+                  )}
+                </caption>
                 <thead>
                   <tr className="border-b border-white/[0.1] bg-white/[0.04]">
                     <th className="p-4 text-xs font-bold text-[#94a3b8] uppercase tracking-wider">{t("المادة", "Subject")}</th>

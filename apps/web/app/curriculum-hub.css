@@ -192,7 +192,9 @@
 .aura-medium-tab[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent-ink, var(--surface));
+  /* Canonical on-accent pair: --accent-ink is not defined in every palette, and
+     falling back to --surface produced dark-on-accent text under Midnight. */
+  color: var(--on-accent, #ffffff);
 }
 
 .aura-track-enrolled-badge {

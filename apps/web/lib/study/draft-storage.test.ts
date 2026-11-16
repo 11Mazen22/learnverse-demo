@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   loadScopedStudyDraft,
   purgeForeignOrExpiredStudyDrafts,
+  removeScopedStudyDraft,
   saveScopedStudyDraft,
   STUDY_DRAFT_TTL_MS,
   wipeAllStudyDrafts,
@@ -51,4 +52,11 @@ test("scoped study drafts isolate users, respect 24h TTL, and wipe cleanly on ac
   saveScopedStudyDraft(store, "user-b", 3, "deck_editor", { title: "Draft" }, T0);
   assert.equal(wipeAllStudyDrafts(store), 1);
   assert.equal(store.length, 0);
+
+  // Scoped checkpoint removeScopedStudyDraft clears only target draft without disturbing sibling drafts
+  saveScopedStudyDraft(store, "user-c", 2, "lesson_1", { activeStage: 3 }, T0);
+  saveScopedStudyDraft(store, "user-c", 2, "assignment_a1", { idx: 1 }, T0);
+  removeScopedStudyDraft(store, "user-c", 2, "lesson_1");
+  assert.equal(loadScopedStudyDraft(store, "user-c", 2, "lesson_1", T0 + 1000), null);
+  assert.deepEqual(loadScopedStudyDraft(store, "user-c", 2, "assignment_a1", T0 + 1000), { idx: 1 });
 });

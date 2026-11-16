@@ -845,15 +845,15 @@ export function KnowledgeMap() {
                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                      <span className="block text-[10px] text-[#94a3b8]">{t("مرة أخرى", "Again")}</span>
-                     <strong className="text-emerald-400 text-sm">١٠ دقائق</strong>
+                     <strong className="text-emerald-400 text-sm">{t("١٠ دقائق", "10 minutes")}</strong>
                   </div>
                   <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                      <span className="block text-[10px] text-[#94a3b8]">{t("جيد", "Good")}</span>
-                     <strong className="text-emerald-400 text-sm">يوم</strong>
+                     <strong className="text-emerald-400 text-sm">{t("يوم", "1 day")}</strong>
                   </div>
                   <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                      <span className="block text-[10px] text-[#94a3b8]">{t("سهل", "Easy")}</span>
-                     <strong className="text-emerald-400 text-sm">٤ أيام</strong>
+                     <strong className="text-emerald-400 text-sm">{t("٤ أيام", "4 days")}</strong>
                   </div>
                 </div>
               </div>

@@ -28,6 +28,12 @@ import {
   evaluateLocalChoice,
   getLessonStudyCompanion,
 } from "@/lib/curriculum/sec1-study-pack";
+import {
+  ACCOUNT_DRAFT_EPOCH,
+  loadScopedStudyDraft,
+  removeScopedStudyDraft,
+  saveScopedStudyDraft,
+} from "@/lib/study/draft-storage";
 
 type TrackOption = {
   id: string;
@@ -263,6 +269,30 @@ export function MissionLive() {
         }
 
         setQuestions(mergedQuestions);
+        if (typeof window !== "undefined" && mergedQuestions.length > 0) {
+          const saved = loadScopedStudyDraft<{
+            fingerprint: string;
+            index: number;
+            answer: string;
+            hintVisible: boolean;
+            firstTryWins: number;
+            attemptedIds: string[];
+          }>(
+            window.localStorage,
+            account.user?.id ?? null,
+            ACCOUNT_DRAFT_EPOCH,
+            `mission_${targetLesson.id}`,
+          );
+          if (saved && saved.fingerprint === mergedQuestions.map((q) => q.id).join(",")) {
+            setIndex(Math.min(Math.max(0, saved.index ?? 0), Math.max(0, mergedQuestions.length - 1)));
+            setAnswer(saved.answer ?? "");
+            setHintVisible(Boolean(saved.hintVisible));
+            setFirstTryWins(typeof saved.firstTryWins === "number" ? saved.firstTryWins : 0);
+            if (Array.isArray(saved.attemptedIds)) {
+              setAttempted(new Set(saved.attemptedIds));
+            }
+          }
+        }
       } catch {
         if (activeCheck()) {
           setError(
@@ -685,9 +715,56 @@ export function MissionLive() {
           });
         }
         setComplete(true);
+        if (typeof window !== "undefined" && lessonId) {
+          removeScopedStudyDraft(
+            window.localStorage,
+            account.user?.id ?? null,
+            ACCOUNT_DRAFT_EPOCH,
+            `mission_${lessonId}`,
+          );
+        }
       }, "");
     });
   }
+
+  useEffect(() => {
+    if (
+      loadingQuestions ||
+      complete ||
+      !lessonId ||
+      !questions.length ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
+    if (index === 0 && !answer.trim() && attempted.size === 0 && !hintVisible) return;
+    saveScopedStudyDraft(
+      window.localStorage,
+      account.user?.id ?? null,
+      ACCOUNT_DRAFT_EPOCH,
+      `mission_${lessonId}`,
+      {
+        fingerprint: questions.map((q) => q.id).join(","),
+        index,
+        answer,
+        hintVisible,
+        firstTryWins,
+        attemptedIds: Array.from(attempted),
+      },
+    );
+  }, [
+    account.revision,
+    account.user?.id,
+    answer,
+    attempted,
+    complete,
+    firstTryWins,
+    hintVisible,
+    index,
+    lessonId,
+    loadingQuestions,
+    questions,
+  ]);
 
   if (account.error) {
     return (
@@ -703,7 +780,7 @@ export function MissionLive() {
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>{t("بنجهّز مساحتك…", "Preparing your space…")}</h2>
+        <h2>{t("جارٍ تجهيز مساحتك…", "Preparing your space…")}</h2>
         <p>{t("لحظات ونرتّب خطوتك التالية.", "Finding your next step.")}</p>
       </section>
     );
@@ -1059,7 +1136,7 @@ export function MissionLive() {
               </small>
             </div>
             <h2 style={{ fontSize: 22, lineHeight: 1.75, margin: "20px 0" }} dir={contentDir}>
-              <StudyRichText content={currentPrompt} />
+              <StudyRichText content={currentPrompt} inline />
             </h2>
 
             <form onSubmit={(e) => void gradeCurrent(e)}>
@@ -1114,7 +1191,7 @@ export function MissionLive() {
                   <b>
                     {grade.correct
                       ? t("صح 👏", "Correct 👏")
-                      : t("قريب منها — خلّينا نحاول بطريقة تانية", "Not quite. Let’s try a different approach.")}
+                      : t("قريب منها — لنجرّب طريقة أخرى.", "Not quite. Let’s try a different approach.")}
                   </b>
                   <div style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
                     <StudyRichText

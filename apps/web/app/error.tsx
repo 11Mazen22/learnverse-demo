@@ -35,9 +35,9 @@ export default function ErrorPage({
         <div className="eyebrow" style={{ color: "var(--danger)" }}>
           {t("استعادة الصفحة","Recovery mode")}
         </div>
-        <h1>{t("حصل خطأ غير متوقع.","Something went wrong.")}</h1>
+        <h1>{t("حدث خطأ غير متوقع.","Something went wrong.")}</h1>
         <p style={{ color: "var(--muted)", lineHeight: 1.8 }}>
-          {t("بياناتك مش هنعتبرها اتسجلت إلا لما السيرفر يأكد العملية. جرّب تحميل الجزء ده تاني.","Your changes are only saved when the server confirms them. Try loading this page again.")}
+          {t("لا نعتبر بياناتك محفوظة إلا بعد تأكيد الخادم للعملية. حاول إعادة تحميل هذه الصفحة.","Your changes are only saved when the server confirms them. Try loading this page again.")}
         </p>
         <button
           className="btn"

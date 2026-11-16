@@ -117,8 +117,14 @@ function normalizeSettings(
     ai_memory_enabled: row?.ai_memory_enabled !== false,
   };
 }
-function applyThemeOnly(theme: "system" | "light" | "dark", explicitUserId?: string | null) {
-  writeScopedDevicePreference(THEME_PREF_PREFIX, theme, { userId: explicitUserId });
+function applyThemeOnly(
+  theme: "system" | "light" | "dark",
+  explicitUserId?: string | null,
+  persistLocal = true,
+) {
+  if (persistLocal) {
+    writeScopedDevicePreference(THEME_PREF_PREFIX, theme, { userId: explicitUserId });
+  }
   const pal = typeof document !== "undefined" ? document.documentElement.dataset.palette : "classic";
   const constraint = getActiveModeConstraint();
   if (typeof document !== "undefined") {
@@ -132,12 +138,23 @@ function applyThemeOnly(theme: "system" | "light" | "dark", explicitUserId?: str
   }
 }
 
-function applyMotionOnly(reducedMotion: boolean, explicitUserId?: string | null) {
+function applyMotionOnly(
+  reducedMotion: boolean,
+  explicitUserId?: string | null,
+  persistLocal = true,
+) {
   if (typeof document === "undefined") return;
   const currentMotion = readScopedMotionPreference(explicitUserId);
   const nextMotion = reducedMotion
     ? (currentMotion === "off" ? "off" : "reduce")
     : (currentMotion === "reduce" ? "system" : currentMotion);
+  if (!persistLocal) {
+    syncMotionDomAttributes({
+      mode: nextMotion,
+      serverReducedMotion: reducedMotion,
+    });
+    return;
+  }
   applyAndPersistMotionPreference(nextMotion, {
     userId: explicitUserId,
     serverReducedMotion: reducedMotion,
@@ -837,7 +854,7 @@ export function SettingsLive() {
     if (cleanName.length < 2 || cleanName.length > 80) {
       setNotice({
         kind: "error",
-         message: t("اسم العرض لازم يكون بين حرفين و٨٠ حرفًا.","Your display name must be between 2 and 80 characters."),
+        message: t("يجب أن يكون اسم العرض بين حرفين و٨٠ حرفًا.","Your display name must be between 2 and 80 characters."),
       });
       return;
     }
@@ -856,7 +873,6 @@ export function SettingsLive() {
           liveShell,
         )
       : mergeDashboardIntoExistingPreferences(rawDashPrefsRef.current, serializedDashPrefs);
-    rawDashPrefsRef.current = mergedDashPrefsPayload;
     await run(async (check) => {
       try {
         // Two distinct RLS-protected records. Never report success if either write fails.
@@ -888,8 +904,9 @@ export function SettingsLive() {
         check();
         if (settingResult.error)
           throw Error(
-             t("اتحفظ الاسم، لكن تفضيلات الجهاز والذكاء الاصطناعي لم تُحفظ. حاول مرة أخرى.","Your name was saved, but your device and AI preferences were not. Please try again."),
+             t("تم حفظ الاسم، لكن تفضيلات الجهاز والذكاء الاصطناعي لم تُحفظ. حاول مرة أخرى.","Your name was saved, but your device and AI preferences were not. Please try again."),
           );
+        rawDashPrefsRef.current = mergedDashPrefsPayload;
         try {
           localStorage.setItem(
             scopedDashboardPreferencesKey(userId),
@@ -988,7 +1005,7 @@ export function SettingsLive() {
     return (
       <section className="aura-settings-state" role="status">
         <Icon name="settings" size={29} />
-         <h1>{t("بنحمّل إعداداتك…", "Loading your settings…")}</h1>
+         <h1>{t("جارٍ تحميل إعداداتك…", "Loading your settings…")}</h1>
          <p>{t("البيانات مرتبطة بحسابك الشخصي.", "These settings belong to your account.")}</p>
       </section>
     );
@@ -1084,7 +1101,7 @@ export function SettingsLive() {
                 systemDark={systemDark}
                 onSelectTheme={(mode) => {
                   setSettings((s) => ({ ...s, theme: mode }));
-                  applyThemeOnly(mode, userId || null);
+                  applyThemeOnly(mode, userId || null, !userId);
                 }}
                 locale={locale}
                 t={t}
@@ -1132,7 +1149,7 @@ export function SettingsLive() {
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setSettings((s) => ({ ...s, reduced_motion: checked }));
-                    applyMotionOnly(checked, userId || null);
+                    applyMotionOnly(checked, userId || null, !userId);
                   }}
                 />
               </label>
@@ -1184,7 +1201,7 @@ export function SettingsLive() {
             </label>
 
             <div id="aura-goals" className="noata-settings-subpanel">
-              <h3>{t("أهداف التعلم الأسبوعية واليومية", "Weekly & daily learning goals")}</h3>
+              <h3>{t("أهداف التعلم الأسبوعية", "Weekly learning goals")}</h3>
               <div className="noata-settings-goals-grid">
                 <label className="aura-settings-label">
                   <span>{t("هدف البطاقات أسبوعيًا", "Weekly cards target")}</span>
@@ -1215,23 +1232,6 @@ export function SettingsLive() {
                         parseDashboardPreferences({
                           ...p,
                           goals: { ...p.goals, weeklyLessonsTarget: Number(e.target.value) || p.goals.weeklyLessonsTarget },
-                        }),
-                      )
-                    }
-                  />
-                </label>
-                <label className="aura-settings-label">
-                  <span>{t("دقائق المراجعة يوميًا", "Daily study minutes")}</span>
-                  <input
-                    type="number"
-                    min={10}
-                    max={240}
-                    value={dashPrefs.goals.dailyMinutesTarget}
-                    onChange={(e) =>
-                      setDashPrefs((p) =>
-                        parseDashboardPreferences({
-                          ...p,
-                          goals: { ...p.goals, dailyMinutesTarget: Number(e.target.value) || p.goals.dailyMinutesTarget },
                         }),
                       )
                     }
@@ -1416,7 +1416,7 @@ export function SettingsLive() {
             </div>
             <div className="aura-settings-account-overview">
               <div>
-                <strong>{name.trim() || t("حساب Noäta", "Noata account")}</strong>
+                <strong>{name.trim() || t("حساب Noäta", "Noäta account")}</strong>
                 <span dir="ltr">{email}</span>
               </div>
               <button type="button" className="aura-settings-signout"

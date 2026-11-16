@@ -1,6 +1,13 @@
+import { SUPPORT_EMAIL } from "./identity.ts";
 import type { SupportEmailDeliveryResult, SupportTicketRecord } from "./types";
 
-export const REQUIRED_SUPPORT_EMAIL = "mazenshazly011@gmail.com";
+/**
+ * Ticket inbox. Defaults to the official Noäta support address and can be
+ * pointed at an operations mailbox through `NOATA_SUPPORT_EMAIL` without ever
+ * hardcoding a personal address in the repository.
+ */
+export const REQUIRED_SUPPORT_EMAIL =
+  process.env.NOATA_SUPPORT_EMAIL?.trim() || SUPPORT_EMAIL;
 
 function escapeHtml(str: string): string {
   return str
@@ -103,7 +110,7 @@ ${ticket.message}
 }
 
 /**
- * Dispatches the support ticket notification to mazenshazly011@gmail.com
+ * Dispatches the support ticket notification to the configured support inbox
  * Supports Resend, SMTP, or truthfully reports missing configuration.
  */
 export async function dispatchSupportTicketEmail(

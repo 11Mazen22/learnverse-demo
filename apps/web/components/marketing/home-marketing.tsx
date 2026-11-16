@@ -528,12 +528,28 @@ export function HomeMarketing() {
                       )}
                     </p>
                     <div className="pt-2 flex flex-wrap gap-2 text-[10px]">
-                      <button type="button" className="px-2 py-1 rounded bg-white/[0.08] hover:bg-white/[0.15] text-white">
+                      <Link
+                        href={`/ai?prompt=${encodeURIComponent(
+                          t(
+                            "أنشئ بطاقة مراجعة من شرح قطبية الماء والروابط الهيدروجينية أعلاه.",
+                            "Create a flashcard from the water polarity and hydrogen bonding explanation above.",
+                          ),
+                        )}`}
+                        className="px-2 py-1 rounded bg-white/[0.08] hover:bg-white/[0.15] text-white"
+                      >
                         {t("✦ أنشئ بطاقة مراجعة", "✦ Create Flashcard")}
-                      </button>
-                      <button type="button" className="px-2 py-1 rounded bg-white/[0.08] hover:bg-white/[0.15] text-white">
+                      </Link>
+                      <Link
+                        href={`/ai?prompt=${encodeURIComponent(
+                          t(
+                            "اختبرني بسؤالين قصيرين في قطبية الماء والروابط الهيدروجينية.",
+                            "Quiz me with two short questions on water polarity and hydrogen bonding.",
+                          ),
+                        )}`}
+                        className="px-2 py-1 rounded bg-white/[0.08] hover:bg-white/[0.15] text-white"
+                      >
                         {t("◎ اختبرني في هذا المفهوم", "◎ Quiz Me on This")}
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

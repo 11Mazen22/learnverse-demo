@@ -26,6 +26,12 @@ import {
   evaluateLocalChoice,
   getSubjectQuestionBank,
 } from "@/lib/curriculum/sec1-study-pack";
+import {
+  ACCOUNT_DRAFT_EPOCH,
+  loadScopedStudyDraft,
+  removeScopedStudyDraft,
+  saveScopedStudyDraft,
+} from "@/lib/study/draft-storage";
 
 type TrackOption = {
   id: string;
@@ -293,6 +299,38 @@ export function BossLive() {
         }
 
         setQuestions(arenaQuestions);
+        if (typeof window !== "undefined" && arenaQuestions.length > 0) {
+          const saved = loadScopedStudyDraft<{
+            fingerprint: string;
+            idx: number;
+            answer: string;
+            hintVisible: boolean;
+            shields: number;
+            firstTryCorrectIds: string[];
+            attemptedIds: string[];
+            missedPrompts: string[];
+          }>(
+            window.localStorage,
+            account.user?.id ?? null,
+            ACCOUNT_DRAFT_EPOCH,
+            `boss_${targetUnit.id}`,
+          );
+          if (saved && saved.fingerprint === arenaQuestions.map((q) => q.id).join(",")) {
+            setIdx(Math.min(Math.max(0, saved.idx ?? 0), Math.max(0, arenaQuestions.length - 1)));
+            setAnswer(saved.answer ?? "");
+            setHintVisible(Boolean(saved.hintVisible));
+            if (typeof saved.shields === "number") setShields(Math.max(0, Math.min(3, saved.shields)));
+            if (Array.isArray(saved.firstTryCorrectIds)) {
+              setFirstTryCorrectIds(new Set(saved.firstTryCorrectIds));
+            }
+            if (Array.isArray(saved.attemptedIds)) {
+              setAttemptedIds(new Set(saved.attemptedIds));
+            }
+            if (Array.isArray(saved.missedPrompts)) {
+              setMissedPrompts(saved.missedPrompts);
+            }
+          }
+        }
       } catch {
         if (isAlive()) {
           setError(
@@ -633,9 +671,62 @@ export function BossLive() {
         } else {
           setLocalCompleted(true);
         }
+        if (typeof window !== "undefined" && unit?.id) {
+          removeScopedStudyDraft(
+            window.localStorage,
+            account.user?.id ?? null,
+            ACCOUNT_DRAFT_EPOCH,
+            `boss_${unit.id}`,
+          );
+        }
       }, "");
     });
   }
+
+  useEffect(() => {
+    if (
+      loadingArena ||
+      bossResult ||
+      localCompleted ||
+      !unit?.id ||
+      !questions.length ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
+    if (idx === 0 && !answer.trim() && attemptedIds.size === 0 && !hintVisible) return;
+    saveScopedStudyDraft(
+      window.localStorage,
+      account.user?.id ?? null,
+      ACCOUNT_DRAFT_EPOCH,
+      `boss_${unit.id}`,
+      {
+        fingerprint: questions.map((q) => q.id).join(","),
+        idx,
+        answer,
+        hintVisible,
+        shields,
+        firstTryCorrectIds: Array.from(firstTryCorrectIds),
+        attemptedIds: Array.from(attemptedIds),
+        missedPrompts,
+      },
+    );
+  }, [
+    account.revision,
+    account.user?.id,
+    answer,
+    attemptedIds,
+    bossResult,
+    firstTryCorrectIds,
+    hintVisible,
+    idx,
+    loadingArena,
+    localCompleted,
+    missedPrompts,
+    questions,
+    shields,
+    unit?.id,
+  ]);
 
   async function openBox() {
     if (!bossResult?.reward_box_id || busy || attemptGuard.current.isBusy()) return;
@@ -670,7 +761,7 @@ export function BossLive() {
     return (
       <section className="aura-loading-state" role="status">
         <span />
-        <h2>{t("بنجهّز مساحتك…", "Preparing your space…")}</h2>
+        <h2>{t("جارٍ تجهيز مساحتك…", "Preparing your space…")}</h2>
         <p>{t("لحظات ونرتّب خطوتك التالية.", "Finding your next step.")}</p>
       </section>
     );
@@ -688,7 +779,7 @@ export function BossLive() {
   if (signedIn === false) {
     return (
       <ModuleWelcome
-        title={t("اجمع كل اللي اتعلمته.", "Bring your learning together.")}
+        title={t("اجمع كل ما تعلّمته.", "Bring your learning together.")}
         description={t(
           "تحدّي الوحدة يربط مهارات الوحدة كاملة في مواجهة تشخيصية من ٦–٨ أسئلة متدرجة بدلاً من ٣ أسئلة فقط.",
           "Unit Challenge tests your mastery across an entire unit with a 6–8 question diagnostic gauntlet.",
@@ -984,7 +1075,7 @@ export function BossLive() {
             </div>
 
             <h2 style={{ lineHeight: 1.7 }} dir={contentDir}>
-              <StudyRichText content={currentPrompt} />
+              <StudyRichText content={currentPrompt} inline />
             </h2>
 
             {current.question_type === "multiple-choice" ? (
@@ -1036,6 +1127,7 @@ export function BossLive() {
                 <b>{grade.correct ? t("صح 👏", "Correct 👏") : t("تحتاج تركيز — راجع السبب:", "Not quite — review why:")}</b>
                 <p style={{ margin: "4px 0 0", lineHeight: 1.7 }}>
                   <StudyRichText
+                    inline
                     content={resolveCurriculumText(
                       effectiveLang,
                       grade.explanation_ar,

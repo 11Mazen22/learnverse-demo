@@ -38,6 +38,11 @@ import {
   evaluateLocalChoice,
   getLessonStudyCompanion,
 } from "@/lib/curriculum/sec1-study-pack";
+import {
+  ACCOUNT_DRAFT_EPOCH,
+  loadScopedStudyDraft,
+  saveScopedStudyDraft,
+} from "@/lib/study/draft-storage";
 
 type LessonRow = {
   id: string;
@@ -180,10 +185,12 @@ export function LessonLive({ id }: { id: string }) {
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [hintVisible, setHintVisible] = useState(false);
   const [answerStates, setAnswerStates] = useState<Record<number, PracticeAnswerState>>({});
+  const draftReadyForLessonRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (account.loading) return;
     let alive = true;
+    draftReadyForLessonRef.current = null;
     attemptGuard.current.resetAll();
     setLoading(true);
     setError("");
@@ -193,6 +200,7 @@ export function LessonLive({ id }: { id: string }) {
     setBestScore(null);
     setDbQuestions([]);
     setTrack(null);
+    setActiveStage(0);
     setPracticeIndex(0);
     setHintVisible(false);
     setAnswerStates({});
@@ -333,6 +341,47 @@ export function LessonLive({ id }: { id: string }) {
 
         setLesson(lessonRes.data as LessonRow);
 
+        const savedDraft =
+          typeof window !== "undefined"
+            ? loadScopedStudyDraft<{
+                activeStage?: number;
+                revealedStepsByExample?: Record<number, number>;
+                practiceIndex?: number;
+                hintVisible?: boolean;
+                answerStates?: Record<number, PracticeAnswerState>;
+              }>(
+                window.localStorage,
+                account.user?.id ?? null,
+                ACCOUNT_DRAFT_EPOCH,
+                `lesson_${canonicalLessonId}`,
+              )
+            : null;
+        if (savedDraft) {
+          if (typeof savedDraft.activeStage === "number" && savedDraft.activeStage >= 0 && savedDraft.activeStage <= 4) {
+            setActiveStage(savedDraft.activeStage);
+          }
+          if (savedDraft.revealedStepsByExample && typeof savedDraft.revealedStepsByExample === "object") {
+            setRevealedStepsByExample(savedDraft.revealedStepsByExample);
+          }
+          if (typeof savedDraft.practiceIndex === "number" && savedDraft.practiceIndex >= 0) {
+            setPracticeIndex(savedDraft.practiceIndex);
+          }
+          if (typeof savedDraft.hintVisible === "boolean") {
+            setHintVisible(savedDraft.hintVisible);
+          }
+          if (savedDraft.answerStates && typeof savedDraft.answerStates === "object") {
+            const restored: Record<number, PracticeAnswerState> = {};
+            for (const [k, st] of Object.entries(savedDraft.answerStates)) {
+              const numKey = Number(k);
+              if (Number.isInteger(numKey) && st && typeof st === "object") {
+                restored[numKey] = { ...st, grading: false };
+              }
+            }
+            setAnswerStates(restored);
+          }
+        }
+        draftReadyForLessonRef.current = canonicalLessonId;
+
         setDbQuestions(
           ((questionRows.data ?? []) as DbQuestionRow[]).filter((row) => {
             const metadata =
@@ -359,7 +408,41 @@ export function LessonLive({ id }: { id: string }) {
     return () => {
       alive = false;
     };
-  }, [id, supabase, retry, account.user, account.loading, t]);
+  }, [id, supabase, retry, account.user, account.loading, account.revision, t]);
+
+  useEffect(() => {
+    if (!lesson?.id || draftReadyForLessonRef.current !== lesson.id) return;
+    if (typeof window === "undefined") return;
+    const sanitizedAnswers: Record<number, PracticeAnswerState> = {};
+    for (const [k, st] of Object.entries(answerStates)) {
+      const numKey = Number(k);
+      if (Number.isInteger(numKey) && st) {
+        sanitizedAnswers[numKey] = { ...st, grading: false };
+      }
+    }
+    saveScopedStudyDraft(
+      window.localStorage,
+      account.user?.id ?? null,
+      ACCOUNT_DRAFT_EPOCH,
+      `lesson_${lesson.id}`,
+      {
+        activeStage,
+        revealedStepsByExample,
+        practiceIndex,
+        hintVisible,
+        answerStates: sanitizedAnswers,
+      },
+    );
+  }, [
+    account.revision,
+    account.user?.id,
+    activeStage,
+    answerStates,
+    hintVisible,
+    lesson?.id,
+    practiceIndex,
+    revealedStepsByExample,
+  ]);
 
   if (account.error || error) {
     return (
@@ -391,7 +474,7 @@ export function LessonLive({ id }: { id: string }) {
   if (missing || !lesson) {
     return (
       <section className="panel" style={{ textAlign: "center", padding: 48 }}>
-        <h2>{t("الدرس ده مش متاح.", "This lesson is not available.")}</h2>
+        <h2>{t("هذا الدرس غير متاح حاليًا.", "This lesson is not available.")}</h2>
         <p style={{ color: "var(--muted)", margin: "12px 0 24px" }}>
           {t("تأكد من اختيار المادة والمسار الصحيحين من رحلة التعلّم.", "Check that you selected the correct subject and track from your learning journey.")}
         </p>
@@ -598,72 +681,74 @@ export function LessonLive({ id }: { id: string }) {
     }
 
     const revisionToken = account.revision.current;
-    setAnswerStates((prev) => ({
-      ...prev,
-      [idx]: { ...currentState, grading: true, error: undefined },
-    }));
+    await attemptGuard.current.runExclusive(async () => {
+      setAnswerStates((prev) => ({
+        ...prev,
+        [idx]: { ...currentState, grading: true, error: undefined },
+      }));
 
-    try {
-      const idempotencyKey = attemptGuard.current.getAttemptKey(item.id, currentState.selected);
-      const { data, error: rpcError } = await supabase.rpc("submit_attempt", {
-        p_question_id: item.id,
-        p_response: { value: currentState.selected },
-        p_assisted: hintVisible,
-        p_idempotency_key: idempotencyKey,
-        p_practice_repeat: true,
-      });
-      if (revisionToken !== account.revision.current) return;
-      if (rpcError) throw rpcError;
-      attemptGuard.current.clearAttempt(item.id);
-      const result = (data ?? {}) as {
-        correct?: boolean;
-        explanation_ar?: string;
-        explanation_en?: string;
-        xp_awarded?: number;
-      };
-      const correct = result.correct === true;
-      const distractor = !correct
-        ? extractDistractorFeedback(item.metadata, currentState.selected, contentLanguage)
-        : "";
-      const feedbackText =
-        distractor ||
-        resolveCurriculumText(
-          contentLanguage,
-          result.explanation_ar,
-          result.explanation_en,
-          correct
-            ? isEnContent
-              ? "Verified! Core concept confirmed."
-              : "إجابة موفّقة! أحسنت تطبيق المفهوم."
-            : isEnContent
-              ? "Review the worked steps and try again."
-              : "راجع خطوات المثال المحلول ثم أعد المحاولة.",
-        );
-      setAnswerStates((prev) => ({
-        ...prev,
-        [idx]: {
-          ...currentState,
-          submitted: true,
-          grading: false,
-          correct,
-          xpAwarded: typeof result.xp_awarded === "number" ? result.xp_awarded : undefined,
-          feedback: feedbackText,
-        },
-      }));
-    } catch {
-      if (revisionToken !== account.revision.current) return;
-      setAnswerStates((prev) => ({
-        ...prev,
-        [idx]: {
-          ...currentState,
-          grading: false,
-          error: t(
-            "تعذّر التحقق من الإجابة الآن. حاول مرة أخرى.",
-            "Could not verify this answer right now. Please try again.",
-          ),
-        },
-      }));
-    }
+      try {
+        const idempotencyKey = attemptGuard.current.getAttemptKey(item.id, currentState.selected);
+        const { data, error: rpcError } = await supabase.rpc("submit_attempt", {
+          p_question_id: item.id,
+          p_response: { value: currentState.selected },
+          p_assisted: hintVisible,
+          p_idempotency_key: idempotencyKey,
+          p_practice_repeat: true,
+        });
+        if (revisionToken !== account.revision.current) return;
+        if (rpcError) throw rpcError;
+        attemptGuard.current.clearAttempt(item.id);
+        const result = (data ?? {}) as {
+          correct?: boolean;
+          explanation_ar?: string;
+          explanation_en?: string;
+          xp_awarded?: number;
+        };
+        const correct = result.correct === true;
+        const distractor = !correct
+          ? extractDistractorFeedback(item.metadata, currentState.selected, contentLanguage)
+          : "";
+        const feedbackText =
+          distractor ||
+          resolveCurriculumText(
+            contentLanguage,
+            result.explanation_ar,
+            result.explanation_en,
+            correct
+              ? isEnContent
+                ? "Verified! Core concept confirmed."
+                : "إجابة موفّقة! أحسنت تطبيق المفهوم."
+              : isEnContent
+                ? "Review the worked steps and try again."
+                : "راجع خطوات المثال المحلول ثم أعد المحاولة.",
+          );
+        setAnswerStates((prev) => ({
+          ...prev,
+          [idx]: {
+            ...currentState,
+            submitted: true,
+            grading: false,
+            correct,
+            xpAwarded: typeof result.xp_awarded === "number" ? result.xp_awarded : undefined,
+            feedback: feedbackText,
+          },
+        }));
+      } catch {
+        if (revisionToken !== account.revision.current) return;
+        setAnswerStates((prev) => ({
+          ...prev,
+          [idx]: {
+            ...currentState,
+            grading: false,
+            error: t(
+              "تعذّر التحقق من الإجابة الآن. حاول مرة أخرى.",
+              "Could not verify this answer right now. Please try again.",
+            ),
+          },
+        }));
+      }
+    });
   }
 
   // Discipline detection

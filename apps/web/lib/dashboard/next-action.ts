@@ -8,6 +8,7 @@ export type DueAssignmentSummary = {
 
 export type NextLessonSummary = {
   id: string;
+  slug?: string | null;
   title_ar: string;
   title_en: string;
 };
@@ -149,7 +150,7 @@ export function computeNextAction(input: NextActionInput): RecommendedAction {
     return {
       kind: "next-lesson",
       urgency: "steady",
-      href: `/lesson/${encodeURIComponent(input.nextLesson.id)}`,
+      href: `/lesson/${encodeURIComponent(input.nextLesson.slug || input.nextLesson.id)}`,
       badgeAr: trackLabelAr,
       badgeEn: trackLabelEn,
       titleAr: lessonTitle,

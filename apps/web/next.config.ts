@@ -25,6 +25,11 @@ const nextConfig:NextConfig={
   },
   poweredByHeader:false,
   compress:true,
+  // `@supabase/supabase-js` ships one large barrel; per-export rewriting keeps
+  // unused auth/realtime/query clients out of server and client chunks.
+  experimental:{
+    optimizePackageImports:["@supabase/supabase-js"],
+  },
   serverExternalPackages:["@sparticuz/chromium","puppeteer-core","pdfkit","fontkit"],
   outputFileTracingIncludes:{"/api/documents/pdf":["./public/fonts/*.woff2","./public/fonts/*.ttf","./lib/pdf/fonts/noto-sans-math-latin-400-normal.woff","./node_modules/@sparticuz/chromium/bin/**"],"/api/ai/chart-pdf":["./public/fonts/*.woff2","./lib/pdf/fonts/noto-sans-math-latin-400-normal.woff","./node_modules/@sparticuz/chromium/bin/**"],"/api/pdf":["./lib/pdf/fonts/**"]},
   async headers(){

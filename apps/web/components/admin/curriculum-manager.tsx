@@ -664,8 +664,8 @@ export function CurriculumManager() {
                 disabled={busy}
                 onClick={() => void toggleCourse(course)}
                 style={{
-                  background: course.active ? "#fff3e8" : "#e9f7f0",
-                  color: course.active ? "#a65c16" : "var(--success)",
+                  background: course.active ? "var(--warning-soft)" : "var(--success-soft)",
+                  color: course.active ? "var(--warning)" : "var(--success)",
                 }}
               >
                 {course.active ? t("إيقاف","Pause") : t("تفعيل","Activate")}
@@ -715,7 +715,7 @@ export function CurriculumManager() {
             <small
               style={{ display: "block", marginTop: 12, color: "var(--muted)" }}
             >
-              {skills.filter((s) => s.course_id === course.id).length}{t("mastery المهارات","Skills")}</small>
+              {skills.filter((s) => s.course_id === course.id).length}{" "}{t("مهارة إتقان","mastery skills")}</small>
           </article>
         ))}
       </section>

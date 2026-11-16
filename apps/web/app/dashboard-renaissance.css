@@ -716,7 +716,7 @@ html[data-theme] .page-content .db-cockpit .dashboard-hero .nk-home-hero-actions
 .db-weak-copy small {
   display: block;
   font-size: 0.74rem;
-  color: var(--muted);
+  color: var(--ink);
 }
 
 .db-weak-actions {

@@ -46,6 +46,7 @@ type Unit = {
 };
 type Lesson = {
   id: string;
+  slug?: string | null;
   unit_id: string;
   position: number;
   title_ar: string;
@@ -143,7 +144,7 @@ export function LearnLive() {
             if (unitRows.length) {
               const lRes = await supabase
                 .from("lessons")
-                .select("id,unit_id,position,title_ar,title_en")
+                .select("id,slug,unit_id,position,title_ar,title_en")
                 .in(
                   "unit_id",
                   unitRows.map((u) => u.id),
@@ -573,7 +574,7 @@ export function LearnLive() {
                 </>
               ) : (
                 t(
-                  "التقدم مبني على إكمال الدروس والإتقان، مش مجرد فتح الصفحات.",
+                  "التقدّم مبني على إكمال الدروس والإتقان، وليس مجرّد فتح الصفحات.",
                   "Progress reflects lesson completion and mastery, rather than page visits.",
                 )
               )}
@@ -604,11 +605,11 @@ export function LearnLive() {
             aria-label={t("ابحث عن درس", "Search lessons")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("عن إيه حابب تتعلم؟", "What would you like to learn?")}
+            placeholder={t("عمَّ تبحث من الدروس؟", "What would you like to learn?")}
           />
           {[
             ["all", t("كل الدروس", "All lessons")],
-            ["new", t("لسه قدّامك", "To learn")],
+            ["new", t("قيد التعلّم", "To learn")],
             ["complete", t("مكتمل", "Completed")],
           ].map(([value, label]) => (
             <button
@@ -627,12 +628,12 @@ export function LearnLive() {
         <div className="panel empty-state">
           <h2>
             {trackLessons.length
-              ? t("مفيش دروس مطابقة لبحثك.", "No lessons match your search.")
+              ? t("لا توجد دروس مطابقة لبحثك.", "No lessons match your search.")
               : t("الدروس لم تُنشر بعد.", "Lessons have not been published yet.")}
           </h2>
           <p>
             {trackLessons.length
-              ? t("جرّب كلمة تانية أو غيّر التصفية.", "Try another search or change the filter.")
+              ? t("جرّب كلمة أخرى أو غيّر التصفية.", "Try another search or change the filter.")
               : t(
                   "تظهر المواد هنا بعد مراجعتها ونشرها.",
                   "Content appears here after review and publication.",
@@ -750,7 +751,7 @@ export function LearnLive() {
                         {!isLocked && (
                           <a
                             className="btn btn-secondary"
-                            href={`/study?lesson=${encodeURIComponent(lesson.id)}&title=${encodeURIComponent(rowTitle)}&tab=generator`}
+                            href={`/study?lesson=${encodeURIComponent(lesson.slug?.trim() || lesson.id)}${selected?.slug ? `&track=${encodeURIComponent(selected.slug)}` : ""}&title=${encodeURIComponent(rowTitle)}&tab=generator`}
                           >
                             {t("بطاقات ذكية", "Study Deck")}
                           </a>
@@ -766,7 +767,7 @@ export function LearnLive() {
                             background: isLocked ? "var(--surface-soft)" : "var(--accent)",
                             color: isLocked ? "var(--muted)" : "var(--surface)",
                           }}
-                          href={isLocked ? "#" : "/lesson/" + lesson.id}
+                          href={isLocked ? "#" : `/lesson/${encodeURIComponent(lesson.slug?.trim() || lesson.id)}`}
                         >
                           {completed.has(lesson.id) ? t("راجع", "Review") : t("ابدأ", "Start")}
                         </a>

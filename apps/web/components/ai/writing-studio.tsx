@@ -4,9 +4,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {createClient} from "@/lib/supabase/client";
 import { Dialog } from "@/components/ui/dialog";
 import { RichMessage } from "./rich-message";
-import { downloadNoataDocx,createNoataDocx } from "@/lib/ai/docx-export";
-import { downloadNoataXlsx,createNoataXlsx } from "@/lib/ai/xlsx-export";
-import { downloadNoataPptx,createNoataPptx } from "@/lib/ai/pptx-export";
+// Office exporters are heavy (document writers + zip/XML toolchains). They load
+// on demand at export time so the studio shell stays out of the initial bundle.
 import { Icon } from "@/components/ui/icon";
 import { writingDrafts } from "@/lib/ai/session-work";
 import {artifactFilename} from "@/lib/ai/artifact-filename";
@@ -95,18 +94,24 @@ export function WritingStudio({
     setTimeout(() => URL.revokeObjectURL(url), 15000);
     setNotice(t("تم تجهيز ملف Markdown.","Markdown file prepared."));
   }
-  function saveWord() {
+  async function saveWord() {
     try {
+      const { downloadNoataDocx } = await import("@/lib/ai/docx-export");
       downloadNoataDocx(draft, artifactFilename({format:"docx",title,content:draft,locale}));
       setNotice(t("تم تجهيز ملف Word قابل للتعديل.","Editable Word document prepared."));
     } catch {
       setNotice(t("المستند طويل جدًا للتصدير. قصّره أو حمّله بصيغة Markdown.","This document is too long to export. Shorten it or download Markdown."));
     }
   }
-  function saveOffice(format:"xlsx"|"pptx") {
+  async function saveOffice(format:"xlsx"|"pptx") {
     try {
-      if(format==="xlsx") downloadNoataXlsx(draft,artifactFilename({format:"xlsx",title,content:draft,locale}));
-      else downloadNoataPptx(draft,artifactFilename({format:"pptx",title,content:draft,locale}));
+      if(format==="xlsx"){
+        const { downloadNoataXlsx } = await import("@/lib/ai/xlsx-export");
+        downloadNoataXlsx(draft,artifactFilename({format:"xlsx",title,content:draft,locale}));
+      } else {
+        const { downloadNoataPptx } = await import("@/lib/ai/pptx-export");
+        downloadNoataPptx(draft,artifactFilename({format:"pptx",title,content:draft,locale}));
+      }
       setNotice(format==="xlsx"
        ?t("تم إنشاء ملف Excel قابل للتعديل من النص أو الجدول.","Created an editable Excel workbook from the text or table.")
        :t("تم إنشاء عرض PowerPoint قابل للتعديل. راجع الشرائح قبل المشاركة.","Created an editable PowerPoint deck. Review its slides before sharing."));
@@ -122,7 +127,11 @@ export function WritingStudio({
     let path:string|undefined;
     try{
       const id=crypto.randomUUID();
-      const data=saveFormat==="xlsx"?createNoataXlsx(draft):saveFormat==="pptx"?createNoataPptx(draft):createNoataDocx(draft);
+      const data=saveFormat==="xlsx"
+        ? (await import("@/lib/ai/xlsx-export")).createNoataXlsx(draft)
+        : saveFormat==="pptx"
+          ? (await import("@/lib/ai/pptx-export")).createNoataPptx(draft)
+          : (await import("@/lib/ai/docx-export")).createNoataDocx(draft);
       const filename=artifactFilename({format:saveFormat,title,content:draft,locale});
       const mime=saveFormat==="xlsx"?"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
         saveFormat==="pptx"?"application/vnd.openxmlformats-officedocument.presentationml.presentation":

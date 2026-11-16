@@ -196,7 +196,7 @@ At Noäta, student privacy and security are paramount:
 ١. تحديث الصفحة والتأكد من الاتصال بالإنترنت: تعمل المنصة بتقنيات متقدمة تتطلب اتصالاً مستقرًا لمزامنة التقدم.
 ٢. مسح الذاكرة المؤقتة (Cache): في حال لم تظهر التحديثات الأخيرة، جرب تحديث الصفحة بالضغط على Ctrl+F5 أو إفراغ الكاش.
 ٣. تقديم تذكرة دعم فني:
-يمكنك ملء نموذج الدعم الفني أسفل مركز المساعدة. لا يظهر النجاح إلا بعد تأكيد حفظ التذكرة، ثم يحاول النظام إرسال إشعار إلى البريد المهيأ (mazenshazly011@gmail.com) ويعرض حالة الإرسال بصدق. تحصل التذكرة المحفوظة على كود مرجعي فريد للتتبع.
+يمكنك ملء نموذج الدعم الفني أسفل مركز المساعدة. لا يظهر النجاح إلا بعد تأكيد حفظ التذكرة، ثم يحاول النظام إرسال إشعار إلى صندوق الدعم الرسمي ويعرض حالة الإرسال بصدق. تحصل التذكرة المحفوظة على كود مرجعي فريد للتتبع.
 `,
     contentEn: `
 If you encounter any difficulty while using Noäta:
@@ -204,7 +204,7 @@ If you encounter any difficulty while using Noäta:
 1. Check Network Connectivity: Progress sync and AI operations require an active connection.
 2. Hard Refresh: Use Ctrl+F5 or clear browser cache if a recently updated lesson appears unchanged.
 3. Submit a Support Ticket:
-Use our real support form below. A notification is immediately dispatched to our support inbox (mazenshazly011@gmail.com) and you will receive a unique ticket reference code (#NOATA-XXXXXX) for follow-up.
+Use our real support form below. A notification is dispatched to our official support inbox after the ticket is saved, and you will receive a unique ticket reference code (#NOATA-XXXXXX) for follow-up.
 `,
   },
 ];
