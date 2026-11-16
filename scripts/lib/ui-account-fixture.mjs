@@ -215,7 +215,7 @@ function installFixture(origin) {
           default_ai_model: "auto",
           ai_memory_enabled: true,
           theme: "system",
-          locale: localStorage.getItem("noata-locale")==="en"?"en":"ar",
+          locale: (localStorage.getItem("noata:locale:"+(localStorage.getItem("noata:active-account-scope")||"guest"))??localStorage.getItem("noata-locale"))==="en"?"en":"ar",
           reduced_motion: false,
         },
       ],
@@ -246,7 +246,7 @@ function installFixture(origin) {
       assignment_submissions: [],
       lesson_progress: [],
       assignment_items: [],
-      lessons: localStorage.getItem("noata-locale")==="en"?[{id:"ci-lesson",unit_id:"ci-unit",title_ar:"درس اصطناعي",title_en:"English fixture lesson",position:1,content:{summary_ar:"شرح اصطناعي",summary_en:"English fixture lesson summary",worked_en:"240 divided by 30 is 8."}}]:[],
+      lessons: (localStorage.getItem("noata:locale:"+(localStorage.getItem("noata:active-account-scope")||"guest"))??localStorage.getItem("noata-locale"))==="en"?[{id:"ci-lesson",unit_id:"ci-unit",title_ar:"درس اصطناعي",title_en:"English fixture lesson",position:1,content:{summary_ar:"شرح اصطناعي",summary_en:"English fixture lesson summary",worked_en:"240 divided by 30 is 8."}}]:[],
        units: [{id:"ci-unit",title_ar:"وحدة اصطناعية",title_en:"English fixture unit"}],
       skills: [],
       class_memberships: [],
@@ -267,7 +267,7 @@ function installFixture(origin) {
           content:
             "## CI PRIVATE " +
             suffix +
-            "\n\nSynthetic private workspace response."+(localStorage.getItem("noata-locale")==="en"?"\n\n"+[
+            "\n\nSynthetic private workspace response."+((localStorage.getItem("noata:locale:"+(localStorage.getItem("noata:active-account-scope")||"guest"))??localStorage.getItem("noata-locale"))==="en"?"\n\n"+[
               {version:1,id:"ci-quadratic",type:"quadratic",title:"CI quadratic explorer",fallback:"The roots change with the coefficients.",a:1,b:0,c:-1},
               {version:1,id:"ci-flashcards",type:"flashcards",title:"CI flashcards",fallback:"Distance is the length of a path.",cards:[{front:"Distance",back:"The length of a path."}]},
               {version:1,id:"ci-quiz",type:"quiz",title:"CI practice",fallback:"2 + 2 = 4.",questions:[{prompt:"What is 2 + 2?",choices:["4","5"],answer:0,explanation:"Adding two and two gives four."}]}
@@ -482,7 +482,7 @@ export async function verifyUiAccountContracts({
       "Admin UI loads fixture queue",
     );
     await auditView("admin");
-    await evaluate('localStorage.setItem("noata-locale","en")');
+    await evaluate('localStorage.setItem("noata:locale:"+(localStorage.getItem("noata:active-account-scope")||"guest"),"en")');
     await navigate("/admin");
     await waitFor(()=>evaluate('document.documentElement.lang==="en" && document.body.innerText.includes("English fixture question")'),"English staff question content");
     invariant(await evaluate('document.body.innerText.includes("Content list")'),"Admin interface follows English");
@@ -509,7 +509,7 @@ export async function verifyUiAccountContracts({
     invariant(await evaluate('document.querySelector(".owui-layout").getAttribute("dir")==="ltr"'),"English AI layout uses LTR during actual content interactions");
     await auditView("english-interactive-ai");
     await screenshot("artifacts/noata-browser/english-interactive-ai.png");
-    await evaluate('localStorage.setItem("noata-locale","ar")');
+    await evaluate('localStorage.setItem("noata:locale:"+(localStorage.getItem("noata:active-account-scope")||"guest"),"ar")');
     await evaluate(
       'window.__noataUiFixture.switchAccount("student","00000000-0000-4000-8000-000000000001")',
     );

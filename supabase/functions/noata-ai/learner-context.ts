@@ -200,7 +200,10 @@ export function formatLearnerContext(snapshot: LearnerSnapshot, now = Date.now()
   }
   const grounding = String(snapshot.curriculumGrounding ?? "").trim();
   if (grounding) {
-    lines.push(grounding.slice(0, 2600));
+    // Four ranked JSONB lesson excerpts plus the six-subject syllabus map fit
+    // comfortably inside this bound while remaining small relative to the chat
+    // request budget enforced by request-budget.ts.
+    lines.push(grounding.slice(0, 6500));
   }
   return lines.join("\n");
 }
@@ -227,6 +230,101 @@ async function safeOptionalQuery(promise: Promise<any>): Promise<{ data: any[] }
   }
 }
 
+const CURRICULUM_CATALOG_TTL_MS = 15 * 60 * 1000;
+let curriculumCatalogCache: { expiresAt: number; lessons: DbLessonSnippet[] } | null = null;
+let curriculumCatalogLoad: Promise<DbLessonSnippet[]> | null = null;
+
+/**
+ * Load every published Sec. 1 curriculum lesson once per warm Edge isolate.
+ * Production stores lesson bodies as JSONB. Keeping the complete 46-lesson
+ * catalogue in a short-lived server cache lets each query rank across all six
+ * subjects instead of accidentally seeing only the first database page.
+ */
+async function loadCurriculumLessonCatalog(admin: Admin): Promise<DbLessonSnippet[]> {
+  if (curriculumCatalogCache && curriculumCatalogCache.expiresAt > Date.now()) {
+    return curriculumCatalogCache.lessons;
+  }
+  if (curriculumCatalogLoad) return curriculumCatalogLoad;
+
+  curriculumCatalogLoad = (async () => {
+    try {
+      const [tracksRes, subjectsRes] = await Promise.all([
+        safeOptionalQuery(
+          admin
+            .from("curriculum_tracks")
+            .select("subject_id,slug,content_language,course_id")
+            .eq("publication_status", "published")
+            .eq("grade_level", 1)
+            .eq("term", 1)
+            .limit(20),
+        ),
+        safeOptionalQuery(admin.from("subjects").select("id,slug").limit(20)),
+      ]);
+      const tracks = tracksRes.data.filter((row: any) => row?.course_id && row?.slug);
+      if (!tracks.length) return [];
+
+      const subjectById = new Map(
+        subjectsRes.data
+          .filter((row: any) => row?.id && row?.slug)
+          .map((row: any) => [String(row.id), String(row.slug)]),
+      );
+      const trackByCourse = new Map(
+        tracks.map((row: any) => [
+          String(row.course_id),
+          {
+            track_slug: String(row.slug),
+            subject_slug: subjectById.get(String(row.subject_id)) ?? null,
+            content_language: row.content_language === "en" ? "en" : "ar",
+          },
+        ]),
+      );
+
+      const unitsRes = await safeOptionalQuery(
+        admin.from("units").select("id,course_id").in("course_id", [...trackByCourse.keys()]).limit(100),
+      );
+      const contextByUnit = new Map(
+        unitsRes.data.flatMap((row: any) => {
+          const context = trackByCourse.get(String(row.course_id));
+          return row?.id && context ? [[String(row.id), context] as const] : [];
+        }),
+      );
+      if (!contextByUnit.size) return [];
+
+      const lessonsRes = await safeOptionalQuery(
+        admin
+          .from("lessons")
+          .select("id,unit_id,title_ar,title_en,content,position")
+          .in("unit_id", [...contextByUnit.keys()])
+          .order("position", { ascending: true })
+          .limit(100),
+      );
+      const lessons = lessonsRes.data.flatMap((row: any) => {
+        const context = contextByUnit.get(String(row.unit_id));
+        if (!row?.id || !context) return [];
+        return [{
+          id: String(row.id),
+          title_ar: typeof row.title_ar === "string" ? row.title_ar : null,
+          title_en: typeof row.title_en === "string" ? row.title_en : null,
+          content: row.content,
+          ...context,
+        } satisfies DbLessonSnippet];
+      });
+      if (lessons.length) {
+        curriculumCatalogCache = {
+          expiresAt: Date.now() + CURRICULUM_CATALOG_TTL_MS,
+          lessons,
+        };
+      }
+      return lessons;
+    } catch {
+      return [];
+    } finally {
+      curriculumCatalogLoad = null;
+    }
+  })();
+  return curriculumCatalogLoad;
+}
+
 /** Read a bounded snapshot; any failure yields "" so chat still works. */
 export async function loadLearnerContext(
   admin: Admin,
@@ -237,7 +335,7 @@ export async function loadLearnerContext(
   const opts = typeof options === "string" ? { queryText: options } : (options ?? {});
   const queryText = String(opts.queryText ?? "");
   const read = (async (): Promise<string> => {
-    const [profile, progress, evidence, course, total, completedCount, enrollments, dbLessonsRes, decksRes, cardsRes] =
+    const [profile, progress, evidence, course, total, completedCount, enrollments, dbLessons, decksRes, cardsRes] =
       await Promise.all([
         admin.from("profiles").select("display_name,xp,streak_days").eq("id", userId).maybeSingle(),
         admin
@@ -276,7 +374,7 @@ export async function loadLearnerContext(
           .eq("user_id", userId)
           .order("updated_at", { ascending: false })
           .limit(4),
-        safeOptionalQuery(admin.from("lessons").select("id,title_ar,title_en,content").limit(16)),
+        loadCurriculumLessonCatalog(admin),
         safeOptionalQuery(
           admin
             .from("flashcard_decks")
@@ -295,7 +393,10 @@ export async function loadLearnerContext(
             .limit(16),
         ),
       ]);
-    if (profile.error && progress.error && evidence.error) return "";
+    // Personalization may fail independently of the shared curriculum catalogue.
+    // Keep curriculum teaching available even when profile/progress reads are
+    // temporarily unavailable; only return an empty block when both sources fail.
+    if (profile.error && progress.error && evidence.error && !dbLessons.length) return "";
     const trackRows = (enrollments.data ?? []) as any[];
     const trackByCourse = new Map<string, string>();
     for (const row of trackRows) {
@@ -364,7 +465,6 @@ export async function loadLearnerContext(
             : undefined,
         };
       });
-    const dbLessons = (dbLessonsRes.data ?? []) as DbLessonSnippet[];
     const studyDecks = (decksRes.data ?? []).map((row: any) => ({
       title: clean(row.title, 80),
     })) as StudyDeckSnippet[];

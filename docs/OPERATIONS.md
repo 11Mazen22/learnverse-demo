@@ -26,6 +26,13 @@
   - Recent `audit_events` for admin governance actions (`set_user_role`, term activation, feature flag switches).
   - `support_tickets` triage queues and delivery status.
 
+### AI Curriculum Tutor (`noata-ai-v2`)
+- Production AI is JWT-protected and serves the eight published First Secondary Term 1 tracks across all six subject families: Integrated Science, Mathematics, Philosophy & Logic, History, Arabic Language, and English.
+- The Edge tutor loads the complete published 46-lesson curriculum catalogue (including JSONB lesson bodies), caches it in each warm isolate for 15 minutes, and ranks the whole catalogue for every study question. It must never regress to an arbitrary first-page lesson sample.
+- Arabic/English Science and Mathematics tracks remain separate. An enrolled track receives the strongest ranking weight and its content language wins independently of the interface language.
+- Curriculum context is internal teacher preparation: answers should teach naturally, never expose database/file/provenance details or internal lesson IDs, and never fabricate external citations. If a learner explicitly requests sources, describe the knowledge as Noäta curriculum-aligned content and provide external citations only after real retrieval.
+- Release gate: `deno check` the Edge entrypoint, run `apps/web/lib/ai/curriculum-grounding.test.ts`, deploy only to `noata-ai-v2` with `verify_jwt=true`, then verify an unauthenticated call returns `401` before authenticated subject QA.
+
 ### Support Ticket Delivery
 - Public support identity is `support@enterpriseworkhub.online`; the domain has live MX records and a published Resend DKIM key. Never route support to `noata.app` — that domain is unregistered and cannot receive mail.
 - Tickets are persisted before delivery is attempted. Without `RESEND_API_KEY`, rows remain `queued_no_provider` and the API reports the missing variable truthfully; guest submissions are still captured.

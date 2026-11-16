@@ -204,12 +204,12 @@ async function verifyQuranControls(){
     await evaluate('document.querySelector(".mushaf-reader-controls .mushaf-segmented button:first-child").click()');
     await waitFor(async()=>await evaluate('document.querySelectorAll(".aura-quran-ayah").length===2'),"Quran verse study mode");
     invariant(await evaluate('document.querySelectorAll(".mushaf-study-card").length===2'),"Quran study mode retains both supplied verses");
-    invariant(await evaluate('(localStorage.getItem("noata-quran-bookmarks-v1")??"").includes("1:1")'),"Quran bookmark persistence");
+    invariant(await evaluate('((localStorage.getItem("noata:quran-bookmarks:guest")??localStorage.getItem("noata-quran-bookmarks-v1"))??"").includes("1:1")'),"Quran bookmark persistence");
     const original=await evaluate('document.querySelector(".aura-quran-verse")?.style.fontSize');
     await evaluate('document.querySelector("[aria-label=\\\"تكبير خط القرآن\\\"]")?.click()');
     const changed=await evaluate('document.querySelector(".aura-quran-verse")?.style.fontSize');
     invariant(original!==changed,"Quran font sizing");
-    const reading=await evaluate('(()=>{const b=document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]");const p=document.querySelector(".aura-quran-verse");return {label:b?.textContent?.trim(),font:p?.style.fontSize,persisted:localStorage.getItem("noata-quran-reading-percent-v2")}})()');
+    const reading=await evaluate('(()=>{const b=document.querySelector("[aria-label^=\\\"حجم القراءة\\\"]");const p=document.querySelector(".aura-quran-verse");return {label:b?.textContent?.trim(),font:p?.style.fontSize,persisted:localStorage.getItem("noata:quran-reading-percent:guest")??localStorage.getItem("noata-quran-reading-percent-v2")}})()');
     invariant(reading.label.includes("١١٠")&&reading.persisted==="110"&&Math.abs(parseFloat(reading.font)-35.2)<0.2,"Quran percentage matches rendered font and stored size");
     await navigate("/quran");
     await waitFor(async()=>await evaluate('document.querySelectorAll(".mushaf-flow-verse").length===2'),"Quran continuous reader restored on reload");
@@ -550,7 +550,7 @@ async function main() {
   await navigate("/");
   await waitFor(async()=>await evaluate('!document.querySelector(".nav-link-ai .nav-tag")'),"AI badge cleared after visiting AI");
   invariant(await evaluate('localStorage.getItem("noata:seen:guest:ai:1")==="1"'),"AI badge dismissal persists for the guest");
-  await evaluate('localStorage.setItem("noata-locale","en")');
+  await evaluate('localStorage.setItem("noata:locale:guest","en")');
   await navigate("/");
   await waitFor(async()=>await evaluate('document.documentElement.lang==="en" && document.documentElement.dir==="ltr" && !!Array.from(document.querySelectorAll(".sidebar-nav .nav-link")).find(x=>x.textContent.includes("Home"))'),"English navigation and LTR");
   invariant(await evaluate('document.querySelector(".skip-link")?.textContent?.includes("Skip to content")'),"English skip link follows locale");
@@ -571,7 +571,7 @@ async function main() {
     invariant(await evaluate('document.documentElement.dir==="ltr" && document.querySelector("#noata-ai-design-studio")?.textContent?.includes("My designs") && document.documentElement.scrollWidth-innerWidth<=3'),"English Design Studio and LTR layout at "+width);
     await screenshot("artifacts/noata-browser/settings-en-"+width+".png");
   }
-  await evaluate('localStorage.setItem("noata-locale","ar")');
+  await evaluate('localStorage.setItem("noata:locale:guest","ar")');
   await navigate("/");
   invariant(await evaluate('document.documentElement.lang==="ar" && document.documentElement.dir==="rtl" && !!Array.from(document.querySelectorAll(".sidebar-nav .nav-link")).find(x=>x.textContent.includes("الرئيسية"))'),"Arabic navigation and RTL restored");
   for(const [width,height,mobile] of [[1920,1080,false],[1440,900,false],[1024,768,false],[768,1024,true],[390,844,true],[320,700,true]]) {
@@ -611,7 +611,7 @@ async function main() {
   // ONE shell contracts: one composer, keyboard-accessible menus, seven widths,
   // both reading directions, no separate creation dashboard. These are UI fixtures.
   for(const oneLocale of ["en","ar"]){
-    await evaluate('localStorage.setItem("noata-locale",'+JSON.stringify(oneLocale)+')');
+    await evaluate('localStorage.setItem("noata:locale:guest",'+JSON.stringify(oneLocale)+')');
     for(const oneWidth of [320,375,390,768,1024,1440,1920]){
       await command("Emulation.setDeviceMetricsOverride",{width:oneWidth,height:900,deviceScaleFactor:1,mobile:oneWidth<=768});
       await navigate("/ai");
@@ -650,11 +650,11 @@ async function main() {
       if([390,1440].includes(oneWidth))await screenshot("artifacts/noata-browser/one-"+oneLocale+"-"+oneWidth+".png");
     }
   }
-  await evaluate('localStorage.setItem("noata-ai-motion-v1","off")');
+  await evaluate('localStorage.setItem("noata:motion:guest","off")');
   await navigate("/ai");
   invariant(await evaluate('document.documentElement.getAttribute("data-noata-motion")==="off"'),"ONE saved motion applied before Settings opens");
   invariant(await evaluate('document.querySelector(".owui-composer-wrap").getAnimations().every(a=>a.playState!=="running")'),"ONE motion off has no composer animation");
-  await evaluate('localStorage.removeItem("noata-ai-motion-v1");localStorage.setItem("noata-locale","ar")');
+  await evaluate('localStorage.removeItem("noata:motion:guest");localStorage.removeItem("noata-ai-motion-v1");localStorage.setItem("noata:locale:guest","ar")');
   await command("Emulation.setDeviceMetricsOverride",{width:1440,height:900,deviceScaleFactor:1,mobile:false});
   await navigate("/ai");
   // Conversation-first layout: no disconnected AI Tools dashboard.
