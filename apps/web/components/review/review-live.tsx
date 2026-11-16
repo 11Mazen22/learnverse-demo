@@ -3,6 +3,7 @@
 import { masteryLabel, questionTypeLabel } from "@/lib/i18n/content-labels";
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { buildStructuredAiHandoffHref } from "@/lib/ai/handoff-contract";
 import { ModuleWelcome } from "@/components/ui/module-welcome";
@@ -29,7 +30,12 @@ import {
   getLessonStudyPack,
   getTrackLessonStudyPacks,
 } from "@/lib/curriculum/sec1-all-lessons-pack";
-import { AchievementCelebration } from "@/components/ui/achievement-celebration";
+
+/** The celebration overlay only renders after the last question, so it is fetched on completion. */
+const AchievementCelebration = dynamic(
+  () => import("@/components/ui/achievement-celebration").then((mod) => mod.AchievementCelebration),
+  { ssr: false, loading: () => null },
+);
 
 type DbReviewQuestion = {
   id: string;

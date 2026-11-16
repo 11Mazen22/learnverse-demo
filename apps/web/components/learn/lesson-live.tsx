@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslation } from "@/lib/i18n/locale";
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useVerifiedAccount } from "@/lib/supabase/use-verified-account";
 import { createClient } from "@/lib/supabase/client";
@@ -9,10 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { ChoiceCardGroup } from "@/components/ui/choice-card-group";
 import { StudyRichText } from "@/components/study/study-rich-text";
 import { SubjectLabRouter } from "@/components/learn/labs/subject-lab-router";
-import { KnowledgeMapStrip } from "@/components/learn/knowledge-map-strip";
-import { LessonProvenanceDialog } from "@/components/learn/lesson-provenance-dialog";
 import { buildStructuredAiHandoffHref, type AiHandoffAction } from "@/lib/ai/handoff-contract";
-import { PreLessonDiagnostic } from "@/components/learn/pre-lesson-diagnostic";
 import {
   extractLessonHook,
   hasSummaryDetailBeyondHook,
@@ -43,6 +41,58 @@ import {
   loadScopedStudyDraft,
   saveScopedStudyDraft,
 } from "@/lib/study/draft-storage";
+
+/**
+ * Interactivity that only mounts on demand: the provenance dialog opens from a
+ * button, and the pre-lesson diagnostic + knowledge map render below the first
+ * stage. Splitting them keeps their code out of the route's initial JS.
+ */
+const LessonProvenanceDialog = dynamic(
+  () => import("@/components/learn/lesson-provenance-dialog").then((mod) => mod.LessonProvenanceDialog),
+  { ssr: false, loading: () => null },
+);
+const PreLessonDiagnostic = dynamic(
+  () => import("@/components/learn/pre-lesson-diagnostic").then((mod) => mod.PreLessonDiagnostic),
+  { ssr: false, loading: () => null },
+);
+
+function KnowledgeMapLoading() {
+  return (
+    <div className="card" aria-busy="true" aria-live="polite" style={{ minHeight: 132 }}>
+      <div
+        style={{
+          height: 14,
+          width: "44%",
+          borderRadius: 6,
+          marginBottom: 10,
+          background: "var(--surface-2, rgba(127,127,127,0.18))",
+        }}
+      />
+      <div
+        style={{
+          height: 12,
+          width: "100%",
+          borderRadius: 6,
+          marginBottom: 8,
+          background: "var(--surface-2, rgba(127,127,127,0.18))",
+        }}
+      />
+      <div
+        style={{
+          height: 64,
+          width: "100%",
+          borderRadius: 8,
+          background: "var(--surface-2, rgba(127,127,127,0.18))",
+        }}
+      />
+    </div>
+  );
+}
+
+const KnowledgeMapStrip = dynamic(
+  () => import("@/components/learn/knowledge-map-strip").then((mod) => mod.KnowledgeMapStrip),
+  { ssr: false, loading: () => <KnowledgeMapLoading /> },
+);
 
 type LessonRow = {
   id: string;

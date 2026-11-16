@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { Badge } from "@/components/ui/badge";
@@ -38,22 +39,68 @@ import {
   type CanonicalStudyDeck,
 } from "@/lib/curriculum/sec1-study-pack";
 import { ACCOUNT_DRAFT_EPOCH, loadScopedStudyDraft, saveScopedStudyDraft } from "@/lib/study/draft-storage";
-import {
-  FlashcardReviewStudio,
-  type StudioCardItem,
-} from "./flashcard-review-studio";
-import {
-  InteractiveQuizRunner,
-  type QuizMistakeRecord,
-} from "./interactive-quiz-runner";
-import { StudySpeedMatch } from "./study-speed-match";
-import { StudyImportExport } from "./study-import-export";
-import {
-  type DeckSummary,
-  type MistakeLogItem,
-  type StudySessionItem,
-  StudyMistakeHub,
-} from "./study-mistake-hub";
+import type { StudioCardItem } from "./flashcard-review-studio";
+import type { QuizMistakeRecord } from "./interactive-quiz-runner";
+import type { DeckSummary, MistakeLogItem, StudySessionItem } from "./study-mistake-hub";
+
+/**
+ * The studio runners below only mount after a tab or a quiz is selected (the
+ * default view is the generator), so they are code-split out of the route's
+ * initial JS and fetched on demand instead.
+ */
+function StudioPanelLoading() {
+  return (
+    <div className="card" aria-busy="true" aria-live="polite" style={{ minHeight: 168 }}>
+      <div
+        style={{
+          height: 18,
+          width: "38%",
+          borderRadius: 6,
+          marginBottom: 12,
+          background: "var(--surface-2, rgba(127,127,127,0.18))",
+        }}
+      />
+      <div
+        style={{
+          height: 12,
+          width: "82%",
+          borderRadius: 6,
+          marginBottom: 8,
+          background: "var(--surface-2, rgba(127,127,127,0.18))",
+        }}
+      />
+      <div
+        style={{
+          height: 104,
+          width: "100%",
+          borderRadius: 8,
+          background: "var(--surface-2, rgba(127,127,127,0.18))",
+        }}
+      />
+    </div>
+  );
+}
+
+const FlashcardReviewStudio = dynamic(
+  () => import("./flashcard-review-studio").then((mod) => mod.FlashcardReviewStudio),
+  { ssr: false, loading: () => <StudioPanelLoading /> },
+);
+const InteractiveQuizRunner = dynamic(
+  () => import("./interactive-quiz-runner").then((mod) => mod.InteractiveQuizRunner),
+  { ssr: false, loading: () => <StudioPanelLoading /> },
+);
+const StudySpeedMatch = dynamic(
+  () => import("./study-speed-match").then((mod) => mod.StudySpeedMatch),
+  { ssr: false, loading: () => <StudioPanelLoading /> },
+);
+const StudyImportExport = dynamic(
+  () => import("./study-import-export").then((mod) => mod.StudyImportExport),
+  { ssr: false, loading: () => <StudioPanelLoading /> },
+);
+const StudyMistakeHub = dynamic(
+  () => import("./study-mistake-hub").then((mod) => mod.StudyMistakeHub),
+  { ssr: false, loading: () => <StudioPanelLoading /> },
+);
 
 type StudyTask = {
   id: string;

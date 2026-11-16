@@ -211,3 +211,64 @@ not as a performance win.
 - `node scripts/phase4-bundle-weight.mjs` → `artifacts/phase4/bundle-weight-report.json`
 - `node scripts/phase4-platform-sweep.mjs` → `artifacts/phase4/sweep-report.json` + screenshots
 - `node scripts/phase4-cls-sources.mjs` → CLS culprit attribution
+
+---
+
+## 8. Follow-up: splitting the learning-route labs and runners
+
+Initial JS was re-measured after moving every interactive studio runner on
+`/study`, `/review` and `/lesson/[id]` behind `next/dynamic` (they mount only after a
+tab or dialog is opened, so no first-paint surface changed).
+
+| Route | Before | After | Δ |
+|---|---|---|---|
+| `/lesson/[id]` | 805.6 KB gz | **804.0 KB** | −1.6 KB |
+| `/study` | 808.6 KB gz | **785.1 KB** | **−23.5 KB (−2.9 %)** |
+| `/review` | 776.5 KB gz | **772.3 KB** | −4.2 KB |
+| `/ai` (unchanged by this work) | 672.9 KB gz | 673.0 KB | ±0 |
+
+What was deferred: `FlashcardReviewStudio`, `InteractiveQuizRunner`,
+`StudySpeedMatch`, `StudyImportExport`, `StudyMistakeHub`; on the lesson route
+`PreLessonDiagnostic`, `KnowledgeMapStrip` and `LessonProvenanceDialog`; on `/review`
+the `AchievementCelebration` overlay. Types stay statically imported (`import type`),
+so no runtime code is pulled by them.
+
+### Why the reduction is small — measured, not guessed
+
+`scripts/chunk-attribution.mjs` maps a route's initial scripts to their contents by
+gzipping each emitted chunk and matching library/data markers. On `/study` (785.1 KB):
+
+| Weight | Chunk contents |
+|---|---|
+| 187.2 KB | Sec. 1 curriculum data packs (`sec1-all-lessons-pack` / `sec1-study-pack`) |
+| 120.8 KB | `react-markdown` + remark/rehype pipeline |
+| 77.2 KB | KaTeX core (imported by `lib/curriculum/structured-content.ts`) |
+| 59.4 KB | Supabase client |
+| ~45 + 38.6 + 35.5 + 23 KB | framework/React runtime and shared UI |
+
+The five runners together were only ~23 KB, which is exactly what the split reclaimed.
+The remaining 785 KB is **content data and the math/markdown renderer**, not
+interactivity — so further component-level splitting cannot move it. A real reduction
+needs either per-track dynamic loading of the curriculum packs or deferring the
+markdown renderer (with a plain-text fallback), both of which change content rendering
+and were left out of scope here.
+
+### Runtime verification of the split
+
+`scripts/split-verify.mjs` loads each formerly-eager view (`?tab=review&mode=spaced`,
+`mode=speed_match`, `mode=mistake_hub`, `tab=quiz`), waits for the lazy chunk, and
+asserts the placeholder is gone, the panel rendered and no runtime error occurred:
+**6/7 views pass**. The seventh is `/lesson/[id]`, which renders only its guest gate
+without live Supabase credentials on this host — it is compile- and build-verified but
+not content-verified.
+
+### Post-split gate evidence
+
+- Chromium + axe sweep restricted to the three routes (`/study`, `/review`,
+  `/lesson/sci-1-1`) × `320`/`1440` × AR-dark/EN-light: **12/12 audits clean** — no
+  WCAG 2.2 AA violations, no horizontal overflow, no runtime page errors.
+- Vitals after the split: `/study` LCP 1316 ms / CLS 0.0053 / INP 24 ms;
+  `/review` LCP 976 ms / CLS 0.0499 / INP 24 ms (budget 0.1; the guest sign-in gate is
+  the shifting element).
+- Static gates re-run after the split: `check:text` PASS (804 files), `typecheck` PASS,
+  `modern:test` 719/717 pass, `legacy:check` 815/806 pass, clean build PASS.
