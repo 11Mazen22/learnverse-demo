@@ -117,7 +117,7 @@ export async function dispatchSupportTicketEmail(
   ticket: SupportTicketRecord,
 ): Promise<SupportEmailDeliveryResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const senderEmail = process.env.SUPPORT_SENDER_EMAIL || "Noäta Support <notifications@noata.app>";
+  const senderEmail = process.env.SUPPORT_SENDER_EMAIL || "Noäta Support <notifications@enterpriseworkhub.online>";
 
   // If Resend API key is present, execute actual transactional delivery
   if (apiKey) {

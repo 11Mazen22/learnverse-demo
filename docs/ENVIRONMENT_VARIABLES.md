@@ -9,6 +9,9 @@
 | SUPABASE_SERVICE_ROLE_KEY | Edge secrets only | Quota/receipts/private media operations |
 | FANAR_API_KEY | Edge secrets only | Fanar authentication |
 | FANAR_BASE_URL | Edge runtime, if configured | Provider endpoint; inspect server constant for fallback |
+| NOATA_SUPPORT_EMAIL | Web server | Support ticket destination; defaults to support@enterpriseworkhub.online |
+| SUPPORT_SENDER_EMAIL | Web server | Verified Resend sender identity |
+| RESEND_API_KEY | Web server secret | Transactional ticket delivery; tickets are still stored without it |
 
 Never commit .env.local, access/refresh tokens, Vercel protection tokens, service-role or Fanar keys. Public Supabase keys are not privileged server keys. No existing production secret was printed or changed during the rebuild. Auth callback URLs must explicitly include the accepted preview origin before signup/recovery QA.
 

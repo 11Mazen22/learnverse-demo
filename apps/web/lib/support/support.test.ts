@@ -31,7 +31,7 @@ const mockTicket: SupportTicketRecord = {
 
 test("support email destination uses the official Noäta identity, never a personal mailbox", () => {
   assert.equal(REQUIRED_SUPPORT_EMAIL, SUPPORT_EMAIL);
-  assert.ok(REQUIRED_SUPPORT_EMAIL.endsWith("@noata.app"), "support inbox must stay on the official domain");
+  assert.ok(REQUIRED_SUPPORT_EMAIL.endsWith("@enterpriseworkhub.online"), "support inbox must stay on the verified product domain");
   assert.equal(mockTicket.email_destination, SUPPORT_EMAIL);
 });
 

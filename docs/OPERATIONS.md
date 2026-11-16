@@ -3,7 +3,7 @@
 ## 1. Production Architecture Overview
 
 - **Web Frontend & API Layer (`apps/web`)**: Next.js 16.4.1 (Turbopack) hosted on Vercel (`reactStrictMode: true`, `poweredByHeader: false`, security headers enforcing `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, and `Strict-Transport-Security`).
-- **Database & Auth (`supabase/`)**: Supabase PostgreSQL governed by additive migrations (`52` files under `supabase/migrations/`, including Noäta 2.0 additive batches `M1` `20261114000000_user_settings_dashboard_preferences.sql`, `M2` `20261114000100_study_ecosystem_v2.sql`, and `M3` `20261114000200_school_operations_v2.sql`), Row-Level Security (`(select auth.uid())` owner checks, `can_manage_class()`, `is_admin()`), and server-authoritative RPCs (`review_flashcard`, `grade_assignment_submission`, `set_user_role`, `admin_ai_usage_summary`).
+- **Database & Auth (`supabase/`)**: Supabase PostgreSQL governed by additive migrations (`55` files under `supabase/migrations/`, including Noäta 2.0 additive batches `M1` `20261114000000_user_settings_dashboard_preferences.sql`, `M2` `20261114000100_study_ecosystem_v2.sql`, and `M3` `20261114000200_school_operations_v2.sql`), Row-Level Security (`(select auth.uid())` owner checks, `can_manage_class()`, `is_admin()`), and server-authoritative RPCs (`review_flashcard`, `grade_assignment_submission`, `set_user_role`, `admin_ai_usage_summary`).
 - **AI Edge Runtime (`supabase/functions/noata-ai`)**: Deno v2 Edge Function handling structured AI tutors, curriculum grounding, quiz/flashcard synthesis, quota receipts (`ai_request_receipts`), and model fallback routing.
 
 ---
